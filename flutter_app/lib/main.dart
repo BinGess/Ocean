@@ -6,6 +6,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/theme/app_theme.dart';
 import 'core/di/injection.dart';
 import 'presentation/bloc/audio/audio_bloc.dart';
+import 'presentation/bloc/audio/audio_event.dart';
+import 'presentation/bloc/record/record_bloc.dart';
+import 'presentation/bloc/insight/insight_bloc.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/records/records_screen.dart';
 import 'presentation/screens/journal/journal_screen.dart';
@@ -32,7 +35,12 @@ class MindFlowApp extends StatelessWidget {
           create: (context) => getIt<AudioBloc>()
             ..add(const AudioCheckPermission()),
         ),
-        // 后续可以添加更多全局 BLoC
+        BlocProvider(
+          create: (context) => getIt<RecordBloc>(),
+        ),
+        BlocProvider(
+          create: (context) => getIt<InsightBloc>(),
+        ),
       ],
       child: MaterialApp(
         title: 'MindFlow',

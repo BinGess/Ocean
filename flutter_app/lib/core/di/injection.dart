@@ -6,6 +6,11 @@ import '../../domain/repositories/audio_repository.dart';
 import '../../domain/repositories/record_repository.dart';
 import '../../domain/repositories/ai_repository.dart';
 import '../../domain/repositories/insight_repository.dart';
+import '../../domain/usecases/create_quick_note_usecase.dart';
+import '../../domain/usecases/get_records_usecase.dart';
+import '../../domain/usecases/update_record_usecase.dart';
+import '../../domain/usecases/generate_weekly_insight_usecase.dart';
+import '../../domain/usecases/get_weekly_insights_usecase.dart';
 import '../../data/repositories/audio_repository_impl.dart';
 import '../../data/repositories/record_repository_impl.dart';
 import '../../data/repositories/ai_repository_impl.dart';
@@ -16,6 +21,8 @@ import '../network/doubao_asr_client.dart';
 import '../network/doubao_llm_client.dart';
 import '../constants/app_constants.dart';
 import '../../presentation/bloc/audio/audio_bloc.dart';
+import '../../presentation/bloc/record/record_bloc.dart';
+import '../../presentation/bloc/insight/insight_bloc.dart';
 
 final getIt = GetIt.instance;
 
@@ -79,6 +86,46 @@ Future<void> configureDependencies() async {
     ),
   );
 
+  // ===== Use Cases =====
+
+  // 创建快速笔记
+  getIt.registerLazySingleton<CreateQuickNoteUseCase>(
+    () => CreateQuickNoteUseCase(
+      recordRepository: getIt<RecordRepository>(),
+      aiRepository: getIt<AIRepository>(),
+    ),
+  );
+
+  // 获取记录列表
+  getIt.registerLazySingleton<GetRecordsUseCase>(
+    () => GetRecordsUseCase(
+      recordRepository: getIt<RecordRepository>(),
+    ),
+  );
+
+  // 更新记录
+  getIt.registerLazySingleton<UpdateRecordUseCase>(
+    () => UpdateRecordUseCase(
+      recordRepository: getIt<RecordRepository>(),
+    ),
+  );
+
+  // 生成周洞察
+  getIt.registerLazySingleton<GenerateWeeklyInsightUseCase>(
+    () => GenerateWeeklyInsightUseCase(
+      recordRepository: getIt<RecordRepository>(),
+      aiRepository: getIt<AIRepository>(),
+      insightRepository: getIt<InsightRepository>(),
+    ),
+  );
+
+  // 获取周洞察列表
+  getIt.registerLazySingleton<GetWeeklyInsightsUseCase>(
+    () => GetWeeklyInsightsUseCase(
+      insightRepository: getIt<InsightRepository>(),
+    ),
+  );
+
   // ===== BLoCs =====
 
   // 音频 BLoC（工厂模式，每次创建新实例）
@@ -88,9 +135,24 @@ Future<void> configureDependencies() async {
     ),
   );
 
-  // 后续可以添加更多 BLoC
-  // getIt.registerFactory<RecordBloc>(() => RecordBloc(...));
-  // getIt.registerFactory<InsightBloc>(() => InsightBloc(...));
+  // 记录 BLoC
+  getIt.registerFactory<RecordBloc>(
+    () => RecordBloc(
+      createQuickNoteUseCase: getIt<CreateQuickNoteUseCase>(),
+      getRecordsUseCase: getIt<GetRecordsUseCase>(),
+      updateRecordUseCase: getIt<UpdateRecordUseCase>(),
+      recordRepository: getIt<RecordRepository>(),
+    ),
+  );
+
+  // 洞察 BLoC
+  getIt.registerFactory<InsightBloc>(
+    () => InsightBloc(
+      generateWeeklyInsightUseCase: getIt<GenerateWeeklyInsightUseCase>(),
+      getWeeklyInsightsUseCase: getIt<GetWeeklyInsightsUseCase>(),
+      insightRepository: getIt<InsightRepository>(),
+    ),
+  );
 }
 
 /// 清理资源
