@@ -13,16 +13,16 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../constants/app_constants.dart';
 
 /// 协议版本
-const int protocolVersion = 0b0001;
+const int protocolVersion = 0x01;
 
 /// Header 大小（字节）
-const int headerSize = 0b0001;
+const int headerSize = 0x01;
 
 /// 消息类型
 enum MessageType {
-  client(0b0001), // 客户端消息（JSON）
-  audio(0b1011), // 音频数据
-  server(0b1111); // 服务器响应（JSON）
+  client(0x01), // 客户端消息（JSON）
+  audio(0x0B), // 音频数据
+  server(0x0F); // 服务器响应（JSON）
 
   final int value;
   const MessageType(this.value);
@@ -30,10 +30,10 @@ enum MessageType {
 
 /// 消息标志
 enum MessageFlags {
-  none(0b0000), // 无标志
-  noSerial(0b0001), // 无序列号
-  hasSerial(0b0011), // 有序列号
-  ack(0b1001); // 确认消息
+  none(0x00), // 无标志
+  noSerial(0x01), // 无序列号
+  hasSerial(0x03), // 有序列号
+  ack(0x09); // 确认消息
 
   final int value;
   const MessageFlags(this.value);
@@ -41,9 +41,9 @@ enum MessageFlags {
 
 /// 序列化方法
 enum SerializationMethod {
-  json(0b0001), // JSON
-  protobuf(0b0010), // Protobuf（暂不支持）
-  thrift(0b0011); // Thrift（暂不支持）
+  json(0x01), // JSON
+  protobuf(0x02), // Protobuf（暂不支持）
+  thrift(0x03); // Thrift（暂不支持）
 
   final int value;
   const SerializationMethod(this.value);
@@ -51,9 +51,9 @@ enum SerializationMethod {
 
 /// 压缩方法
 enum CompressionMethod {
-  none(0b0000), // 无压缩
-  gzip(0b0001), // GZIP
-  lz4(0b0010); // LZ4（暂不支持）
+  none(0x00), // 无压缩
+  gzip(0x01), // GZIP
+  lz4(0x02); // LZ4（暂不支持）
 
   final int value;
   const CompressionMethod(this.value);
