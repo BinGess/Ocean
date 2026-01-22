@@ -6,10 +6,12 @@
  * 豆包语音识别 API 配置
  */
 export const DOUBAO_ASR_CONFIG = {
-  apiKey: import.meta.env.VITE_DOUBAO_ASR_API_KEY || '',
-  appId: import.meta.env.VITE_DOUBAO_ASR_APP_ID || '',
-  // 根据豆包文档配置端点
-  endpoint: 'wss://openspeech.bytedance.com/api/v1/asr'
+  appKey: import.meta.env.VITE_DOUBAO_ASR_APP_KEY || '',
+  accessKey: import.meta.env.VITE_DOUBAO_ASR_ACCESS_KEY || '',
+  // 推荐使用双向流式优化版（性能最优）
+  endpoint: 'wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_async',
+  // 资源 ID（小时版 / 并发版）
+  resourceId: import.meta.env.VITE_DOUBAO_ASR_RESOURCE_ID || 'volc.bigasr.sauc.duration'
 }
 
 /**
