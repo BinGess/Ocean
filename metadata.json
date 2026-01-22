@@ -1,7 +1,0 @@
-{
-  "name": "MindFlow - 每日觉察日记",
-  "description": "一款专注于情绪追踪、语音捕捉和非暴力沟通（NVC）洞察的正念日记应用。",
-  "requestFramePermissions": [
-    "microphone"
-  ]
-}
