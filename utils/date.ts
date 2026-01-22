@@ -159,3 +159,38 @@ export function parseISODate(isoString: string): Date {
 export function toISOString(date: Date): string {
   return date.toISOString()
 }
+
+/**
+ * 格式化为"距离现在"的时间描述
+ * @example "刚刚", "5分钟前", "1小时前", "昨天 14:30", "1月20日"
+ */
+export function formatDistanceToNow(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date
+  const now = new Date()
+  const diffMs = now.getTime() - d.getTime()
+  const diffMinutes = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  // 1分钟内：刚刚
+  if (diffMinutes < 1) return '刚刚'
+
+  // 1小时内：X分钟前
+  if (diffMinutes < 60) return `${diffMinutes}分钟前`
+
+  // 24小时内：X小时前
+  if (diffHours < 24) return `${diffHours}小时前`
+
+  // 昨天：昨天 HH:MM
+  if (isYesterday(d)) {
+    return `昨天 ${formatTime(d)}`
+  }
+
+  // 7天内：X天前
+  if (diffDays < 7) return `${diffDays}天前`
+
+  // 更早：月日
+  const month = d.getMonth() + 1
+  const day = d.getDate()
+  return `${month}月${day}日`
+}
