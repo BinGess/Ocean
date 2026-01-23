@@ -1,5 +1,6 @@
 /// 豆包 ASR (语音识别) 客户端
-/// 实现 WebSocket 二进制协议 (v2)
+/// 实现 WebSocket 二进制协议 (v3 API)
+/// 官方文档: https://www.volcengine.com/docs/6561/1354869
 library doubao_asr_client;
 
 /// 协议格式：
@@ -9,8 +10,10 @@ library doubao_asr_client;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:uuid/uuid.dart';
 import '../constants/app_constants.dart';
 
@@ -102,9 +105,9 @@ class DoubaoASRClient {
 
   /// 连接到 WebSocket
   ///
-  /// [appKey] API App Key
-  /// [accessKey] API Access Key
-  /// [resourceId] 资源 ID
+  /// [appKey] API App Key (X-Api-App-Key)
+  /// [accessKey] API Access Key (X-Api-Access-Key)
+  /// [resourceId] 资源 ID (X-Api-Resource-Id)
   Future<void> connect({
     required String appKey,
     required String accessKey,
@@ -120,21 +123,34 @@ class DoubaoASRClient {
       accessKey = accessKey.trim();
       resourceId = resourceId.trim();
 
-      final baseUri = Uri.parse(AppConstants.doubaoAsrEndpoint);
-      final uri = baseUri.replace(queryParameters: {
-        'appkey': appKey,
-        'token': accessKey,
-        'resource_id': resourceId,
-      });
+      final uri = Uri.parse(AppConstants.doubaoAsrEndpoint);
+      final connectId = const Uuid().v4();
 
-      print('ASRClient: Connecting to $uri');
-      _channel = WebSocketChannel.connect(
-        uri,
-        protocols: ['websocket'],
+      print('🔌 ASRClient: 连接 WebSocket...');
+      print('   URL: ${uri.toString()}');
+      print('   App-Key: ${appKey.substring(0, 8)}...');
+      print('   Resource-Id: $resourceId');
+      print('   Connect-Id: $connectId');
+
+      // 使用 dart:io WebSocket.connect() 支持自定义 HTTP Headers
+      // 这是 v3 API 官方文档要求的认证方式
+      final webSocket = await WebSocket.connect(
+        uri.toString(),
+        headers: {
+          'X-Api-App-Key': appKey,
+          'X-Api-Access-Key': accessKey,
+          'X-Api-Resource-Id': resourceId,
+          'X-Api-Connect-Id': connectId,
+        },
       );
+
+      print('✅ ASRClient: WebSocket 握手成功!');
+
+      // 包装为 WebSocketChannel
+      _channel = IOWebSocketChannel(webSocket);
       _sessionReady = false;
       _handshakeCompleter = Completer<void>();
-      
+
       // 监听消息
       _channel!.stream.listen(
         (message) {
@@ -142,65 +158,52 @@ class DoubaoASRClient {
           _handleMessage(message);
         },
         onError: (error) {
-          print('ASRClient: WebSocket Error: $error');
+          print('❌ ASRClient: WebSocket Error: $error');
           _responseController.addError(error);
         },
         onDone: () {
-          print('ASRClient: WebSocket connection closed');
+          print('🔌 ASRClient: WebSocket connection closed');
           _cleanup();
         },
       );
 
-      print('ASRClient: Sending start message...');
+      print('📤 ASRClient: Sending start message...');
       // 发送初始配置消息 (Full Client Request)
-      await _sendStartMessage(
-        appKey: appKey,
-        accessKey: accessKey,
-        resourceId: resourceId,
-      );
-      print('ASRClient: Start message sent');
+      await _sendStartMessage();
+      print('✅ ASRClient: Start message sent');
     } catch (e) {
-      print('ASRClient: Connection failed: $e');
+      print('❌ ASRClient: Connection failed: $e');
       _cleanup();
       rethrow;
     }
   }
 
   /// 发送启动消息 (Full Client Request)
-  Future<void> _sendStartMessage({
-    required String appKey,
-    required String accessKey,
-    required String resourceId,
-  }) async {
-    const uuid = Uuid();
-    final reqid = uuid.v4();
-
+  /// 格式按照 v3 API 官方文档要求
+  Future<void> _sendStartMessage() async {
     final payload = {
-      'app': {
-        'appid': appKey,
-        'token': accessKey,
-        'cluster': resourceId,
-      },
       'user': {
-        'uid': 'user_id', // 建议替换为实际用户 ID
+        'uid': DateTime.now().millisecondsSinceEpoch.toString(),
       },
       'audio': {
-        'format': 'aac', // 改为 aac，因为录音文件是 m4a/aac 格式
-        'codec': 'aac', 
-        'rate': 16000,
-        'bits': 16,
-        'channel': 1,
+        'format': 'pcm', // PCM 格式（注意：需要确保音频是 PCM 格式）
+        'codec': 'raw', // raw = PCM
+        'rate': AppConstants.audioSampleRate, // 16000
+        'bits': AppConstants.audioBitRate, // 16
+        'channel': AppConstants.audioChannels, // 1
       },
       'request': {
-        'reqid': reqid,
-        'workflow': 'audio_in,resample,partition,vad,fe,decode,itn,nlu_punctuate',
-        'show_utterances': true,
-        'result_type': 'full',
-        'sequence': 1,
+        'model_name': 'bigmodel', // 必填字段
+        'enable_itn': true, // 启用文本规范化
+        'enable_punc': true, // 启用标点
+        'enable_ddc': false, // 启用语义顺滑
+        'show_utterances': true, // 输出分句信息
+        'result_type': 'full', // full(全量) / single(增量)
       },
     };
-    
-    print('ASRClient: Start payload: ${json.encode(payload)}');
+
+    print('📤 ASRClient: Start payload (v3 format):');
+    print('   ${json.encode(payload)}');
 
     await _sendMessage(
       messageType: MessageType.fullClientRequest,
