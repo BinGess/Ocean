@@ -79,6 +79,11 @@ class AudioRepositoryImpl implements AudioRepository {
   }
 
   @override
+  bool isRecording() {
+    return _recordingStartTime != null;
+  }
+
+  @override
   double getCurrentDuration() {
     if (_recordingStartTime == null) {
       return 0.0;
@@ -87,6 +92,50 @@ class AudioRepositoryImpl implements AudioRepository {
   }
 
   @override
+  Future<String> saveAudioFile(String tempPath) async {
+    // 已经保存到持久存储，直接返回路径
+    return tempPath;
+  }
+
+  @override
+  Future<void> deleteAudioFile(String path) async {
+    try {
+      final file = File(path);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (e) {
+      // 忽略删除错误
+    }
+  }
+
+  @override
+  Future<int> getAudioFileSize(String path) async {
+    try {
+      final file = File(path);
+      return await file.length();
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  @override
+  Future<List<int>> readAudioFile(String path) async {
+    try {
+      final file = File(path);
+      return await file.readAsBytes();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  @override
+  Stream<List<int>>? getAudioStream() {
+    // TODO: 实现实时音频流
+    // 需要使用支持流式录音的包
+    return null;
+  }
+
   Future<void> dispose() async {
     await _recorder.dispose();
   }
