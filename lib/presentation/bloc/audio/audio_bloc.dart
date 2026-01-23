@@ -74,7 +74,9 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
     AudioStartRecording event,
     Emitter<AudioState> emit,
   ) async {
+    print('AudioBloc: _onStartRecording called');
     if (!state.hasPermission) {
+      print('AudioBloc: No permission');
       emit(state.copyWith(
         status: RecordingStatus.permissionDenied,
         errorMessage: '没有录音权限',
@@ -84,6 +86,7 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
 
     try {
       final success = await audioRepository.startRecording();
+      print('AudioBloc: startRecording success: $success');
 
       if (success) {
         emit(state.copyWith(
@@ -102,6 +105,7 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
         ));
       }
     } catch (e) {
+      print('AudioBloc: startRecording error: $e');
       emit(state.copyWith(
         status: RecordingStatus.error,
         errorMessage: '录音失败: $e',
@@ -114,12 +118,14 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
     AudioStopRecording event,
     Emitter<AudioState> emit,
   ) async {
+    print('AudioBloc: _onStopRecording called');
     _stopDurationTimer();
 
     emit(state.copyWith(status: RecordingStatus.processing));
 
     try {
       final audioPath = await audioRepository.stopRecording();
+      print('AudioBloc: stopRecording path: $audioPath');
 
       if (audioPath != null) {
         emit(state.copyWith(
@@ -133,6 +139,7 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
         ));
       }
     } catch (e) {
+      print('AudioBloc: stopRecording error: $e');
       emit(state.copyWith(
         status: RecordingStatus.error,
         errorMessage: '停止录音失败: $e',

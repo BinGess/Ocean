@@ -7,8 +7,9 @@ class AppConstants {
   static const String appVersion = '1.0.0';
 
   // 豆包语音识别 API 配置
+  // 官方文档: https://www.volcengine.com/docs/6561/1354869
   static const String doubaoAsrEndpoint =
-      'wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_async';
+      'wss://openspeech.bytedance.com/api/v2/asr';
 
   // 豆包大模型 API 配置
   static const String doubaoLlmEndpoint =

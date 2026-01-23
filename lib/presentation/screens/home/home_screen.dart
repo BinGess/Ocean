@@ -190,17 +190,17 @@ class _HomeScreenState extends State<HomeScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            audioState.isRecording ? '松开结束录音' : '长按开始录音',
+            audioState.isRecording ? '点击结束录音' : '点击开始录音',
             style: theme.textTheme.titleLarge?.copyWith(
               color: audioState.isRecording ? Colors.red : theme.primaryColor,
             ),
           ),
           const SizedBox(height: 48),
           RecordButton(
-            mode: RecordButtonMode.press,
+            mode: RecordButtonMode.toggle,
             isRecording: audioState.isRecording,
             duration: audioState.duration,
-            isEnabled: audioState.canRecord,
+            isEnabled: audioState.canRecord || audioState.isRecording, // 关键修复：录音中也必须允许点击，才能触发停止
             onRecordStart: () {
               context.read<AudioBloc>().add(const AudioStartRecording());
             },
