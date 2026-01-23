@@ -80,10 +80,10 @@ flutter:
     - assets/fonts/
     - .env
 
-  # 字体配置
-  fonts:
-    - family: Manrope
-      fonts:
-        - asset: assets/fonts/Manrope-Regular.ttf
-        - asset: assets/fonts/Manrope-Bold.ttf
-          weight: 700
+  # 字体配置（暂时注释掉，等待添加字体文件）
+  # fonts:
+  #   - family: Manrope
+  #     fonts:
+  #       - asset: assets/fonts/Manrope-Regular.ttf
+  #       - asset: assets/fonts/Manrope-Bold.ttf
+  #         weight: 700
