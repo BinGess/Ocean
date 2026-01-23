@@ -2,6 +2,7 @@
 /// 管理记录的创建、查询、更新、删除等操作
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../domain/entities/record.dart';
 import '../../../domain/usecases/create_quick_note_usecase.dart';
 import '../../../domain/usecases/get_records_usecase.dart';
 import '../../../domain/usecases/update_record_usecase.dart';
@@ -92,7 +93,10 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
       emit(state.copyWith(
         status: RecordStatus.success,
         records: records,
-        hasMore: event.limit != null && records.length >= event.limit,
+        hasMore: (() {
+          final limit = event.limit;
+          return limit != null && records.length >= limit;
+        })(),
       ));
     } catch (e) {
       emit(state.copyWith(

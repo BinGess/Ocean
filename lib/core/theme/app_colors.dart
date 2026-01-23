@@ -20,6 +20,13 @@ class AppColors {
   static const Color textMain = Color(0xFF3F4652);
   static const Color textLight = Color(0xFF9CA3AF);
 
+  static const Color background = backgroundLight;
+  static const Color surface = surfaceLight;
+  static const Color textPrimary = textMain;
+  static const Color textSecondary = textLight;
+  static const Color textTertiary = Color(0xFFB0B7C3);
+  static const Color border = Color(0xFFE5E7EB);
+
   // 情绪颜色（对应 MOOD_COLORS）
   static const Map<String, MoodColors> moodColors = {
     'HighPleasure': MoodColors(

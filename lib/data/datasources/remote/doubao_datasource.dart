@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import '../../../core/network/doubao_asr_client.dart';
 import '../../../core/network/doubao_llm_client.dart';
 import '../../../domain/entities/record.dart';
+import '../../../domain/entities/nvc_analysis.dart';
 import '../../../domain/entities/weekly_insight.dart';
 
 class DoubaoDataSource {

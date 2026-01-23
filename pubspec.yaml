@@ -30,7 +30,7 @@ dependencies:
   web_socket_channel: ^2.4.0
 
   # 音频录制
-  record: ^5.0.4
+  record: ^6.1.2
   audioplayers: ^5.2.1
   permission_handler: ^11.1.0
 
@@ -68,16 +68,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
-  # 资源文件
-  assets:
-    - assets/images/
-    - assets/fonts/
-
-  # 字体配置
-  fonts:
-    - family: Manrope
-      fonts:
-        - asset: assets/fonts/Manrope-Regular.ttf
-        - asset: assets/fonts/Manrope-Bold.ttf
-          weight: 700

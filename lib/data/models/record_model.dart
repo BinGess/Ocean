@@ -3,6 +3,7 @@
 
 import 'package:hive/hive.dart';
 import '../../domain/entities/record.dart';
+import '../../domain/entities/nvc_analysis.dart';
 
 part 'record_model.g.dart';
 
@@ -59,17 +60,41 @@ class RecordModel extends HiveObject {
   factory RecordModel.fromEntity(Record entity) {
     return RecordModel(
       id: entity.id,
-      type: entity.type.toString().split('.').last,
+      type: _recordTypeToString(entity.type),
       transcription: entity.transcription,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       audioUrl: entity.audioUrl,
       duration: entity.duration,
-      processingMode: entity.processingMode?.toString().split('.').last,
+      processingMode: entity.processingMode != null
+          ? _processingModeToString(entity.processingMode!)
+          : null,
       moods: entity.moods,
       needs: entity.needs,
       nvc: entity.nvc?.toJson(),
     );
+  }
+
+  static String _recordTypeToString(RecordType type) {
+    switch (type) {
+      case RecordType.quickNote:
+        return 'quick_note';
+      case RecordType.journal:
+        return 'journal';
+      case RecordType.weekly:
+        return 'weekly';
+    }
+  }
+
+  static String _processingModeToString(ProcessingMode mode) {
+    switch (mode) {
+      case ProcessingMode.onlyRecord:
+        return 'only_record';
+      case ProcessingMode.withMood:
+        return 'with_mood';
+      case ProcessingMode.withNVC:
+        return 'with_nvc';
+    }
   }
 
   /// 转换为 Domain 实体

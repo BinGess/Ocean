@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:ui' show FontFeature;
 
 enum RecordButtonMode {
   press, // 长按录音
@@ -221,7 +222,7 @@ class _RecordButtonState extends State<RecordButton>
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Colors.red,
-                  fontFeatureSettings: const [FontFeature.tabularFigures()],
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ),

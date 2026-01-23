@@ -20,10 +20,13 @@ class InsightRepositoryImpl implements InsightRepository {
 
   @override
   Future<WeeklyInsight?> getWeeklyInsight(String weekRange) async {
-    final model = database.weeklyInsightsBox.values
+    final models = database.weeklyInsightsBox.values
         .where((m) => m.weekRange == weekRange)
-        .firstOrNull;
-    return model?.toEntity();
+        .toList();
+    if (models.isEmpty) {
+      return null;
+    }
+    return models.first.toEntity();
   }
 
   @override

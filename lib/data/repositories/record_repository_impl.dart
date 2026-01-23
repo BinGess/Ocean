@@ -1,6 +1,10 @@
 /// 记录仓储实现
 /// 使用 Hive 进行本地存储
 
+import 'dart:convert';
+import 'package:uuid/uuid.dart';
+import '../../domain/entities/day_aggregation.dart';
+import '../../domain/entities/nvc_analysis.dart';
 import '../../domain/entities/record.dart';
 import '../../domain/repositories/record_repository.dart';
 import '../datasources/local/hive_database.dart';
@@ -12,10 +16,69 @@ class RecordRepositoryImpl implements RecordRepository {
   RecordRepositoryImpl({required this.database});
 
   @override
-  Future<Record> createRecord(Record record) async {
-    final model = RecordModel.fromEntity(record);
-    await database.recordsBox.put(record.id, model);
-    return model.toEntity();
+  Future<Record> createQuickNote({
+    required String transcription,
+    String? audioUrl,
+    double? duration,
+    ProcessingMode? processingMode,
+    List<String>? moods,
+    List<String>? needs,
+  }) async {
+    final now = DateTime.now();
+    final record = Record(
+      id: const Uuid().v4(),
+      type: RecordType.quickNote,
+      transcription: transcription,
+      createdAt: now,
+      updatedAt: now,
+      audioUrl: audioUrl,
+      duration: duration,
+      processingMode: processingMode,
+      moods: moods,
+      needs: needs,
+    );
+    return _putRecord(record);
+  }
+
+  @override
+  Future<Record> createJournal({
+    required String transcription,
+    String? title,
+    String? summary,
+    List<String>? referencedFragments,
+  }) async {
+    final now = DateTime.now();
+    final record = Record(
+      id: const Uuid().v4(),
+      type: RecordType.journal,
+      transcription: transcription,
+      createdAt: now,
+      updatedAt: now,
+      title: title,
+      summary: summary,
+      date: _dayKey(now),
+      referencedFragments: referencedFragments,
+    );
+    return _putRecord(record);
+  }
+
+  @override
+  Future<Record> createWeeklyRecord({
+    required String transcription,
+    required String weekRange,
+    List<String>? referencedRecords,
+  }) async {
+    final now = DateTime.now();
+    final record = Record(
+      id: const Uuid().v4(),
+      type: RecordType.weekly,
+      transcription: transcription,
+      createdAt: now,
+      updatedAt: now,
+      weekRange: weekRange,
+      referencedRecords: referencedRecords,
+    );
+    return _putRecord(record);
   }
 
   @override
@@ -32,11 +95,15 @@ class RecordRepositoryImpl implements RecordRepository {
 
   @override
   Future<List<Record>> getRecordsByType(RecordType type) async {
-    final typeString = type.toString().split('.').last;
-    final models = database.recordsBox.values
-        .where((m) => m.type == typeString)
-        .toList();
-    return models.map((m) => m.toEntity()).toList();
+    final records = await getAllRecords();
+    return records.where((r) => r.type == type).toList();
+  }
+
+  @override
+  Future<List<Record>> getRecordsByDate(DateTime date) async {
+    final start = DateTime(date.year, date.month, date.day);
+    final end = start.add(const Duration(days: 1));
+    return getRecordsByDateRange(start, end);
   }
 
   @override
@@ -46,7 +113,7 @@ class RecordRepositoryImpl implements RecordRepository {
   ) async {
     final models = database.recordsBox.values
         .where((m) =>
-            m.createdAt.isAfter(start) && m.createdAt.isBefore(end))
+            !m.createdAt.isBefore(start) && m.createdAt.isBefore(end))
         .toList();
 
     // 按创建时间降序排序
@@ -56,34 +123,121 @@ class RecordRepositoryImpl implements RecordRepository {
   }
 
   @override
-  Future<List<Record>> getRecordsForDay(DateTime day) async {
-    final startOfDay = DateTime(day.year, day.month, day.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
+  Future<DayAggregation?> getDayAggregation(String dayKey) async {
+    final date = _parseDayKey(dayKey);
+    if (date == null) {
+      return null;
+    }
+    final records = await getRecordsByDate(date);
+    if (records.isEmpty) {
+      return null;
+    }
 
-    return getRecordsByDateRange(startOfDay, endOfDay);
+    final moodCount = <String, int>{};
+    final needCount = <String, int>{};
+    double totalDuration = 0;
+    String? journalId;
+
+    for (final r in records) {
+      if (r.duration != null) {
+        totalDuration += r.duration!;
+      }
+      if (r.type == RecordType.journal) {
+        journalId = r.id;
+      }
+      for (final mood in (r.moods ?? const <String>[])) {
+        moodCount[mood] = (moodCount[mood] ?? 0) + 1;
+      }
+      for (final need in (r.needs ?? const <String>[])) {
+        needCount[need] = (needCount[need] ?? 0) + 1;
+      }
+    }
+
+    final dominantMoods = _topKeys(moodCount, limit: 3);
+    final dominantNeeds = _topKeys(needCount, limit: 3);
+
+    return DayAggregation(
+      dayKey: dayKey,
+      date: DateTime(date.year, date.month, date.day),
+      records: records,
+      dominantMoods: dominantMoods.isEmpty ? null : dominantMoods,
+      dominantNeeds: dominantNeeds.isEmpty ? null : dominantNeeds,
+      totalRecords: records.length,
+      totalDuration: totalDuration == 0 ? null : totalDuration,
+      hasJournal: journalId != null,
+      journalId: journalId,
+    );
   }
 
   @override
-  Future<List<Record>> getRecordsForWeek(DateTime weekStart) async {
-    final endOfWeek = weekStart.add(const Duration(days: 7));
-    return getRecordsByDateRange(weekStart, endOfWeek);
+  Future<List<DayAggregation>> getDayAggregations(
+      DateTime start, DateTime end) async {
+    final startDate = DateTime(start.year, start.month, start.day);
+    final endDate = DateTime(end.year, end.month, end.day);
+    if (endDate.isBefore(startDate)) {
+      return [];
+    }
+
+    final result = <DayAggregation>[];
+    for (var d = startDate;
+        !d.isAfter(endDate);
+        d = d.add(const Duration(days: 1))) {
+      final agg = await getDayAggregation(_dayKey(d));
+      if (agg != null) {
+        result.add(agg);
+      }
+    }
+    result.sort((a, b) => b.date.compareTo(a.date));
+    return result;
   }
 
   @override
   Future<Record> updateRecord(Record record) async {
-    final model = RecordModel.fromEntity(record);
-    await database.recordsBox.put(record.id, model);
-    return model.toEntity();
+    return _putRecord(record);
+  }
+
+  @override
+  Future<Record> updateProcessingMode(String id, ProcessingMode mode) async {
+    final current = await getRecordById(id);
+    if (current == null) {
+      throw StateError('Record not found: $id');
+    }
+    final updated = current.copyWith(
+      processingMode: mode,
+      updatedAt: DateTime.now(),
+    );
+    return _putRecord(updated);
+  }
+
+  @override
+  Future<Record> updateNVCAnalysis(String id, dynamic nvcAnalysis) async {
+    final current = await getRecordById(id);
+    if (current == null) {
+      throw StateError('Record not found: $id');
+    }
+
+    NVCAnalysis? parsed;
+    if (nvcAnalysis is NVCAnalysis) {
+      parsed = nvcAnalysis;
+    } else if (nvcAnalysis is Map<String, dynamic>) {
+      parsed = NVCAnalysis.fromJson(nvcAnalysis);
+    } else if (nvcAnalysis is String) {
+      final decoded = jsonDecode(nvcAnalysis);
+      if (decoded is Map<String, dynamic>) {
+        parsed = NVCAnalysis.fromJson(decoded);
+      }
+    }
+
+    final updated = current.copyWith(
+      nvc: parsed,
+      updatedAt: DateTime.now(),
+    );
+    return _putRecord(updated);
   }
 
   @override
   Future<void> deleteRecord(String id) async {
     await database.recordsBox.delete(id);
-  }
-
-  @override
-  Future<int> getRecordsCount() async {
-    return database.recordsBox.length;
   }
 
   @override
@@ -94,5 +248,45 @@ class RecordRepositoryImpl implements RecordRepository {
         .toList();
 
     return models.map((m) => m.toEntity()).toList();
+  }
+
+  @override
+  Future<List<Record>> getRecentRecords({int limit = 10}) async {
+    final records = await getAllRecords();
+    records.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return records.take(limit).toList();
+  }
+
+  Future<Record> _putRecord(Record record) async {
+    final model = RecordModel.fromEntity(record);
+    await database.recordsBox.put(record.id, model);
+    return model.toEntity();
+  }
+
+  String _dayKey(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  DateTime? _parseDayKey(String dayKey) {
+    final parts = dayKey.split('-');
+    if (parts.length != 3) {
+      return null;
+    }
+    final y = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    final d = int.tryParse(parts[2]);
+    if (y == null || m == null || d == null) {
+      return null;
+    }
+    return DateTime(y, m, d);
+  }
+
+  List<String> _topKeys(Map<String, int> counts, {int limit = 3}) {
+    final entries = counts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return entries.take(limit).map((e) => e.key).toList();
   }
 }

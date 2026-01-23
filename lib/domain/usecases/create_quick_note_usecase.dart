@@ -2,9 +2,9 @@
 /// 负责音频录制、转写、分析和保存的完整流程
 
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:uuid/uuid.dart';
 import '../entities/record.dart';
+import '../entities/nvc_analysis.dart';
 import '../repositories/record_repository.dart';
 import '../repositories/ai_repository.dart';
 import 'base_usecase.dart';
@@ -32,14 +32,9 @@ class CreateQuickNoteUseCase extends UseCase<Record, CreateQuickNoteParams> {
 
   @override
   Future<Record> call(CreateQuickNoteParams params) async {
-    // 1. 读取音频文件
     final audioFile = File(params.audioPath);
     final audioBytes = await audioFile.readAsBytes();
-
-    // 2. 语音转文字
-    final transcription = await aiRepository.transcribeAudio(
-      audioData: Uint8List.fromList(audioBytes),
-    );
+    final transcription = await aiRepository.transcribeAudioFile(params.audioPath);
 
     // 3. 计算音频时长（可以从文件元数据获取，这里简化处理）
     final duration = audioBytes.length / (16000 * 2); // 假设 16kHz 16bit
@@ -51,30 +46,16 @@ class CreateQuickNoteUseCase extends UseCase<Record, CreateQuickNoteParams> {
 
     switch (params.mode) {
       case ProcessingMode.onlyRecord:
-        // 仅保存转写文本
         break;
 
       case ProcessingMode.withMood:
-        // 保存转写文本 + 用户选择的情绪
         moods = params.selectedMoods;
-
-        // 可选：根据情绪推荐需要
-        if (moods != null && moods.isNotEmpty) {
-          needs = await aiRepository.recommendNeeds(moods: moods);
-        }
         break;
 
       case ProcessingMode.withNVC:
-        // 完整 NVC 分析
-        nvc = await aiRepository.analyzeWithNVC(
-          transcription: transcription,
-        );
-
-        // 从 NVC 分析中提取情绪和需要
-        if (nvc != null) {
-          moods = nvc.feelings.map((f) => f.feeling).toList();
-          needs = nvc.needs;
-        }
+        nvc = await aiRepository.analyzeWithNVC(transcription);
+        moods = nvc.feelings.map((f) => f.feeling).toList();
+        needs = nvc.needs.map((n) => n.need).toList();
         break;
     }
 
@@ -94,7 +75,19 @@ class CreateQuickNoteUseCase extends UseCase<Record, CreateQuickNoteParams> {
       nvc: nvc,
     );
 
-    // 6. 保存到数据库
-    return await recordRepository.createRecord(record);
+    final created = await recordRepository.createQuickNote(
+      transcription: record.transcription,
+      audioUrl: record.audioUrl,
+      duration: record.duration,
+      processingMode: record.processingMode,
+      moods: record.moods,
+      needs: record.needs,
+    );
+
+    if (record.nvc == null) {
+      return created;
+    }
+
+    return recordRepository.updateNVCAnalysis(created.id, record.nvc!.toJson());
   }
 }

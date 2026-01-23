@@ -7,9 +7,9 @@ import '../../models/weekly_insight_model.dart';
 
 class HiveDatabase {
   // Box 名称常量
-  static const String recordsBox = 'records';
-  static const String weeklyInsightsBox = 'weekly_insights';
-  static const String settingsBox = 'settings';
+  static const String recordsBoxName = 'records';
+  static const String weeklyInsightsBoxName = 'weekly_insights';
+  static const String settingsBoxName = 'settings';
 
   // Box 引用
   late Box<RecordModel> _recordsBox;
@@ -25,10 +25,10 @@ class HiveDatabase {
     _registerAdapters();
 
     // 打开 Boxes
-    _recordsBox = await Hive.openBox<RecordModel>(recordsBox);
+    _recordsBox = await Hive.openBox<RecordModel>(recordsBoxName);
     _weeklyInsightsBox =
-        await Hive.openBox<WeeklyInsightModel>(weeklyInsightsBox);
-    _settingsBox = await Hive.openBox(settingsBox);
+        await Hive.openBox<WeeklyInsightModel>(weeklyInsightsBoxName);
+    _settingsBox = await Hive.openBox(settingsBoxName);
   }
 
   /// 注册 Hive 类型适配器
