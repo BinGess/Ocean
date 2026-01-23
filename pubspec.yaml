@@ -30,7 +30,7 @@ dependencies:
   web_socket_channel: ^2.4.0
 
   # 音频录制
-  record: ^5.0.4
+  record: ^5.1.0
   audioplayers: ^5.2.1
   permission_handler: ^11.1.0
 
@@ -66,6 +66,10 @@ dev_dependencies:
   # 测试
   mockito: ^5.4.4
   bloc_test: ^9.1.5
+
+dependency_overrides:
+  # 修复 record_linux 兼容性问题
+  record_linux: ^1.0.0
 
 flutter:
   uses-material-design: true
