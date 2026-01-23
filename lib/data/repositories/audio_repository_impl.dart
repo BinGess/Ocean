@@ -31,13 +31,13 @@ class AudioRepositoryImpl implements AudioRepository {
       // 生成录音文件路径
       final directory = await getApplicationDocumentsDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final path = '${directory.path}/audio_$timestamp.m4a';
+      final path = '${directory.path}/audio_$timestamp.wav';
 
-      // 配置录音参数
+      // 配置录音参数（匹配豆包 ASR API 要求：PCM 16kHz 16bit mono）
       const config = RecordConfig(
-        encoder: AudioEncoder.aacLc, // AAC 编码
+        encoder: AudioEncoder.wav, // WAV 格式（PCM 编码）
         sampleRate: 16000, // 16kHz
-        bitRate: 128000, // 128kbps
+        bitRate: 256000, // WAV: 16000 * 16 * 1 = 256kbps
         numChannels: 1, // 单声道
       );
 
