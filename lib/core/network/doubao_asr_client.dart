@@ -128,23 +128,55 @@ class DoubaoASRClient {
 
       print('🔌 ASRClient: 连接 WebSocket...');
       print('   URL: ${uri.toString()}');
+      print('   Scheme: ${uri.scheme}');
+      print('   Host: ${uri.host}');
+      print('   Path: ${uri.path}');
       print('   App-Key: ${appKey.substring(0, 8)}...');
+      print('   Access-Key: ${accessKey.substring(0, 8)}...');
       print('   Resource-Id: $resourceId');
       print('   Connect-Id: $connectId');
 
-      // 使用 dart:io WebSocket.connect() 支持自定义 HTTP Headers
-      // 这是 v3 API 官方文档要求的认证方式
-      final webSocket = await WebSocket.connect(
-        uri.toString(),
-        headers: {
-          'X-Api-App-Key': appKey,
-          'X-Api-Access-Key': accessKey,
-          'X-Api-Resource-Id': resourceId,
-          'X-Api-Connect-Id': connectId,
-        },
-      );
+      // 使用 HttpClient 建立 WebSocket 连接，确保 headers 正确传递
+      final httpClient = HttpClient();
+
+      // 创建 WebSocket 请求
+      final request = await httpClient.getUrl(uri);
+
+      // 设置必需的 WebSocket headers
+      request.headers
+        ..set('Connection', 'Upgrade')
+        ..set('Upgrade', 'websocket')
+        ..set('Sec-WebSocket-Version', '13')
+        ..set('Sec-WebSocket-Key', _generateWebSocketKey())
+        // 添加豆包 API 认证 headers
+        ..set('X-Api-App-Key', appKey)
+        ..set('X-Api-Access-Key', accessKey)
+        ..set('X-Api-Resource-Id', resourceId)
+        ..set('X-Api-Connect-Id', connectId);
+
+      print('📤 发送 WebSocket 握手请求...');
+      print('   Headers: ${request.headers.toString()}');
+
+      final response = await request.close();
+
+      print('📥 收到响应:');
+      print('   Status: ${response.statusCode}');
+      print('   Headers: ${response.headers.toString()}');
+
+      if (response.statusCode != 101) {
+        final body = await response.transform(utf8.decoder).join();
+        throw Exception(
+          'WebSocket 握手失败: HTTP ${response.statusCode}\n'
+          'Response: $body',
+        );
+      }
+
+      // 升级到 WebSocket
+      final socket = await response.detachSocket();
+      final webSocket = WebSocket.fromUpgradedSocket(socket, serverSide: false);
 
       print('✅ ASRClient: WebSocket 握手成功!');
+      print('   X-Tt-Logid: ${response.headers.value('X-Tt-Logid')}');
 
       // 包装为 WebSocketChannel
       _channel = IOWebSocketChannel(webSocket);
@@ -176,6 +208,12 @@ class DoubaoASRClient {
       _cleanup();
       rethrow;
     }
+  }
+
+  /// 生成 WebSocket Sec-WebSocket-Key
+  String _generateWebSocketKey() {
+    final random = List<int>.generate(16, (i) => DateTime.now().millisecondsSinceEpoch % 256);
+    return base64.encode(random);
   }
 
   /// 发送启动消息 (Full Client Request)
