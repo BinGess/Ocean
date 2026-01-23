@@ -123,24 +123,30 @@ class DoubaoASRClient {
       accessKey = accessKey.trim();
       resourceId = resourceId.trim();
 
-      final uri = Uri.parse(AppConstants.doubaoAsrEndpoint);
+      final wsUri = Uri.parse(AppConstants.doubaoAsrEndpoint);
       final connectId = const Uuid().v4();
 
       print('🔌 ASRClient: 连接 WebSocket...');
-      print('   URL: ${uri.toString()}');
-      print('   Scheme: ${uri.scheme}');
-      print('   Host: ${uri.host}');
-      print('   Path: ${uri.path}');
+      print('   WS-URL: ${wsUri.toString()}');
+      print('   Scheme: ${wsUri.scheme}');
+      print('   Host: ${wsUri.host}');
+      print('   Path: ${wsUri.path}');
       print('   App-Key: ${appKey.substring(0, 8)}...');
       print('   Access-Key: ${accessKey.substring(0, 8)}...');
       print('   Resource-Id: $resourceId');
       print('   Connect-Id: $connectId');
 
+      // 将 wss:// 转换为 https:// 用于 HttpClient
+      // WebSocket over TLS 使用 HTTPS 进行初始握手
+      final httpUri = wsUri.replace(scheme: wsUri.scheme == 'wss' ? 'https' : 'http');
+
+      print('   HTTP-URL (for handshake): ${httpUri.toString()}');
+
       // 使用 HttpClient 建立 WebSocket 连接，确保 headers 正确传递
       final httpClient = HttpClient();
 
       // 创建 WebSocket 请求
-      final request = await httpClient.getUrl(uri);
+      final request = await httpClient.getUrl(httpUri);
 
       // 设置必需的 WebSocket headers
       request.headers
