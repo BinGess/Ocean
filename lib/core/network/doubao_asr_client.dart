@@ -91,6 +91,8 @@ class DoubaoASRClient {
   WebSocketChannel? _channel;
   final StreamController<ASRResponse> _responseController =
       StreamController<ASRResponse>.broadcast();
+  bool _sessionReady = false;
+  Completer<void>? _handshakeCompleter;
 
   /// 响应流
   Stream<ASRResponse> get responses => _responseController.stream;
@@ -113,38 +115,52 @@ class DoubaoASRClient {
     }
 
     try {
-      // 构建 WebSocket URI（使用 Uri.parse 然后添加查询参数）
-      final baseUri = Uri.parse(AppConstants.doubaoAsrEndpoint);
+      // 确保参数没有多余空格
+      appKey = appKey.trim();
+      accessKey = accessKey.trim();
+      resourceId = resourceId.trim();
 
-      // 创建 WebSocket 连接（Dart 支持自定义 headers！）
-      // 对于生产环境，使用标准 WebSocket 连接，无需 URL 参数鉴权（将在 Payload 中鉴权）
+      final baseUri = Uri.parse(AppConstants.doubaoAsrEndpoint);
+      final uri = baseUri.replace(queryParameters: {
+        'appkey': appKey,
+        'token': accessKey,
+        'resource_id': resourceId,
+      });
+
+      print('ASRClient: Connecting to $uri');
       _channel = WebSocketChannel.connect(
-        baseUri,
+        uri,
         protocols: ['websocket'],
       );
-      // 创建 WebSocket 连接（Dart 支持自定义 headers！）
-      // 对于生产环境，使用标准 WebSocket 连接，无需 URL 参数鉴权（将在 Payload 中鉴权）
-      _channel = WebSocketChannel.connect(
-        baseUri,
-        protocols: ['websocket'],
-      );
+      _sessionReady = false;
+      _handshakeCompleter = Completer<void>();
       
       // 监听消息
       _channel!.stream.listen(
+        (message) {
+          print('ASRClient: Received message');
+          _handleMessage(message);
+        },
+        onError: (error) {
+          print('ASRClient: WebSocket Error: $error');
           _responseController.addError(error);
         },
         onDone: () {
+          print('ASRClient: WebSocket connection closed');
           _cleanup();
         },
       );
 
+      print('ASRClient: Sending start message...');
       // 发送初始配置消息 (Full Client Request)
       await _sendStartMessage(
         appKey: appKey,
         accessKey: accessKey,
         resourceId: resourceId,
       );
+      print('ASRClient: Start message sent');
     } catch (e) {
+      print('ASRClient: Connection failed: $e');
       _cleanup();
       rethrow;
     }
@@ -169,9 +185,9 @@ class DoubaoASRClient {
         'uid': 'user_id', // 建议替换为实际用户 ID
       },
       'audio': {
-        'format': 'raw', // PCM 对应 raw
-        'codec': 'raw', // PCM 对应 raw
-        'rate': AppConstants.audioSampleRate,
+        'format': 'aac', // 改为 aac，因为录音文件是 m4a/aac 格式
+        'codec': 'aac', 
+        'rate': 16000,
         'bits': 16,
         'channel': 1,
       },
@@ -183,6 +199,8 @@ class DoubaoASRClient {
         'sequence': 1,
       },
     };
+    
+    print('ASRClient: Start payload: ${json.encode(payload)}');
 
     await _sendMessage(
       messageType: MessageType.fullClientRequest,
@@ -199,6 +217,11 @@ class DoubaoASRClient {
       throw Exception('Not connected. Call connect() first.');
     }
 
+    if (!_sessionReady && _handshakeCompleter != null) {
+      await _handshakeCompleter!.future
+          .timeout(const Duration(seconds: 10));
+    }
+
     await _sendMessage(
       messageType: MessageType.audioOnlyRequest,
       flags: MessageFlags.none,
@@ -212,6 +235,11 @@ class DoubaoASRClient {
   Future<void> finishAudio() async {
     if (_channel == null) {
       throw Exception('Not connected. Call connect() first.');
+    }
+
+    if (!_sessionReady && _handshakeCompleter != null) {
+      await _handshakeCompleter!.future
+          .timeout(const Duration(seconds: 10));
     }
 
     // 发送空音频包表示结束，并设置 isLast 标志
@@ -290,36 +318,162 @@ class DoubaoASRClient {
   /// 处理接收到的消息
   void _handleMessage(dynamic message) {
     if (message is! Uint8List) {
+      print('ASRClient: Message is not Uint8List: ${message.runtimeType}');
       return;
     }
+    
+    print('ASRClient: Received bytes length: ${message.length}');
+    // 打印前 16 个字节的 Hex，帮助调试
+    final hexPreview = message.take(16).map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
+    print('ASRClient: Hex Preview: $hexPreview');
 
     try {
       // 解析 header
-      if (message.length < 8) {
-        return; // 消息太短，忽略
+      if (message.length < 4) { // Header 只有 4 字节
+        print('ASRClient: Message too short for header');
+        return; 
       }
 
-      // 提取 payload size（大端序）
+      // 检查协议版本和 Header 大小
+      final firstByte = message[0];
+      final version = (firstByte >> 4) & 0x0F;
+      final headerSz = firstByte & 0x0F;
+      print('ASRClient: Version: $version, HeaderSize: $headerSz');
+
+      // 关键修正：Header 大小单位是“4字节字”，所以 headerSz=1 代表 4 字节
+      // 但是 Payload Size 不在 Header 内，而是紧跟在 Header 后面
+      // Header 结构 (4 bytes):
+      // Byte 0: [Version:4][HeaderSize:4]
+      // Byte 1: [MessageType:4][Flags:4]
+      // Byte 2: [Serialization:4][Compression:4]
+      // Byte 3: [Reserved:8]
+      //
+      // Payload Size 结构 (4 bytes):
+      // Byte 4-7: [Size:32] (Big Endian)
+
+      if (message.length < 8) {
+         print('ASRClient: Message too short for payload size');
+         return;
+      }
+
       final payloadSize = (message[4] << 24) |
           (message[5] << 16) |
           (message[6] << 8) |
           message[7];
+      
+      print('ASRClient: Payload size: $payloadSize');
 
-      // 提取 payload
-      if (message.length < 8 + payloadSize) {
-        return; // 消息不完整
+      // 如果 payloadSize 仍然异常大（比如 > 10MB），可能是因为我们对协议理解有误
+      // 或者服务器返回的不是标准协议头
+      // 让我们观察一下 hexPreview: 11 f0 10 00 02 ae a5 40 00 00 00 c9 7b 22 ...
+      // Byte 0: 11 -> Ver=1, HdrSz=1
+      // Byte 1: f0 -> MsgType=15(0xF=ServerError?), Flags=0
+      // Byte 2: 10 -> Ser=1(JSON), Comp=0(None)
+      // Byte 3: 00 -> Reserved
+      // Byte 4-7: 02 ae a5 40 -> 0x02aea540 = 45000000 ??? 这里的 Size 确实很大！
+      // 
+      // 等等，如果 Byte 4-7 是 02 ae a5 40，那确实是 45000000。
+      // 但是消息总长度只有 213 字节。
+      // 这意味着：
+      // 1. 服务器返回的 Payload Size 字段含义可能不是“剩余字节数”？
+      // 2. 或者这个消息是 GZIP 压缩后的？但是 Compression=0。
+      // 3. 或者... Byte 4-7 实际上是 Sequence Number？
+      //
+      // 让我们再看一眼文档或参考实现。通常 Payload Size 是紧跟 Header 的。
+      // 如果 02 ae a5 40 不是 Size，那真正的 Size 在哪里？
+      //
+      // 让我们尝试另一种假设：
+      // 也许 Header 是 8 字节？
+      // 如果 HeaderSize=1 代表 4 字节，那么前 4 字节是 Header。
+      // 紧接着 4 字节是 Payload Size。
+      //
+      // 让我们看看后面的字节：00 00 00 c9
+      // 0x000000c9 = 201
+      // 消息总长 213。Header(4) + SizeField(4) + Payload(201) = 209。
+      // 209 + 4 (Extra?) = 213?
+      // 或者 Header(4) + Sequence(4) + Size(4) + Payload?
+      //
+      // 让我们看看 Hex:
+      // 11 f0 10 00 (Header, 4 bytes)
+      // 02 ae a5 40 (Unknown, 4 bytes, maybe Sequence?)
+      // 00 00 00 c9 (Size? 0xc9 = 201)
+      // 7b 22 72 65 (Payload start: {"re...)
+      //
+      // 验证：213 - 12 = 201。
+      // 所以协议格式应该是：
+      // [Header: 4 bytes]
+      // [Sequence Number: 4 bytes] (02 ae a5 40)
+      // [Payload Size: 4 bytes] (00 00 00 c9 = 201)
+      // [Payload: 201 bytes]
+      //
+      // 修正解析逻辑：跳过 Sequence Number (4 bytes)
+
+      if (message.length < 12) {
+         print('ASRClient: Message too short for sequence and size');
+         return;
       }
 
-      final payload = message.sublist(8, 8 + payloadSize);
+      // 跳过 4 字节 Sequence Number (Bytes 4-7)
+      // 读取 Bytes 8-11 作为 Payload Size
+      final realPayloadSize = (message[8] << 24) |
+          (message[9] << 16) |
+          (message[10] << 8) |
+          message[11];
+      
+      print('ASRClient: Real Payload size: $realPayloadSize');
 
-      // 解析 JSON
-      final jsonStr = utf8.decode(payload);
-      final jsonData = json.decode(jsonStr) as Map<String, dynamic>;
+      if (message.length < 12 + realPayloadSize) {
+        print('ASRClient: Incomplete message. Expected ${12 + realPayloadSize}, got ${message.length}');
+        return; 
+      }
 
-      // 构建响应
-      final response = ASRResponse.fromJson(jsonData);
-      _responseController.add(response);
+      final payload = message.sublist(12, 12 + realPayloadSize);
+      
+      // 尝试打印 Payload 内容（如果是文本）
+      try {
+         // 检查 Serialization Method
+         final serialization = (message[2] >> 4) & 0x0F;
+         final compression = message[2] & 0x0F;
+         print('ASRClient: Serialization: $serialization, Compression: $compression');
+
+         if (compression == CompressionMethod.gzip.value) {
+            print('ASRClient: GZIP compression not supported yet');
+            // TODO: Handle GZIP
+            return;
+         }
+
+         final jsonStr = utf8.decode(payload);
+         print('ASRClient: Response JSON: $jsonStr');
+         final jsonData = json.decode(jsonStr) as Map<String, dynamic>;
+
+         final code = jsonData['code'];
+         final messageText = jsonData['message']?.toString();
+         if (!_sessionReady) {
+           if (code == 0 || code == 1000) {
+             _sessionReady = true;
+             if (_handshakeCompleter != null &&
+                 !_handshakeCompleter!.isCompleted) {
+               _handshakeCompleter!.complete();
+             }
+           } else if (messageText != null &&
+               messageText.startsWith('setup session')) {
+             if (_handshakeCompleter != null &&
+                 !_handshakeCompleter!.isCompleted) {
+               _handshakeCompleter!
+                   .completeError(Exception(messageText));
+             }
+           }
+         }
+
+         // 构建响应
+         final response = ASRResponse.fromJson(jsonData);
+         _responseController.add(response);
+      } catch (e) {
+         print('ASRClient: Failed to decode payload as JSON: $e');
+      }
+
     } catch (e) {
+      print('ASRClient: Error handling message: $e');
       _responseController.addError(e);
     }
   }
@@ -333,6 +487,8 @@ class DoubaoASRClient {
   /// 清理资源
   void _cleanup() {
     _channel = null;
+    _sessionReady = false;
+    _handshakeCompleter = null;
   }
 
   /// 释放资源

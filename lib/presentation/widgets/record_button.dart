@@ -173,7 +173,8 @@ class _RecordButtonState extends State<RecordButton>
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.red.withOpacity(
-                          0.3 * (1 - (_pulseAnimation.value - 1) / 0.3),
+                          (0.3 * (1 - (_pulseAnimation.value - 1) / 0.3))
+                              .clamp(0.0, 1.0),
                         ),
                       ),
                     );

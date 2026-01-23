@@ -13,11 +13,13 @@ class CreateQuickNoteParams {
   final String audioPath;
   final ProcessingMode mode;
   final List<String>? selectedMoods;
+  final String? transcription;
 
   CreateQuickNoteParams({
     required this.audioPath,
     required this.mode,
     this.selectedMoods,
+    this.transcription,
   });
 }
 
@@ -32,8 +34,9 @@ class CreateQuickNoteUseCase extends UseCase<Record, CreateQuickNoteParams> {
 
   @override
   Future<Record> call(CreateQuickNoteParams params) async {
-    // 1. 语音转文字
-    final transcription = await aiRepository.transcribeAudioFile(params.audioPath);
+    // 1. 语音转文字（如果未提供）
+    final transcription = params.transcription ?? 
+        await aiRepository.transcribeAudioFile(params.audioPath);
 
     // 2. 计算音频时长（可以从文件元数据获取，这里简化处理）
     final audioFile = File(params.audioPath);

@@ -33,6 +33,9 @@ class RecordState extends Equatable {
   /// 是否有更多数据
   final bool hasMore;
 
+  /// 当前正在转写的文本
+  final String? transcription;
+
   const RecordState({
     required this.status,
     required this.records,
@@ -40,6 +43,7 @@ class RecordState extends Equatable {
     this.latestRecord,
     this.errorMessage,
     this.hasMore = true,
+    this.transcription,
   });
 
   /// 初始状态
@@ -64,6 +68,7 @@ class RecordState extends Equatable {
     bool? hasMore,
     bool clearSelection = false,
     bool clearLatest = false,
+    String? transcription,
   }) {
     return RecordState(
       status: status ?? this.status,
@@ -73,6 +78,7 @@ class RecordState extends Equatable {
       latestRecord: clearLatest ? null : (latestRecord ?? this.latestRecord),
       errorMessage: errorMessage ?? this.errorMessage,
       hasMore: hasMore ?? this.hasMore,
+      transcription: transcription ?? this.transcription,
     );
   }
 
@@ -93,5 +99,6 @@ class RecordState extends Equatable {
         latestRecord,
         errorMessage,
         hasMore,
+        transcription,
       ];
 }

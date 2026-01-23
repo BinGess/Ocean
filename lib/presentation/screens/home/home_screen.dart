@@ -38,10 +38,25 @@ class _HomeScreenState extends State<HomeScreen> {
       _completedAudioPath = audioPath;
     });
 
+    // 触发转写
+    context.read<RecordBloc>().add(RecordTranscribe(audioPath));
+
     // 显示处理选择模态框
-    ProcessingChoiceModal.show(
+    showModalBottomSheet<ProcessingMode>(
       context: context,
-      transcription: '正在转写中...',
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return BlocBuilder<RecordBloc, RecordState>(
+          builder: (context, state) {
+            return ProcessingChoiceModal(
+              transcription: state.transcription ?? '正在转写中...',
+              onSelect: (mode) => Navigator.of(context).pop(mode),
+              onCancel: () => Navigator.of(context).pop(),
+            );
+          },
+        );
+      },
     ).then((mode) {
       if (mode != null && _completedAudioPath != null) {
         _handleProcessingModeSelected(mode);
@@ -52,11 +67,15 @@ class _HomeScreenState extends State<HomeScreen> {
   void _handleProcessingModeSelected(ProcessingMode mode) {
     if (_completedAudioPath == null) return;
 
+    // 获取当前转写文本（如果有）
+    final transcription = context.read<RecordBloc>().state.transcription;
+
     // 创建快速笔记
     context.read<RecordBloc>().add(
           RecordCreateQuickNote(
             audioPath: _completedAudioPath!,
             mode: mode,
+            transcription: transcription,
           ),
         );
 

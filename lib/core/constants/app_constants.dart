@@ -39,14 +39,14 @@ class AppConstants {
 class EnvConfig {
   // 豆包 ASR API
   static String get doubaoAsrAppKey =>
-      dotenv.get('DOUBAO_ASR_APP_KEY', fallback: '');
+      dotenv.get('DOUBAO_ASR_APP_KEY', fallback: '').trim();
 
   static String get doubaoAsrAccessKey =>
-      dotenv.get('DOUBAO_ASR_ACCESS_KEY', fallback: '');
+      dotenv.get('DOUBAO_ASR_ACCESS_KEY', fallback: '').trim();
 
   static String get doubaoAsrResourceId =>
       dotenv.get('DOUBAO_ASR_RESOURCE_ID',
-          fallback: 'volc.bigasr.sauc.duration');
+          fallback: 'volc.bigasr.sauc.duration').trim();
 
   // 豆包 LLM API
   static String get doubaoLlmApiKey =>

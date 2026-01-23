@@ -1,8 +1,10 @@
 /// 豆包远程数据源
 /// 封装豆包 API 调用
 
+import 'dart:async';
 import 'dart:typed_data';
 import 'dart:convert';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/network/doubao_asr_client.dart';
 import '../../../core/network/doubao_llm_client.dart';
 import '../../../domain/entities/record.dart';
@@ -38,42 +40,61 @@ class DoubaoDataSource {
     );
 
     String transcription = '';
-    bool isComplete = false;
+    final completer = Completer<String>();
 
-    // 监听响应
-    final subscription = asrClient.responses.listen((response) {
-      if (response.success && response.text != null) {
-        transcription = response.text!;
-        if (response.isFinal) {
-          isComplete = true;
+    final subscription = asrClient.responses.listen(
+      (response) {
+        if (response.success) {
+          if (response.text != null) {
+            transcription = response.text!;
+          }
+          if (response.isFinal && !completer.isCompleted) {
+            completer.complete(transcription);
+          }
+        } else {
+          if (!completer.isCompleted) {
+            completer.completeError(
+              Exception(response.error ?? 'ASR 转写失败'),
+            );
+          }
         }
-      }
-    });
-
-    // 分块发送音频（200ms per chunk = 6400 bytes @ 16kHz 16bit mono）
-    const chunkSize = 6400;
-    for (var i = 0; i < audioData.length; i += chunkSize) {
-      final end = (i + chunkSize < audioData.length)
-          ? i + chunkSize
-          : audioData.length;
-      final chunk = audioData.sublist(i, end);
-      await asrClient.sendAudio(chunk);
-      await Future.delayed(const Duration(milliseconds: 200));
-    }
+      },
+      onError: (error) {
+        if (!completer.isCompleted) {
+          completer.completeError(error);
+        }
+      },
+    );
 
     // 发送结束标记
-    await asrClient.finishAudio();
+    try {
+      // 分块发送音频（200ms per chunk = 6400 bytes @ 16kHz 16bit mono）
+      const chunkSize = 6400;
+      for (var i = 0; i < audioData.length; i += chunkSize) {
+        final end = (i + chunkSize < audioData.length)
+            ? i + chunkSize
+            : audioData.length;
+        final chunk = audioData.sublist(i, end);
+        await asrClient.sendAudio(chunk);
+        await Future.delayed(const Duration(milliseconds: 200));
+      }
 
-    // 等待最终结果
-    while (!isComplete) {
-      await Future.delayed(const Duration(milliseconds: 100));
+      await asrClient.finishAudio();
+
+      return await completer.future.timeout(
+        AppConstants.transcriptionTimeout,
+        onTimeout: () => throw TimeoutException('ASR 转写超时'),
+      );
+    } catch (e) {
+      if (!completer.isCompleted) {
+        // 如果是发送过程中的错误，也尝试通过 completer 返回（如果有 pending 的错误）
+        // 或者直接 rethrow
+      }
+      rethrow;
+    } finally {
+      await subscription.cancel();
+      await asrClient.disconnect();
     }
-
-    // 清理
-    await subscription.cancel();
-    await asrClient.disconnect();
-
-    return transcription;
   }
 
   /// NVC 分析

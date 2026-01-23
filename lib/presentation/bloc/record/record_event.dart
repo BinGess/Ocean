@@ -15,15 +15,17 @@ class RecordCreateQuickNote extends RecordEvent {
   final String audioPath;
   final ProcessingMode mode;
   final List<String>? selectedMoods;
+  final String? transcription;
 
   const RecordCreateQuickNote({
     required this.audioPath,
     required this.mode,
     this.selectedMoods,
+    this.transcription,
   });
 
   @override
-  List<Object?> get props => [audioPath, mode, selectedMoods];
+  List<Object?> get props => [audioPath, mode, selectedMoods, transcription];
 }
 
 /// 加载记录列表
@@ -91,4 +93,14 @@ class RecordChangeProcessingMode extends RecordEvent {
 
   @override
   List<Object?> get props => [recordId, newMode];
+}
+
+/// 转写音频
+class RecordTranscribe extends RecordEvent {
+  final String audioPath;
+
+  const RecordTranscribe(this.audioPath);
+
+  @override
+  List<Object?> get props => [audioPath];
 }

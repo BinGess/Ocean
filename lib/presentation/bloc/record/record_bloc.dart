@@ -7,6 +7,7 @@ import '../../../domain/usecases/create_quick_note_usecase.dart';
 import '../../../domain/usecases/get_records_usecase.dart';
 import '../../../domain/usecases/update_record_usecase.dart';
 import '../../../domain/repositories/record_repository.dart';
+import '../../../domain/repositories/ai_repository.dart';
 import 'record_event.dart';
 import 'record_state.dart';
 
@@ -15,12 +16,14 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
   final GetRecordsUseCase getRecordsUseCase;
   final UpdateRecordUseCase updateRecordUseCase;
   final RecordRepository recordRepository;
+  final AIRepository aiRepository;
 
   RecordBloc({
     required this.createQuickNoteUseCase,
     required this.getRecordsUseCase,
     required this.updateRecordUseCase,
     required this.recordRepository,
+    required this.aiRepository,
   }) : super(RecordState.initial()) {
     // 注册事件处理器
     on<RecordCreateQuickNote>(_onCreateQuickNote);
@@ -30,6 +33,29 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     on<RecordSelect>(_onSelect);
     on<RecordClearSelection>(_onClearSelection);
     on<RecordChangeProcessingMode>(_onChangeProcessingMode);
+    on<RecordTranscribe>(_onTranscribe);
+  }
+
+  /// 转写音频
+  Future<void> _onTranscribe(
+    RecordTranscribe event,
+    Emitter<RecordState> emit,
+  ) async {
+    emit(state.copyWith(status: RecordStatus.transcribing, transcription: '正在转写中...'));
+
+    try {
+      final transcription = await aiRepository.transcribeAudioFile(event.audioPath);
+      emit(state.copyWith(
+        status: RecordStatus.success,
+        transcription: transcription,
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        status: RecordStatus.error,
+        errorMessage: '转写失败: $e',
+        transcription: '转写失败',
+      ));
+    }
   }
 
   /// 创建快速笔记
@@ -54,6 +80,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
           audioPath: event.audioPath,
           mode: event.mode,
           selectedMoods: event.selectedMoods,
+          transcription: event.transcription,
         ),
       );
 

@@ -142,6 +142,7 @@ Future<void> configureDependencies() async {
       getRecordsUseCase: getIt<GetRecordsUseCase>(),
       updateRecordUseCase: getIt<UpdateRecordUseCase>(),
       recordRepository: getIt<RecordRepository>(),
+      aiRepository: getIt<AIRepository>(),
     ),
   );
 
