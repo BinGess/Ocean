@@ -209,6 +209,13 @@ class DoubaoASRClient {
       // 发送初始配置消息 (Full Client Request)
       await _sendStartMessage();
       print('✅ ASRClient: Start message sent');
+
+      // 根据 API 文档，发送 Full Client Request 后立即可以开始发送音频数据
+      // 不需要等待服务端确认
+      _sessionReady = true;
+      if (_handshakeCompleter != null && !_handshakeCompleter!.isCompleted) {
+        _handshakeCompleter!.complete();
+      }
     } catch (e) {
       print('❌ ASRClient: Connection failed: $e');
       _cleanup();
@@ -403,78 +410,51 @@ class DoubaoASRClient {
          return;
       }
 
-      final payloadSize = (message[4] << 24) |
+      // 尝试读取 Bytes 4-7 作为 Payload Size（假设没有 Sequence Number）
+      final payloadSizeNoSeq = (message[4] << 24) |
           (message[5] << 16) |
           (message[6] << 8) |
           message[7];
-      
-      print('ASRClient: Payload size: $payloadSize');
 
-      // 如果 payloadSize 仍然异常大（比如 > 10MB），可能是因为我们对协议理解有误
-      // 或者服务器返回的不是标准协议头
-      // 让我们观察一下 hexPreview: 11 f0 10 00 02 ae a5 40 00 00 00 c9 7b 22 ...
-      // Byte 0: 11 -> Ver=1, HdrSz=1
-      // Byte 1: f0 -> MsgType=15(0xF=ServerError?), Flags=0
-      // Byte 2: 10 -> Ser=1(JSON), Comp=0(None)
-      // Byte 3: 00 -> Reserved
-      // Byte 4-7: 02 ae a5 40 -> 0x02aea540 = 45000000 ??? 这里的 Size 确实很大！
-      // 
-      // 等等，如果 Byte 4-7 是 02 ae a5 40，那确实是 45000000。
-      // 但是消息总长度只有 213 字节。
-      // 这意味着：
-      // 1. 服务器返回的 Payload Size 字段含义可能不是“剩余字节数”？
-      // 2. 或者这个消息是 GZIP 压缩后的？但是 Compression=0。
-      // 3. 或者... Byte 4-7 实际上是 Sequence Number？
-      //
-      // 让我们再看一眼文档或参考实现。通常 Payload Size 是紧跟 Header 的。
-      // 如果 02 ae a5 40 不是 Size，那真正的 Size 在哪里？
-      //
-      // 让我们尝试另一种假设：
-      // 也许 Header 是 8 字节？
-      // 如果 HeaderSize=1 代表 4 字节，那么前 4 字节是 Header。
-      // 紧接着 4 字节是 Payload Size。
-      //
-      // 让我们看看后面的字节：00 00 00 c9
-      // 0x000000c9 = 201
-      // 消息总长 213。Header(4) + SizeField(4) + Payload(201) = 209。
-      // 209 + 4 (Extra?) = 213?
-      // 或者 Header(4) + Sequence(4) + Size(4) + Payload?
-      //
-      // 让我们看看 Hex:
-      // 11 f0 10 00 (Header, 4 bytes)
-      // 02 ae a5 40 (Unknown, 4 bytes, maybe Sequence?)
-      // 00 00 00 c9 (Size? 0xc9 = 201)
-      // 7b 22 72 65 (Payload start: {"re...)
-      //
-      // 验证：213 - 12 = 201。
-      // 所以协议格式应该是：
-      // [Header: 4 bytes]
-      // [Sequence Number: 4 bytes] (02 ae a5 40)
-      // [Payload Size: 4 bytes] (00 00 00 c9 = 201)
-      // [Payload: 201 bytes]
-      //
-      // 修正解析逻辑：跳过 Sequence Number (4 bytes)
+      print('ASRClient: Payload size (no seq): $payloadSizeNoSeq');
 
-      if (message.length < 12) {
-         print('ASRClient: Message too short for sequence and size');
-         return;
+      // 检查协议格式：某些消息有 Sequence Number (4 bytes)，某些没有
+      // 判断方法：验证 message.length 是否匹配两种格式之一
+      // 格式1 (8字节header): Header(4) + PayloadSize(4) + Payload
+      // 格式2 (12字节header): Header(4) + Sequence(4) + PayloadSize(4) + Payload
+
+      final hasSequenceNumber = (message.length != 8 + payloadSizeNoSeq) && message.length >= 12;
+
+      int headerLength;
+      int payloadSize;
+
+      if (hasSequenceNumber && message.length >= 12) {
+        // 格式2: 有 Sequence Number
+        final sequenceNumber = (message[4] << 24) |
+            (message[5] << 16) |
+            (message[6] << 8) |
+            message[7];
+
+        payloadSize = (message[8] << 24) |
+            (message[9] << 16) |
+            (message[10] << 8) |
+            message[11];
+
+        headerLength = 12;
+        print('ASRClient: Format with Sequence Number: $sequenceNumber, Payload size: $payloadSize');
+      } else {
+        // 格式1: 没有 Sequence Number
+        payloadSize = payloadSizeNoSeq;
+        headerLength = 8;
+        print('ASRClient: Format without Sequence Number, Payload size: $payloadSize');
       }
 
-      // 跳过 4 字节 Sequence Number (Bytes 4-7)
-      // 读取 Bytes 8-11 作为 Payload Size
-      final realPayloadSize = (message[8] << 24) |
-          (message[9] << 16) |
-          (message[10] << 8) |
-          message[11];
-      
-      print('ASRClient: Real Payload size: $realPayloadSize');
-
-      if (message.length < 12 + realPayloadSize) {
-        print('ASRClient: Incomplete message. Expected ${12 + realPayloadSize}, got ${message.length}');
-        return; 
+      if (message.length < headerLength + payloadSize) {
+        print('ASRClient: Incomplete message. Expected ${headerLength + payloadSize}, got ${message.length}');
+        return;
       }
 
-      final payload = message.sublist(12, 12 + realPayloadSize);
+      final payload = message.sublist(headerLength, headerLength + payloadSize);
       
       // 尝试打印 Payload 内容（如果是文本）
       try {
