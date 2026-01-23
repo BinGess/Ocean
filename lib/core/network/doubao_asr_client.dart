@@ -79,11 +79,16 @@ class ASRResponse {
   });
 
   factory ASRResponse.fromJson(Map<String, dynamic> json) {
+    // 判断成功：有 result 字段，或者 code 为 1000/0
+    final hasResult = json.containsKey('result');
+    final hasSuccessCode = json['code'] == 1000 || json['code'] == 0;
+    final hasError = json.containsKey('error');
+
     return ASRResponse(
-      success: json['code'] == 1000 || json['code'] == 0,
+      success: (hasResult || hasSuccessCode) && !hasError,
       text: json['result']?['text'],
       isFinal: json['is_final'] ?? false,
-      error: json['message'],
+      error: json['error'] ?? json['message'],
       rawData: json,
     );
   }

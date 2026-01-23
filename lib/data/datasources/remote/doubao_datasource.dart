@@ -64,6 +64,16 @@ class DoubaoDataSource {
           completer.completeError(error);
         }
       },
+      onDone: () {
+        // 当 WebSocket 连接关闭时，返回最后接收到的转写结果
+        if (!completer.isCompleted) {
+          if (transcription.isNotEmpty) {
+            completer.complete(transcription);
+          } else {
+            completer.completeError(Exception('未接收到转写结果'));
+          }
+        }
+      },
     );
 
     // 发送结束标记
