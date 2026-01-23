@@ -1,4 +1,5 @@
 /// 应用核心常量配置
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConstants {
   // 应用信息
@@ -33,25 +34,25 @@ class AppConstants {
   static const int weeklyInsightDays = 7; // 周洞察天数
 }
 
-/// 环境变量配置（需要从 .env 或配置文件读取）
+/// 环境变量配置（从 .env 文件读取）
 class EnvConfig {
   // 豆包 ASR API
   static String get doubaoAsrAppKey =>
-      const String.fromEnvironment('DOUBAO_ASR_APP_KEY', defaultValue: '');
+      dotenv.get('DOUBAO_ASR_APP_KEY', fallback: '');
 
   static String get doubaoAsrAccessKey =>
-      const String.fromEnvironment('DOUBAO_ASR_ACCESS_KEY', defaultValue: '');
+      dotenv.get('DOUBAO_ASR_ACCESS_KEY', fallback: '');
 
   static String get doubaoAsrResourceId =>
-      const String.fromEnvironment('DOUBAO_ASR_RESOURCE_ID',
-          defaultValue: 'volc.bigasr.sauc.duration');
+      dotenv.get('DOUBAO_ASR_RESOURCE_ID',
+          fallback: 'volc.bigasr.sauc.duration');
 
   // 豆包 LLM API
   static String get doubaoLlmApiKey =>
-      const String.fromEnvironment('DOUBAO_LLM_API_KEY', defaultValue: '');
+      dotenv.get('DOUBAO_LLM_API_KEY', fallback: '');
 
   static String get doubaoModelId =>
-      const String.fromEnvironment('DOUBAO_MODEL_ID', defaultValue: '');
+      dotenv.get('DOUBAO_MODEL_ID', fallback: 'doubao-pro-32k');
 
   /// 验证配置是否完整
   static bool get isConfigured {
@@ -59,5 +60,17 @@ class EnvConfig {
            doubaoAsrAccessKey.isNotEmpty &&
            doubaoLlmApiKey.isNotEmpty &&
            doubaoModelId.isNotEmpty;
+  }
+
+  /// 获取配置状态信息（用于调试）
+  static Map<String, dynamic> getConfigStatus() {
+    return {
+      'doubaoAsrAppKey': doubaoAsrAppKey.isEmpty ? '未配置' : '已配置 (${doubaoAsrAppKey.substring(0, 8)}...)',
+      'doubaoAsrAccessKey': doubaoAsrAccessKey.isEmpty ? '未配置' : '已配置 (${doubaoAsrAccessKey.substring(0, 8)}...)',
+      'doubaoAsrResourceId': doubaoAsrResourceId,
+      'doubaoLlmApiKey': doubaoLlmApiKey.isEmpty ? '未配置' : '已配置 (${doubaoLlmApiKey.substring(0, 8)}...)',
+      'doubaoModelId': doubaoModelId,
+      'isConfigured': isConfigured,
+    };
   }
 }

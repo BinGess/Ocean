@@ -14,6 +14,7 @@ import '../../widgets/record_button.dart';
 import '../../widgets/processing_choice_modal.dart';
 import '../../widgets/quick_note_card.dart';
 import '../../widgets/loading_overlay.dart';
+import '../debug/api_test_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -73,10 +74,15 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('MindFlow'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.bug_report),
             onPressed: () {
-              // TODO: 打开设置页面
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const ApiTestScreen(),
+                ),
+              );
             },
+            tooltip: 'API 调试',
           ),
         ],
       ),

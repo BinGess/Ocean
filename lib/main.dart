@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/theme/app_theme.dart';
 import 'core/di/injection.dart';
 import 'presentation/bloc/audio/audio_bloc.dart';
@@ -16,6 +17,15 @@ import 'presentation/screens/insights/insights_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 加载环境变量
+  try {
+    await dotenv.load(fileName: '.env');
+    debugPrint('✅ 环境变量已加载');
+  } catch (e) {
+    debugPrint('⚠️ 加载 .env 文件失败: $e');
+    debugPrint('⚠️ 应用将使用默认配置运行');
+  }
 
   // 初始化依赖注入
   await configureDependencies();
