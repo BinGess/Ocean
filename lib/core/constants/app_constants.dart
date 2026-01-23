@@ -8,8 +8,9 @@ class AppConstants {
 
   // 豆包语音识别 API 配置
   // 官方文档: https://www.volcengine.com/docs/6561/1354869
+  // 双向流式优化版（推荐）- 性能更优，只在结果变化时返回数据包
   static const String doubaoAsrEndpoint =
-      'wss://openspeech.bytedance.com/api/v2/asr';
+      'wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_async';
 
   // 豆包大模型 API 配置
   static const String doubaoLlmEndpoint =
@@ -46,7 +47,7 @@ class EnvConfig {
 
   static String get doubaoAsrResourceId =>
       dotenv.get('DOUBAO_ASR_RESOURCE_ID',
-          fallback: 'volc.bigasr.sauc.duration').trim();
+          fallback: 'volc.seedasr.sauc.duration').trim(); // 豆包2.0小时版
 
   // 豆包 LLM API
   static String get doubaoLlmApiKey =>
