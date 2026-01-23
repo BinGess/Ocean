@@ -122,10 +122,15 @@ class DoubaoASRClient {
         baseUri,
         protocols: ['websocket'],
       );
+      // 创建 WebSocket 连接（Dart 支持自定义 headers！）
+      // 对于生产环境，使用标准 WebSocket 连接，无需 URL 参数鉴权（将在 Payload 中鉴权）
+      _channel = WebSocketChannel.connect(
+        baseUri,
+        protocols: ['websocket'],
+      );
+      
       // 监听消息
       _channel!.stream.listen(
-        _handleMessage,
-        onError: (error) {
           _responseController.addError(error);
         },
         onDone: () {
