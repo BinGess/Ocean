@@ -19,6 +19,7 @@ class ProcessingChoiceModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    print('ProcessingChoiceModal: Building with transcription: $transcription');
 
     return Container(
       padding: const EdgeInsets.all(24),

@@ -41,15 +41,19 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     RecordTranscribe event,
     Emitter<RecordState> emit,
   ) async {
+    print('RecordBloc: Starting transcription for: ${event.audioPath}');
     emit(state.copyWith(status: RecordStatus.transcribing, transcription: '正在转写中...'));
 
     try {
       final transcription = await aiRepository.transcribeAudioFile(event.audioPath);
+      print('RecordBloc: Transcription completed: $transcription');
       emit(state.copyWith(
         status: RecordStatus.success,
         transcription: transcription,
       ));
+      print('RecordBloc: State updated with transcription');
     } catch (e) {
+      print('RecordBloc: Transcription failed: $e');
       emit(state.copyWith(
         status: RecordStatus.error,
         errorMessage: '转写失败: $e',

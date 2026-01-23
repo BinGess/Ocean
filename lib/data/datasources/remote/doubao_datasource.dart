@@ -66,10 +66,13 @@ class DoubaoDataSource {
       },
       onDone: () {
         // 当 WebSocket 连接关闭时，返回最后接收到的转写结果
+        print('DoubaoDataSource: WebSocket onDone, transcription: $transcription');
         if (!completer.isCompleted) {
           if (transcription.isNotEmpty) {
+            print('DoubaoDataSource: Completing with transcription: $transcription');
             completer.complete(transcription);
           } else {
+            print('DoubaoDataSource: No transcription received');
             completer.completeError(Exception('未接收到转写结果'));
           }
         }
