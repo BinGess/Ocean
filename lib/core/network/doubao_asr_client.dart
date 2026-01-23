@@ -113,26 +113,20 @@ class DoubaoASRClient {
     }
 
     try {
-      // 构建 WebSocket URI
-      final uri = Uri.parse(AppConstants.doubaoAsrEndpoint);
+      // 构建 WebSocket URI（使用 Uri.parse 然后添加查询参数）
+      final baseUri = Uri.parse(AppConstants.doubaoAsrEndpoint);
 
-      // 创建 WebSocket 连接（Dart 支持自定义 headers！）
-      _channel = WebSocketChannel.connect(
-        uri,
-        protocols: ['websocket'],
+      // 使用 replace 方法添加查询参数，确保保持 wss:// 协议
+      final uri = baseUri.replace(
+        queryParameters: {
+          'appkey': appKey,
+          'token': accessKey,
+          'resource_id': resourceId,
+        },
       );
 
-      // 注意：web_socket_channel 在某些平台上可能不支持自定义 headers
-      // 对于生产环境，需要使用 dart:io WebSocket 或其他支持自定义 headers 的库
-      // 这里先使用 URL 参数作为替代方案
-      final uriWithParams = Uri.parse(
-        '${AppConstants.doubaoAsrEndpoint}?'
-        'appkey=$appKey&'
-        'token=$accessKey&'
-        'resource_id=$resourceId',
-      );
-
-      _channel = WebSocketChannel.connect(uriWithParams);
+      // 创建 WebSocket 连接
+      _channel = WebSocketChannel.connect(uri);
 
       // 监听消息
       _channel!.stream.listen(
