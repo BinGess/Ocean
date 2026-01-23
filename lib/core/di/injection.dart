@@ -38,7 +38,7 @@ Future<void> configureDependencies() async {
   // 豆包 LLM 客户端
   getIt.registerLazySingleton<DoubaoLLMClient>(
     () => DoubaoLLMClient(
-      apiKey: EnvConfig.doubaoLLMApiKey,
+      apiKey: EnvConfig.doubaoLlmApiKey,
       endpoint: AppConstants.doubaoLlmEndpoint,
     ),
   );

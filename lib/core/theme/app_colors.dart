@@ -13,12 +13,19 @@ class AppColors {
   static const Color terracotta = Color(0xFFB28C7F);
 
   // 背景颜色
+  static const Color background = Color(0xFFFBFAF9);
   static const Color backgroundLight = Color(0xFFFBFAF9);
   static const Color surfaceLight = Color(0xFFFFFFFF);
 
   // 文字颜色
+  static const Color textPrimary = Color(0xFF3F4652);
+  static const Color textSecondary = Color(0xFF6B7280);
+  static const Color textTertiary = Color(0xFF9CA3AF);
   static const Color textMain = Color(0xFF3F4652);
   static const Color textLight = Color(0xFF9CA3AF);
+
+  // 边框颜色
+  static const Color border = Color(0xFFE5E7EB);
 
   // 情绪颜色（对应 MOOD_COLORS）
   static const Map<String, MoodColors> moodColors = {
