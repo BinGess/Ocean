@@ -3,6 +3,7 @@
 
 import '../../domain/entities/record.dart';
 import '../../domain/entities/nvc_analysis.dart';
+import '../../domain/entities/day_aggregation.dart';
 import '../../domain/repositories/record_repository.dart';
 import '../datasources/local/hive_database.dart';
 import '../models/record_model.dart';
@@ -40,37 +41,34 @@ class RecordRepositoryImpl implements RecordRepository {
   Future<Record> createJournal({
     required String transcription,
     String? title,
-    String? audioUrl,
-    double? duration,
-    List<String>? moods,
-    List<String>? needs,
+    String? summary,
+    List<String>? referencedFragments,
   }) async {
     final record = Record(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       type: RecordType.journal,
       transcription: transcription,
       title: title,
+      summary: summary,
+      referencedFragments: referencedFragments,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
-      audioUrl: audioUrl,
-      duration: duration,
-      moods: moods,
-      needs: needs,
     );
     return await createRecord(record);
   }
 
   @override
   Future<Record> createWeeklyRecord({
-    required String weekKey,
-    required List<String> recordIds,
+    required String transcription,
+    required String weekRange,
+    List<String>? referencedRecords,
   }) async {
     final record = Record(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       type: RecordType.weekly,
-      transcription: 'Weekly summary for $weekKey',
-      weekRange: weekKey,
-      referencedRecords: recordIds,
+      transcription: transcription,
+      weekRange: weekRange,
+      referencedRecords: referencedRecords,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
