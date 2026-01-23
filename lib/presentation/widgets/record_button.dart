@@ -34,6 +34,7 @@ class RecordButton extends StatefulWidget {
 class _RecordButtonState extends State<RecordButton>
     with SingleTickerProviderStateMixin {
   bool _isPressing = false;
+  bool _hasTriggeredLongPress = false; // 标记长按是否已触发
   Timer? _longPressTimer;
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
@@ -75,6 +76,7 @@ class _RecordButtonState extends State<RecordButton>
     super.dispose();
   }
 
+  // ignore: unused_element
   void _handlePressStart() {
     if (!widget.isEnabled) return;
 
@@ -87,12 +89,14 @@ class _RecordButtonState extends State<RecordButton>
       _longPressTimer = Timer(
         const Duration(milliseconds: longPressThreshold),
         () {
+          _hasTriggeredLongPress = true;
           widget.onRecordStart?.call();
         },
       );
     }
   }
 
+  // ignore: unused_element
   void _handlePressEnd() {
     if (!widget.isEnabled) return;
 
@@ -102,18 +106,26 @@ class _RecordButtonState extends State<RecordButton>
       _isPressing = false;
     });
 
-    if (widget.mode == RecordButtonMode.press && widget.isRecording) {
-      widget.onRecordStop?.call();
+    if (widget.mode == RecordButtonMode.press) {
+      // 只要触发了长按或者正在录音，松开时都应该尝试停止
+      if (_hasTriggeredLongPress || widget.isRecording) {
+        widget.onRecordStop?.call();
+      }
     }
+    _hasTriggeredLongPress = false;
   }
 
+  // ignore: unused_element
   void _handleTap() {
+    print('RecordButton: _handleTap called. Mode: ${widget.mode}, IsRecording: ${widget.isRecording}, IsEnabled: ${widget.isEnabled}');
     if (!widget.isEnabled) return;
 
     if (widget.mode == RecordButtonMode.toggle) {
       if (widget.isRecording) {
+        print('RecordButton: Triggering onRecordStop');
         widget.onRecordStop?.call();
       } else {
+        print('RecordButton: Triggering onRecordStart');
         widget.onRecordStart?.call();
       }
     }
@@ -128,17 +140,19 @@ class _RecordButtonState extends State<RecordButton>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isActive = widget.isRecording || _isPressing;
 
     return GestureDetector(
-      onTapDown: widget.mode == RecordButtonMode.press
-          ? (_) => _handlePressStart()
+      onLongPressStart: widget.mode == RecordButtonMode.press
+          ? (_) {
+              if (!widget.isEnabled) return;
+              widget.onRecordStart?.call();
+            }
           : null,
-      onTapUp: widget.mode == RecordButtonMode.press
-          ? (_) => _handlePressEnd()
-          : null,
-      onTapCancel: widget.mode == RecordButtonMode.press
-          ? _handlePressEnd
+      onLongPressEnd: widget.mode == RecordButtonMode.press
+          ? (_) {
+              if (!widget.isEnabled) return;
+              widget.onRecordStop?.call();
+            }
           : null,
       onTap: widget.mode == RecordButtonMode.toggle ? _handleTap : null,
       child: Column(

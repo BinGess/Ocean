@@ -1,8 +1,9 @@
 /// 豆包 ASR (语音识别) 客户端
-/// 实现 WebSocket 二进制协议
-///
+/// 实现 WebSocket 二进制协议 (v2)
+library doubao_asr_client;
+
 /// 协议格式：
-/// - Header (4 bytes): 协议版本 | 消息类型 | 序列化方法 | 压缩方法
+/// - Header (4 bytes): 协议版本 | Header 大小 | 消息类型 | 消息标志 | 序列化方法 | 压缩方法
 /// - Payload Size (4 bytes): 负载大小（大端序）
 /// - Payload: JSON 或 音频数据
 
@@ -10,30 +11,30 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:uuid/uuid.dart';
 import '../constants/app_constants.dart';
 
 /// 协议版本
 const int protocolVersion = 0x01;
 
-/// Header 大小（字节）
+/// Header 大小（4字节字的数量，这里为1，即4字节）
 const int headerSize = 0x01;
 
-/// 消息类型
+/// 消息类型 (v2 Protocol)
 enum MessageType {
-  client(0x01), // 客户端消息（JSON）
-  audio(0x0B), // 音频数据
-  server(0x0F); // 服务器响应（JSON）
+  fullClientRequest(0x01), // 包含请求参数的完整客户端请求 (JSON)
+  audioOnlyRequest(0x02), // 仅包含音频数据的请求
+  fullServerResponse(0x09), // 服务端响应 (JSON)
+  serverError(0x0F); // 服务端错误
 
   final int value;
   const MessageType(this.value);
 }
 
-/// 消息标志
+/// 消息标志 (v2 Protocol)
 enum MessageFlags {
-  none(0x00), // 无标志
-  noSerial(0x01), // 无序列号
-  hasSerial(0x03), // 有序列号
-  ack(0x09); // 确认消息
+  none(0x00), // 普通消息
+  isLast(0x02); // 最后一包音频
 
   final int value;
   const MessageFlags(this.value);
@@ -41,9 +42,9 @@ enum MessageFlags {
 
 /// 序列化方法
 enum SerializationMethod {
-  json(0x01), // JSON
-  protobuf(0x02), // Protobuf（暂不支持）
-  thrift(0x03); // Thrift（暂不支持）
+  none(0x00),
+  json(0x01),
+  gzip(0x01); // 注意：v2中 0x1 在 Serialization 是 JSON，在 Compression 是 Gzip
 
   final int value;
   const SerializationMethod(this.value);
@@ -51,9 +52,8 @@ enum SerializationMethod {
 
 /// 压缩方法
 enum CompressionMethod {
-  none(0x00), // 无压缩
-  gzip(0x01), // GZIP
-  lz4(0x02); // LZ4（暂不支持）
+  none(0x00),
+  gzip(0x01);
 
   final int value;
   const CompressionMethod(this.value);
@@ -116,18 +116,12 @@ class DoubaoASRClient {
       // 构建 WebSocket URI（使用 Uri.parse 然后添加查询参数）
       final baseUri = Uri.parse(AppConstants.doubaoAsrEndpoint);
 
-      // 使用 replace 方法添加查询参数，确保保持 wss:// 协议
-      final uri = baseUri.replace(
-        queryParameters: {
-          'appkey': appKey,
-          'token': accessKey,
-          'resource_id': resourceId,
-        },
+      // 创建 WebSocket 连接（Dart 支持自定义 headers！）
+      // 对于生产环境，使用标准 WebSocket 连接，无需 URL 参数鉴权（将在 Payload 中鉴权）
+      _channel = WebSocketChannel.connect(
+        baseUri,
+        protocols: ['websocket'],
       );
-
-      // 创建 WebSocket 连接
-      _channel = WebSocketChannel.connect(uri);
-
       // 监听消息
       _channel!.stream.listen(
         _handleMessage,
@@ -139,42 +133,54 @@ class DoubaoASRClient {
         },
       );
 
-      // 发送初始配置消息
-      await _sendStartMessage(resourceId: resourceId);
+      // 发送初始配置消息 (Full Client Request)
+      await _sendStartMessage(
+        appKey: appKey,
+        accessKey: accessKey,
+        resourceId: resourceId,
+      );
     } catch (e) {
       _cleanup();
       rethrow;
     }
   }
 
-  /// 发送启动消息
-  Future<void> _sendStartMessage({required String resourceId}) async {
+  /// 发送启动消息 (Full Client Request)
+  Future<void> _sendStartMessage({
+    required String appKey,
+    required String accessKey,
+    required String resourceId,
+  }) async {
+    const uuid = Uuid();
+    final reqid = uuid.v4();
+
     final payload = {
-      'version': '0.1.0',
-      'header': {
-        'app_id': 'mindflow',
-        'uid': DateTime.now().millisecondsSinceEpoch.toString(),
+      'app': {
+        'appid': appKey,
+        'token': accessKey,
+        'cluster': resourceId,
       },
-      'payload': {
-        'task': 'asr',
-        'resource_id': resourceId,
-        'audio': {
-          'format': 'pcm',
-          'sample_rate': AppConstants.audioSampleRate,
-          'channel': 1,
-          'bits': 16,
-        },
-        'request': {
-          'nbest': 1,
-          'enable_vad': true,
-          'enable_punctuation': true,
-          'enable_inverse_text_normalization': true,
-        },
+      'user': {
+        'uid': 'user_id', // 建议替换为实际用户 ID
+      },
+      'audio': {
+        'format': 'raw', // PCM 对应 raw
+        'codec': 'raw', // PCM 对应 raw
+        'rate': AppConstants.audioSampleRate,
+        'bits': 16,
+        'channel': 1,
+      },
+      'request': {
+        'reqid': reqid,
+        'workflow': 'audio_in,resample,partition,vad,fe,decode,itn,nlu_punctuate',
+        'show_utterances': true,
+        'result_type': 'full',
+        'sequence': 1,
       },
     };
 
     await _sendMessage(
-      messageType: MessageType.client,
+      messageType: MessageType.fullClientRequest,
       flags: MessageFlags.none,
       serialization: SerializationMethod.json,
       compression: CompressionMethod.none,
@@ -189,9 +195,9 @@ class DoubaoASRClient {
     }
 
     await _sendMessage(
-      messageType: MessageType.audio,
+      messageType: MessageType.audioOnlyRequest,
       flags: MessageFlags.none,
-      serialization: SerializationMethod.json,
+      serialization: SerializationMethod.none,
       compression: CompressionMethod.none,
       payload: audioData,
     );
@@ -203,11 +209,11 @@ class DoubaoASRClient {
       throw Exception('Not connected. Call connect() first.');
     }
 
-    // 发送空音频包表示结束
+    // 发送空音频包表示结束，并设置 isLast 标志
     await _sendMessage(
-      messageType: MessageType.audio,
-      flags: MessageFlags.none,
-      serialization: SerializationMethod.json,
+      messageType: MessageType.audioOnlyRequest,
+      flags: MessageFlags.isLast,
+      serialization: SerializationMethod.none,
       compression: CompressionMethod.none,
       payload: Uint8List(0),
     );
