@@ -27,7 +27,7 @@ class AppTheme {
       ),
 
       // Card 主题
-      cardTheme: const CardThemeData(
+      cardTheme: CardThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -135,7 +135,7 @@ class AppTheme {
         centerTitle: true,
       ),
 
-      cardTheme: const CardThemeData(
+      cardTheme: CardThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),

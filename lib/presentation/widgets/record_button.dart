@@ -217,11 +217,10 @@ class _RecordButtonState extends State<RecordButton>
               ),
               child: Text(
                 _formatDuration(widget.duration),
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Colors.red,
-                  fontFeatureSettings: const [FontFeature.tabularFigures()],
                 ),
               ),
             ),

@@ -61,8 +61,8 @@ class GenerateWeeklyInsightUseCase
 
     // 2. 获取本周所有记录
     final records = await recordRepository.getRecordsByDateRange(
-      startDate: params.startDate,
-      endDate: params.endDate,
+      params.startDate,
+      params.endDate,
     );
 
     // 如果没有记录，返回空洞察
@@ -71,10 +71,8 @@ class GenerateWeeklyInsightUseCase
     }
 
     // 3. 使用 AI 生成洞察
-    final aiInsight = await aiRepository.generateWeeklyInsight(
-      records: records,
-      weekRange: params.weekRange,
-    );
+    final recordIds = records.map((r) => r.id).toList();
+    final aiInsight = await aiRepository.generateWeeklyInsight(recordIds);
 
     if (aiInsight == null) {
       throw Exception('AI 洞察生成失败');
@@ -120,11 +118,11 @@ class GenerateWeeklyInsightUseCase
 
     // 转换为统计对象
     final statistics = needCounts.entries.map((entry) {
-      final percentage = totalNeeds > 0 ? (entry.value / totalNeeds) * 100 : 0;
+      final percentage = totalNeeds > 0 ? (entry.value / totalNeeds) * 100 : 0.0;
       return NeedStatistics(
         need: entry.key,
         count: entry.value,
-        percentage: percentage,
+        percentage: percentage.toDouble(),
       );
     }).toList();
 

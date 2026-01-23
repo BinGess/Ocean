@@ -3,6 +3,7 @@
 
 import 'package:hive/hive.dart';
 import '../../domain/entities/record.dart';
+import '../../domain/entities/nvc_analysis.dart';
 
 part 'record_model.g.dart';
 

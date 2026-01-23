@@ -65,6 +65,10 @@ class AudioState extends Equatable {
   bool get isProcessing => status == RecordingStatus.processing;
   bool get hasError => status == RecordingStatus.error;
   bool get isCompleted => status == RecordingStatus.completed;
+  bool get canRecord =>
+      hasPermission &&
+      status != RecordingStatus.recording &&
+      status != RecordingStatus.processing;
 
   @override
   List<Object?> get props => [
