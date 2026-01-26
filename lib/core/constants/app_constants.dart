@@ -83,11 +83,10 @@ class EnvConfig {
            doubaoModelId.isNotEmpty;
   }
 
-  /// 验证 Coze AI 配置是否完整
+  /// 验证 Coze AI 配置是否完整（只需要 API Token 和 Project ID）
   static bool get isCozeConfigured {
     return cozeApiToken.isNotEmpty &&
-           cozeProjectId.isNotEmpty &&
-           cozeBotId.isNotEmpty;
+           cozeProjectId.isNotEmpty;
   }
 
   /// 获取配置状态信息（用于调试）

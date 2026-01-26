@@ -46,9 +46,10 @@ class CozeAIService {
   /// [transcription] 转写文本
   /// 返回 NVCAnalysis 对象
   Future<NVCAnalysis> analyzeNVC(String transcription) async {
-    if (!EnvConfig.isCozeConfigured) {
+    // 检查配置（只需要 Token 和 Project ID）
+    if (EnvConfig.cozeApiToken.isEmpty || EnvConfig.cozeProjectId.isEmpty) {
       throw CozeAPIException(
-        'Coze AI 配置未完成，请在 .env 文件中配置 COZE_API_TOKEN、COZE_PROJECT_ID 和 COZE_BOT_ID',
+        'Coze AI 配置未完成，请在 .env 文件中配置 COZE_API_TOKEN 和 COZE_PROJECT_ID',
         code: 'CONFIG_ERROR',
       );
     }
@@ -125,7 +126,6 @@ $transcription
         'type': 'query',
         'session_id': sessionId,
         'project_id': EnvConfig.cozeProjectId,
-        'bot_id': EnvConfig.cozeBotId,
       },
       // 关键：使用流式响应
       options: Options(responseType: ResponseType.stream),
