@@ -11,7 +11,7 @@ enum RecordStatus {
   creating, // 创建中
   transcribing, // 转写中
   analyzing, // 分析中
-  nvcAnalyzing, // NVC分析中
+  analyzed, // 分析完成（等待确认）
   success, // 成功
   error, // 错误
 }
@@ -61,6 +61,8 @@ class RecordState extends Equatable {
       latestRecord: null,
       errorMessage: null,
       hasMore: true,
+      transcription: null,
+      nvcAnalysis: null,
     );
   }
 
@@ -74,9 +76,9 @@ class RecordState extends Equatable {
     bool? hasMore,
     bool clearSelection = false,
     bool clearLatest = false,
+    bool clearNVCAnalysis = false,
     String? transcription,
     NVCAnalysis? nvcAnalysis,
-    bool clearNvcAnalysis = false,
   }) {
     return RecordState(
       status: status ?? this.status,
@@ -87,7 +89,7 @@ class RecordState extends Equatable {
       errorMessage: errorMessage ?? this.errorMessage,
       hasMore: hasMore ?? this.hasMore,
       transcription: transcription ?? this.transcription,
-      nvcAnalysis: clearNvcAnalysis ? null : (nvcAnalysis ?? this.nvcAnalysis),
+      nvcAnalysis: clearNVCAnalysis ? null : (nvcAnalysis ?? this.nvcAnalysis),
     );
   }
 
@@ -96,7 +98,7 @@ class RecordState extends Equatable {
   bool get isCreating => status == RecordStatus.creating;
   bool get isTranscribing => status == RecordStatus.transcribing;
   bool get isAnalyzing => status == RecordStatus.analyzing;
-  bool get isNvcAnalyzing => status == RecordStatus.nvcAnalyzing;
+  bool get isAnalyzed => status == RecordStatus.analyzed;
   bool get isSuccess => status == RecordStatus.success;
   bool get hasError => status == RecordStatus.error;
   bool get isEmpty => records.isEmpty;

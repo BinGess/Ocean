@@ -2,6 +2,7 @@
 
 import 'package:equatable/equatable.dart';
 import '../../../domain/entities/record.dart';
+import '../../../domain/entities/nvc_analysis.dart';
 
 abstract class RecordEvent extends Equatable {
   const RecordEvent();
@@ -16,16 +17,28 @@ class RecordCreateQuickNote extends RecordEvent {
   final ProcessingMode mode;
   final List<String>? selectedMoods;
   final String? transcription;
+  final NVCAnalysis? nvcAnalysis;
 
   const RecordCreateQuickNote({
     required this.audioPath,
     required this.mode,
     this.selectedMoods,
     this.transcription,
+    this.nvcAnalysis,
   });
 
   @override
-  List<Object?> get props => [audioPath, mode, selectedMoods, transcription];
+  List<Object?> get props => [audioPath, mode, selectedMoods, transcription, nvcAnalysis];
+}
+
+/// 分析 NVC
+class RecordAnalyzeNVC extends RecordEvent {
+  final String text;
+
+  const RecordAnalyzeNVC(this.text);
+
+  @override
+  List<Object?> get props => [text];
 }
 
 /// 加载记录列表
@@ -103,14 +116,4 @@ class RecordTranscribe extends RecordEvent {
 
   @override
   List<Object?> get props => [audioPath];
-}
-
-/// NVC 洞察分析
-class RecordNVCInsight extends RecordEvent {
-  final String transcription;
-
-  const RecordNVCInsight(this.transcription);
-
-  @override
-  List<Object?> get props => [transcription];
 }

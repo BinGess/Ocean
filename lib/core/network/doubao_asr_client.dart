@@ -80,14 +80,44 @@ class ASRResponse {
 
   factory ASRResponse.fromJson(Map<String, dynamic> json) {
     // 判断成功：有 result 字段，或者 code 为 1000/0
+    // 注意：v3 协议的 full result 响应可能没有 code 字段
     final hasResult = json.containsKey('result');
-    final hasSuccessCode = json['code'] == 1000 || json['code'] == 0;
+    final code = json['code'];
+    final hasSuccessCode = code == 1000 || code == 0;
     final hasError = json.containsKey('error');
+    
+    // 解析 text
+    // 结构通常是: {"result": {"text": "...", "utterances": [...]}}
+    final result = json['result'];
+    final text = result is Map ? result['text'] : null;
+
+    // 解析 isFinal
+    // v3 协议中，full 模式下，通常通过 utterances 中的 definite 字段判断
+    // 或者如果没有 code 错误且有 result，我们可以认为是有效的中间或最终结果
+    // 真正的 final 通常由业务逻辑（如 definite=true 或 connection closed）决定
+    // 这里我们尝试从 result 中获取更多信息
+    bool isFinal = json['is_final'] ?? false;
+    
+    if (!isFinal && result is Map && result['utterances'] is List) {
+       final utterances = result['utterances'] as List;
+       if (utterances.isNotEmpty) {
+         final lastUtterance = utterances.last;
+         if (lastUtterance is Map) {
+           // definite=true 表示这句话已经确定
+           if (lastUtterance['definite'] == true) {
+             // 注意：这只是这句话 final，不是整个会话 final。
+             // 但对于短语音识别，通常这句话就是全部。
+             // 暂时将 definite=true 视为 isFinal update
+             isFinal = true;
+           }
+         }
+       }
+    }
 
     return ASRResponse(
       success: (hasResult || hasSuccessCode) && !hasError,
-      text: json['result']?['text'],
-      isFinal: json['is_final'] ?? false,
+      text: text,
+      isFinal: isFinal,
       error: json['error'] ?? json['message'],
       rawData: json,
     );

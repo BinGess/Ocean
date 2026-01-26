@@ -2,6 +2,7 @@
 /// 管理记录的创建、查询、更新、删除等操作
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:bloc_concurrency/bloc_concurrency.dart';
 import '../../../domain/entities/record.dart';
 import '../../../domain/usecases/create_quick_note_usecase.dart';
 import '../../../domain/usecases/get_records_usecase.dart';
@@ -33,8 +34,32 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     on<RecordSelect>(_onSelect);
     on<RecordClearSelection>(_onClearSelection);
     on<RecordChangeProcessingMode>(_onChangeProcessingMode);
-    on<RecordTranscribe>(_onTranscribe);
-    on<RecordNVCInsight>(_onNVCInsight);
+    
+    // 使用 concurrent 转换器，允许转写和分析/创建并行执行
+    // 这对于防止长时间运行的转写阻塞其他操作至关重要
+    on<RecordTranscribe>(_onTranscribe, transformer: concurrent());
+    on<RecordAnalyzeNVC>(_onAnalyzeNVC, transformer: concurrent());
+  }
+
+  /// 分析 NVC
+  Future<void> _onAnalyzeNVC(
+    RecordAnalyzeNVC event,
+    Emitter<RecordState> emit,
+  ) async {
+    emit(state.copyWith(status: RecordStatus.analyzing, clearNVCAnalysis: true));
+
+    try {
+      final nvc = await aiRepository.analyzeWithNVC(event.text);
+      emit(state.copyWith(
+        status: RecordStatus.analyzed,
+        nvcAnalysis: nvc,
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        status: RecordStatus.error,
+        errorMessage: '分析失败: $e',
+      ));
+    }
   }
 
   /// 转写音频
@@ -43,21 +68,23 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     Emitter<RecordState> emit,
   ) async {
     print('RecordBloc: Starting transcription for: ${event.audioPath}');
-    emit(state.copyWith(status: RecordStatus.transcribing, transcription: '正在转写中...'));
+    // 仅更新转写文本，不改变 status 为 transcribing，避免触发全屏 Loading
+    // 之前如果已经是 success 或其他状态，这里可能会重置为 success 或 initial，或者保持不变
+    // 这里选择保持不变，只更新 transcription
+    emit(state.copyWith(transcription: '正在转写中...'));
 
     try {
       final transcription = await aiRepository.transcribeAudioFile(event.audioPath);
       print('RecordBloc: Transcription completed: $transcription');
+      // 转写成功，只更新 transcription
       emit(state.copyWith(
-        status: RecordStatus.success,
         transcription: transcription,
       ));
       print('RecordBloc: State updated with transcription');
     } catch (e) {
       print('RecordBloc: Transcription failed: $e');
+      // 转写失败，不作为全局错误抛出，只更新 transcription 为失败状态
       emit(state.copyWith(
-        status: RecordStatus.error,
-        errorMessage: '转写失败: $e',
         transcription: '转写失败',
       ));
     }
@@ -68,17 +95,21 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     RecordCreateQuickNote event,
     Emitter<RecordState> emit,
   ) async {
+    print('RecordBloc: Creating quick note...');
     emit(state.copyWith(status: RecordStatus.creating));
 
     try {
       // 转写阶段
-      emit(state.copyWith(status: RecordStatus.transcribing));
-
+      // 注意：如果已经有 transcription，这里不会触发真正的转写
+      // 如果正在转写中，createQuickNoteUseCase 会直接使用传入的 transcription
+      
       // 分析阶段（如果需要）
       if (event.mode == ProcessingMode.withNVC) {
-        emit(state.copyWith(status: RecordStatus.analyzing));
+        // NVC 分析通常在 _onAnalyzeNVC 中完成，这里只是保存结果
+        // 如果是直接传入 nvcAnalysis，则不需要再次分析
       }
 
+      print('RecordBloc: Calling createQuickNoteUseCase...');
       // 创建记录
       final record = await createQuickNoteUseCase(
         CreateQuickNoteParams(
@@ -86,8 +117,13 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
           mode: event.mode,
           selectedMoods: event.selectedMoods,
           transcription: event.transcription,
+          nvcAnalysis: event.nvcAnalysis,
         ),
-      );
+      ).timeout(const Duration(seconds: 10), onTimeout: () {
+        throw Exception('创建记录超时');
+      });
+      
+      print('RecordBloc: Quick note created: ${record.id}');
 
       // 将新记录添加到列表开头
       final updatedRecords = [record, ...state.records];
@@ -98,6 +134,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
         latestRecord: record,
       ));
     } catch (e) {
+      print('RecordBloc: Create quick note failed: $e');
       emit(state.copyWith(
         status: RecordStatus.error,
         errorMessage: '创建记录失败: $e',
@@ -216,37 +253,5 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     // 1. 找到记录
     // 2. 根据新模式重新分析
     // 3. 更新记录
-  }
-
-  /// NVC 洞察分析
-  Future<void> _onNVCInsight(
-    RecordNVCInsight event,
-    Emitter<RecordState> emit,
-  ) async {
-    print('RecordBloc: Starting NVC insight for text: ${event.transcription.substring(0, 50)}...');
-    emit(state.copyWith(
-      status: RecordStatus.nvcAnalyzing,
-      clearNvcAnalysis: true,
-    ));
-
-    try {
-      final nvcAnalysis = await aiRepository.analyzeWithNVC(event.transcription);
-      print('RecordBloc: NVC insight completed');
-      print('  - Observation: ${nvcAnalysis.observation.substring(0, 50)}...');
-      print('  - Feelings: ${nvcAnalysis.feelings.length}');
-      print('  - Needs: ${nvcAnalysis.needs.length}');
-
-      emit(state.copyWith(
-        status: RecordStatus.success,
-        nvcAnalysis: nvcAnalysis,
-      ));
-      print('RecordBloc: State updated with NVC analysis');
-    } catch (e) {
-      print('RecordBloc: NVC insight failed: $e');
-      emit(state.copyWith(
-        status: RecordStatus.error,
-        errorMessage: 'NVC洞察失败: $e',
-      ));
-    }
   }
 }

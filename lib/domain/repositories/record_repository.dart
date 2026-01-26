@@ -3,6 +3,7 @@
 
 import '../entities/record.dart';
 import '../entities/day_aggregation.dart';
+import '../entities/nvc_analysis.dart';
 
 abstract class RecordRepository {
   /// 创建碎片记录
@@ -13,6 +14,7 @@ abstract class RecordRepository {
     ProcessingMode? processingMode,
     List<String>? moods,
     List<String>? needs,
+    NVCAnalysis? nvc,
   });
 
   /// 创建日记

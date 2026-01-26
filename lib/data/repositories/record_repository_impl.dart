@@ -21,6 +21,7 @@ class RecordRepositoryImpl implements RecordRepository {
     ProcessingMode? processingMode,
     List<String>? moods,
     List<String>? needs,
+    NVCAnalysis? nvc,
   }) async {
     final record = Record(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -33,6 +34,7 @@ class RecordRepositoryImpl implements RecordRepository {
       processingMode: processingMode,
       moods: moods,
       needs: needs,
+      nvc: nvc,
     );
     return await createRecord(record);
   }

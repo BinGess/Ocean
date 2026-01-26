@@ -87,7 +87,6 @@ class ProcessingChoiceModal extends StatelessWidget {
             description: '保存转写文本，不做进一步分析',
             color: Colors.blue,
             onTap: () {
-              Navigator.of(context).pop();
               onSelect(ProcessingMode.onlyRecord);
             },
           ),
@@ -101,7 +100,6 @@ class ProcessingChoiceModal extends StatelessWidget {
             description: '标记当前的情绪状态',
             color: Colors.orange,
             onTap: () {
-              Navigator.of(context).pop();
               onSelect(ProcessingMode.withMood);
             },
           ),
@@ -115,7 +113,6 @@ class ProcessingChoiceModal extends StatelessWidget {
             description: '完整的情绪分析（观察-感受-需要-请求）',
             color: Colors.purple,
             onTap: () {
-              Navigator.of(context).pop();
               onSelect(ProcessingMode.withNVC);
             },
           ),

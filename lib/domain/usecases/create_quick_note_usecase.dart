@@ -14,12 +14,14 @@ class CreateQuickNoteParams {
   final ProcessingMode mode;
   final List<String>? selectedMoods;
   final String? transcription;
+  final NVCAnalysis? nvcAnalysis;
 
   CreateQuickNoteParams({
     required this.audioPath,
     required this.mode,
     this.selectedMoods,
     this.transcription,
+    this.nvcAnalysis,
   });
 }
 
@@ -65,11 +67,17 @@ class CreateQuickNoteUseCase extends UseCase<Record, CreateQuickNoteParams> {
 
       case ProcessingMode.withNVC:
         // 完整 NVC 分析
-        nvc = await aiRepository.analyzeWithNVC(transcription);
+        if (params.nvcAnalysis != null) {
+          nvc = params.nvcAnalysis;
+        } else {
+          nvc = await aiRepository.analyzeWithNVC(transcription);
+        }
 
         // 从 NVC 分析中提取情绪和需要
-        moods = nvc.feelings.map((f) => f.feeling).toList();
-        needs = nvc.needs.map((n) => n.need).toList();
+        if (nvc != null) {
+          moods = nvc.feelings.map((f) => f.feeling).toList();
+          needs = nvc.needs.map((n) => n.need).toList();
+        }
         break;
     }
 
@@ -81,6 +89,7 @@ class CreateQuickNoteUseCase extends UseCase<Record, CreateQuickNoteParams> {
       processingMode: params.mode,
       moods: moods,
       needs: needs,
+      nvc: nvc,
     );
   }
 }
