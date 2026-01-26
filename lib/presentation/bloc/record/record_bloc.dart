@@ -46,15 +46,23 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     RecordAnalyzeNVC event,
     Emitter<RecordState> emit,
   ) async {
+    print('RecordBloc: 开始NVC分析，文本: ${event.text}');
     emit(state.copyWith(status: RecordStatus.analyzing, clearNVCAnalysis: true));
 
     try {
       final nvc = await aiRepository.analyzeWithNVC(event.text);
+      print('RecordBloc: NVC分析完成');
+      print('RecordBloc: 观察: ${nvc.observation}');
+      print('RecordBloc: 感受: ${nvc.feelings}');
+      print('RecordBloc: 需要: ${nvc.needs}');
+      print('RecordBloc: 请求: ${nvc.requests}');
+      print('RecordBloc: AI洞察: ${nvc.aiInsight}');
       emit(state.copyWith(
         status: RecordStatus.analyzed,
         nvcAnalysis: nvc,
       ));
     } catch (e) {
+      print('RecordBloc: NVC分析失败: $e');
       emit(state.copyWith(
         status: RecordStatus.error,
         errorMessage: '分析失败: $e',

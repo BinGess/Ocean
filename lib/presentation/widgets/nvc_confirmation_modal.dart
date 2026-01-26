@@ -49,11 +49,20 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
   @override
   void initState() {
     super.initState();
+    print('NVCConfirmationModal: 初始化');
+    print('NVCConfirmationModal: 观察: ${widget.initialAnalysis.observation}');
+    print('NVCConfirmationModal: 感受数量: ${widget.initialAnalysis.feelings.length}');
+    print('NVCConfirmationModal: 感受列表: ${widget.initialAnalysis.feelings}');
+    print('NVCConfirmationModal: 需要数量: ${widget.initialAnalysis.needs.length}');
+    print('NVCConfirmationModal: 需要列表: ${widget.initialAnalysis.needs}');
+    print('NVCConfirmationModal: 请求: ${widget.initialAnalysis.request}');
+    print('NVCConfirmationModal: 洞察: ${widget.initialAnalysis.insight}');
+
     _observation = widget.initialAnalysis.observation;
     _feelings = List.from(widget.initialAnalysis.feelings);
     _needs = List.from(widget.initialAnalysis.needs);
-    _insight = widget.initialAnalysis.insight ?? 
-               widget.initialAnalysis.request ?? 
+    _insight = widget.initialAnalysis.insight ??
+               widget.initialAnalysis.request ??
                '尝试在双方情绪平稳时，以"我"开头表达感受，而非指责。';
   }
 

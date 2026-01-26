@@ -64,11 +64,17 @@ class CozeAIService {
       final responseText = await _callCozeAPI(promptText);
 
       print('✅ CozeAI: 收到AI响应，长度: ${responseText.length}');
+      print('📝 CozeAI: AI原始响应内容:\n$responseText');
 
       // 解析响应
       final nvcAnalysis = _parseNVCResponse(responseText, transcription);
 
       print('✅ CozeAI: NVC分析完成');
+      print('📊 CozeAI: 解析结果 - 观察: ${nvcAnalysis.observation}');
+      print('📊 CozeAI: 解析结果 - 感受: ${nvcAnalysis.feelings}');
+      print('📊 CozeAI: 解析结果 - 需要: ${nvcAnalysis.needs}');
+      print('📊 CozeAI: 解析结果 - 请求: ${nvcAnalysis.requests}');
+      print('📊 CozeAI: 解析结果 - AI洞察: ${nvcAnalysis.aiInsight}');
       return nvcAnalysis;
     } on DioException catch (e) {
       throw CozeAPIException.fromDioError(e);
@@ -217,11 +223,15 @@ $transcription
     try {
       // 尝试从响应中提取JSON（可能被markdown代码块包裹）
       final jsonText = _extractJsonFromText(responseText);
+      print('🔍 CozeAI: 提取的JSON文本:\n$jsonText');
+
       final jsonData = jsonDecode(jsonText) as Map<String, dynamic>;
+      print('🔍 CozeAI: 解析的JSON对象: $jsonData');
 
       return _parseFlexibleNVCJson(jsonData, originalText);
     } catch (e) {
       print('⚠️ CozeAI: JSON解析失败，使用降级策略: $e');
+      print('⚠️ CozeAI: 原始响应文本: $responseText');
       // 降级：将整个响应作为观察内容
       return NVCAnalysis(
         observation: responseText,
