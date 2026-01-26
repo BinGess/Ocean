@@ -30,6 +30,12 @@ class AppConstants {
   // API 超时配置
   static const Duration apiTimeout = Duration(seconds: 30);
   static const Duration transcriptionTimeout = Duration(seconds: 60);
+  static const Duration cozeApiTimeout = Duration(seconds: 30);
+  static const Duration cozeReceiveTimeout = Duration(seconds: 60);
+
+  // Coze AI 配置
+  static const int cozeMaxRetries = 3;
+  static const int cozeRetryDelaySeconds = 2;
 
   // UI 配置
   static const int maxRecentDays = 30; // 最近 N 天
@@ -56,12 +62,32 @@ class EnvConfig {
   static String get doubaoModelId =>
       dotenv.get('DOUBAO_MODEL_ID', fallback: 'doubao-pro-32k');
 
+  // Coze AI (智能体) API
+  static String get cozeApiToken =>
+      dotenv.get('COZE_API_TOKEN', fallback: '').trim();
+
+  static String get cozeBaseUrl =>
+      dotenv.get('COZE_BASE_URL', fallback: 'https://ypcqkgr32q.coze.site').trim();
+
+  static String get cozeProjectId =>
+      dotenv.get('COZE_PROJECT_ID', fallback: '').trim();
+
+  static String get cozeBotId =>
+      dotenv.get('COZE_BOT_ID', fallback: '').trim();
+
   /// 验证配置是否完整
   static bool get isConfigured {
     return doubaoAsrAppKey.isNotEmpty &&
            doubaoAsrAccessKey.isNotEmpty &&
            doubaoLlmApiKey.isNotEmpty &&
            doubaoModelId.isNotEmpty;
+  }
+
+  /// 验证 Coze AI 配置是否完整
+  static bool get isCozeConfigured {
+    return cozeApiToken.isNotEmpty &&
+           cozeProjectId.isNotEmpty &&
+           cozeBotId.isNotEmpty;
   }
 
   /// 获取配置状态信息（用于调试）

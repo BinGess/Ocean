@@ -7,12 +7,17 @@ import '../../domain/entities/nvc_analysis.dart';
 import '../../domain/entities/weekly_insight.dart';
 import '../../domain/repositories/ai_repository.dart';
 import '../datasources/remote/doubao_datasource.dart';
+import '../../core/network/coze_ai_service.dart';
 import '../../core/constants/app_constants.dart';
 
 class AIRepositoryImpl implements AIRepository {
   final DoubaoDataSource doubaoDataSource;
+  final CozeAIService? cozeAIService;
 
-  AIRepositoryImpl({required this.doubaoDataSource});
+  AIRepositoryImpl({
+    required this.doubaoDataSource,
+    this.cozeAIService,
+  });
 
   @override
   Future<String> transcribeAudioFile(String audioPath) async {
@@ -56,12 +61,25 @@ class AIRepositoryImpl implements AIRepository {
 
   @override
   Future<NVCAnalysis> analyzeWithNVC(String transcription) async {
+    // 优先使用 Coze AI 进行 NVC 洞察
+    if (cozeAIService != null && EnvConfig.isCozeConfigured) {
+      try {
+        print('🤖 AIRepository: 使用 Coze AI 进行 NVC 洞察');
+        return await cozeAIService!.analyzeNVC(transcription);
+      } catch (e) {
+        print('⚠️ AIRepository: Coze AI 分析失败，降级到豆包LLM: $e');
+        // 降级到豆包 LLM
+      }
+    }
+
+    // 降级：使用豆包 LLM
     try {
       final result = await doubaoDataSource.analyzeWithNVC(
         transcription: transcription,
       );
       return result ?? _createDefaultNVC(transcription);
     } catch (e) {
+      print('⚠️ AIRepository: 豆包LLM分析失败，返回默认结果: $e');
       return _createDefaultNVC(transcription);
     }
   }
