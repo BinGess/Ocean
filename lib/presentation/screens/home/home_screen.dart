@@ -359,31 +359,42 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     // 正常录音界面
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            audioState.isRecording ? '点击结束录音' : '点击开始录音',
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: audioState.isRecording ? Colors.red : theme.primaryColor,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    audioState.isRecording ? '点击结束录音' : '点击开始录音',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      color: audioState.isRecording ? Colors.red : theme.primaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 48),
+                  RecordButton(
+                    mode: RecordButtonMode.toggle,
+                    isRecording: audioState.isRecording,
+                    duration: audioState.duration,
+                    isEnabled: audioState.canRecord || audioState.isRecording,
+                    onRecordStart: () {
+                      context.read<AudioBloc>().add(const AudioStartRecording());
+                    },
+                    onRecordStop: () {
+                      context.read<AudioBloc>().add(const AudioStopRecording());
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 48),
-          RecordButton(
-            mode: RecordButtonMode.toggle,
-            isRecording: audioState.isRecording,
-            duration: audioState.duration,
-            isEnabled: audioState.canRecord || audioState.isRecording, // 关键修复：录音中也必须允许点击，才能触发停止
-            onRecordStart: () {
-              context.read<AudioBloc>().add(const AudioStartRecording());
-            },
-            onRecordStop: () {
-              context.read<AudioBloc>().add(const AudioStopRecording());
-            },
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

@@ -69,7 +69,16 @@ class RecordModel extends HiveObject {
       processingMode: entity.processingMode?.toString().split('.').last,
       moods: entity.moods,
       needs: entity.needs,
-      nvc: entity.nvc?.toJson(),
+      nvc: entity.nvc != null
+          ? {
+              'observation': entity.nvc!.observation,
+              'feelings': entity.nvc!.feelings.map((f) => f.toJson()).toList(),
+              'needs': entity.nvc!.needs.map((n) => n.toJson()).toList(),
+              'request': entity.nvc!.request,
+              'insight': entity.nvc!.insight,
+              'analyzedAt': entity.nvc!.analyzedAt.toIso8601String(),
+            }
+          : null,
     );
   }
 
