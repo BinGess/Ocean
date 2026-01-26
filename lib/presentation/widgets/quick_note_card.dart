@@ -1,6 +1,3 @@
-/// 快速笔记卡片组件
-/// 显示单个记录的卡片
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../domain/entities/record.dart';
@@ -129,15 +126,15 @@ class QuickNoteCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.05),
+                        color: AppColors.primary.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: AppColors.primary.withOpacity(0.2),
+                      color: AppColors.primary.withValues(alpha: 0.2),
                     ),
                   ),
                   child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.psychology,
                         size: 16,
                         color: AppColors.primary,
@@ -152,7 +149,7 @@ class QuickNoteCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      Icon(
+                      const Icon(
                         Icons.arrow_forward_ios,
                         size: 12,
                         color: AppColors.primary,
@@ -192,15 +189,15 @@ class _MoodChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.orange.withOpacity(0.1),
+        color: Colors.orange.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
+          const Text(
             '😊',
-            style: const TextStyle(fontSize: 14),
+            style: TextStyle(fontSize: 14),
           ),
           const SizedBox(width: 4),
           Text(
@@ -228,15 +225,15 @@ class _NeedChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.sage.withOpacity(0.15),
+        color: AppColors.sage.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.sage.withOpacity(0.3),
+          color: AppColors.sage.withValues(alpha: 0.3),
         ),
       ),
       child: Text(
         need,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 11,
           color: AppColors.sage,
           fontWeight: FontWeight.w500,

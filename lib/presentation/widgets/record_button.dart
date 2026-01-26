@@ -1,8 +1,4 @@
-/// 录音按钮组件
-/// 支持长按录音和点击切换模式
-
 import 'package:flutter/material.dart';
-import 'dart:async';
 
 enum RecordButtonMode {
   press, // 长按录音
@@ -33,14 +29,9 @@ class RecordButton extends StatefulWidget {
 
 class _RecordButtonState extends State<RecordButton>
     with SingleTickerProviderStateMixin {
-  bool _isPressing = false;
-  bool _hasTriggeredLongPress = false; // 标记长按是否已触发
-  Timer? _longPressTimer;
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _pulseAnimation;
-
-  static const longPressThreshold = 200; // 200ms 触发长按
 
   @override
   void initState() {
@@ -71,61 +62,17 @@ class _RecordButtonState extends State<RecordButton>
 
   @override
   void dispose() {
-    _longPressTimer?.cancel();
     _animationController.dispose();
     super.dispose();
   }
 
-  // ignore: unused_element
-  void _handlePressStart() {
-    if (!widget.isEnabled) return;
-
-    setState(() {
-      _isPressing = true;
-    });
-
-    if (widget.mode == RecordButtonMode.press) {
-      // 长按模式
-      _longPressTimer = Timer(
-        const Duration(milliseconds: longPressThreshold),
-        () {
-          _hasTriggeredLongPress = true;
-          widget.onRecordStart?.call();
-        },
-      );
-    }
-  }
-
-  // ignore: unused_element
-  void _handlePressEnd() {
-    if (!widget.isEnabled) return;
-
-    _longPressTimer?.cancel();
-
-    setState(() {
-      _isPressing = false;
-    });
-
-    if (widget.mode == RecordButtonMode.press) {
-      // 只要触发了长按或者正在录音，松开时都应该尝试停止
-      if (_hasTriggeredLongPress || widget.isRecording) {
-        widget.onRecordStop?.call();
-      }
-    }
-    _hasTriggeredLongPress = false;
-  }
-
-  // ignore: unused_element
   void _handleTap() {
-    print('RecordButton: _handleTap called. Mode: ${widget.mode}, IsRecording: ${widget.isRecording}, IsEnabled: ${widget.isEnabled}');
     if (!widget.isEnabled) return;
 
     if (widget.mode == RecordButtonMode.toggle) {
       if (widget.isRecording) {
-        print('RecordButton: Triggering onRecordStop');
         widget.onRecordStop?.call();
       } else {
-        print('RecordButton: Triggering onRecordStart');
         widget.onRecordStart?.call();
       }
     }
@@ -172,8 +119,8 @@ class _RecordButtonState extends State<RecordButton>
                       height: 96 * _pulseAnimation.value,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.red.withOpacity(
-                          (0.3 * (1 - (_pulseAnimation.value - 1) / 0.3))
+                        color: Colors.red.withValues(
+                          alpha: (0.3 * (1 - (_pulseAnimation.value - 1) / 0.3))
                               .clamp(0.0, 1.0),
                         ),
                       ),
@@ -202,7 +149,7 @@ class _RecordButtonState extends State<RecordButton>
                             color: (widget.isRecording
                                     ? Colors.red
                                     : theme.primaryColor)
-                                .withOpacity(0.3),
+                                .withValues(alpha: 0.3),
                             blurRadius: 20,
                             spreadRadius: 5,
                           ),
@@ -227,7 +174,7 @@ class _RecordButtonState extends State<RecordButton>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(

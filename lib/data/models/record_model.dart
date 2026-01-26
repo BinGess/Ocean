@@ -97,8 +97,39 @@ class RecordModel extends HiveObject {
           : null,
       moods: moods,
       needs: needs,
-      nvc: nvc != null ? NVCAnalysis.fromJson(nvc!) : null,
+      nvc: nvc != null
+          ? NVCAnalysis.fromJson(_normalizeJsonMap(nvc!))
+          : null,
     );
+  }
+
+  Map<String, dynamic> _normalizeJsonMap(Map<dynamic, dynamic> source) {
+    final normalized = <String, dynamic>{};
+    for (final entry in source.entries) {
+      final key = entry.key.toString();
+      final value = entry.value;
+      if (value is Map) {
+        normalized[key] = _normalizeJsonMap(Map<dynamic, dynamic>.from(value));
+      } else if (value is List) {
+        normalized[key] = value.map((item) {
+          if (item is Map) {
+            return _normalizeJsonMap(Map<dynamic, dynamic>.from(item));
+          }
+          if (item is List) {
+            return item.map((nested) {
+              if (nested is Map) {
+                return _normalizeJsonMap(Map<dynamic, dynamic>.from(nested));
+              }
+              return nested;
+            }).toList();
+          }
+          return item;
+        }).toList();
+      } else {
+        normalized[key] = value;
+      }
+    }
+    return normalized;
   }
 
   /// 解析 RecordType

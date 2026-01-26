@@ -107,7 +107,7 @@ class _MoodSelectionModalState extends State<MoodSelectionModal> {
                     label: Text(mood),
                     selected: isSelected,
                     onSelected: (_) => _toggleMood(mood),
-                    selectedColor: theme.primaryColor.withOpacity(0.2),
+                    selectedColor: theme.primaryColor.withValues(alpha: 0.2),
                     checkmarkColor: theme.primaryColor,
                     labelStyle: TextStyle(
                       color: isSelected ? theme.primaryColor : Colors.black87,

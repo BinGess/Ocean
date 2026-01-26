@@ -1,6 +1,3 @@
-/// 处理选择模态框
-/// 录音完成后选择处理方式：仅记录、添加情绪、NVC分析、NVC洞察
-
 import 'package:flutter/material.dart';
 import '../../domain/entities/record.dart';
 
@@ -21,7 +18,6 @@ class ProcessingChoiceModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    print('ProcessingChoiceModal: Building with transcription: $transcription');
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -191,7 +187,7 @@ class _ProcessingOption extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
