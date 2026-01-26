@@ -1,5 +1,5 @@
 /// 处理选择模态框
-/// 录音完成后选择处理方式：仅记录、添加情绪、NVC分析
+/// 录音完成后选择处理方式：仅记录、添加情绪、NVC分析、NVC洞察
 
 import 'package:flutter/material.dart';
 import '../../domain/entities/record.dart';
@@ -8,12 +8,14 @@ class ProcessingChoiceModal extends StatelessWidget {
   final String transcription;
   final Function(ProcessingMode) onSelect;
   final VoidCallback? onCancel;
+  final VoidCallback? onNVCInsight;
 
   const ProcessingChoiceModal({
     super.key,
     required this.transcription,
     required this.onSelect,
     this.onCancel,
+    this.onNVCInsight,
   });
 
   @override
@@ -117,6 +119,20 @@ class ProcessingChoiceModal extends StatelessWidget {
               onSelect(ProcessingMode.withNVC);
             },
           ),
+
+          const SizedBox(height: 12),
+
+          // 选项 4：NVC 洞察（AI智能体）
+          if (onNVCInsight != null)
+            _ProcessingOption(
+              icon: Icons.auto_awesome,
+              title: 'NVC 洞察',
+              description: 'AI智能体深度分析（观察-感受-需要-请求）',
+              color: Colors.deepPurple,
+              onTap: () {
+                onNVCInsight!();
+              },
+            ),
 
           const SizedBox(height: 24),
         ],
