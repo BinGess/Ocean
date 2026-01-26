@@ -19,6 +19,7 @@ import '../../data/datasources/local/hive_database.dart';
 import '../../data/datasources/remote/doubao_datasource.dart';
 import '../network/doubao_asr_client.dart';
 import '../network/doubao_llm_client.dart';
+import '../network/coze_ai_service.dart';
 import '../constants/app_constants.dart';
 import '../../presentation/bloc/audio/audio_bloc.dart';
 import '../../presentation/bloc/record/record_bloc.dart';
@@ -41,6 +42,11 @@ Future<void> configureDependencies() async {
       apiKey: EnvConfig.doubaoLlmApiKey,
       endpoint: AppConstants.doubaoLlmEndpoint,
     ),
+  );
+
+  // Coze AI 服务（智能体）
+  getIt.registerLazySingleton<CozeAIService>(
+    () => CozeAIService(),
   );
 
   // ===== Data Sources =====
@@ -76,6 +82,7 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<AIRepository>(
     () => AIRepositoryImpl(
       doubaoDataSource: getIt<DoubaoDataSource>(),
+      cozeAIService: getIt<CozeAIService>(),
     ),
   );
 

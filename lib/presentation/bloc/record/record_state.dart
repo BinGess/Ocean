@@ -2,6 +2,7 @@
 
 import 'package:equatable/equatable.dart';
 import '../../../domain/entities/record.dart';
+import '../../../domain/entities/nvc_analysis.dart';
 
 /// 记录状态枚举
 enum RecordStatus {
@@ -10,6 +11,7 @@ enum RecordStatus {
   creating, // 创建中
   transcribing, // 转写中
   analyzing, // 分析中
+  nvcAnalyzing, // NVC分析中
   success, // 成功
   error, // 错误
 }
@@ -36,6 +38,9 @@ class RecordState extends Equatable {
   /// 当前正在转写的文本
   final String? transcription;
 
+  /// NVC 分析结果
+  final NVCAnalysis? nvcAnalysis;
+
   const RecordState({
     required this.status,
     required this.records,
@@ -44,6 +49,7 @@ class RecordState extends Equatable {
     this.errorMessage,
     this.hasMore = true,
     this.transcription,
+    this.nvcAnalysis,
   });
 
   /// 初始状态
@@ -69,6 +75,8 @@ class RecordState extends Equatable {
     bool clearSelection = false,
     bool clearLatest = false,
     String? transcription,
+    NVCAnalysis? nvcAnalysis,
+    bool clearNvcAnalysis = false,
   }) {
     return RecordState(
       status: status ?? this.status,
@@ -79,6 +87,7 @@ class RecordState extends Equatable {
       errorMessage: errorMessage ?? this.errorMessage,
       hasMore: hasMore ?? this.hasMore,
       transcription: transcription ?? this.transcription,
+      nvcAnalysis: clearNvcAnalysis ? null : (nvcAnalysis ?? this.nvcAnalysis),
     );
   }
 
@@ -87,6 +96,7 @@ class RecordState extends Equatable {
   bool get isCreating => status == RecordStatus.creating;
   bool get isTranscribing => status == RecordStatus.transcribing;
   bool get isAnalyzing => status == RecordStatus.analyzing;
+  bool get isNvcAnalyzing => status == RecordStatus.nvcAnalyzing;
   bool get isSuccess => status == RecordStatus.success;
   bool get hasError => status == RecordStatus.error;
   bool get isEmpty => records.isEmpty;
@@ -100,5 +110,6 @@ class RecordState extends Equatable {
         errorMessage,
         hasMore,
         transcription,
+        nvcAnalysis,
       ];
 }

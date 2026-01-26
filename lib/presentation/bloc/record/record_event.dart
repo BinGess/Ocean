@@ -104,3 +104,13 @@ class RecordTranscribe extends RecordEvent {
   @override
   List<Object?> get props => [audioPath];
 }
+
+/// NVC 洞察分析
+class RecordNVCInsight extends RecordEvent {
+  final String transcription;
+
+  const RecordNVCInsight(this.transcription);
+
+  @override
+  List<Object?> get props => [transcription];
+}

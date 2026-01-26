@@ -34,6 +34,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     on<RecordClearSelection>(_onClearSelection);
     on<RecordChangeProcessingMode>(_onChangeProcessingMode);
     on<RecordTranscribe>(_onTranscribe);
+    on<RecordNVCInsight>(_onNVCInsight);
   }
 
   /// 转写音频
@@ -215,5 +216,37 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     // 1. 找到记录
     // 2. 根据新模式重新分析
     // 3. 更新记录
+  }
+
+  /// NVC 洞察分析
+  Future<void> _onNVCInsight(
+    RecordNVCInsight event,
+    Emitter<RecordState> emit,
+  ) async {
+    print('RecordBloc: Starting NVC insight for text: ${event.transcription.substring(0, 50)}...');
+    emit(state.copyWith(
+      status: RecordStatus.nvcAnalyzing,
+      clearNvcAnalysis: true,
+    ));
+
+    try {
+      final nvcAnalysis = await aiRepository.analyzeWithNVC(event.transcription);
+      print('RecordBloc: NVC insight completed');
+      print('  - Observation: ${nvcAnalysis.observation.substring(0, 50)}...');
+      print('  - Feelings: ${nvcAnalysis.feelings.length}');
+      print('  - Needs: ${nvcAnalysis.needs.length}');
+
+      emit(state.copyWith(
+        status: RecordStatus.success,
+        nvcAnalysis: nvcAnalysis,
+      ));
+      print('RecordBloc: State updated with NVC analysis');
+    } catch (e) {
+      print('RecordBloc: NVC insight failed: $e');
+      emit(state.copyWith(
+        status: RecordStatus.error,
+        errorMessage: 'NVC洞察失败: $e',
+      ));
+    }
   }
 }
