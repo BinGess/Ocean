@@ -73,8 +73,8 @@ class CozeAIService {
       print('📊 CozeAI: 解析结果 - 观察: ${nvcAnalysis.observation}');
       print('📊 CozeAI: 解析结果 - 感受: ${nvcAnalysis.feelings}');
       print('📊 CozeAI: 解析结果 - 需要: ${nvcAnalysis.needs}');
-      print('📊 CozeAI: 解析结果 - 请求: ${nvcAnalysis.requests}');
-      print('📊 CozeAI: 解析结果 - AI洞察: ${nvcAnalysis.aiInsight}');
+      print('📊 CozeAI: 解析结果 - 请求: ${nvcAnalysis.request}');
+      print('📊 CozeAI: 解析结果 - AI洞察: ${nvcAnalysis.insight}');
       return nvcAnalysis;
     } on DioException catch (e) {
       throw CozeAPIException.fromDioError(e);

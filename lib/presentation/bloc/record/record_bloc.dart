@@ -55,8 +55,8 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
       print('RecordBloc: 观察: ${nvc.observation}');
       print('RecordBloc: 感受: ${nvc.feelings}');
       print('RecordBloc: 需要: ${nvc.needs}');
-      print('RecordBloc: 请求: ${nvc.requests}');
-      print('RecordBloc: AI洞察: ${nvc.aiInsight}');
+      print('RecordBloc: 请求: ${nvc.request}');
+      print('RecordBloc: AI洞察: ${nvc.insight}');
       emit(state.copyWith(
         status: RecordStatus.analyzed,
         nvcAnalysis: nvc,
