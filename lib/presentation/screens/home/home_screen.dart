@@ -174,7 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final weekDays = ['一', '二', '三', '四', '五', '六', '日'];
     final weekDay = weekDays[now.weekday - 1];
     final dateStr = '${now.month}月${now.day}日 星期$weekDay';
-    
+
     String greeting = '晚上好';
     final hour = now.hour;
     if (hour < 12) {
@@ -184,50 +184,19 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        toolbarHeight: 80,
-        backgroundColor: Colors.white,
-        scrolledUnderElevation: 0, // 防止滚动时状态栏变色
-        surfaceTintColor: Colors.transparent, // 防止 Material 3 自动着色
-        elevation: 0,
-        centerTitle: false,
-        titleSpacing: 24,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              dateStr,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
-                fontWeight: FontWeight.normal,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              greeting,
-              style: const TextStyle(
-                fontSize: 28,
-                color: Color(0xFF2C3E50),
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.0,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 24),
-            child: CircleAvatar(
-              backgroundColor: Colors.grey[100],
-              radius: 22,
-              child: const Icon(Icons.person_outline, color: Colors.black87),
-            ),
+      // 糯米色渐变背景
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFFAF6F1), // 浅米白
+              Color(0xFFF5EBE0), // 米黄色
+            ],
           ),
-        ],
-      ),
-      body: Stack(
+        ),
+        child: Stack(
         children: [
           // 主内容
           BlocListener<AudioBloc, AudioState>(
@@ -286,21 +255,29 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                  }
               },
-              child: Column(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: _buildDescriptionSection(context),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: BlocBuilder<AudioBloc, AudioState>(
-                      builder: (context, audioState) {
-                        return _buildRecordSection(context, audioState);
-                      },
+              child: SafeArea(
+                child: Column(
+                  children: [
+                    // 顶部信息栏
+                    _buildHeader(context, dateStr, greeting),
+
+                    // 文字滚动区域
+                    Expanded(
+                      flex: 5,
+                      child: _buildDescriptionSection(context),
                     ),
-                  ),
-                ],
+
+                    // 录音按钮区域
+                    Expanded(
+                      flex: 3,
+                      child: BlocBuilder<AudioBloc, AudioState>(
+                        builder: (context, audioState) {
+                          return _buildRecordSection(context, audioState);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -327,9 +304,64 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildRecordSection(BuildContext context, AudioState audioState) {
-    final theme = Theme.of(context);
+  /// 顶部信息栏
+  Widget _buildHeader(BuildContext context, String dateStr, String greeting) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 左侧日期和问候
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  dateStr,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFFB8ADA0),
+                    fontWeight: FontWeight.normal,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  greeting,
+                  style: const TextStyle(
+                    fontSize: 32,
+                    color: Color(0xFF5D4E3C),
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ],
+            ),
+          ),
 
+          // 右侧用户图标
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: const Color(0xFFD9C9B8),
+                width: 1.5,
+              ),
+            ),
+            child: const Icon(
+              Icons.person_outline,
+              color: Color(0xFF8B7D6B),
+              size: 24,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecordSection(BuildContext context, AudioState audioState) {
     // 权限被拒绝
     if (!audioState.hasPermission &&
         audioState.status == RecordingStatus.permissionDenied) {
@@ -339,19 +371,37 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Icon(
               Icons.mic_off,
-              size: 64,
-              color: Colors.grey[400],
+              size: 56,
+              color: const Color(0xFFD9C9B8),
             ),
             const SizedBox(height: 16),
-            const Text('需要录音权限才能使用此功能'),
+            const Text(
+              '需要录音权限才能使用此功能',
+              style: TextStyle(
+                color: Color(0xFF8B7D6B),
+                fontSize: 15,
+              ),
+            ),
             const SizedBox(height: 16),
-            ElevatedButton(
+            TextButton(
               onPressed: () {
-                context.read<AudioBloc>().add(
-                      const AudioRequestPermission(),
-                    );
+                context.read<AudioBloc>().add(const AudioRequestPermission());
               },
-              child: const Text('授予权限'),
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0xFFE8DED0),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+              child: const Text(
+                '授予权限',
+                style: TextStyle(
+                  color: Color(0xFF5D4E3C),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
           ],
         ),
@@ -359,43 +409,96 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     // 正常录音界面
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    audioState.isRecording ? '点击结束录音' : '点击开始录音',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      color: audioState.isRecording ? Colors.red : theme.primaryColor,
-                    ),
-                  ),
-                  const SizedBox(height: 48),
-                  RecordButton(
-                    mode: RecordButtonMode.toggle,
-                    isRecording: audioState.isRecording,
-                    duration: audioState.duration,
-                    isEnabled: audioState.canRecord || audioState.isRecording,
-                    onRecordStart: () {
-                      context.read<AudioBloc>().add(const AudioStartRecording());
-                    },
-                    onRecordStop: () {
-                      context.read<AudioBloc>().add(const AudioStopRecording());
-                    },
-                  ),
-                ],
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 提示文字
+          Text(
+            audioState.isRecording ? '松开结束' : '按住记录',
+            style: TextStyle(
+              fontSize: 14,
+              color: audioState.isRecording
+                ? const Color(0xFF5D4E3C)
+                : const Color(0xFFB8ADA0),
+              fontWeight: FontWeight.w500,
+              letterSpacing: 2.0,
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // 录音按钮
+          GestureDetector(
+            onTapDown: (_) {
+              if (!audioState.isRecording) {
+                context.read<AudioBloc>().add(const AudioStartRecording());
+              }
+            },
+            onTapUp: (_) {
+              if (audioState.isRecording) {
+                context.read<AudioBloc>().add(const AudioStopRecording());
+              }
+            },
+            onTapCancel: () {
+              if (audioState.isRecording) {
+                context.read<AudioBloc>().add(const AudioStopRecording());
+              }
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: audioState.isRecording ? 100 : 120,
+              height: audioState.isRecording ? 100 : 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.9),
+                border: Border.all(
+                  color: audioState.isRecording
+                    ? const Color(0xFFC4A57B)
+                    : const Color(0xFFD9C9B8),
+                  width: audioState.isRecording ? 3 : 2.5,
+                ),
+                boxShadow: audioState.isRecording
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFFC4A57B).withOpacity(0.3),
+                        blurRadius: 20,
+                        spreadRadius: 5,
+                      ),
+                    ]
+                  : [],
+              ),
+              child: Icon(
+                Icons.mic,
+                size: audioState.isRecording ? 44 : 50,
+                color: const Color(0xFFC4A57B),
               ),
             ),
           ),
-        );
-      },
+
+          // 录音时长显示
+          if (audioState.isRecording && audioState.duration > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 24),
+              child: Text(
+                _formatDuration(audioState.duration),
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF8B7D6B),
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
+  }
+
+  /// 格式化时长
+  String _formatDuration(int seconds) {
+    final minutes = seconds ~/ 60;
+    final secs = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 
   Widget _buildDescriptionSection(BuildContext context) {
@@ -420,26 +523,33 @@ class _HomeScreenState extends State<HomeScreen> {
             }
 
             double distance = (page - index).abs();
-            
-            // Calculate styles based on distance from center
-            double scale = 0.8; // 默认更小
-            double opacity = 0.3;
-            Color color = Colors.grey[300]!;
+
+            // 根据距离计算样式（糯米色主题）
+            double scale = 0.7;
+            double opacity = 0.25;
+            Color color = const Color(0xFFD4C4B0); // 浅褐色
             FontWeight fontWeight = FontWeight.normal;
+            double fontSize = 18;
 
             if (distance < 0.5) {
-               // Active item (Center)
-               scale = 1.6; // 放大当前行
+               // 当前中心项
+               scale = 1.0;
                opacity = 1.0;
-               color = const Color(0xFF2C3E50);
-               fontWeight = FontWeight.w900;
+               color = const Color(0xFF5D4E3C); // 深褐色
+               fontWeight = FontWeight.w600;
+               fontSize = 26;
             } else if (distance < 1.5) {
-               // Neighboring items
+               // 相邻项
                double factor = 1.0 - (distance - 0.5);
-               scale = 0.8 + (0.8 * factor); // 过渡
-               opacity = 0.3 + (0.7 * factor);
-               color = Color.lerp(Colors.grey[300]!, const Color(0xFF2C3E50), factor)!;
-               if (factor > 0.5) fontWeight = FontWeight.w600;
+               scale = 0.7 + (0.3 * factor);
+               opacity = 0.25 + (0.75 * factor);
+               color = Color.lerp(
+                 const Color(0xFFD4C4B0),
+                 const Color(0xFF5D4E3C),
+                 factor,
+               )!;
+               fontSize = 18 + (8 * factor);
+               if (factor > 0.5) fontWeight = FontWeight.w500;
             }
 
             return Center(
@@ -448,18 +558,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Opacity(
                   opacity: opacity,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 40.0),
                     child: Text(
                       _rollingDescriptions[textIndex],
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         color: color,
-                        fontSize: 24, // 基础字号加大
+                        fontSize: fontSize,
                         fontWeight: fontWeight,
-                        height: 1.2, // 稍微紧凑一点的行高
-                        letterSpacing: 1.2,
+                        height: 1.4,
+                        letterSpacing: 1.5,
                       ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
                     ),
                   ),
                 ),
