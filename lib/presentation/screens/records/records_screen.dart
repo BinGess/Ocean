@@ -8,6 +8,8 @@ import '../../../domain/entities/record.dart';
 import '../../bloc/record/record_bloc.dart';
 import '../../bloc/record/record_state.dart';
 import '../../bloc/record/record_event.dart';
+import '../../widgets/nvc_confirmation_modal.dart';
+import '../record_detail/record_detail_screen.dart';
 
 class RecordsScreen extends StatefulWidget {
   final VoidCallback? onNavigateToHome;
@@ -30,6 +32,28 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   void _loadRecords() {
     context.read<RecordBloc>().add(const RecordLoadList());
+  }
+
+  /// 处理记录点击事件
+  void _handleRecordTap(Record record) {
+    // 如果是NVC模式的记录，显示NVC确认弹窗
+    if (record.nvc != null) {
+      NVCConfirmationModal.show(
+        context: context,
+        initialAnalysis: record.nvc!,
+        transcription: record.transcription,
+        onRevert: () {
+          // TODO: 还原为仅记录模式
+        },
+      );
+    } else {
+      // 否则打开记录详情页面
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => RecordDetailScreen(record: record),
+        ),
+      );
+    }
   }
 
   @override
@@ -347,64 +371,68 @@ class _RecordsScreenState extends State<RecordsScreen> {
     final hasNVC = record.nvc != null;
     final hasMoods = record.moods != null && record.moods!.isNotEmpty;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 时间
-          Text(
-            _formatTime(record.createdAt),
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey[500],
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // NVC标签（如果有）
-          if (hasNVC && record.nvc!.feelings.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: record.nvc!.feelings.map((feeling) {
-                  return _buildEmotionTag(
-                    feeling.feeling,
-                    _getEmotionColor(feeling.feeling),
-                  );
-                }).toList(),
-              ),
-            )
-          else if (hasMoods)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: record.moods!.map((mood) {
-                  return _buildEmotionTag(
-                    mood,
-                    _getEmotionColor(mood),
-                  );
-                }).toList(),
+    return GestureDetector(
+      onTap: () => _handleRecordTap(record),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 时间
+            Text(
+              _formatTime(record.createdAt),
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[500],
               ),
             ),
 
-          // 记录内容
-          Text(
-            record.transcription,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Color(0xFF4A4A4A),
-              height: 1.6,
+            const SizedBox(height: 12),
+
+            // NVC标签（如果有）
+            if (hasNVC && record.nvc!.feelings.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: record.nvc!.feelings.map((feeling) {
+                    return _buildEmotionTag(
+                      feeling.feeling,
+                      _getEmotionColor(feeling.feeling),
+                    );
+                  }).toList(),
+                ),
+              )
+            else if (hasMoods)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: record.moods!.map((mood) {
+                    return _buildEmotionTag(
+                      mood,
+                      _getEmotionColor(mood),
+                    );
+                  }).toList(),
+                ),
+              ),
+
+            // 记录内容
+            Text(
+              record.transcription,
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF4A4A4A),
+                height: 1.6,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
