@@ -269,14 +269,28 @@ class CozeAIService {
 
       return _parseFlexibleNVCJson(jsonData, originalText);
     } catch (e) {
-      print('⚠️ CozeAI: JSON解析失败，使用降级策略: $e');
+      print('⚠️ CozeAI: JSON解析失败: $e');
       print('⚠️ CozeAI: 原始响应文本: $responseText');
-      // 降级：将整个响应作为观察内容
-      return NVCAnalysis(
-        observation: responseText,
-        feelings: const [],
-        needs: const [],
-        analyzedAt: DateTime.now(),
+
+      // 检查响应是否包含错误信息
+      if (responseText.contains('503003') ||
+          responseText.contains('数据库连接') ||
+          responseText.contains('error') ||
+          responseText.contains('Error') ||
+          responseText.length < 50) {
+        // 抛出异常，触发错误对话框
+        throw CozeAPIException(
+          'AI服务暂时不可用，请稍后重试',
+          code: 'SERVICE_ERROR',
+          originalError: e,
+        );
+      }
+
+      // 如果不是明显的错误，但无法解析JSON，也抛出异常
+      throw CozeAPIException(
+        'AI响应格式异常，无法解析',
+        code: 'PARSE_ERROR',
+        originalError: e,
       );
     }
   }

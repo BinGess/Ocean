@@ -61,13 +61,16 @@ class AIRepositoryImpl implements AIRepository {
 
   @override
   Future<NVCAnalysis> analyzeWithNVC(String transcription) async {
+    Exception? lastError;
+
     // 优先使用 Coze AI 进行 NVC 洞察
     if (cozeAIService != null && EnvConfig.isCozeConfigured) {
       try {
         print('🤖 AIRepository: 使用 Coze AI 进行 NVC 洞察');
         return await cozeAIService!.analyzeNVC(transcription);
       } catch (e) {
-        print('⚠️ AIRepository: Coze AI 分析失败，降级到豆包LLM: $e');
+        print('⚠️ AIRepository: Coze AI 分析失败: $e');
+        lastError = e is Exception ? e : Exception(e.toString());
         // 降级到豆包 LLM
       }
     }
@@ -77,11 +80,16 @@ class AIRepositoryImpl implements AIRepository {
       final result = await doubaoDataSource.analyzeWithNVC(
         transcription: transcription,
       );
-      return result ?? _createDefaultNVC(transcription);
+      if (result != null) {
+        return result;
+      }
     } catch (e) {
-      print('⚠️ AIRepository: 豆包LLM分析失败，返回默认结果: $e');
-      return _createDefaultNVC(transcription);
+      print('⚠️ AIRepository: 豆包LLM分析失败: $e');
+      lastError = e is Exception ? e : Exception(e.toString());
     }
+
+    // 所有方法都失败了，抛出异常
+    throw lastError ?? Exception('NVC分析失败：所有AI服务均不可用');
   }
 
   @override
@@ -160,15 +168,5 @@ class AIRepositoryImpl implements AIRepository {
   @override
   bool isConfigured() {
     return EnvConfig.isConfigured;
-  }
-
-  /// 创建默认的 NVC 分析结果
-  NVCAnalysis _createDefaultNVC(String transcription) {
-    return NVCAnalysis(
-      observation: transcription,
-      feelings: const [],
-      needs: const [],
-      analyzedAt: DateTime.now(),
-    );
   }
 }
