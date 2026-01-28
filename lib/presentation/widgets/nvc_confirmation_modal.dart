@@ -67,7 +67,13 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
   }
 
   void _editObservation() async {
-    final result = await _showEditDialog('编辑事实观察', _observation);
+    final result = await _showEditDialog(
+      title: '编辑事实观察',
+      initialValue: _observation,
+      iconColor: const Color(0xFF007AFF),
+      iconBgColor: const Color(0xFFE8F4FD),
+      icon: Icons.remove_red_eye_outlined,
+    );
     if (result != null) {
       setState(() => _observation = result);
     }
