@@ -306,6 +306,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
               final index = entry.key;
               final record = entry.value;
               return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (index > 0)
                     Divider(
