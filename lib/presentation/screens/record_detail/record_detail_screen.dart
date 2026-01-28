@@ -8,6 +8,7 @@ import '../../bloc/record/record_bloc.dart';
 import '../../bloc/record/record_event.dart';
 import '../../bloc/record/record_state.dart';
 import '../../widgets/nvc_confirmation_modal.dart';
+import '../../widgets/nvc_error_dialog.dart';
 
 class RecordDetailScreen extends StatefulWidget {
   final Record record;
@@ -124,12 +125,16 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
             _isAnalyzing = false;
           });
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.errorMessage ?? 'NVC分析失败'),
-              backgroundColor: Colors.red[400],
-            ),
-          );
+          // 显示友好的错误对话框
+          NVCErrorDialog.show(context: context).then((action) {
+            if (action == NVCErrorAction.retry) {
+              // 立即重试NVC分析
+              _triggerNVCAnalysis();
+            } else if (action == NVCErrorAction.saveText) {
+              // 关闭详情页，记录已经保存
+              Navigator.of(context).pop();
+            }
+          });
         }
       },
       child: Scaffold(

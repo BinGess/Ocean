@@ -11,6 +11,7 @@ import '../../bloc/record/record_event.dart';
 import '../../widgets/processing_choice_modal.dart';
 import '../../widgets/mood_selection_modal.dart';
 import '../../widgets/nvc_confirmation_modal.dart';
+import '../../widgets/nvc_error_dialog.dart';
 import '../../widgets/loading_overlay.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -236,6 +237,28 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           );
                           _clearCompletedAudio();
+                        }
+                      });
+                    }
+                  });
+                }
+
+                // 处理NVC分析错误
+                if (recordState.hasError &&
+                    recordState.errorMessage != null &&
+                    _completedAudioPath != null) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (ModalRoute.of(context)?.isCurrent ?? false) {
+                      final transcription = recordState.transcription;
+                      NVCErrorDialog.show(context: context).then((action) {
+                        if (action == NVCErrorAction.retry) {
+                          // 立即重试NVC分析
+                          if (transcription != null && transcription.isNotEmpty) {
+                            context.read<RecordBloc>().add(RecordAnalyzeNVC(transcription));
+                          }
+                        } else if (action == NVCErrorAction.saveText) {
+                          // 保存为仅文本记录
+                          _handleProcessingModeSelected(ProcessingMode.onlyRecord);
                         }
                       });
                     }
