@@ -1,5 +1,5 @@
-/// 洞察仓储接口（Repository Interface）
-/// 定义周洞察相关的数据访问契约
+// 洞察仓储接口（Repository Interface）
+// 定义周洞察相关的数据访问契约
 
 import '../entities/weekly_insight.dart';
 

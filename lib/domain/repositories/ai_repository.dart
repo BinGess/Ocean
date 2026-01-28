@@ -1,5 +1,5 @@
-/// AI 仓储接口（Repository Interface）
-/// 定义语音识别和 AI 分析相关的契约
+// AI 仓储接口（Repository Interface）
+// 定义语音识别和 AI 分析相关的契约
 
 import '../entities/nvc_analysis.dart';
 import '../entities/weekly_insight.dart';

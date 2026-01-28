@@ -1,5 +1,5 @@
-/// 记录仓储接口（Repository Interface）
-/// 定义记录相关的数据访问契约
+// 记录仓储接口（Repository Interface）
+// 定义记录相关的数据访问契约
 
 import '../entities/record.dart';
 import '../entities/day_aggregation.dart';

@@ -1,5 +1,5 @@
-/// 应用主题配置
-/// 定义亮色和暗色主题
+// 应用主题配置
+// 定义亮色和暗色主题
 
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
@@ -214,7 +214,7 @@ class AppTheme {
       ),
 
       dividerTheme: DividerThemeData(
-        color: Colors.white.withOpacity(0.12),
+        color: Colors.white.withValues(alpha: 0.12),
         thickness: 1,
       ),
     );

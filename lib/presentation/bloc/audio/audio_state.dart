@@ -1,5 +1,5 @@
-/// 音频状态定义
-/// 定义所有与音频录制相关的状态
+// 音频状态定义
+// 定义所有与音频录制相关的状态
 
 import 'package:equatable/equatable.dart';
 

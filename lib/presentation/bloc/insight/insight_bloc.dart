@@ -1,5 +1,5 @@
-/// 洞察 BLoC
-/// 管理周洞察的生成、查询、反馈等操作
+// 洞察 BLoC
+// 管理周洞察的生成、查询、反馈等操作
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/usecases/generate_weekly_insight_usecase.dart';

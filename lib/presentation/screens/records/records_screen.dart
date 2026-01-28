@@ -1,5 +1,5 @@
-/// 每日记录页面
-/// 按天分组显示所有记录
+/// 碎片记录页面
+/// 显示所有快速记录，按日期分组
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';

@@ -1,4 +1,4 @@
-/// 获取周洞察列表用例
+// 获取周洞察列表用例
 
 import '../entities/weekly_insight.dart';
 import '../repositories/insight_repository.dart';

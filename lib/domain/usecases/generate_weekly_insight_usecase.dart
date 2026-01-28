@@ -1,5 +1,5 @@
-/// 生成周洞察用例
-/// 分析一周的记录并生成洞察
+// 生成周洞察用例
+// 分析一周的记录并生成洞察
 
 import 'package:uuid/uuid.dart';
 import '../entities/record.dart';
@@ -73,10 +73,6 @@ class GenerateWeeklyInsightUseCase
     // 3. 使用 AI 生成洞察
     final recordIds = records.map((r) => r.id).toList();
     final aiInsight = await aiRepository.generateWeeklyInsight(recordIds);
-
-    if (aiInsight == null) {
-      throw Exception('AI 洞察生成失败');
-    }
 
     // 4. 统计需要出现频率
     final needStatistics = _calculateNeedStatistics(records);

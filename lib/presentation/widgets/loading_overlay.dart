@@ -1,6 +1,3 @@
-/// 加载遮罩组件
-/// 显示加载状态和进度信息
-
 import 'package:flutter/material.dart';
 
 class LoadingOverlay extends StatelessWidget {

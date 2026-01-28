@@ -1,6 +1,3 @@
-/// 日记页面
-/// 显示日卡（按天聚合的记录）
-
 import 'package:flutter/material.dart';
 
 class JournalScreen extends StatelessWidget {

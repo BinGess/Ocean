@@ -1,5 +1,5 @@
-/// 获取记录列表用例
-/// 支持按类型、日期范围筛选
+// 获取记录列表用例
+// 支持按类型、日期范围筛选
 
 import '../entities/record.dart';
 import '../repositories/record_repository.dart';

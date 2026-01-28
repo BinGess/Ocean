@@ -1,4 +1,4 @@
-/// 洞察事件定义
+// 洞察事件定义
 
 import 'package:equatable/equatable.dart';
 

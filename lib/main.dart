@@ -1,5 +1,5 @@
-/// MindFlow 应用入口
-/// 情绪觉察日记 App
+// MindFlow 应用入口
+// 情绪觉察日记 App
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';

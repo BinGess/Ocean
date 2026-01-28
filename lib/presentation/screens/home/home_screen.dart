@@ -1,6 +1,3 @@
-/// 首页 - 录音页面
-/// 主要功能：长按录音、快速记录
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -11,7 +8,6 @@ import '../../bloc/audio/audio_event.dart';
 import '../../bloc/record/record_bloc.dart';
 import '../../bloc/record/record_state.dart';
 import '../../bloc/record/record_event.dart';
-import '../../widgets/record_button.dart';
 import '../../widgets/processing_choice_modal.dart';
 import '../../widgets/mood_selection_modal.dart';
 import '../../widgets/nvc_confirmation_modal.dart';
@@ -184,7 +180,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Scaffold(
-      // 糯米色渐变背景
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -197,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         child: Stack(
-        children: [
+          children: [
           // 主内容
           BlocListener<AudioBloc, AudioState>(
             listener: (context, audioState) {
@@ -215,45 +210,43 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             child: BlocListener<RecordBloc, RecordState>(
               listener: (context, recordState) {
-                 // NVC 分析完成，显示确认框
-                  if (recordState.isAnalyzed && recordState.nvcAnalysis != null) {
-                     // 确保在 widget 树构建完成后再显示弹窗
-                     WidgetsBinding.instance.addPostFrameCallback((_) {
-                       if (ModalRoute.of(context)?.isCurrent ?? false) {
-                         NVCConfirmationModal.show(
-                           context: context, 
-                           initialAnalysis: recordState.nvcAnalysis!,
-                           transcription: recordState.transcription ?? '',
-                           onRevert: () {
-                              // 用户选择还原为仅记录
-                              _handleProcessingModeSelected(ProcessingMode.onlyRecord);
-                           },
-                         ).then((updatedAnalysis) {
-                            if (updatedAnalysis != null && _completedAudioPath != null) {
-                               ScaffoldMessenger.of(context).showSnackBar(
-                                 const SnackBar(content: Text('正在后台保存记录...')),
-                               );
-                               context.read<RecordBloc>().add(
-                                 RecordCreateQuickNote(
-                                   audioPath: _completedAudioPath!,
-                                   mode: ProcessingMode.withNVC,
-                                   transcription: recordState.transcription,
-                                   nvcAnalysis: updatedAnalysis,
-                                 ),
-                               );
-                               _clearCompletedAudio();
-                            }
-                         });
-                       }
-                     });
-                  }
-                 
-                 // 创建成功提示
-                 if (recordState.isSuccess && recordState.latestRecord != null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('记录已保存')),
-                    );
-                 }
+                if (recordState.isAnalyzed && recordState.nvcAnalysis != null) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (ModalRoute.of(context)?.isCurrent ?? false) {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final recordBloc = context.read<RecordBloc>();
+                      NVCConfirmationModal.show(
+                        context: context,
+                        initialAnalysis: recordState.nvcAnalysis!,
+                        transcription: recordState.transcription ?? '',
+                        onRevert: () {
+                          _handleProcessingModeSelected(ProcessingMode.onlyRecord);
+                        },
+                      ).then((updatedAnalysis) {
+                        if (updatedAnalysis != null && _completedAudioPath != null) {
+                          messenger.showSnackBar(
+                            const SnackBar(content: Text('正在后台保存记录...')),
+                          );
+                          recordBloc.add(
+                            RecordCreateQuickNote(
+                              audioPath: _completedAudioPath!,
+                              mode: ProcessingMode.withNVC,
+                              transcription: recordState.transcription,
+                              nvcAnalysis: updatedAnalysis,
+                            ),
+                          );
+                          _clearCompletedAudio();
+                        }
+                      });
+                    }
+                  });
+                }
+
+                if (recordState.isSuccess && recordState.latestRecord != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('记录已保存')),
+                  );
+                }
               },
               child: SafeArea(
                 child: Column(
@@ -299,7 +292,8 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -369,10 +363,10 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.mic_off,
               size: 56,
-              color: const Color(0xFFD9C9B8),
+              color: Color(0xFFD9C9B8),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -450,7 +444,7 @@ class _HomeScreenState extends State<HomeScreen> {
               height: audioState.isRecording ? 100 : 120,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
                 border: Border.all(
                   color: audioState.isRecording
                     ? const Color(0xFFC4A57B)
@@ -460,7 +454,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 boxShadow: audioState.isRecording
                   ? [
                       BoxShadow(
-                        color: const Color(0xFFC4A57B).withOpacity(0.3),
+                        color: const Color(0xFFC4A57B).withValues(alpha: 0.3),
                         blurRadius: 20,
                         spreadRadius: 5,
                       ),
@@ -494,10 +488,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// 格式化时长
-  String _formatDuration(int seconds) {
-    final minutes = seconds ~/ 60;
-    final secs = seconds % 60;
+  String _formatDuration(double seconds) {
+    final totalSeconds = seconds.floor();
+    final minutes = totalSeconds ~/ 60;
+    final secs = totalSeconds % 60;
     return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 

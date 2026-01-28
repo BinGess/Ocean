@@ -1,5 +1,5 @@
-/// 更新记录用例
-/// 用于更新记录的情绪、需要、NVC 分析等
+// 更新记录用例
+// 用于更新记录的情绪、需要、NVC 分析等
 
 import '../entities/record.dart';
 import '../repositories/record_repository.dart';

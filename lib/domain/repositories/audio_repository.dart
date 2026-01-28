@@ -1,5 +1,5 @@
-/// 音频仓储接口（Repository Interface）
-/// 定义音频录制和处理相关的契约
+// 音频仓储接口（Repository Interface）
+// 定义音频录制和处理相关的契约
 
 abstract class AudioRepository {
   /// 开始录音

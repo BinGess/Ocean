@@ -1,8 +1,7 @@
-/// 创建快速笔记用例
-/// 负责音频录制、转写、分析和保存的完整流程
+// 创建快速笔记用例
+// 负责音频录制、转写、分析和保存的完整流程
 
 import 'dart:io';
-import 'package:uuid/uuid.dart';
 import '../entities/record.dart';
 import '../entities/nvc_analysis.dart';
 import '../repositories/record_repository.dart';

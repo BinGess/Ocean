@@ -1,5 +1,5 @@
-/// MindFlow API 调试入口
-/// 独立的调试应用，仅用于测试豆包 API
+// MindFlow API 调试入口
+// 独立的调试应用，仅用于测试豆包 API
 
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';

@@ -1,5 +1,5 @@
-/// 记录仓储实现
-/// 使用 Hive 进行本地存储
+// 记录仓储实现
+// 使用 Hive 进行本地存储
 
 import '../../domain/entities/record.dart';
 import '../../domain/entities/nvc_analysis.dart';
@@ -36,7 +36,7 @@ class RecordRepositoryImpl implements RecordRepository {
       needs: needs,
       nvc: nvc,
     );
-    return await createRecord(record);
+    return await _createRecord(record);
   }
 
   @override
@@ -56,7 +56,7 @@ class RecordRepositoryImpl implements RecordRepository {
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
-    return await createRecord(record);
+    return await _createRecord(record);
   }
 
   @override
@@ -74,7 +74,7 @@ class RecordRepositoryImpl implements RecordRepository {
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
-    return await createRecord(record);
+    return await _createRecord(record);
   }
 
   @override
@@ -151,8 +151,7 @@ class RecordRepositoryImpl implements RecordRepository {
     return allRecords.take(limit).toList();
   }
 
-  @override
-  Future<Record> createRecord(Record record) async {
+  Future<Record> _createRecord(Record record) async {
     final model = RecordModel.fromEntity(record);
     await database.recordsBox.put(record.id, model);
     return model.toEntity();
@@ -195,7 +194,6 @@ class RecordRepositoryImpl implements RecordRepository {
     return models.map((m) => m.toEntity()).toList();
   }
 
-  @override
   Future<List<Record>> getRecordsForDay(DateTime day) async {
     final startOfDay = DateTime(day.year, day.month, day.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
@@ -203,7 +201,6 @@ class RecordRepositoryImpl implements RecordRepository {
     return getRecordsByDateRange(startOfDay, endOfDay);
   }
 
-  @override
   Future<List<Record>> getRecordsForWeek(DateTime weekStart) async {
     final endOfWeek = weekStart.add(const Duration(days: 7));
     return getRecordsByDateRange(weekStart, endOfWeek);
@@ -221,7 +218,6 @@ class RecordRepositoryImpl implements RecordRepository {
     await database.recordsBox.delete(id);
   }
 
-  @override
   Future<int> getRecordsCount() async {
     return database.recordsBox.length;
   }

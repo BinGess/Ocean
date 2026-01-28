@@ -1,5 +1,5 @@
-/// 日卡（Day Aggregation）实体
-/// 按日期聚合的记录集合，用于日历视图展示
+// 日卡（Day Aggregation）实体
+// 按日期聚合的记录集合，用于日历视图展示
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'record.dart';

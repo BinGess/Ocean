@@ -1,5 +1,5 @@
-/// 音频事件定义
-/// 定义所有与音频录制相关的事件
+// 音频事件定义
+// 定义所有与音频录制相关的事件
 
 import 'package:equatable/equatable.dart';
 

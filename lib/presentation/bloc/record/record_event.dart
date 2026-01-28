@@ -1,5 +1,3 @@
-/// 记录事件定义
-
 import 'package:equatable/equatable.dart';
 import '../../../domain/entities/record.dart';
 import '../../../domain/entities/nvc_analysis.dart';

@@ -1,6 +1,3 @@
-/// 周洞察页面
-/// 显示情绪模式和微实验
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';

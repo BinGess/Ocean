@@ -1,4 +1,4 @@
-/// 洞察状态定义
+// 洞察状态定义
 
 import 'package:equatable/equatable.dart';
 import '../../../domain/entities/weekly_insight.dart';

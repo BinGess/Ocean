@@ -1,3 +1,5 @@
+// ignore_for_file: invalid_annotation_target
+
 /// 周洞察实体
 /// 对应 TypeScript 的 WeeklyInsight 模型
 
