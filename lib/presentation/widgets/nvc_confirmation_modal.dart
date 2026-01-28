@@ -74,35 +74,200 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
   }
 
   void _editInsight() async {
-    final result = await _showEditDialog('编辑行动 Tips', _insight);
+    final result = await _showEditDialog(
+      title: '编辑行动 Tips',
+      initialValue: _insight,
+      iconColor: const Color(0xFFAF52DE),
+      iconBgColor: const Color(0xFFF3EBFF),
+      icon: Icons.lightbulb_outline,
+    );
     if (result != null) {
       setState(() => _insight = result);
     }
   }
 
-  Future<String?> _showEditDialog(String title, String initialValue) {
+  void _editFeelings() async {
+    final result = await _showTagEditDialog(
+      title: '编辑我的感受',
+      initialTags: _feelings.map((f) => f.feeling).toList(),
+      suggestions: ['焦虑', '开心', '平静', '愤怒', '悲伤', '好奇', '思考', '感激', '疲惫', '兴奋'],
+      iconColor: const Color(0xFFFF9500),
+      iconBgColor: const Color(0xFFFFF4E6),
+      icon: Icons.favorite,
+    );
+    if (result != null) {
+      setState(() {
+        _feelings = result.map((tag) => Feeling(
+          feeling: tag,
+          intensity: IntensityLevel.medium,
+        )).toList();
+      });
+    }
+  }
+
+  void _editNeeds() async {
+    final result = await _showTagEditDialog(
+      title: '编辑我的需要',
+      initialTags: _needs.map((n) => n.need).toList(),
+      suggestions: ['理解', '尊重', '安全感', '自主性', '连接', '支持', '秩序', '共识', '成长', '自由'],
+      iconColor: const Color(0xFF34C759),
+      iconBgColor: const Color(0xFFE8F5E9),
+      icon: Icons.spa_outlined,
+    );
+    if (result != null) {
+      setState(() {
+        _needs = result.map((tag) => Need(
+          need: tag,
+          reason: '',
+        )).toList();
+      });
+    }
+  }
+
+  Future<String?> _showEditDialog({
+    required String title,
+    required String initialValue,
+    required Color iconColor,
+    required Color iconBgColor,
+    required IconData icon,
+  }) {
     final controller = TextEditingController(text: initialValue);
     return showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F5F5),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 标题栏
+              Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: iconBgColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, size: 18, color: iconColor),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF2C2C2C),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              // 输入框
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: TextField(
+                  controller: controller,
+                  maxLines: 4,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Color(0xFF4A4A4A),
+                    height: 1.5,
+                  ),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    hintText: '请输入内容...',
+                    hintStyle: TextStyle(
+                      color: Color(0xFFB8B8B8),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // 按钮
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        '取消',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context, controller.text),
+                      style: TextButton.styleFrom(
+                        backgroundColor: const Color(0xFF007AFF),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        '完成',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('确定'),
-          ),
-        ],
+      ),
+    );
+  }
+
+  Future<List<String>?> _showTagEditDialog({
+    required String title,
+    required List<String> initialTags,
+    required List<String> suggestions,
+    required Color iconColor,
+    required Color iconBgColor,
+    required IconData icon,
+  }) {
+    return showDialog<List<String>>(
+      context: context,
+      builder: (context) => _TagEditDialog(
+        title: title,
+        initialTags: initialTags,
+        suggestions: suggestions,
+        iconColor: iconColor,
+        iconBgColor: iconBgColor,
+        icon: icon,
       ),
     );
   }
@@ -250,11 +415,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                         ),
                       )).toList(),
                     ),
-                    onEdit: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('编辑感受功能暂未开放')),
-                      );
-                    },
+                    onEdit: _editFeelings,
                   ),
 
                   const SizedBox(height: 12),
@@ -274,11 +435,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                         height: 1.5,
                       ),
                     ),
-                    onEdit: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('编辑需要功能暂未开放')),
-                      );
-                    },
+                    onEdit: _editNeeds,
                   ),
 
                   const SizedBox(height: 12),
@@ -423,6 +580,300 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 标签编辑对话框
+class _TagEditDialog extends StatefulWidget {
+  final String title;
+  final List<String> initialTags;
+  final List<String> suggestions;
+  final Color iconColor;
+  final Color iconBgColor;
+  final IconData icon;
+
+  const _TagEditDialog({
+    required this.title,
+    required this.initialTags,
+    required this.suggestions,
+    required this.iconColor,
+    required this.iconBgColor,
+    required this.icon,
+  });
+
+  @override
+  State<_TagEditDialog> createState() => _TagEditDialogState();
+}
+
+class _TagEditDialogState extends State<_TagEditDialog> {
+  late List<String> _selectedTags;
+  final TextEditingController _customTagController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedTags = List.from(widget.initialTags);
+  }
+
+  @override
+  void dispose() {
+    _customTagController.dispose();
+    super.dispose();
+  }
+
+  void _toggleTag(String tag) {
+    setState(() {
+      if (_selectedTags.contains(tag)) {
+        _selectedTags.remove(tag);
+      } else {
+        _selectedTags.add(tag);
+      }
+    });
+  }
+
+  void _addCustomTag() {
+    final customTag = _customTagController.text.trim();
+    if (customTag.isNotEmpty && !_selectedTags.contains(customTag)) {
+      setState(() {
+        _selectedTags.add(customTag);
+        _customTagController.clear();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Container(
+        constraints: const BoxConstraints(maxHeight: 600),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 标题栏
+            Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: widget.iconBgColor,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(widget.icon, size: 18, color: widget.iconColor),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2C2C2C),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // 已选标签
+            if (_selectedTags.isNotEmpty) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _selectedTags.map((tag) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: widget.iconBgColor,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            tag,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: widget.iconColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          GestureDetector(
+                            onTap: () => _toggleTag(tag),
+                            child: Icon(
+                              Icons.close,
+                              size: 16,
+                              color: widget.iconColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // 建议标签
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '建议标签',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: widget.suggestions.map((tag) {
+                        final isSelected = _selectedTags.contains(tag);
+                        return GestureDetector(
+                          onTap: () => _toggleTag(tag),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isSelected ? widget.iconBgColor : Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isSelected ? widget.iconColor : const Color(0xFFE0E0E0),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              tag,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isSelected ? widget.iconColor : const Color(0xFF4A4A4A),
+                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // 自定义输入
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _customTagController,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF4A4A4A),
+                      ),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: '自定义标签...',
+                        hintStyle: TextStyle(
+                          color: Color(0xFFB8B8B8),
+                        ),
+                      ),
+                      onSubmitted: (_) => _addCustomTag(),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _addCustomTag,
+                    icon: Icon(
+                      Icons.add_circle,
+                      color: widget.iconColor,
+                      size: 24,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // 按钮
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      '取消',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.grey[700],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context, _selectedTags),
+                    style: TextButton.styleFrom(
+                      backgroundColor: const Color(0xFF007AFF),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      '完成',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
