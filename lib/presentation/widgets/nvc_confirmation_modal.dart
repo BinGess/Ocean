@@ -112,18 +112,20 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
   }
 
   void _editNeeds() async {
-    final result = await _showTagEditDialog(
+    final currentNeeds = _needs.map((n) => n.need).join('、');
+    final result = await _showEditDialog(
       title: '编辑我的需要',
-      initialTags: _needs.map((n) => n.need).toList(),
-      suggestions: ['理解', '尊重', '安全感', '自主性', '连接', '支持', '秩序', '共识', '成长', '自由'],
+      initialValue: currentNeeds,
       iconColor: const Color(0xFF34C759),
       iconBgColor: const Color(0xFFE8F5E9),
       icon: Icons.spa_outlined,
     );
-    if (result != null) {
+    if (result != null && result.isNotEmpty) {
       setState(() {
-        _needs = result.map((tag) => Need(
-          need: tag,
+        // 用顿号或逗号分隔
+        final needsList = result.split(RegExp(r'[、,，]')).map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+        _needs = needsList.map((need) => Need(
+          need: need,
           reason: '',
         )).toList();
       });
@@ -792,12 +794,37 @@ class _TagEditDialogState extends State<_TagEditDialog> {
 
             const SizedBox(height: 16),
 
-            // 自定义输入
+            // 自定义输入标题
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '自定义标签',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // 自定义输入框
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: const Color(0xFFE8E8E8),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
@@ -805,25 +832,40 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                     child: TextField(
                       controller: _customTagController,
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 15,
                         color: Color(0xFF4A4A4A),
+                        fontWeight: FontWeight.w500,
                       ),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: InputBorder.none,
-                        hintText: '自定义标签...',
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        hintText: '输入并添加...',
                         hintStyle: TextStyle(
-                          color: Color(0xFFB8B8B8),
+                          color: Colors.grey[400],
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                       onSubmitted: (_) => _addCustomTag(),
                     ),
                   ),
-                  IconButton(
-                    onPressed: _addCustomTag,
-                    icon: Icon(
-                      Icons.add_circle,
-                      color: widget.iconColor,
-                      size: 24,
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    child: Material(
+                      color: widget.iconBgColor,
+                      borderRadius: BorderRadius.circular(12),
+                      child: InkWell(
+                        onTap: _addCustomTag,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          child: Icon(
+                            Icons.add,
+                            color: widget.iconColor,
+                            size: 20,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
