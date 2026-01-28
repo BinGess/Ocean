@@ -117,6 +117,15 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
               if (confirmedAnalysis != null) {
                 // TODO: 保存NVC分析结果到记录
                 Navigator.of(context).pop(); // 关闭详情页
+              } else if (confirmedAnalysis == null) {
+                // 用户选择了删除，删除这条记录
+                context.read<RecordBloc>().add(
+                  RecordDelete(id: widget.record.id),
+                );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('记录已删除')),
+                );
+                Navigator.of(context).pop(); // 关闭详情页
               }
             });
           }

@@ -66,6 +66,55 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     widget.onConfirm(updatedAnalysis);
   }
 
+  void _handleDelete() {
+    // 显示删除确认对话框
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text(
+          '确认删除',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: const Text(
+          '确定要删除这条记录吗？删除后无法恢复。',
+          style: TextStyle(fontSize: 15),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              '取消',
+              style: TextStyle(
+                color: Colors.grey[700],
+                fontSize: 16,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // 关闭确认对话框
+              Navigator.of(context).pop(null); // 关闭NVC弹窗，返回null表示删除
+            },
+            child: const Text(
+              '删除',
+              style: TextStyle(
+                color: Colors.red,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _editObservation() async {
     final result = await _showEditDialog(
       title: '编辑事实观察',
@@ -316,13 +365,13 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                   ),
                 ),
                 TextButton(
-                  onPressed: _handleConfirm,
+                  onPressed: _handleDelete,
                   child: const Text(
-                    '完成',
+                    '删除',
                     style: TextStyle(
-                      color: Color(0xFF007AFF),
+                      color: Color(0xFFFF3B30),
                       fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -468,6 +517,45 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
 
                   const SizedBox(height: 32),
                 ],
+              ),
+            ),
+          ),
+
+          // 底部完成按钮
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              top: false,
+              child: SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: _handleConfirm,
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xFF5A9FD4),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    '完成',
+                    style: TextStyle(
+                      fontSize: 17,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),

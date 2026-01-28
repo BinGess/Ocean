@@ -237,6 +237,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           );
                           _clearCompletedAudio();
+                        } else if (updatedAnalysis == null) {
+                          // 用户选择了删除，清理音频文件
+                          messenger.showSnackBar(
+                            const SnackBar(content: Text('已取消保存')),
+                          );
+                          _clearCompletedAudio();
                         }
                       });
                     }
