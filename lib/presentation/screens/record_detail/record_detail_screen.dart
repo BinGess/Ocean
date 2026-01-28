@@ -85,7 +85,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
 
     // 发送NVC分析请求
     context.read<RecordBloc>().add(
-      RecordAnalyzeNVC(text: widget.record.transcription),
+      RecordAnalyzeNVC(widget.record.transcription),
     );
   }
 
