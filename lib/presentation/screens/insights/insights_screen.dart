@@ -28,15 +28,21 @@ class _InsightsScreenState extends State<InsightsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
+        surfaceTintColor: Colors.transparent,
+        automaticallyImplyLeading: false,
+        title: const Text(
+          '洞察',
+          style: TextStyle(
+            color: Color(0xFF2C2C2C),
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.share, color: Colors.black),
+            icon: const Icon(Icons.settings_outlined, color: Color(0xFF8B7D6B)),
             onPressed: () {
-              // TODO: 实现分享功能
+              // TODO: 实现设置功能
             },
           ),
         ],
@@ -45,63 +51,52 @@ class _InsightsScreenState extends State<InsightsScreen> {
         builder: (context, state) {
           if (state.status == InsightStatus.loading ||
               state.status == InsightStatus.generating) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('正在生成洞察...'),
-                ],
-              ),
-            );
-          }
-
-          if (state.status == InsightStatus.error) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    state.errorMessage ?? '加载失败',
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC4A57B)),
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      context.read<InsightBloc>().add(const InsightGenerateCurrentWeek());
-                    },
-                    child: const Text('重试'),
+                  Text(
+                    '正在生成洞察...',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.grey[600],
+                    ),
                   ),
                 ],
               ),
             );
           }
 
-          if (state.currentInsight == null) {
+          // 错误状态或无数据状态都显示缺省界面
+          if (state.status == InsightStatus.error || state.currentInsight == null) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.insights,
-                    size: 64,
-                    color: Colors.grey[400],
+                    Icons.auto_awesome_outlined,
+                    size: 80,
+                    color: Colors.grey[300],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   Text(
-                    '暂无洞察数据',
+                    '本周没有足够的内容生成洞察',
                     style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey[600],
+                      fontSize: 16,
+                      color: Colors.grey[500],
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Text(
                     '记录更多内容后将自动生成',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey[500],
+                      color: Colors.grey[400],
                     ),
                   ),
                 ],

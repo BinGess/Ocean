@@ -12,7 +12,6 @@ import 'presentation/bloc/record/record_bloc.dart';
 import 'presentation/bloc/insight/insight_bloc.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/records/records_screen.dart';
-import 'presentation/screens/journal/journal_screen.dart';
 import 'presentation/screens/insights/insights_screen.dart';
 
 void main() async {
@@ -73,15 +72,26 @@ class MainNavigation extends StatefulWidget {
 }
 
 class _MainNavigationState extends State<MainNavigation> {
-  int _currentIndex = 0;
+  int _currentIndex = 1; // 默认首页
 
-  // 四个主要页面
-  final List<Widget> _screens = const [
-    HomeScreen(), // 首页（录音）
-    RecordsScreen(), // 碎片记录
-    JournalScreen(), // 日记
-    InsightsScreen(), // 周洞察
-  ];
+  // 三个主要页面
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      RecordsScreen(
+        onNavigateToHome: () {
+          setState(() {
+            _currentIndex = 1; // 跳转到首页
+          });
+        },
+      ), // 记录
+      const HomeScreen(), // 首页（录音）
+      const InsightsScreen(), // 洞察
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,34 +100,86 @@ class _MainNavigationState extends State<MainNavigation> {
         index: _currentIndex,
         children: _screens,
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Theme.of(context).primaryColor,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.mic),
-            label: '首页',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: SizedBox(
+            height: 70,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(
+                  index: 0,
+                  icon: Icons.folder_outlined,
+                  activeIcon: Icons.folder,
+                  label: '记录',
+                ),
+                _buildNavItem(
+                  index: 1,
+                  icon: Icons.circle_outlined,
+                  activeIcon: Icons.circle,
+                  label: '瞬记',
+                ),
+                _buildNavItem(
+                  index: 2,
+                  icon: Icons.auto_awesome_outlined,
+                  activeIcon: Icons.auto_awesome,
+                  label: '洞察',
+                ),
+              ],
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notes),
-            label: '碎片',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.book),
-            label: '日记',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.insights),
-            label: '洞察',
-          ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required int index,
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+  }) {
+    final isActive = _currentIndex == index;
+    final color = isActive ? const Color(0xFFC4A57B) : const Color(0xFFB8B8B8);
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _currentIndex = index;
+        });
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isActive ? activeIcon : icon,
+              size: 26,
+              color: color,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: color,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
