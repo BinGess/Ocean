@@ -473,42 +473,113 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   /// 获取情绪对应的颜色
   Color _getEmotionColor(String emotion) {
-    // 高频情绪对应橙色/黄色
+    // 积极/快乐类 - 橙色
     if (emotion.contains('愉悦') ||
         emotion.contains('开心') ||
         emotion.contains('兴奋') ||
-        emotion.contains('喜悦')) {
-      return const Color(0xFFFF9500); // 橙色
+        emotion.contains('喜悦') ||
+        emotion.contains('快乐') ||
+        emotion.contains('满足')) {
+      return const Color(0xFFFF9500);
     }
-    // 低频负面情绪对应蓝色
+    // 焦虑/担忧类 - 蓝色
     else if (emotion.contains('焦虑') ||
         emotion.contains('担心') ||
         emotion.contains('紧张') ||
-        emotion.contains('害怕')) {
-      return const Color(0xFF007AFF); // 蓝色
+        emotion.contains('害怕') ||
+        emotion.contains('不安')) {
+      return const Color(0xFF007AFF);
     }
-    // 平静类情绪对应绿色
+    // 平静/放松类 - 绿色
     else if (emotion.contains('平静') ||
         emotion.contains('放松') ||
-        emotion.contains('安宁')) {
-      return const Color(0xFF34C759); // 绿色
+        emotion.contains('安宁') ||
+        emotion.contains('舒适') ||
+        emotion.contains('宁静')) {
+      return const Color(0xFF34C759);
     }
-    // 愤怒/不满对应红色
+    // 愤怒/烦躁类 - 红色
     else if (emotion.contains('愤怒') ||
         emotion.contains('生气') ||
-        emotion.contains('烦躁')) {
-      return const Color(0xFFFF3B30); // 红色
+        emotion.contains('烦躁') ||
+        emotion.contains('恼火') ||
+        emotion.contains('不满')) {
+      return const Color(0xFFFF3B30);
     }
-    // 悲伤类对应紫色
+    // 悲伤/失落类 - 紫色
     else if (emotion.contains('悲伤') ||
         emotion.contains('难过') ||
-        emotion.contains('失落')) {
-      return const Color(0xFFAF52DE); // 紫色
+        emotion.contains('失落') ||
+        emotion.contains('沮丧') ||
+        emotion.contains('伤心')) {
+      return const Color(0xFFAF52DE);
     }
-    // 默认灰色
+    // 好奇/探索类 - 青色
+    else if (emotion.contains('好奇') ||
+        emotion.contains('探索') ||
+        emotion.contains('求知') ||
+        emotion.contains('疑惑')) {
+      return const Color(0xFF5AC8FA);
+    }
+    // 思考/专注类 - 靛蓝色
+    else if (emotion.contains('思考') ||
+        emotion.contains('专注') ||
+        emotion.contains('沉思') ||
+        emotion.contains('冥想')) {
+      return const Color(0xFF5856D6);
+    }
+    // 关注/在意类 - 黄色
+    else if (emotion.contains('关注') ||
+        emotion.contains('在意') ||
+        emotion.contains('重视') ||
+        emotion.contains('关心')) {
+      return const Color(0xFFFFCC00);
+    }
+    // 感激/感动类 - 粉色
+    else if (emotion.contains('感激') ||
+        emotion.contains('感动') ||
+        emotion.contains('感恩') ||
+        emotion.contains('温暖')) {
+      return const Color(0xFFFF2D55);
+    }
+    // 疲惫/困倦类 - 棕色
+    else if (emotion.contains('疲惫') ||
+        emotion.contains('困倦') ||
+        emotion.contains('劳累') ||
+        emotion.contains('疲劳')) {
+      return const Color(0xFFA2845E);
+    }
+    // 其他未匹配的情绪 - 使用一致的随机颜色
     else {
-      return const Color(0xFF8E8E93);
+      return _getConsistentColorForText(emotion);
     }
+  }
+
+  /// 为文本生成一致的颜色（基于字符串哈希）
+  Color _getConsistentColorForText(String text) {
+    // 预定义的柔和色值池
+    const colorPalette = [
+      Color(0xFF8E8E93), // 灰色
+      Color(0xFF32ADE6), // 浅蓝
+      Color(0xFF34C759), // 浅绿
+      Color(0xFFFF9500), // 橙色
+      Color(0xFFAF52DE), // 紫色
+      Color(0xFF5AC8FA), // 青色
+      Color(0xFFFFCC00), // 黄色
+      Color(0xFFFF6B6B), // 浅红
+      Color(0xFF4ECDC4), // 蒂芙尼蓝
+      Color(0xFF95E1D3), // 薄荷绿
+    ];
+
+    // 基于文本内容计算哈希值
+    int hash = 0;
+    for (int i = 0; i < text.length; i++) {
+      hash = text.codeUnitAt(i) + ((hash << 5) - hash);
+    }
+    hash = hash.abs();
+
+    // 使用哈希值选择颜色
+    return colorPalette[hash % colorPalette.length];
   }
 
   /// 格式化日期标题
