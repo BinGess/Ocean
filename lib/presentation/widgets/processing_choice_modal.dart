@@ -17,117 +17,121 @@ class ProcessingChoiceModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 标题
+          // 标题栏
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
+              const Text(
                 '录音完成',
-                style: theme.textTheme.titleLarge,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF5D4E3C),
+                ),
               ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: onCancel,
+              GestureDetector(
+                onTap: onCancel,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  child: const Icon(
+                    Icons.close,
+                    size: 24,
+                    color: Color(0xFF8B7D6B),
+                  ),
+                ),
               ),
             ],
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
           // 转写文本预览
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(12),
+              color: const Color(0xFFF5F0E8),
+              borderRadius: BorderRadius.circular(16),
             ),
-            constraints: const BoxConstraints(maxHeight: 120),
-            child: SingleChildScrollView(
+            constraints: const BoxConstraints(minHeight: 60),
+            child: Center(
               child: Text(
-                transcription,
-                style: theme.textTheme.bodyMedium,
-                maxLines: 5,
+                transcription.isEmpty || transcription == '正在转写中...'
+                    ? '正在转写中...'
+                    : transcription,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: transcription.isEmpty || transcription == '正在转写中...'
+                      ? const Color(0xFFB8ADA0)
+                      : const Color(0xFF5D4E3C),
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 28),
 
           // 选项标题
-          Text(
+          const Text(
             '选择处理方式',
-            style: theme.textTheme.titleMedium?.copyWith(
+            style: TextStyle(
+              fontSize: 16,
               fontWeight: FontWeight.w600,
+              color: Color(0xFF5D4E3C),
             ),
           ),
 
           const SizedBox(height: 16),
 
-          // 选项 1：仅记录
-          _ProcessingOption(
-            icon: Icons.text_snippet,
-            title: '仅记录文本',
-            description: '保存转写文本，不做进一步分析',
-            color: Colors.blue,
-            onTap: () {
-              onSelect(ProcessingMode.onlyRecord);
-            },
+          // 选项卡片（2列布局）
+          Row(
+            children: [
+              // NVC 分析
+              Expanded(
+                child: _ProcessingOption(
+                  icon: Icons.lightbulb_outline,
+                  title: 'NVC 分析',
+                  description: '完整的情绪分析',
+                  iconColor: const Color(0xFFB794F6), // 紫色
+                  backgroundColor: const Color(0xFFF3EBFF),
+                  onTap: onNVCInsight ?? () {
+                    onSelect(ProcessingMode.withNVC);
+                  },
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              // 仅记录文本
+              Expanded(
+                child: _ProcessingOption(
+                  icon: Icons.description_outlined,
+                  title: '仅记录文本',
+                  description: '不做进一步分析',
+                  iconColor: const Color(0xFF7DBEF5), // 蓝色
+                  backgroundColor: const Color(0xFFE8F4FD),
+                  onTap: () {
+                    onSelect(ProcessingMode.onlyRecord);
+                  },
+                ),
+              ),
+            ],
           ),
 
-          const SizedBox(height: 12),
-
-          // 选项 2：添加情绪
-          _ProcessingOption(
-            icon: Icons.mood,
-            title: '添加情绪',
-            description: '标记当前的情绪状态',
-            color: Colors.orange,
-            onTap: () {
-              onSelect(ProcessingMode.withMood);
-            },
-          ),
-
-          const SizedBox(height: 12),
-
-          // 选项 3：NVC 分析
-          _ProcessingOption(
-            icon: Icons.psychology,
-            title: 'NVC 分析',
-            description: '完整的情绪分析（观察-感受-需要-请求）',
-            color: Colors.purple,
-            onTap: () {
-              onSelect(ProcessingMode.withNVC);
-            },
-          ),
-
-          const SizedBox(height: 12),
-
-          // 选项 4：NVC 洞察（AI智能体）
-          if (onNVCInsight != null)
-            _ProcessingOption(
-              icon: Icons.auto_awesome,
-              title: 'NVC 洞察',
-              description: 'AI智能体深度分析（观察-感受-需要-请求）',
-              color: Colors.deepPurple,
-              onTap: () {
-                onNVCInsight!();
-              },
-            ),
-
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -154,78 +158,79 @@ class _ProcessingOption extends StatelessWidget {
   final IconData icon;
   final String title;
   final String description;
-  final Color color;
+  final Color iconColor;
+  final Color backgroundColor;
   final VoidCallback onTap;
 
   const _ProcessingOption({
     required this.icon,
     required this.title,
     required this.description,
-    required this.color,
+    required this.iconColor,
+    required this.backgroundColor,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(12),
+            color: const Color(0xFFFAF8F5),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFFE8DED0),
+              width: 1,
+            ),
           ),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               // 图标
               Container(
-                width: 48,
-                height: 48,
+                width: 56,
+                height: 56,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(
                   icon,
-                  color: color,
-                  size: 24,
+                  color: iconColor,
+                  size: 28,
                 ),
               ),
 
-              const SizedBox(width: 16),
+              const SizedBox(height: 16),
 
-              // 文本
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
+              // 标题
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF5D4E3C),
                 ),
+                textAlign: TextAlign.center,
               ),
 
-              // 箭头
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: Colors.grey[400],
+              const SizedBox(height: 6),
+
+              // 描述
+              Text(
+                description,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFFB8ADA0),
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
               ),
             ],
           ),
