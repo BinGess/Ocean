@@ -207,7 +207,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 标题行
+                    // 标题行（标题+编辑按钮）
                     Row(
                       children: [
                         Container(
@@ -224,12 +224,23 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        const Text(
-                          '我现在的感受',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF2C2C2C),
+                        const Expanded(
+                          child: Text(
+                            '我现在的感受',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF2C2C2C),
+                            ),
+                          ),
+                        ),
+                        // 编辑按钮放在标题右侧
+                        GestureDetector(
+                          onTap: _editMoodTags,
+                          child: Icon(
+                            Icons.edit_outlined,
+                            size: 18,
+                            color: Colors.grey[400],
                           ),
                         ),
                       ],
@@ -282,42 +293,6 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                                     );
                                   }).toList(),
                                 ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // 确认按钮和编辑图标
-                    Row(
-                      children: [
-                        Container(
-                          height: 32,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '确认',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[700],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        GestureDetector(
-                          onTap: _editMoodTags,
-                          child: Icon(
-                            Icons.edit_outlined,
-                            size: 18,
-                            color: Colors.grey[400],
-                          ),
                         ),
                       ],
                     ),
