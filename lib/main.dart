@@ -113,7 +113,7 @@ class _MainNavigationState extends State<MainNavigation> {
         ),
         child: SafeArea(
           child: SizedBox(
-            height: 56,
+            height: 60,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [

@@ -38,7 +38,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
   void _handleRecordTap(Record record) async {
     // 如果是NVC模式的记录，显示NVC确认弹窗
     if (record.nvc != null) {
-      await NVCConfirmationModal.show(
+      final result = await NVCConfirmationModal.show(
         context: context,
         initialAnalysis: record.nvc!,
         transcription: record.transcription,
@@ -46,6 +46,15 @@ class _RecordsScreenState extends State<RecordsScreen> {
           // TODO: 还原为仅记录模式
         },
       );
+      // 如果是删除操作，删除记录
+      if (result?.action == NVCModalAction.delete) {
+        context.read<RecordBloc>().add(
+          RecordDelete(id: record.id),
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('记录已删除')),
+        );
+      }
       // 弹窗关闭后刷新列表
       _loadRecords();
     } else {

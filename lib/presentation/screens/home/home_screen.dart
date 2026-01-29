@@ -223,8 +223,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         onRevert: () {
                           _handleProcessingModeSelected(ProcessingMode.onlyRecord);
                         },
-                      ).then((updatedAnalysis) {
-                        if (updatedAnalysis != null && _completedAudioPath != null) {
+                      ).then((result) {
+                        if (result?.action == NVCModalAction.confirm &&
+                            result?.analysis != null &&
+                            _completedAudioPath != null) {
                           messenger.showSnackBar(
                             const SnackBar(content: Text('正在后台保存记录...')),
                           );
@@ -233,11 +235,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               audioPath: _completedAudioPath!,
                               mode: ProcessingMode.withNVC,
                               transcription: recordState.transcription,
-                              nvcAnalysis: updatedAnalysis,
+                              nvcAnalysis: result!.analysis,
                             ),
                           );
                           _clearCompletedAudio();
-                        } else if (updatedAnalysis == null) {
+                        } else if (result?.action == NVCModalAction.delete) {
                           // 用户选择了删除，清理音频文件
                           messenger.showSnackBar(
                             const SnackBar(content: Text('已取消保存')),

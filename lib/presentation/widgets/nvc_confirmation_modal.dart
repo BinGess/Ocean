@@ -19,20 +19,22 @@ class NVCConfirmationModal extends StatefulWidget {
   @override
   State<NVCConfirmationModal> createState() => _NVCConfirmationModalState();
 
-  static Future<NVCAnalysis?> show({
+  static Future<NVCModalResult?> show({
     required BuildContext context,
     required NVCAnalysis initialAnalysis,
     required String transcription,
     VoidCallback? onRevert,
   }) {
-    return showModalBottomSheet<NVCAnalysis>(
+    return showModalBottomSheet<NVCModalResult>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => NVCConfirmationModal(
         initialAnalysis: initialAnalysis,
         transcription: transcription,
-        onConfirm: (analysis) => Navigator.of(context).pop(analysis),
+        onConfirm: (analysis) => Navigator.of(context).pop(
+          NVCModalResult(action: NVCModalAction.confirm, analysis: analysis),
+        ),
         onRevert: onRevert,
       ),
     );
@@ -71,7 +73,9 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     // 显示删除确认对话框
     final confirmed = await DeleteConfirmationDialog.show(context: context);
     if (confirmed == true) {
-      Navigator.of(context).pop(null); // 关闭NVC弹窗，返回null表示删除
+      Navigator.of(context).pop(
+        NVCModalResult(action: NVCModalAction.delete),
+      ); // 关闭NVC弹窗，返回删除动作
     }
   }
 
@@ -948,4 +952,21 @@ class _TagEditDialogState extends State<_TagEditDialog> {
       ),
     );
   }
+}
+
+/// NVC弹窗动作枚举
+enum NVCModalAction {
+  confirm, // 确认保存
+  delete,  // 删除记录
+}
+
+/// NVC弹窗返回结果
+class NVCModalResult {
+  final NVCModalAction action;
+  final NVCAnalysis? analysis;
+
+  NVCModalResult({
+    required this.action,
+    this.analysis,
+  });
 }

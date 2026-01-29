@@ -129,11 +129,11 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
               onRevert: () {
                 // 还原为仅记录
               },
-            ).then((confirmedAnalysis) {
-              if (confirmedAnalysis != null) {
+            ).then((result) {
+              if (result?.action == NVCModalAction.confirm) {
                 // TODO: 保存NVC分析结果到记录
                 Navigator.of(context).pop(); // 关闭详情页
-              } else if (confirmedAnalysis == null) {
+              } else if (result?.action == NVCModalAction.delete) {
                 // 用户选择了删除，删除这条记录
                 context.read<RecordBloc>().add(
                   RecordDelete(id: widget.record.id),
