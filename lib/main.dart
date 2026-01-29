@@ -113,7 +113,7 @@ class _MainNavigationState extends State<MainNavigation> {
         ),
         child: SafeArea(
           child: SizedBox(
-            height: 60,
+            height: 62,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -160,20 +160,20 @@ class _MainNavigationState extends State<MainNavigation> {
       },
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               isActive ? activeIcon : icon,
-              size: 26,
+              size: 24,
               color: color,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               label,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 color: color,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
               ),
