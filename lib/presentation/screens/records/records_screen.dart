@@ -35,10 +35,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
   }
 
   /// 处理记录点击事件
-  void _handleRecordTap(Record record) {
+  void _handleRecordTap(Record record) async {
     // 如果是NVC模式的记录，显示NVC确认弹窗
     if (record.nvc != null) {
-      NVCConfirmationModal.show(
+      await NVCConfirmationModal.show(
         context: context,
         initialAnalysis: record.nvc!,
         transcription: record.transcription,
@@ -46,13 +46,17 @@ class _RecordsScreenState extends State<RecordsScreen> {
           // TODO: 还原为仅记录模式
         },
       );
+      // 弹窗关闭后刷新列表
+      _loadRecords();
     } else {
       // 否则打开记录详情页面
-      Navigator.of(context).push(
+      await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => RecordDetailScreen(record: record),
         ),
       );
+      // 详情页关闭后刷新列表
+      _loadRecords();
     }
   }
 

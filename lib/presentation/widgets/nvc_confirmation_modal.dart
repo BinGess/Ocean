@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../domain/entities/nvc_analysis.dart';
+import 'delete_confirmation_dialog.dart';
 
 class NVCConfirmationModal extends StatefulWidget {
   final NVCAnalysis initialAnalysis;
@@ -66,53 +67,12 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     widget.onConfirm(updatedAnalysis);
   }
 
-  void _handleDelete() {
+  void _handleDelete() async {
     // 显示删除确认对话框
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Text(
-          '确认删除',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: const Text(
-          '确定要删除这条记录吗？删除后无法恢复。',
-          style: TextStyle(fontSize: 15),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              '取消',
-              style: TextStyle(
-                color: Colors.grey[700],
-                fontSize: 16,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // 关闭确认对话框
-              Navigator.of(context).pop(null); // 关闭NVC弹窗，返回null表示删除
-            },
-            child: const Text(
-              '删除',
-              style: TextStyle(
-                color: Colors.red,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    final confirmed = await DeleteConfirmationDialog.show(context: context);
+    if (confirmed == true) {
+      Navigator.of(context).pop(null); // 关闭NVC弹窗，返回null表示删除
+    }
   }
 
   void _editObservation() async {

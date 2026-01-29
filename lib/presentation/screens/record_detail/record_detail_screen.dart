@@ -9,6 +9,7 @@ import '../../bloc/record/record_event.dart';
 import '../../bloc/record/record_state.dart';
 import '../../widgets/nvc_confirmation_modal.dart';
 import '../../widgets/nvc_error_dialog.dart';
+import '../../widgets/delete_confirmation_dialog.dart';
 
 class RecordDetailScreen extends StatefulWidget {
   final Record record;
@@ -96,59 +97,18 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
   }
 
   /// 删除记录
-  void _deleteRecord() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Text(
-          '确认删除',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: const Text(
-          '确定要删除这条记录吗？删除后无法恢复。',
-          style: TextStyle(fontSize: 15),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              '取消',
-              style: TextStyle(
-                color: Colors.grey[700],
-                fontSize: 16,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // 关闭确认对话框
-              // 删除记录
-              context.read<RecordBloc>().add(
-                RecordDelete(id: widget.record.id),
-              );
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('记录已删除')),
-              );
-              Navigator.of(context).pop(); // 关闭详情页
-            },
-            child: const Text(
-              '删除',
-              style: TextStyle(
-                color: Colors.red,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  void _deleteRecord() async {
+    final confirmed = await DeleteConfirmationDialog.show(context: context);
+    if (confirmed == true) {
+      // 删除记录
+      context.read<RecordBloc>().add(
+        RecordDelete(id: widget.record.id),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('记录已删除')),
+      );
+      Navigator.of(context).pop(); // 关闭详情页
+    }
   }
 
   @override
