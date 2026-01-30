@@ -10,6 +10,7 @@ enum RecordingStatus {
   permissionDenied, // 权限被拒绝
   ready, // 准备就绪
   recording, // 录音中
+  streamingRecording, // 流式录音中（实时转写）
   paused, // 已暂停
   stopped, // 已停止
   processing, // 处理中
@@ -25,12 +26,20 @@ class AudioState extends Equatable {
   final String? errorMessage; // 错误信息
   final bool hasPermission; // 是否有录音权限
 
+  // 流式转写相关字段
+  final String? realtimeTranscription; // 实时转写文本
+  final bool isTranscriptionFinal; // 是否是最终转写结果
+  final bool isWebSocketConnected; // WebSocket是否已连接
+
   const AudioState({
     required this.status,
     this.duration = 0.0,
     this.audioPath,
     this.errorMessage,
     this.hasPermission = false,
+    this.realtimeTranscription,
+    this.isTranscriptionFinal = false,
+    this.isWebSocketConnected = false,
   });
 
   /// 初始状态
@@ -49,6 +58,10 @@ class AudioState extends Equatable {
     String? audioPath,
     String? errorMessage,
     bool? hasPermission,
+    String? realtimeTranscription,
+    bool? isTranscriptionFinal,
+    bool? isWebSocketConnected,
+    bool clearTranscription = false, // 用于清除转写文本
   }) {
     return AudioState(
       status: status ?? this.status,
@@ -56,11 +69,15 @@ class AudioState extends Equatable {
       audioPath: audioPath ?? this.audioPath,
       errorMessage: errorMessage ?? this.errorMessage,
       hasPermission: hasPermission ?? this.hasPermission,
+      realtimeTranscription: clearTranscription ? null : (realtimeTranscription ?? this.realtimeTranscription),
+      isTranscriptionFinal: isTranscriptionFinal ?? this.isTranscriptionFinal,
+      isWebSocketConnected: isWebSocketConnected ?? this.isWebSocketConnected,
     );
   }
 
   /// 便捷 getter
-  bool get isRecording => status == RecordingStatus.recording;
+  bool get isRecording => status == RecordingStatus.recording || status == RecordingStatus.streamingRecording;
+  bool get isStreamingRecording => status == RecordingStatus.streamingRecording;
   bool get isPaused => status == RecordingStatus.paused;
   bool get isProcessing => status == RecordingStatus.processing;
   bool get hasError => status == RecordingStatus.error;
@@ -68,6 +85,7 @@ class AudioState extends Equatable {
   bool get canRecord =>
       hasPermission &&
       status != RecordingStatus.recording &&
+      status != RecordingStatus.streamingRecording &&
       status != RecordingStatus.processing;
 
   @override
@@ -77,5 +95,8 @@ class AudioState extends Equatable {
         audioPath,
         errorMessage,
         hasPermission,
+        realtimeTranscription,
+        isTranscriptionFinal,
+        isWebSocketConnected,
       ];
 }

@@ -6,6 +6,10 @@ abstract class AudioRepository {
   /// 返回值：true 表示成功，false 表示失败
   Future<bool> startRecording();
 
+  /// 开始流式录音（用于实时转写）
+  /// 返回值：true 表示成功，false 表示失败
+  Future<bool> startStreamingRecording();
+
   /// 停止录音
   /// 返回值：录音文件的本地路径
   Future<String?> stopRecording();

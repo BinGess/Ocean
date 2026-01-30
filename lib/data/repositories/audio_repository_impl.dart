@@ -1,7 +1,10 @@
 /// 音频仓储实现
 /// 使用 record 包进行音频录制
 
+import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../domain/repositories/audio_repository.dart';
@@ -9,6 +12,12 @@ import '../../domain/repositories/audio_repository.dart';
 class AudioRepositoryImpl implements AudioRepository {
   final AudioRecorder _recorder = AudioRecorder();
   DateTime? _recordingStartTime;
+
+  // 流式录音相关
+  StreamController<List<int>>? _audioStreamController;
+  StreamSubscription<Uint8List>? _audioStreamSubscription;
+  bool _isStreamMode = false;
+  String? _streamAudioPath; // 流式模式下的音频文件路径（用于备份）
 
   @override
   Future<bool> checkPermission() async {
@@ -51,13 +60,98 @@ class AudioRepositoryImpl implements AudioRepository {
     }
   }
 
+  /// 开始流式录音（用于实时转写）
+  /// 返回值：是否成功开始录音
+  Future<bool> startStreamingRecording() async {
+    try {
+      // 检查权限
+      if (!await _recorder.hasPermission()) {
+        debugPrint('AudioRepository: 没有录音权限');
+        return false;
+      }
+
+      // 标记为流式模式
+      _isStreamMode = true;
+
+      // 创建广播流控制器
+      _audioStreamController = StreamController<List<int>>.broadcast();
+
+      // 生成录音文件路径（用于备份）
+      final directory = await getApplicationDocumentsDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      _streamAudioPath = '${directory.path}/audio_stream_$timestamp.wav';
+
+      // 配置录音参数（PCM 16kHz 16bit mono）
+      const config = RecordConfig(
+        encoder: AudioEncoder.pcm16bits, // PCM格式，用于流式传输
+        sampleRate: 16000, // 16kHz
+        bitRate: 256000,
+        numChannels: 1, // 单声道
+      );
+
+      debugPrint('AudioRepository: 开始流式录音');
+
+      // 开始流式录音
+      final stream = await _recorder.startStream(config);
+      _recordingStartTime = DateTime.now();
+
+      // 监听音频流并转发
+      _audioStreamSubscription = stream.listen(
+        (audioChunk) {
+          // 转发音频数据到流控制器
+          if (_audioStreamController != null && !_audioStreamController!.isClosed) {
+            _audioStreamController!.add(audioChunk);
+            debugPrint('AudioRepository: 转发音频块，大小: ${audioChunk.length} bytes');
+          }
+        },
+        onError: (error) {
+          debugPrint('AudioRepository: 音频流错误: $error');
+          _audioStreamController?.addError(error);
+        },
+        onDone: () {
+          debugPrint('AudioRepository: 音频流结束');
+          _audioStreamController?.close();
+        },
+      );
+
+      return true;
+    } catch (e) {
+      debugPrint('AudioRepository: 开始流式录音失败: $e');
+      _isStreamMode = false;
+      _audioStreamController?.close();
+      _audioStreamController = null;
+      return false;
+    }
+  }
+
   @override
   Future<String?> stopRecording() async {
     try {
+      // 如果是流式模式，先清理流相关资源
+      if (_isStreamMode) {
+        debugPrint('AudioRepository: 停止流式录音');
+
+        // 取消音频流订阅
+        await _audioStreamSubscription?.cancel();
+        _audioStreamSubscription = null;
+
+        // 关闭流控制器
+        await _audioStreamController?.close();
+        _audioStreamController = null;
+
+        _isStreamMode = false;
+      }
+
+      // 停止录音
       final path = await _recorder.stop();
       _recordingStartTime = null;
-      return path;
+
+      debugPrint('AudioRepository: 录音已停止，文件路径: $path');
+      return path ?? _streamAudioPath;
     } catch (e) {
+      debugPrint('AudioRepository: 停止录音失败: $e');
+      _recordingStartTime = null;
+      _isStreamMode = false;
       return null;
     }
   }
@@ -74,6 +168,17 @@ class AudioRepositoryImpl implements AudioRepository {
 
   @override
   Future<void> cancelRecording() async {
+    // 如果是流式模式，清理流资源
+    if (_isStreamMode) {
+      await _audioStreamSubscription?.cancel();
+      _audioStreamSubscription = null;
+
+      await _audioStreamController?.close();
+      _audioStreamController = null;
+
+      _isStreamMode = false;
+    }
+
     await _recorder.cancel();
     _recordingStartTime = null;
   }
@@ -131,12 +236,16 @@ class AudioRepositoryImpl implements AudioRepository {
 
   @override
   Stream<List<int>>? getAudioStream() {
-    // TODO: 实现实时音频流
-    // 需要使用支持流式录音的包
-    return null;
+    // 返回广播流，允许多个监听者
+    return _audioStreamController?.stream;
   }
 
   Future<void> dispose() async {
+    // 清理流资源
+    await _audioStreamSubscription?.cancel();
+    await _audioStreamController?.close();
+
+    // 释放录音器资源
     await _recorder.dispose();
   }
 }

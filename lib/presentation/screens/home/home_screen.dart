@@ -62,26 +62,59 @@ class _HomeScreenState extends State<HomeScreen> {
       _completedAudioPath = audioPath;
     });
 
-    // 触发转写
-    context.read<RecordBloc>().add(RecordTranscribe(audioPath));
+    // 获取AudioState以检查是否有流式转写结果
+    final audioState = context.read<AudioBloc>().state;
+    final streamTranscription = audioState.realtimeTranscription;
 
-    // 显示处理选择模态框
+    // 如果有流式转写结果，直接使用；否则触发传统转写
+    if (streamTranscription != null && streamTranscription.isNotEmpty) {
+      // 使用流式转写结果，直接显示处理选择模态框
+      debugPrint('HomeScreen: 使用流式转写结果: $streamTranscription');
+      _showProcessingChoice(streamTranscription);
+    } else {
+      // 没有流式转写结果，触发传统转写
+      debugPrint('HomeScreen: 触发传统转写');
+      context.read<RecordBloc>().add(RecordTranscribe(audioPath));
+
+      // 显示处理选择模态框（等待转写完成）
+      showModalBottomSheet<ProcessingMode>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        isDismissible: false,
+        builder: (context) {
+          return BlocBuilder<RecordBloc, RecordState>(
+            builder: (context, state) {
+              return ProcessingChoiceModal(
+                transcription: state.transcription ?? '正在转写中...',
+                onSelect: (mode) => Navigator.of(context).pop(mode),
+                onCancel: () => Navigator.of(context).pop(),
+              );
+            },
+          );
+        },
+      ).then((mode) {
+        if (mode != null && _completedAudioPath != null) {
+          _handleProcessingModeSelected(mode);
+        }
+      });
+    }
+  }
+
+  /// 显示处理选择模态框
+  void _showProcessingChoice(String transcription) {
     showModalBottomSheet<ProcessingMode>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       isDismissible: false,
       builder: (context) {
-            return BlocBuilder<RecordBloc, RecordState>(
-              builder: (context, state) {
-                return ProcessingChoiceModal(
-                  transcription: state.transcription ?? '正在转写中...',
-                  onSelect: (mode) => Navigator.of(context).pop(mode),
-                  onCancel: () => Navigator.of(context).pop(),
-                );
-              },
-            );
-          },
+        return ProcessingChoiceModal(
+          transcription: transcription,
+          onSelect: (mode) => Navigator.of(context).pop(mode),
+          onCancel: () => Navigator.of(context).pop(),
+        );
+      },
     ).then((mode) {
       if (mode != null && _completedAudioPath != null) {
         _handleProcessingModeSelected(mode);
@@ -92,8 +125,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void _handleProcessingModeSelected(ProcessingMode mode) async {
     if (_completedAudioPath == null) return;
 
-    // 获取当前转写文本（如果有）
-    final transcription = context.read<RecordBloc>().state.transcription;
+    // 优先使用流式转写文本，如果没有则使用RecordBloc的转写文本
+    final audioState = context.read<AudioBloc>().state;
+    final streamTranscription = audioState.realtimeTranscription;
+    final recordTranscription = context.read<RecordBloc>().state.transcription;
+    final transcription = streamTranscription ?? recordTranscription;
 
     switch (mode) {
       case ProcessingMode.onlyRecord:
@@ -438,6 +474,15 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // 实时转写显示（仅在流式录音时显示）
+          if (audioState.isStreamingRecording && audioState.realtimeTranscription != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              child: _buildRealtimeTranscription(audioState),
+            ),
+
+          const SizedBox(height: 16),
+
           // 提示文字
           Text(
             audioState.isRecording ? '松开结束' : '按住记录',
@@ -456,17 +501,28 @@ class _HomeScreenState extends State<HomeScreen> {
           GestureDetector(
             onTapDown: (_) {
               if (!audioState.isRecording) {
-                context.read<AudioBloc>().add(const AudioStartRecording());
+                // 优先尝试流式录音，如果失败会自动降级到普通录音
+                context.read<AudioBloc>().add(const AudioStartStreamingRecording());
               }
             },
             onTapUp: (_) {
               if (audioState.isRecording) {
-                context.read<AudioBloc>().add(const AudioStopRecording());
+                // 如果是流式录音，触发完成事件
+                if (audioState.isStreamingRecording) {
+                  context.read<AudioBloc>().add(const AudioFinalizeStreaming());
+                } else {
+                  context.read<AudioBloc>().add(const AudioStopRecording());
+                }
               }
             },
             onTapCancel: () {
               if (audioState.isRecording) {
-                context.read<AudioBloc>().add(const AudioStopRecording());
+                // 如果是流式录音，触发完成事件
+                if (audioState.isStreamingRecording) {
+                  context.read<AudioBloc>().add(const AudioFinalizeStreaming());
+                } else {
+                  context.read<AudioBloc>().add(const AudioStopRecording());
+                }
               }
             },
             child: AnimatedContainer(
@@ -524,6 +580,83 @@ class _HomeScreenState extends State<HomeScreen> {
     final minutes = totalSeconds ~/ 60;
     final secs = totalSeconds % 60;
     return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  }
+
+  /// 构建实时转写显示widget
+  Widget _buildRealtimeTranscription(AudioState audioState) {
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 200),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFFE8DED0),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 状态指示器
+          Row(
+            children: [
+              // 连接状态点
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: audioState.isWebSocketConnected
+                      ? const Color(0xFF4CAF50) // 绿色：已连接
+                      : const Color(0xFFFF9800), // 橙色：离线
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                audioState.isWebSocketConnected ? '实时识别中' : '离线录音中',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF8B7D6B),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // 转写文本
+          Flexible(
+            child: SingleChildScrollView(
+              child: Text(
+                audioState.realtimeTranscription ?? '等待识别...',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: audioState.isTranscriptionFinal
+                      ? const Color(0xFF2C2C2C) // 黑色：最终结果
+                      : const Color(0xFF8B7D6B), // 灰色：临时结果
+                  fontStyle: audioState.isTranscriptionFinal
+                      ? FontStyle.normal
+                      : FontStyle.italic,
+                  height: 1.6,
+                  fontWeight: audioState.isTranscriptionFinal
+                      ? FontWeight.w500
+                      : FontWeight.normal,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildDescriptionSection(BuildContext context) {

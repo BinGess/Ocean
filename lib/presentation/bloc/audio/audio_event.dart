@@ -54,3 +54,34 @@ class AudioCheckPermission extends AudioEvent {
 class AudioRequestPermission extends AudioEvent {
   const AudioRequestPermission();
 }
+
+/// 开始流式录音事件（带实时转写）
+class AudioStartStreamingRecording extends AudioEvent {
+  const AudioStartStreamingRecording();
+}
+
+/// 更新实时转写文本事件
+class AudioUpdateStreamTranscription extends AudioEvent {
+  final String text;
+  final bool isFinal;
+
+  const AudioUpdateStreamTranscription(this.text, {this.isFinal = false});
+
+  @override
+  List<Object?> get props => [text, isFinal];
+}
+
+/// 流式错误事件
+class AudioStreamError extends AudioEvent {
+  final String error;
+
+  const AudioStreamError(this.error);
+
+  @override
+  List<Object?> get props => [error];
+}
+
+/// 完成流式录音事件
+class AudioFinalizeStreaming extends AudioEvent {
+  const AudioFinalizeStreaming();
+}
