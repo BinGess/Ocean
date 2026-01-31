@@ -413,8 +413,12 @@ class CozeAIService {
     String? request;
     final requestsField = json['requests'] ?? json['请求'] ?? json['建议'] ?? json['request'];
     if (requestsField is List && requestsField.isNotEmpty) {
-      // 如果是列表，合并为一个字符串
-      request = requestsField.map((e) => e.toString()).join('\n');
+      // 如果是列表，格式化为带序号的列表
+      request = requestsField
+          .asMap()
+          .entries
+          .map((entry) => '${entry.key + 1}. ${entry.value}')
+          .join('\n');
     } else if (requestsField is String && requestsField.isNotEmpty) {
       request = requestsField;
     }
