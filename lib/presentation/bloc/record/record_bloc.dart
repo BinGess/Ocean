@@ -90,8 +90,11 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     } catch (e) {
       debugPrint('RecordBloc: Transcription failed: $e');
       // 转写失败，不作为全局错误抛出，只更新 transcription 为失败状态
+      // 清空transcription而不是设置错误信息,避免错误信息被当作转写文本
       emit(state.copyWith(
-        transcription: '转写失败',
+        transcription: null,
+        status: RecordStatus.error,
+        errorMessage: '转写失败，请重试',
       ));
     }
   }

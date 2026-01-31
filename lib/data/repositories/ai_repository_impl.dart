@@ -24,6 +24,10 @@ class AIRepositoryImpl implements AIRepository {
     try {
       // 读取音频文件
       final audioFile = File(audioPath);
+      if (!await audioFile.exists()) {
+        throw Exception('音频文件不存在: $audioPath');
+      }
+
       final audioBytes = await audioFile.readAsBytes();
 
       // 调用转写服务
@@ -34,7 +38,8 @@ class AIRepositoryImpl implements AIRepository {
         resourceId: EnvConfig.doubaoAsrResourceId,
       );
     } catch (e) {
-      return '语音转写失败: $e';
+      // 抛出异常而不是返回错误字符串,让调用方正确处理错误
+      throw Exception('语音转写失败: $e');
     }
   }
 
@@ -47,6 +52,10 @@ class AIRepositoryImpl implements AIRepository {
         audioData.addAll(chunk);
       }
 
+      if (audioData.isEmpty) {
+        throw Exception('音频数据为空');
+      }
+
       // 转写音频
       return await doubaoDataSource.transcribeAudio(
         audioData: Uint8List.fromList(audioData),
@@ -55,7 +64,8 @@ class AIRepositoryImpl implements AIRepository {
         resourceId: EnvConfig.doubaoAsrResourceId,
       );
     } catch (e) {
-      return '语音转写失败: $e';
+      // 抛出异常而不是返回错误字符串,让调用方正确处理错误
+      throw Exception('语音转写失败: $e');
     }
   }
 
