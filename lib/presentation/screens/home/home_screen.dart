@@ -321,15 +321,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     // 顶部信息栏
                     _buildHeader(context, dateStr, greeting),
 
-                    // 文字滚动区域
+                    // 文字滚动区域 - 缩小以给转写框留空间
                     Expanded(
-                      flex: 5,
+                      flex: 2,
                       child: _buildDescriptionSection(context),
                     ),
 
-                    // 录音按钮区域
+                    // 实时转写显示区域 - 固定高度,不会影响按钮位置
+                    BlocBuilder<AudioBloc, AudioState>(
+                      builder: (context, audioState) {
+                        return _buildTranscriptionArea(audioState);
+                      },
+                    ),
+
+                    // 录音按钮区域 - 增大以保持良好视觉效果
                     Expanded(
-                      flex: 3,
+                      flex: 4,
                       child: BlocBuilder<AudioBloc, AudioState>(
                         builder: (context, audioState) {
                           return _buildRecordSection(context, audioState);
@@ -471,19 +478,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // 正常录音界面
     return Center(
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 实时转写显示（仅在流式录音时显示）
-            if (audioState.isStreamingRecording && audioState.realtimeTranscription != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                child: _buildRealtimeTranscription(audioState),
-              ),
-
-            const SizedBox(height: 16),
-
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
           // 提示文字
           Text(
             audioState.isRecording ? '松开结束' : '按住记录',
@@ -572,8 +569,22 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
         ],
-        ),
       ),
+    );
+  }
+
+  /// 构建实时转写区域 - 固定高度,不影响按钮位置
+  Widget _buildTranscriptionArea(AudioState audioState) {
+    // 固定高度容器,保持布局稳定
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      height: (audioState.isStreamingRecording && audioState.realtimeTranscription != null)
+          ? 220  // 转写框显示时的高度
+          : 40,  // 收起时的最小高度,保持间距
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
+      child: (audioState.isStreamingRecording && audioState.realtimeTranscription != null)
+          ? _buildRealtimeTranscription(audioState)
+          : const SizedBox.shrink(),
     );
   }
 
