@@ -139,6 +139,7 @@ Future<void> configureDependencies() async {
   getIt.registerFactory<AudioBloc>(
     () => AudioBloc(
       audioRepository: getIt<AudioRepository>(),
+      asrClient: getIt<DoubaoASRClient>(),
     ),
   );
 
