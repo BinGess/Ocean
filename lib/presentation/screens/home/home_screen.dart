@@ -252,10 +252,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (ModalRoute.of(context)?.isCurrent ?? false) {
                       final messenger = ScaffoldMessenger.of(context);
                       final recordBloc = context.read<RecordBloc>();
+                      // 优先使用流式转写文本,避免显示占位符
+                      final audioState = context.read<AudioBloc>().state;
+                      final transcription = audioState.realtimeTranscription ??
+                                           recordState.transcription ?? '';
                       NVCConfirmationModal.show(
                         context: context,
                         initialAnalysis: recordState.nvcAnalysis!,
-                        transcription: recordState.transcription ?? '',
+                        transcription: transcription,
                         onRevert: () {
                           _handleProcessingModeSelected(ProcessingMode.onlyRecord);
                         },
@@ -321,9 +325,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     // 顶部信息栏
                     _buildHeader(context, dateStr, greeting),
 
-                    // 文字滚动区域 - 缩小以给转写框留空间
+                    // 文字滚动区域 - 优化布局,给文案更多空间
                     Expanded(
-                      flex: 2,
+                      flex: 3,
                       child: _buildDescriptionSection(context),
                     ),
 
@@ -334,9 +338,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                     ),
 
-                    // 录音按钮区域 - 增大以保持良好视觉效果
+                    // 录音按钮区域 - 调整比例,保持整体平衡
                     Expanded(
-                      flex: 4,
+                      flex: 3,
                       child: BlocBuilder<AudioBloc, AudioState>(
                         builder: (context, audioState) {
                           return _buildRecordSection(context, audioState);
@@ -495,61 +499,72 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 32),
 
-          // 录音按钮
-          GestureDetector(
-            onTapDown: (_) {
-              if (!audioState.isRecording) {
-                // 优先尝试流式录音，如果失败会自动降级到普通录音
-                context.read<AudioBloc>().add(const AudioStartStreamingRecording());
-              }
-            },
-            onTapUp: (_) {
-              if (audioState.isRecording) {
-                // 如果是流式录音，触发完成事件
-                if (audioState.isStreamingRecording) {
-                  context.read<AudioBloc>().add(const AudioFinalizeStreaming());
-                } else {
-                  context.read<AudioBloc>().add(const AudioStopRecording());
+          // 录音按钮 - 扩大可点击区域
+          Container(
+            width: 180,  // 扩大外层容器,增加可点击热区
+            height: 180,
+            alignment: Alignment.center,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,  // 确保整个区域都可点击
+              onLongPressStart: (_) {
+                if (!audioState.isRecording) {
+                  // 优先尝试流式录音，如果失败会自动降级到普通录音
+                  context.read<AudioBloc>().add(const AudioStartStreamingRecording());
                 }
-              }
-            },
-            onTapCancel: () {
-              if (audioState.isRecording) {
-                // 如果是流式录音，触发完成事件
-                if (audioState.isStreamingRecording) {
-                  context.read<AudioBloc>().add(const AudioFinalizeStreaming());
-                } else {
-                  context.read<AudioBloc>().add(const AudioStopRecording());
+              },
+              onLongPressEnd: (_) {
+                if (audioState.isRecording) {
+                  // 如果是流式录音，触发完成事件
+                  if (audioState.isStreamingRecording) {
+                    context.read<AudioBloc>().add(const AudioFinalizeStreaming());
+                  } else {
+                    context.read<AudioBloc>().add(const AudioStopRecording());
+                  }
                 }
-              }
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: audioState.isRecording ? 100 : 120,
-              height: audioState.isRecording ? 100 : 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.9),
-                border: Border.all(
-                  color: audioState.isRecording
-                    ? const Color(0xFFC4A57B)
-                    : const Color(0xFFD9C9B8),
-                  width: audioState.isRecording ? 3 : 2.5,
+              },
+              // 保留备用的tap处理,提高兼容性
+              onTapDown: (_) {
+                if (!audioState.isRecording) {
+                  context.read<AudioBloc>().add(const AudioStartStreamingRecording());
+                }
+              },
+              onTapUp: (_) {
+                if (audioState.isRecording) {
+                  if (audioState.isStreamingRecording) {
+                    context.read<AudioBloc>().add(const AudioFinalizeStreaming());
+                  } else {
+                    context.read<AudioBloc>().add(const AudioStopRecording());
+                  }
+                }
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: audioState.isRecording ? 100 : 120,
+                height: audioState.isRecording ? 100 : 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.9),
+                  border: Border.all(
+                    color: audioState.isRecording
+                      ? const Color(0xFFC4A57B)
+                      : const Color(0xFFD9C9B8),
+                    width: audioState.isRecording ? 3 : 2.5,
+                  ),
+                  boxShadow: audioState.isRecording
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFFC4A57B).withValues(alpha: 0.3),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ]
+                    : [],
                 ),
-                boxShadow: audioState.isRecording
-                  ? [
-                      BoxShadow(
-                        color: const Color(0xFFC4A57B).withValues(alpha: 0.3),
-                        blurRadius: 20,
-                        spreadRadius: 5,
-                      ),
-                    ]
-                  : [],
-              ),
-              child: Icon(
-                Icons.mic,
-                size: audioState.isRecording ? 44 : 50,
-                color: const Color(0xFFC4A57B),
+                child: Icon(
+                  Icons.mic,
+                  size: audioState.isRecording ? 44 : 50,
+                  color: const Color(0xFFC4A57B),
+                ),
               ),
             ),
           ),
@@ -575,12 +590,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// 构建实时转写区域 - 固定高度,不影响按钮位置
   Widget _buildTranscriptionArea(AudioState audioState) {
-    // 固定高度容器,保持布局稳定
+    // 固定高度容器,保持布局稳定,优化动画性能
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,  // 使用更流畅的动画曲线
       height: (audioState.isStreamingRecording && audioState.realtimeTranscription != null)
-          ? 220  // 转写框显示时的高度
-          : 40,  // 收起时的最小高度,保持间距
+          ? 200  // 转写框显示时的高度(从220减少到200,给上方文案更多空间)
+          : 24,  // 收起时的最小高度(从40减少到24,优化间距)
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
       child: (audioState.isStreamingRecording && audioState.realtimeTranscription != null)
           ? _buildRealtimeTranscription(audioState)
@@ -598,20 +614,20 @@ class _HomeScreenState extends State<HomeScreen> {
   /// 构建实时转写显示widget
   Widget _buildRealtimeTranscription(AudioState audioState) {
     return Container(
-      constraints: const BoxConstraints(maxHeight: 200),
-      padding: const EdgeInsets.all(16),
+      constraints: const BoxConstraints(maxHeight: 180),  // 减少最大高度
+      padding: const EdgeInsets.all(14),  // 减少内边距,优化空间利用
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),  // 稍微减小圆角
         border: Border.all(
           color: const Color(0xFFE8DED0),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.06),  // 减弱阴影
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -673,27 +689,29 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildDescriptionSection(BuildContext context) {
-    return PageView.builder(
-      controller: _descriptionController,
-      scrollDirection: Axis.vertical,
-      physics: const BouncingScrollPhysics(),
-      itemBuilder: (context, index) {
-        final textIndex = index % _rollingDescriptions.length;
-        return AnimatedBuilder(
-          animation: _descriptionController,
-          builder: (context, child) {
-            double page = 0;
-            try {
-              if (_descriptionController.position.haveDimensions) {
-                page = _descriptionController.page ?? _currentDescriptionIndex.toDouble();
-              } else {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),  // 增加上下内边距
+      child: PageView.builder(
+        controller: _descriptionController,
+        scrollDirection: Axis.vertical,
+        physics: const BouncingScrollPhysics(),
+        itemBuilder: (context, index) {
+          final textIndex = index % _rollingDescriptions.length;
+          return AnimatedBuilder(
+            animation: _descriptionController,
+            builder: (context, child) {
+              double page = 0;
+              try {
+                if (_descriptionController.position.haveDimensions) {
+                  page = _descriptionController.page ?? _currentDescriptionIndex.toDouble();
+                } else {
+                  page = _currentDescriptionIndex.toDouble();
+                }
+              } catch (_) {
                 page = _currentDescriptionIndex.toDouble();
               }
-            } catch (_) {
-              page = _currentDescriptionIndex.toDouble();
-            }
 
-            double distance = (page - index).abs();
+              double distance = (page - index).abs();
 
             // 根据距离计算样式（糯米色主题）
             double scale = 0.7;
@@ -737,7 +755,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: color,
                         fontSize: fontSize,
                         fontWeight: fontWeight,
-                        height: 1.4,
+                        height: 1.5,  // 增加行高,优化可读性
                         letterSpacing: 1.5,
                       ),
                     ),
@@ -748,6 +766,7 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         );
       },
+      ),
     );
   }
 }
