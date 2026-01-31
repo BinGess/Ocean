@@ -272,7 +272,7 @@ class DoubaoASRClient {
         'uid': DateTime.now().millisecondsSinceEpoch.toString(),
       },
       'audio': {
-        'format': 'wav', // WAV 格式（PCM 编码 + WAV 容器）
+        'format': 'pcm', // PCM 格式（裸PCM数据，无容器头）
         'codec': 'raw', // raw codec
         'rate': AppConstants.audioSampleRate, // 16000
         'bits': AppConstants.audioBitRate, // 16

@@ -471,17 +471,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // 正常录音界面
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 实时转写显示（仅在流式录音时显示）
-          if (audioState.isStreamingRecording && audioState.realtimeTranscription != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              child: _buildRealtimeTranscription(audioState),
-            ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 实时转写显示（仅在流式录音时显示）
+            if (audioState.isStreamingRecording && audioState.realtimeTranscription != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                child: _buildRealtimeTranscription(audioState),
+              ),
 
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
           // 提示文字
           Text(
@@ -571,6 +572,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
         ],
+        ),
       ),
     );
   }
