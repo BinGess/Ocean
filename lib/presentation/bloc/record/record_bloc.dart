@@ -46,9 +46,11 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
   ) async {
     debugPrint('RecordBloc: 开始NVC分析，文本: ${event.text}');
     // 更新状态为 analyzing，并同时更新 transcription，确保 UI 显示的是用于分析的文本
+    // 同时清除之前的错误状态，避免错误弹窗误触发
     emit(state.copyWith(
-      status: RecordStatus.analyzing, 
+      status: RecordStatus.analyzing,
       clearNVCAnalysis: true,
+      clearError: true,
       transcription: event.text, // 确保 transcription 与分析内容一致
     ));
 
@@ -110,7 +112,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     Emitter<RecordState> emit,
   ) async {
     debugPrint('RecordBloc: Creating quick note...');
-    emit(state.copyWith(status: RecordStatus.creating));
+    emit(state.copyWith(status: RecordStatus.creating, clearError: true));
 
     try {
       // 转写阶段
@@ -161,7 +163,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     RecordLoadList event,
     Emitter<RecordState> emit,
   ) async {
-    emit(state.copyWith(status: RecordStatus.loading));
+    emit(state.copyWith(status: RecordStatus.loading, clearError: true));
 
     try {
       final records = await getRecordsUseCase(
