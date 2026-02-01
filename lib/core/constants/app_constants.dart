@@ -75,7 +75,10 @@ class EnvConfig {
   static String get cozeBotId =>
       dotenv.get('COZE_BOT_ID', fallback: '').trim();
 
-  // Coze 洞察智能体配置
+  // Coze 洞察智能体配置（独立的 Token 和 URL）
+  static String get cozeInsightApiToken =>
+      dotenv.get('COZE_INSIGHT_API_TOKEN', fallback: '').trim();
+
   static String get cozeInsightBaseUrl =>
       dotenv.get('COZE_INSIGHT_BASE_URL', fallback: 'https://3my47k2yw9.coze.site').trim();
 
@@ -98,7 +101,7 @@ class EnvConfig {
 
   /// 验证洞察智能体配置是否完整
   static bool get isInsightConfigured {
-    return cozeApiToken.isNotEmpty &&
+    return cozeInsightApiToken.isNotEmpty &&
            cozeInsightProjectId.isNotEmpty;
   }
 
