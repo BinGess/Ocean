@@ -41,6 +41,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
+  // 防止错误弹窗重复显示
+  bool _isShowingErrorDialog = false;
+  // 记录上次处理的错误消息，避免重复处理同一个错误
+  String? _lastHandledError;
+
   @override
   void initState() {
     super.initState();
@@ -78,6 +83,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     setState(() {
       _completedAudioPath = audioPath;
     });
+    // 清除上次错误记录，允许新的错误被处理
+    _lastHandledError = null;
 
     // 获取AudioState以检查是否有流式转写结果
     final audioState = context.read<AudioBloc>().state;
@@ -318,14 +325,22 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 }
 
                 // 处理NVC分析错误
+                // 添加防重复机制：只在有新错误且弹窗未显示时触发
                 if (recordState.hasError &&
                     recordState.errorMessage != null &&
-                    _completedAudioPath != null) {
+                    _completedAudioPath != null &&
+                    !_isShowingErrorDialog &&
+                    recordState.errorMessage != _lastHandledError) {
+                  _isShowingErrorDialog = true;
+                  _lastHandledError = recordState.errorMessage;
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (ModalRoute.of(context)?.isCurrent ?? false) {
                       final transcription = recordState.transcription;
                       NVCErrorDialog.show(context: context).then((action) {
+                        _isShowingErrorDialog = false;
                         if (action == NVCErrorAction.retry) {
+                          // 清除错误记录，允许重试失败后再次显示错误
+                          _lastHandledError = null;
                           // 立即重试NVC分析
                           if (transcription != null && transcription.isNotEmpty) {
                             context.read<RecordBloc>().add(RecordAnalyzeNVC(transcription));
@@ -335,6 +350,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           _handleProcessingModeSelected(ProcessingMode.onlyRecord);
                         }
                       });
+                    } else {
+                      _isShowingErrorDialog = false;
                     }
                   });
                 }

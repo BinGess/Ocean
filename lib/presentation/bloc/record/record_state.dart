@@ -75,6 +75,7 @@ class RecordState extends Equatable {
     bool clearSelection = false,
     bool clearLatest = false,
     bool clearNVCAnalysis = false,
+    bool clearError = false,
     String? transcription,
     NVCAnalysis? nvcAnalysis,
   }) {
@@ -84,7 +85,7 @@ class RecordState extends Equatable {
       selectedRecord:
           clearSelection ? null : (selectedRecord ?? this.selectedRecord),
       latestRecord: clearLatest ? null : (latestRecord ?? this.latestRecord),
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       hasMore: hasMore ?? this.hasMore,
       transcription: transcription ?? this.transcription,
       nvcAnalysis: clearNVCAnalysis ? null : (nvcAnalysis ?? this.nvcAnalysis),
