@@ -42,13 +42,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   late Animation<double> _pulseAnimation;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> a782766 (fix: 修复NVC分析时错误弹窗误触发的问题)
   // 防止错误弹窗重复显示
   bool _isShowingErrorDialog = false;
   // 记录上次处理的错误消息，避免重复处理同一个错误
   String? _lastHandledError;
 
+<<<<<<< HEAD
 =======
 >>>>>>> 652bbbe (feat: 优化录制按钮的即时响应和交互体验)
+=======
+>>>>>>> a782766 (fix: 修复NVC分析时错误弹窗误触发的问题)
   @override
   void initState() {
     super.initState();
