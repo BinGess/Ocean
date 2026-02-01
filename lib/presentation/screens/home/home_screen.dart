@@ -143,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 transcription: transcription,
               ),
             );
-        _clearCompletedAudio();
+        // _clearCompletedAudio(); // 移至 BlocListener 处理
         break;
 
       case ProcessingMode.withMood:
@@ -161,11 +161,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   selectedMoods: moods,
                 ),
               );
-          _clearCompletedAudio();
+          // _clearCompletedAudio(); // 移至 BlocListener 处理
         }
         break;
 
       case ProcessingMode.withNVC:
+        // 检查转写内容是否有效
+        if (transcription == null || transcription.isEmpty || transcription == '正在转写中...') {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text('转写未完成，请稍后...')),
+           );
+           return;
+        }
+
         // 触发 NVC 分析，分析完成后会在 BlocListener 中处理
         if (transcription != null && transcription.isNotEmpty) {
            context.read<RecordBloc>().add(RecordAnalyzeNVC(transcription));
@@ -182,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 transcription: transcription,
               ),
             );
-           _clearCompletedAudio();
+           // _clearCompletedAudio(); // 移至 BlocListener 处理
         }
         break;
     }
@@ -327,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     // 文字滚动区域 - 优化布局,给文案更多空间
                     Expanded(
-                      flex: 3,
+                      flex: 5,
                       child: _buildDescriptionSection(context),
                     ),
 
@@ -340,7 +348,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     // 录音按钮区域 - 调整比例,保持整体平衡
                     Expanded(
-                      flex: 3,
+                      flex: 2,
                       child: BlocBuilder<AudioBloc, AudioState>(
                         builder: (context, audioState) {
                           return _buildRecordSection(context, audioState);

@@ -45,7 +45,12 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     Emitter<RecordState> emit,
   ) async {
     debugPrint('RecordBloc: 开始NVC分析，文本: ${event.text}');
-    emit(state.copyWith(status: RecordStatus.analyzing, clearNVCAnalysis: true));
+    // 更新状态为 analyzing，并同时更新 transcription，确保 UI 显示的是用于分析的文本
+    emit(state.copyWith(
+      status: RecordStatus.analyzing, 
+      clearNVCAnalysis: true,
+      transcription: event.text, // 确保 transcription 与分析内容一致
+    ));
 
     try {
       final nvc = await aiRepository.analyzeWithNVC(event.text);

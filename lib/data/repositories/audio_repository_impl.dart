@@ -18,6 +18,7 @@ class AudioRepositoryImpl implements AudioRepository {
   StreamSubscription<Uint8List>? _audioStreamSubscription;
   bool _isStreamMode = false;
   String? _streamAudioPath; // 流式模式下的音频文件路径（用于备份）
+  IOSink? _audioFileSink; // 用于将流数据写入文件
 
   @override
   Future<bool> checkPermission() async {
@@ -81,6 +82,10 @@ class AudioRepositoryImpl implements AudioRepository {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       _streamAudioPath = '${directory.path}/audio_stream_$timestamp.wav';
 
+      // 创建文件写入流
+      final file = File(_streamAudioPath!);
+      _audioFileSink = file.openWrite();
+
       // 配置录音参数（PCM 16kHz 16bit mono）
       const config = RecordConfig(
         encoder: AudioEncoder.pcm16bits, // PCM格式，用于流式传输
@@ -131,6 +136,17 @@ class AudioRepositoryImpl implements AudioRepository {
       if (_isStreamMode) {
         debugPrint('AudioRepository: 停止流式录音');
 
+        // 停止录音器
+        // 注意：如果是 startStream 启动的，stop() 可能返回 null
+        await _recorder.stop();
+
+        // 关键修复：确保文件写入流被刷新并关闭
+        if (_audioFileSink != null) {
+          await _audioFileSink!.flush();
+          await _audioFileSink!.close();
+          _audioFileSink = null;
+        }
+
         // 取消音频流订阅
         await _audioStreamSubscription?.cancel();
         _audioStreamSubscription = null;
@@ -140,6 +156,10 @@ class AudioRepositoryImpl implements AudioRepository {
         _audioStreamController = null;
 
         _isStreamMode = false;
+        _recordingStartTime = null;
+
+        debugPrint('AudioRepository: 流式录音已停止，文件路径: $_streamAudioPath');
+        return _streamAudioPath;
       }
 
       // 停止录音
@@ -152,6 +172,11 @@ class AudioRepositoryImpl implements AudioRepository {
       debugPrint('AudioRepository: 停止录音失败: $e');
       _recordingStartTime = null;
       _isStreamMode = false;
+      // 即使出错也要尝试关闭 sink
+      try {
+        await _audioFileSink?.close();
+        _audioFileSink = null;
+      } catch (_) {}
       return null;
     }
   }
@@ -175,6 +200,14 @@ class AudioRepositoryImpl implements AudioRepository {
 
       await _audioStreamController?.close();
       _audioStreamController = null;
+
+      await _audioFileSink?.close();
+      _audioFileSink = null;
+      
+      // 删除可能生成的临时文件
+      if (_streamAudioPath != null) {
+        deleteAudioFile(_streamAudioPath!);
+      }
 
       _isStreamMode = false;
     }
