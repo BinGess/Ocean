@@ -5,6 +5,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import '../../domain/entities/nvc_analysis.dart';
 import '../../domain/entities/weekly_insight.dart';
+import '../../domain/entities/insight_report.dart';
 import '../../domain/repositories/ai_repository.dart';
 import '../datasources/remote/doubao_datasource.dart';
 import '../../core/network/coze_ai_service.dart';
@@ -173,6 +174,20 @@ class AIRepositoryImpl implements AIRepository {
     } catch (e) {
       return [];
     }
+  }
+
+  @override
+  Future<InsightReport> generateInsightReport(
+    List<InsightRequestRecord> records,
+    String weekRange,
+  ) async {
+    // 检查配置
+    if (cozeAIService == null || !EnvConfig.isInsightConfigured) {
+      throw Exception('洞察智能体未配置，请检查环境变量');
+    }
+
+    print('🔮 AIRepository: 开始生成洞察报告');
+    return await cozeAIService!.generateInsight(records, weekRange);
   }
 
   @override

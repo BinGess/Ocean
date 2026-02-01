@@ -1,8 +1,10 @@
 // 洞察 BLoC
 // 管理周洞察的生成、查询、反馈等操作
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/usecases/generate_weekly_insight_usecase.dart';
+import '../../../domain/usecases/generate_insight_report_usecase.dart';
 import '../../../domain/usecases/get_weekly_insights_usecase.dart';
 import '../../../domain/repositories/insight_repository.dart';
 import 'insight_event.dart';
@@ -10,16 +12,19 @@ import 'insight_state.dart';
 
 class InsightBloc extends Bloc<InsightEvent, InsightState> {
   final GenerateWeeklyInsightUseCase generateWeeklyInsightUseCase;
+  final GenerateInsightReportUseCase generateInsightReportUseCase;
   final GetWeeklyInsightsUseCase getWeeklyInsightsUseCase;
   final InsightRepository insightRepository;
 
   InsightBloc({
     required this.generateWeeklyInsightUseCase,
+    required this.generateInsightReportUseCase,
     required this.getWeeklyInsightsUseCase,
     required this.insightRepository,
   }) : super(InsightState.initial()) {
     // 注册事件处理器
     on<InsightGenerateCurrentWeek>(_onGenerateCurrentWeek);
+    on<InsightLoadCurrentWeek>(_onLoadCurrentWeek);
     on<InsightGenerateForWeek>(_onGenerateForWeek);
     on<InsightLoadList>(_onLoadList);
     on<InsightUpdatePatternFeedback>(_onUpdatePatternFeedback);
@@ -27,34 +32,77 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     on<InsightUpdateExperimentFeedback>(_onUpdateExperimentFeedback);
   }
 
-  /// 生成当前周洞察
+  /// 获取当前周的周范围字符串
+  String _getCurrentWeekRange() {
+    final now = DateTime.now();
+    // 计算本周一
+    final weekday = now.weekday;
+    final monday = now.subtract(Duration(days: weekday - 1));
+    final sunday = monday.add(const Duration(days: 6));
+
+    final startStr = '${monday.year}-${monday.month.toString().padLeft(2, '0')}-${monday.day.toString().padLeft(2, '0')}';
+    final endStr = '${sunday.year}-${sunday.month.toString().padLeft(2, '0')}-${sunday.day.toString().padLeft(2, '0')}';
+
+    return '$startStr ~ $endStr';
+  }
+
+  /// 加载当前周洞察（优先使用缓存）
+  Future<void> _onLoadCurrentWeek(
+    InsightLoadCurrentWeek event,
+    Emitter<InsightState> emit,
+  ) async {
+    final currentWeekRange = _getCurrentWeekRange();
+
+    // 检查缓存是否有效
+    if (state.isCacheValid(currentWeekRange)) {
+      debugPrint('📦 InsightBloc: 使用缓存的洞察报告 (${state.lastFetchTime})');
+      // 缓存有效，直接返回成功状态（保持现有数据）
+      if (state.status != InsightStatus.success) {
+        emit(state.copyWith(status: InsightStatus.success));
+      }
+      return;
+    }
+
+    debugPrint('🔄 InsightBloc: 缓存无效或过期，重新生成洞察');
+    // 缓存无效，触发生成
+    add(const InsightGenerateCurrentWeek());
+  }
+
+  /// 生成当前周洞察（使用新的洞察报告 API，强制刷新）
   Future<void> _onGenerateCurrentWeek(
     InsightGenerateCurrentWeek event,
     Emitter<InsightState> emit,
   ) async {
+    final currentWeekRange = _getCurrentWeekRange();
+
     emit(state.copyWith(
       status: InsightStatus.generating,
       progressMessage: '正在分析本周记录...',
+      clearReport: true,
     ));
 
     try {
-      final params = GenerateWeeklyInsightParams.forCurrentWeek();
+      final params = GenerateInsightReportParams.forCurrentWeek();
 
       // 更新进度
-      emit(state.copyWith(progressMessage: '正在生成情绪模式...'));
+      emit(state.copyWith(
+        status: InsightStatus.generating,
+        progressMessage: '正在生成洞察报告...',
+      ));
 
-      final insight = await generateWeeklyInsightUseCase(params);
-
-      // 将新洞察添加到列表开头
-      final updatedInsights = [insight, ...state.insights];
+      debugPrint('🔮 InsightBloc: 开始生成洞察报告');
+      final report = await generateInsightReportUseCase(params);
+      debugPrint('✅ InsightBloc: 洞察报告生成成功');
 
       emit(state.copyWith(
         status: InsightStatus.success,
-        insights: updatedInsights,
-        currentInsight: insight,
+        currentReport: report,
+        lastFetchTime: DateTime.now(),
+        currentWeekRange: currentWeekRange,
         progressMessage: null,
       ));
     } catch (e) {
+      debugPrint('❌ InsightBloc: 洞察生成失败: $e');
       emit(state.copyWith(
         status: InsightStatus.error,
         errorMessage: e.toString(),

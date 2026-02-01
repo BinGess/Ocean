@@ -75,6 +75,16 @@ class EnvConfig {
   static String get cozeBotId =>
       dotenv.get('COZE_BOT_ID', fallback: '').trim();
 
+  // Coze 洞察智能体配置（独立的 Token 和 URL）
+  static String get cozeInsightApiToken =>
+      dotenv.get('COZE_INSIGHT_API_TOKEN', fallback: '').trim();
+
+  static String get cozeInsightBaseUrl =>
+      dotenv.get('COZE_INSIGHT_BASE_URL', fallback: 'https://3my47k2yw9.coze.site').trim();
+
+  static String get cozeInsightProjectId =>
+      dotenv.get('COZE_INSIGHT_PROJECT_ID', fallback: '7600361830606815268').trim();
+
   /// 验证配置是否完整
   static bool get isConfigured {
     return doubaoAsrAppKey.isNotEmpty &&
@@ -87,6 +97,12 @@ class EnvConfig {
   static bool get isCozeConfigured {
     return cozeApiToken.isNotEmpty &&
            cozeProjectId.isNotEmpty;
+  }
+
+  /// 验证洞察智能体配置是否完整
+  static bool get isInsightConfigured {
+    return cozeInsightApiToken.isNotEmpty &&
+           cozeInsightProjectId.isNotEmpty;
   }
 
   /// 获取配置状态信息（用于调试）

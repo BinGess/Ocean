@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/entities/record.dart';
 import '../../bloc/audio/audio_bloc.dart';
@@ -21,7 +22,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   String? _completedAudioPath;
   final List<String> _rollingDescriptions = [
     '任何感受可以被接纳',
@@ -32,6 +33,18 @@ class _HomeScreenState extends State<HomeScreen> {
   late final PageController _descriptionController;
   Timer? _descriptionTimer;
   int _currentDescriptionIndex = 0;
+
+  // 本地按压状态 - 用于即时视觉反馈
+  bool _isPressed = false;
+
+  // 按钮脉冲动画控制器
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  // 防止错误弹窗重复显示
+  bool _isShowingErrorDialog = false;
+  // 记录上次处理的错误消息，避免重复处理同一个错误
+  String? _lastHandledError;
 
   @override
   void initState() {
@@ -45,7 +58,16 @@ class _HomeScreenState extends State<HomeScreen> {
       initialPage: initialPage,
       viewportFraction: 0.18, // 缩小视口比例，让词条更紧凑
     );
-    
+
+    // 初始化脉冲动画控制器
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
     _descriptionTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!mounted) return;
       _currentDescriptionIndex++;
@@ -61,6 +83,8 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _completedAudioPath = audioPath;
     });
+    // 清除上次错误记录，允许新的错误被处理
+    _lastHandledError = null;
 
     // 获取AudioState以检查是否有流式转写结果
     final audioState = context.read<AudioBloc>().state;
@@ -206,6 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _descriptionTimer?.cancel();
     _descriptionController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -300,14 +325,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
 
                 // 处理NVC分析错误
+                // 添加防重复机制：只在有新错误且弹窗未显示时触发
                 if (recordState.hasError &&
                     recordState.errorMessage != null &&
-                    _completedAudioPath != null) {
+                    _completedAudioPath != null &&
+                    !_isShowingErrorDialog &&
+                    recordState.errorMessage != _lastHandledError) {
+                  _isShowingErrorDialog = true;
+                  _lastHandledError = recordState.errorMessage;
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (ModalRoute.of(context)?.isCurrent ?? false) {
                       final transcription = recordState.transcription;
                       NVCErrorDialog.show(context: context).then((action) {
+                        _isShowingErrorDialog = false;
                         if (action == NVCErrorAction.retry) {
+                          // 清除错误记录，允许重试失败后再次显示错误
+                          _lastHandledError = null;
                           // 立即重试NVC分析
                           if (transcription != null && transcription.isNotEmpty) {
                             context.read<RecordBloc>().add(RecordAnalyzeNVC(transcription));
@@ -317,6 +350,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           _handleProcessingModeSelected(ProcessingMode.onlyRecord);
                         }
                       });
+                    } else {
+                      _isShowingErrorDialog = false;
                     }
                   });
                 }
@@ -488,36 +523,57 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
+    // 合并状态：本地按压状态或实际录音状态
+    final isActive = _isPressed || audioState.isRecording;
+
+    // 控制脉冲动画
+    if (audioState.isRecording && !_pulseController.isAnimating) {
+      _pulseController.repeat(reverse: true);
+    } else if (!audioState.isRecording && _pulseController.isAnimating) {
+      _pulseController.stop();
+      _pulseController.reset();
+    }
+
     // 正常录音界面
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // 提示文字
-          Text(
-            audioState.isRecording ? '松开结束' : '按住记录',
-            style: TextStyle(
-              fontSize: 14,
-              color: audioState.isRecording
-                ? const Color(0xFF5D4E3C)
-                : const Color(0xFFB8ADA0),
-              fontWeight: FontWeight.w500,
-              letterSpacing: 2.0,
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 150),
+            child: Text(
+              audioState.isRecording ? '松开结束' : '按住记录',
+              key: ValueKey(audioState.isRecording),
+              style: TextStyle(
+                fontSize: 14,
+                color: isActive
+                    ? const Color(0xFF5D4E3C)
+                    : const Color(0xFFB8ADA0),
+                fontWeight: FontWeight.w500,
+                letterSpacing: 2.0,
+              ),
             ),
           ),
           const SizedBox(height: 16),
 
-          // 录音按钮 - 扩大可点击区域
-          Listener(
-            onPointerDown: (_) {
+          // 录音按钮 - 优化触摸响应
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (_) {
+              // 立即设置按压状态，提供即时视觉反馈
+              setState(() => _isPressed = true);
+              // 触觉反馈
+              HapticFeedback.lightImpact();
+              // 触发录音
               if (!audioState.isRecording) {
-                // 优先尝试流式录音，如果失败会自动降级到普通录音
                 context.read<AudioBloc>().add(const AudioStartStreamingRecording());
               }
             },
-            onPointerUp: (_) {
+            onTapUp: (_) {
+              setState(() => _isPressed = false);
               if (audioState.isRecording) {
-                // 如果是流式录音，触发完成事件
+                HapticFeedback.lightImpact();
                 if (audioState.isStreamingRecording) {
                   context.read<AudioBloc>().add(const AudioFinalizeStreaming());
                 } else {
@@ -525,76 +581,134 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
               }
             },
-            onPointerCancel: (_) {
-               // 异常取消时也停止录音
-               if (audioState.isRecording) {
-                  if (audioState.isStreamingRecording) {
-                    context.read<AudioBloc>().add(const AudioFinalizeStreaming());
-                  } else {
-                    context.read<AudioBloc>().add(const AudioStopRecording());
-                  }
-               }
+            onTapCancel: () {
+              setState(() => _isPressed = false);
+              if (audioState.isRecording) {
+                if (audioState.isStreamingRecording) {
+                  context.read<AudioBloc>().add(const AudioFinalizeStreaming());
+                } else {
+                  context.read<AudioBloc>().add(const AudioStopRecording());
+                }
+              }
             },
-            child: Container(
-              width: 140,  // 调整热区大小，避免溢出
-              height: 140,
-              alignment: Alignment.center,
-              color: Colors.transparent, // 确保透明区域也能响应点击
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: audioState.isRecording ? 100 : 120,
-                height: audioState.isRecording ? 100 : 120,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.9),
-                  border: Border.all(
-                    color: audioState.isRecording
-                      ? const Color(0xFFC4A57B)
-                      : const Color(0xFFD9C9B8),
-                    width: audioState.isRecording ? 3 : 2.5,
-                  ),
-                  boxShadow: audioState.isRecording
-                      ? [
-                          BoxShadow(
-                            color: const Color(0xFFC4A57B).withValues(alpha: 0.3),
-                            blurRadius: 20,
-                            spreadRadius: 5,
-                          )
-                        ]
-                      : [
-                          BoxShadow(
-                            color: const Color(0xFFD9C9B8).withValues(alpha: 0.2),
-                            blurRadius: 10,
-                            spreadRadius: 2,
-                            offset: const Offset(0, 4),
-                          )
-                        ],
-                ),
-                child: Icon(
-                  audioState.isRecording ? Icons.stop_rounded : Icons.mic_rounded,
-                  size: 48,
-                  color: audioState.isRecording
-                    ? const Color(0xFFC4A57B)
-                    : const Color(0xFFD9C9B8),
+            onLongPressStart: (_) {
+              // 长按也触发，确保兼容性
+              if (!_isPressed) {
+                setState(() => _isPressed = true);
+                HapticFeedback.lightImpact();
+                if (!audioState.isRecording) {
+                  context.read<AudioBloc>().add(const AudioStartStreamingRecording());
+                }
+              }
+            },
+            onLongPressEnd: (_) {
+              setState(() => _isPressed = false);
+              if (audioState.isRecording) {
+                HapticFeedback.lightImpact();
+                if (audioState.isStreamingRecording) {
+                  context.read<AudioBloc>().add(const AudioFinalizeStreaming());
+                } else {
+                  context.read<AudioBloc>().add(const AudioStopRecording());
+                }
+              }
+            },
+            child: SizedBox(
+              width: 160,
+              height: 160,
+              child: Center(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // 外圈脉冲效果（录音时）
+                    if (audioState.isRecording)
+                      AnimatedBuilder(
+                        animation: _pulseAnimation,
+                        builder: (context, child) {
+                          return Container(
+                            width: 120 * _pulseAnimation.value,
+                            height: 120 * _pulseAnimation.value,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color(0xFFC4A57B).withValues(
+                                  alpha: 0.4 * (1.15 - _pulseAnimation.value) / 0.15,
+                                ),
+                                width: 2,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+
+                    // 主按钮
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 100),
+                      curve: Curves.easeOutCubic,
+                      width: isActive ? 100 : 120,
+                      height: isActive ? 100 : 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: isActive ? 0.95 : 0.9),
+                        border: Border.all(
+                          color: isActive
+                              ? const Color(0xFFC4A57B)
+                              : const Color(0xFFD9C9B8),
+                          width: isActive ? 3 : 2.5,
+                        ),
+                        boxShadow: isActive
+                            ? [
+                                BoxShadow(
+                                  color: const Color(0xFFC4A57B).withValues(alpha: 0.35),
+                                  blurRadius: 24,
+                                  spreadRadius: 6,
+                                ),
+                              ]
+                            : [
+                                BoxShadow(
+                                  color: const Color(0xFFD9C9B8).withValues(alpha: 0.25),
+                                  blurRadius: 12,
+                                  spreadRadius: 3,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                      ),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 150),
+                        child: Icon(
+                          audioState.isRecording ? Icons.stop_rounded : Icons.mic_rounded,
+                          key: ValueKey(audioState.isRecording),
+                          size: isActive ? 40 : 48,
+                          color: isActive
+                              ? const Color(0xFFC4A57B)
+                              : const Color(0xFFD9C9B8),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
 
           // 录音时长显示
-          if (audioState.isRecording && audioState.duration > 0)
-            Padding(
-              padding: const EdgeInsets.only(top: 24),
-              child: Text(
-                _formatDuration(audioState.duration),
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFF8B7D6B),
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 1.0,
-                ),
-              ),
-            ),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: audioState.isRecording && audioState.duration > 0 ? 40 : 0,
+            child: audioState.isRecording && audioState.duration > 0
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Text(
+                      _formatDuration(audioState.duration),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF8B7D6B),
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
         ],
       ),
     );
