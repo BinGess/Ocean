@@ -67,6 +67,13 @@ dev_dependencies:
   # 测试
   mockito: ^5.4.4
   bloc_test: ^9.1.5
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  image_path: "assets/images/app_icon.png"
+  min_sdk_android: 21
 
 dependency_overrides:
   # 修复 record_linux 兼容性问题
