@@ -17,8 +17,15 @@ class _InsightsScreenState extends State<InsightsScreen> {
   @override
   void initState() {
     super.initState();
-    // 加载当前周的洞察
+    // 加载当前周的洞察（优先使用缓存）
+    context.read<InsightBloc>().add(const InsightLoadCurrentWeek());
+  }
+
+  /// 强制刷新洞察
+  Future<void> _onRefresh() async {
     context.read<InsightBloc>().add(const InsightGenerateCurrentWeek());
+    // 等待状态变化完成
+    await Future.delayed(const Duration(milliseconds: 500));
   }
 
   @override
@@ -36,7 +43,12 @@ class _InsightsScreenState extends State<InsightsScreen> {
             return _buildEmptyState(state.errorMessage);
           }
 
-          return _buildInsightContent(context, state.currentReport!);
+          return RefreshIndicator(
+            onRefresh: _onRefresh,
+            color: const Color(0xFFC4A57B),
+            backgroundColor: Colors.white,
+            child: _buildInsightContent(context, state.currentReport!, state.lastFetchTime),
+          );
         },
       ),
     );
@@ -139,8 +151,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
   }
 
   /// 洞察内容
-  Widget _buildInsightContent(BuildContext context, InsightReport report) {
+  Widget _buildInsightContent(BuildContext context, InsightReport report, DateTime? lastFetchTime) {
     return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         // 顶部标题
         SliverToBoxAdapter(
@@ -151,12 +164,46 @@ class _InsightsScreenState extends State<InsightsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    _formatWeekRange(report.weekRange),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFFB8ADA0),
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _formatWeekRange(report.weekRange),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFFB8ADA0),
+                        ),
+                      ),
+                      // 刷新按钮和更新时间
+                      Row(
+                        children: [
+                          if (lastFetchTime != null)
+                            Text(
+                              _formatLastFetchTime(lastFetchTime),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFFB8ADA0),
+                              ),
+                            ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: _onRefresh,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF5EBE0),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.refresh,
+                                size: 18,
+                                color: Color(0xFFC4A57B),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -581,5 +628,21 @@ class _InsightsScreenState extends State<InsightsScreen> {
       }
     }
     return weekRange;
+  }
+
+  /// 格式化最后更新时间
+  String _formatLastFetchTime(DateTime time) {
+    final now = DateTime.now();
+    final diff = now.difference(time);
+
+    if (diff.inMinutes < 1) {
+      return '刚刚更新';
+    } else if (diff.inMinutes < 60) {
+      return '${diff.inMinutes}分钟前';
+    } else if (diff.inHours < 24) {
+      return '${diff.inHours}小时前';
+    } else {
+      return DateFormat('M/d HH:mm').format(time);
+    }
   }
 }

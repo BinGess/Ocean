@@ -24,6 +24,7 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
   }) : super(InsightState.initial()) {
     // 注册事件处理器
     on<InsightGenerateCurrentWeek>(_onGenerateCurrentWeek);
+    on<InsightLoadCurrentWeek>(_onLoadCurrentWeek);
     on<InsightGenerateForWeek>(_onGenerateForWeek);
     on<InsightLoadList>(_onLoadList);
     on<InsightUpdatePatternFeedback>(_onUpdatePatternFeedback);
@@ -31,11 +32,49 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     on<InsightUpdateExperimentFeedback>(_onUpdateExperimentFeedback);
   }
 
-  /// 生成当前周洞察（使用新的洞察报告 API）
+  /// 获取当前周的周范围字符串
+  String _getCurrentWeekRange() {
+    final now = DateTime.now();
+    // 计算本周一
+    final weekday = now.weekday;
+    final monday = now.subtract(Duration(days: weekday - 1));
+    final sunday = monday.add(const Duration(days: 6));
+
+    final startStr = '${monday.year}-${monday.month.toString().padLeft(2, '0')}-${monday.day.toString().padLeft(2, '0')}';
+    final endStr = '${sunday.year}-${sunday.month.toString().padLeft(2, '0')}-${sunday.day.toString().padLeft(2, '0')}';
+
+    return '$startStr ~ $endStr';
+  }
+
+  /// 加载当前周洞察（优先使用缓存）
+  Future<void> _onLoadCurrentWeek(
+    InsightLoadCurrentWeek event,
+    Emitter<InsightState> emit,
+  ) async {
+    final currentWeekRange = _getCurrentWeekRange();
+
+    // 检查缓存是否有效
+    if (state.isCacheValid(currentWeekRange)) {
+      debugPrint('📦 InsightBloc: 使用缓存的洞察报告 (${state.lastFetchTime})');
+      // 缓存有效，直接返回成功状态（保持现有数据）
+      if (state.status != InsightStatus.success) {
+        emit(state.copyWith(status: InsightStatus.success));
+      }
+      return;
+    }
+
+    debugPrint('🔄 InsightBloc: 缓存无效或过期，重新生成洞察');
+    // 缓存无效，触发生成
+    add(const InsightGenerateCurrentWeek());
+  }
+
+  /// 生成当前周洞察（使用新的洞察报告 API，强制刷新）
   Future<void> _onGenerateCurrentWeek(
     InsightGenerateCurrentWeek event,
     Emitter<InsightState> emit,
   ) async {
+    final currentWeekRange = _getCurrentWeekRange();
+
     emit(state.copyWith(
       status: InsightStatus.generating,
       progressMessage: '正在分析本周记录...',
@@ -46,7 +85,10 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
       final params = GenerateInsightReportParams.forCurrentWeek();
 
       // 更新进度
-      emit(state.copyWith(progressMessage: '正在生成洞察报告...'));
+      emit(state.copyWith(
+        status: InsightStatus.generating,
+        progressMessage: '正在生成洞察报告...',
+      ));
 
       debugPrint('🔮 InsightBloc: 开始生成洞察报告');
       final report = await generateInsightReportUseCase(params);
@@ -55,6 +97,8 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
       emit(state.copyWith(
         status: InsightStatus.success,
         currentReport: report,
+        lastFetchTime: DateTime.now(),
+        currentWeekRange: currentWeekRange,
         progressMessage: null,
       ));
     } catch (e) {

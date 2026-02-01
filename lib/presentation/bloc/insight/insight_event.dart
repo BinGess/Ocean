@@ -9,9 +9,14 @@ abstract class InsightEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// 生成当前周洞察
+/// 生成当前周洞察（强制刷新，不检查缓存）
 class InsightGenerateCurrentWeek extends InsightEvent {
   const InsightGenerateCurrentWeek();
+}
+
+/// 加载当前周洞察（优先使用缓存）
+class InsightLoadCurrentWeek extends InsightEvent {
+  const InsightLoadCurrentWeek();
 }
 
 /// 生成指定周洞察

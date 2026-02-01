@@ -26,6 +26,12 @@ class InsightState extends Equatable {
   /// 当前洞察报告（新版）
   final InsightReport? currentReport;
 
+  /// 报告获取时间（用于缓存判断）
+  final DateTime? lastFetchTime;
+
+  /// 当前报告的周范围（用于判断是否是同一周）
+  final String? currentWeekRange;
+
   /// 错误信息
   final String? errorMessage;
 
@@ -37,6 +43,8 @@ class InsightState extends Equatable {
     required this.insights,
     this.currentInsight,
     this.currentReport,
+    this.lastFetchTime,
+    this.currentWeekRange,
     this.errorMessage,
     this.progressMessage,
   });
@@ -48,9 +56,28 @@ class InsightState extends Equatable {
       insights: [],
       currentInsight: null,
       currentReport: null,
+      lastFetchTime: null,
+      currentWeekRange: null,
       errorMessage: null,
       progressMessage: null,
     );
+  }
+
+  /// 缓存有效期（6小时）
+  static const Duration cacheValidDuration = Duration(hours: 6);
+
+  /// 检查缓存是否有效
+  bool isCacheValid(String weekRange) {
+    if (currentReport == null || lastFetchTime == null || currentWeekRange == null) {
+      return false;
+    }
+    // 检查是否是同一周
+    if (currentWeekRange != weekRange) {
+      return false;
+    }
+    // 检查是否在有效期内
+    final now = DateTime.now();
+    return now.difference(lastFetchTime!) < cacheValidDuration;
   }
 
   /// 复制并修改状态
@@ -59,6 +86,8 @@ class InsightState extends Equatable {
     List<WeeklyInsight>? insights,
     WeeklyInsight? currentInsight,
     InsightReport? currentReport,
+    DateTime? lastFetchTime,
+    String? currentWeekRange,
     String? errorMessage,
     String? progressMessage,
     bool clearCurrent = false,
@@ -71,6 +100,8 @@ class InsightState extends Equatable {
           clearCurrent ? null : (currentInsight ?? this.currentInsight),
       currentReport:
           clearReport ? null : (currentReport ?? this.currentReport),
+      lastFetchTime: clearReport ? null : (lastFetchTime ?? this.lastFetchTime),
+      currentWeekRange: clearReport ? null : (currentWeekRange ?? this.currentWeekRange),
       errorMessage: errorMessage,
       progressMessage: progressMessage,
     );
@@ -89,6 +120,8 @@ class InsightState extends Equatable {
         insights,
         currentInsight,
         currentReport,
+        lastFetchTime,
+        currentWeekRange,
         errorMessage,
         progressMessage,
       ];
