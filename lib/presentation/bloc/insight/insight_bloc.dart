@@ -1,8 +1,10 @@
 // 洞察 BLoC
 // 管理周洞察的生成、查询、反馈等操作
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/usecases/generate_weekly_insight_usecase.dart';
+import '../../../domain/usecases/generate_insight_report_usecase.dart';
 import '../../../domain/usecases/get_weekly_insights_usecase.dart';
 import '../../../domain/repositories/insight_repository.dart';
 import 'insight_event.dart';
@@ -10,11 +12,13 @@ import 'insight_state.dart';
 
 class InsightBloc extends Bloc<InsightEvent, InsightState> {
   final GenerateWeeklyInsightUseCase generateWeeklyInsightUseCase;
+  final GenerateInsightReportUseCase generateInsightReportUseCase;
   final GetWeeklyInsightsUseCase getWeeklyInsightsUseCase;
   final InsightRepository insightRepository;
 
   InsightBloc({
     required this.generateWeeklyInsightUseCase,
+    required this.generateInsightReportUseCase,
     required this.getWeeklyInsightsUseCase,
     required this.insightRepository,
   }) : super(InsightState.initial()) {
@@ -27,7 +31,7 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     on<InsightUpdateExperimentFeedback>(_onUpdateExperimentFeedback);
   }
 
-  /// 生成当前周洞察
+  /// 生成当前周洞察（使用新的洞察报告 API）
   Future<void> _onGenerateCurrentWeek(
     InsightGenerateCurrentWeek event,
     Emitter<InsightState> emit,
@@ -35,26 +39,26 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     emit(state.copyWith(
       status: InsightStatus.generating,
       progressMessage: '正在分析本周记录...',
+      clearReport: true,
     ));
 
     try {
-      final params = GenerateWeeklyInsightParams.forCurrentWeek();
+      final params = GenerateInsightReportParams.forCurrentWeek();
 
       // 更新进度
-      emit(state.copyWith(progressMessage: '正在生成情绪模式...'));
+      emit(state.copyWith(progressMessage: '正在生成洞察报告...'));
 
-      final insight = await generateWeeklyInsightUseCase(params);
-
-      // 将新洞察添加到列表开头
-      final updatedInsights = [insight, ...state.insights];
+      debugPrint('🔮 InsightBloc: 开始生成洞察报告');
+      final report = await generateInsightReportUseCase(params);
+      debugPrint('✅ InsightBloc: 洞察报告生成成功');
 
       emit(state.copyWith(
         status: InsightStatus.success,
-        insights: updatedInsights,
-        currentInsight: insight,
+        currentReport: report,
         progressMessage: null,
       ));
     } catch (e) {
+      debugPrint('❌ InsightBloc: 洞察生成失败: $e');
       emit(state.copyWith(
         status: InsightStatus.error,
         errorMessage: e.toString(),

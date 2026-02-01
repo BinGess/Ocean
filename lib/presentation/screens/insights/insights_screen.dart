@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import '../../../domain/entities/weekly_insight.dart';
+import '../../../domain/entities/insight_report.dart';
 import '../../bloc/insight/insight_bloc.dart';
 import '../../bloc/insight/insight_state.dart';
 import '../../bloc/insight/insight_event.dart';
@@ -24,277 +24,237 @@ class _InsightsScreenState extends State<InsightsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        automaticallyImplyLeading: false,
-        title: const Text(
-          '洞察',
-          style: TextStyle(
-            color: Color(0xFF2C2C2C),
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Color(0xFF8B7D6B)),
-            onPressed: () {
-              // TODO: 实现设置功能
-            },
-          ),
-        ],
-      ),
+      backgroundColor: const Color(0xFFFAF6F1),
       body: BlocBuilder<InsightBloc, InsightState>(
         builder: (context, state) {
           if (state.status == InsightStatus.loading ||
               state.status == InsightStatus.generating) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC4A57B)),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '正在生成洞察...',
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            );
+            return _buildLoadingState(state.progressMessage);
           }
 
-          // 错误状态或无数据状态都显示缺省界面
-          if (state.status == InsightStatus.error || state.currentInsight == null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.auto_awesome_outlined,
-                    size: 80,
-                    color: Colors.grey[300],
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    '本周没有足够的内容生成洞察',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[500],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '记录更多内容后将自动生成',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[400],
-                    ),
-                  ),
-                ],
-              ),
-            );
+          if (state.status == InsightStatus.error || state.currentReport == null) {
+            return _buildEmptyState(state.errorMessage);
           }
 
-          return _buildInsightContent(context, state.currentInsight!);
+          return _buildInsightContent(context, state.currentReport!);
         },
       ),
     );
   }
 
-  Widget _buildInsightContent(BuildContext context, WeeklyInsight insight) {
-    return SingleChildScrollView(
+  /// 加载状态
+  Widget _buildLoadingState(String? message) {
+    return Center(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // 周范围标题
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            color: Colors.white,
-            child: Column(
-              children: [
-                Text(
-                  _formatWeekRange(insight.weekRange),
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '每周洞察报告',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
+          const SizedBox(
+            width: 48,
+            height: 48,
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC4A57B)),
+              strokeWidth: 3,
             ),
           ),
-
-          const SizedBox(height: 12),
-
-          // 情绪概览卡片
-          if (insight.aiSummary != null) _buildEmotionOverviewCard(insight),
-
-          const SizedBox(height: 12),
-
-          // 高频情绪列表
-          if (insight.emotionalPatterns.isNotEmpty)
-            _buildHighFrequencyEmotionsSection(insight),
-
-          const SizedBox(height: 12),
-
-          // 模式情绪卡片
-          if (insight.emotionalPatterns.isNotEmpty)
-            _buildEmotionalPatternsSection(insight),
-
-          const SizedBox(height: 12),
-
-          // 微实验建议
-          if (insight.microExperiments.isNotEmpty)
-            _buildMicroExperimentsSection(insight),
-
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+          Text(
+            message ?? '正在生成洞察...',
+            style: const TextStyle(
+              fontSize: 15,
+              color: Color(0xFF8B7D6B),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  /// 情绪概览卡片
-  Widget _buildEmotionOverviewCard(WeeklyInsight insight) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+  /// 空状态
+  Widget _buildEmptyState(String? errorMessage) {
+    return SafeArea(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.insights, size: 18, color: Colors.blue[700]),
-              const SizedBox(width: 8),
-              Text(
-                '情绪概览',
+              Container(
+                width: 80,
+                height: 80,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF5EBE0),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_outlined,
+                  size: 40,
+                  color: Color(0xFFD4C4B0),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                '本周没有足够的内容生成洞察',
+                style: TextStyle(
+                  fontSize: 17,
+                  color: Color(0xFF5D4E3C),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                '记录更多内容后将自动生成',
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.blue[700],
+                  color: Color(0xFFB8ADA0),
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 32),
+              TextButton(
+                onPressed: () {
+                  context.read<InsightBloc>().add(const InsightGenerateCurrentWeek());
+                },
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFFF5EBE0),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                ),
+                child: const Text(
+                  '重新生成',
+                  style: TextStyle(
+                    color: Color(0xFF5D4E3C),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            insight.aiSummary ?? '',
-            style: const TextStyle(
-              fontSize: 15,
-              height: 1.6,
-              color: Color(0xFF4B5563),
-            ),
-          ),
-          const SizedBox(height: 20),
-          // 7个圆点表示一周
-          _buildWeekVisualization(insight),
-        ],
-      ),
-    );
-  }
-
-  /// 一周可视化（7个圆点）
-  Widget _buildWeekVisualization(WeeklyInsight insight) {
-    // 根据情绪数据计算每天的颜色
-    // 这里简化处理，实际应该根据每天的情绪强度决定颜色
-    final colors = [
-      Colors.blue[300]!,
-      Colors.orange[300]!,
-      Colors.red[300]!,
-      Colors.orange[400]!,
-      Colors.red[400]!,
-      Colors.blue[400]!,
-      Colors.grey[300]!,
-    ];
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(
-        7,
-        (index) => Container(
-          width: 12,
-          height: 12,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          decoration: BoxDecoration(
-            color: colors[index],
-            shape: BoxShape.circle,
           ),
         ),
       ),
     );
   }
 
-  /// 高频情绪列表
-  Widget _buildHighFrequencyEmotionsSection(WeeklyInsight insight) {
+  /// 洞察内容
+  Widget _buildInsightContent(BuildContext context, InsightReport report) {
+    return CustomScrollView(
+      slivers: [
+        // 顶部标题
+        SliverToBoxAdapter(
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _formatWeekRange(report.weekRange),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFFB8ADA0),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    report.reportType,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF5D4E3C),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // 情绪概览
+        SliverToBoxAdapter(
+          child: _buildEmotionOverviewCard(report.emotionOverview),
+        ),
+
+        // 高频情境
+        if (report.highFrequencyEmotions.isNotEmpty)
+          SliverToBoxAdapter(
+            child: _buildHighFrequencySection(report.highFrequencyEmotions),
+          ),
+
+        // 潜在需求
+        SliverToBoxAdapter(
+          child: _buildPatternHypothesisCard(report.patternHypothesis),
+        ),
+
+        // 行动建议
+        if (report.actionSuggestions.isNotEmpty)
+          SliverToBoxAdapter(
+            child: _buildActionSuggestionsSection(report.actionSuggestions),
+          ),
+
+        // 底部间距
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 32),
+        ),
+      ],
+    );
+  }
+
+  /// 情绪概览卡片
+  Widget _buildEmotionOverviewCard(EmotionOverview overview) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '高频情绪',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.black,
-            ),
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF8E7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.emoji_emotions_outlined,
+                  size: 18,
+                  color: Color(0xFFC4A57B),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                '情绪概览',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF5D4E3C),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
-          ...insight.emotionalPatterns.take(3).map((pattern) {
-            return _buildEmotionItem(pattern);
-          }),
-        ],
-      ),
-    );
-  }
-
-  /// 单个情绪项
-  Widget _buildEmotionItem(EmotionalPattern pattern) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
           Text(
-            '"${pattern.pattern}"',
+            overview.summary,
             style: const TextStyle(
               fontSize: 15,
-              color: Color(0xFF1F2937),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _getRelativeTime(pattern.relatedRecords.length),
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.blue[600],
+              height: 1.8,
+              color: Color(0xFF5D4E3C),
             ),
           ),
         ],
@@ -302,112 +262,302 @@ class _InsightsScreenState extends State<InsightsScreen> {
     );
   }
 
-  /// 模式情绪卡片
-  Widget _buildEmotionalPatternsSection(WeeklyInsight insight) {
-    final mainPattern = insight.emotionalPatterns.first;
-
+  /// 高频情境列表
+  Widget _buildHighFrequencySection(List<HighFrequencyEmotion> emotions) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.psychology, size: 18, color: Colors.grey[700]),
-              const SizedBox(width: 8),
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F4EC),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.format_quote,
+                  size: 18,
+                  color: Color(0xFF6B9080),
+                ),
+              ),
+              const SizedBox(width: 12),
               const Text(
-                '模式情绪',
+                '高频情境',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black,
+                  color: Color(0xFF5D4E3C),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          RichText(
-            text: TextSpan(
-              style: const TextStyle(
-                fontSize: 15,
-                height: 1.6,
-                color: Color(0xFF4B5563),
-              ),
-              children: [
-                const TextSpan(text: '看起来 '),
-                TextSpan(
-                  text: mainPattern.pattern,
-                  style: const TextStyle(
-                    color: Color(0xFFEF4444),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const TextSpan(text: ' 似乎触发了你对 心对 '),
-                TextSpan(
-                  text: _getMainNeed(insight),
-                  style: const TextStyle(
-                    color: Color(0xFF8B5CF6),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const TextSpan(text: ' 的渴烈需要。'),
-              ],
+          const SizedBox(height: 16),
+          ...emotions.map((emotion) => _buildEmotionItem(emotion)),
+        ],
+      ),
+    );
+  }
+
+  /// 单个情境项
+  Widget _buildEmotionItem(HighFrequencyEmotion emotion) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAF8F5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '"${emotion.content}"',
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.6,
+              color: Color(0xFF5D4E3C),
+              fontStyle: FontStyle.italic,
             ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(
+                Icons.access_time,
+                size: 14,
+                color: Color(0xFFB8ADA0),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                emotion.time,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFFB8ADA0),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  /// 微实验建议卡片
-  Widget _buildMicroExperimentsSection(WeeklyInsight insight) {
-    final experiment = insight.microExperiments.first;
-
+  /// 潜在需求卡片
+  Widget _buildPatternHypothesisCard(PatternHypothesis pattern) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F9FF),
-        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFF8E7),
+            Color(0xFFFFF5E0),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFC4A57B).withOpacity(0.15),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.science, size: 18, color: Colors.blue[700]),
-              const SizedBox(width: 8),
-              Text(
-                '微实验建议',
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.psychology_outlined,
+                  size: 18,
+                  color: Color(0xFFC4A57B),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                '潜在需求',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.blue[700],
+                  color: Color(0xFF5D4E3C),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
+          _buildHighlightedText(pattern),
+        ],
+      ),
+    );
+  }
+
+  /// 构建高亮文本
+  Widget _buildHighlightedText(PatternHypothesis pattern) {
+    // 解析模板文本并替换高亮标签
+    String text = pattern.text;
+
+    // 创建高亮标签映射
+    final tagMap = <String, String>{};
+    for (final tag in pattern.highlightTags) {
+      tagMap[tag.key] = tag.value;
+    }
+
+    // 构建 TextSpan 列表
+    final spans = <TextSpan>[];
+    final regex = RegExp(r'\{(\w+)\}');
+    int lastEnd = 0;
+
+    for (final match in regex.allMatches(text)) {
+      // 添加普通文本
+      if (match.start > lastEnd) {
+        spans.add(TextSpan(
+          text: text.substring(lastEnd, match.start),
+          style: const TextStyle(
+            fontSize: 15,
+            height: 1.8,
+            color: Color(0xFF5D4E3C),
+          ),
+        ));
+      }
+
+      // 添加高亮文本
+      final key = match.group(1);
+      final value = tagMap[key] ?? '{$key}';
+      spans.add(TextSpan(
+        text: value,
+        style: TextStyle(
+          fontSize: 15,
+          height: 1.8,
+          color: key == 'trigger' ? const Color(0xFFE07B3E) : const Color(0xFF8B5CF6),
+          fontWeight: FontWeight.w600,
+        ),
+      ));
+
+      lastEnd = match.end;
+    }
+
+    // 添加剩余文本
+    if (lastEnd < text.length) {
+      spans.add(TextSpan(
+        text: text.substring(lastEnd),
+        style: const TextStyle(
+          fontSize: 15,
+          height: 1.8,
+          color: Color(0xFF5D4E3C),
+        ),
+      ));
+    }
+
+    return RichText(
+      text: TextSpan(children: spans),
+    );
+  }
+
+  /// 行动建议
+  Widget _buildActionSuggestionsSection(List<ActionSuggestion> suggestions) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F4F8),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.lightbulb_outline,
+                  size: 18,
+                  color: Color(0xFF4A90A4),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                '行动建议',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF5D4E3C),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...suggestions.map((suggestion) => _buildSuggestionItem(suggestion)),
+        ],
+      ),
+    );
+  }
+
+  /// 单个建议项
+  Widget _buildSuggestionItem(ActionSuggestion suggestion) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
-            experiment.suggestion,
+            suggestion.title,
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: Colors.black,
+              color: Color(0xFF5D4E3C),
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            experiment.rationale,
+            suggestion.content,
             style: const TextStyle(
-              fontSize: 15,
+              fontSize: 14,
               height: 1.6,
-              color: Color(0xFF4B5563),
+              color: Color(0xFF8B7D6B),
             ),
           ),
         ],
@@ -417,36 +567,19 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
   /// 格式化周范围
   String _formatWeekRange(String weekRange) {
-    // weekRange 格式: "2025-01-13 ~ 2025-01-19"
+    // weekRange 格式: "2026-01-27 ~ 2026-02-02"
     final parts = weekRange.split(' ~ ');
     if (parts.length == 2) {
       try {
         final start = DateTime.parse(parts[0]);
         final end = DateTime.parse(parts[1]);
-        final startFormatted = DateFormat('MMM d', 'en_US').format(start);
-        final endFormatted = DateFormat('MMM d', 'en_US').format(end);
+        final startFormatted = DateFormat('M月d日').format(start);
+        final endFormatted = DateFormat('M月d日').format(end);
         return '$startFormatted - $endFormatted';
       } catch (e) {
         return weekRange;
       }
     }
     return weekRange;
-  }
-
-  /// 获取相对时间描述
-  String _getRelativeTime(int recordCount) {
-    // 简化处理，可以根据 relatedRecords 的实际时间计算
-    if (recordCount > 0) {
-      return '周二 - 16:00'; // 示例值
-    }
-    return '';
-  }
-
-  /// 获取主要需要
-  String _getMainNeed(WeeklyInsight insight) {
-    if (insight.needStatistics != null && insight.needStatistics!.isNotEmpty) {
-      return insight.needStatistics!.first.need;
-    }
-    return '胜任感与心流';
   }
 }

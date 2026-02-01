@@ -3,6 +3,7 @@
 
 import '../entities/nvc_analysis.dart';
 import '../entities/weekly_insight.dart';
+import '../entities/insight_report.dart';
 
 abstract class AIRepository {
   /// 语音转文字（从文件）
@@ -56,6 +57,15 @@ abstract class AIRepository {
   /// 返回值：微实验建议列表
   Future<List<MicroExperiment>> generateMicroExperiments(
       List<String> dominantNeeds);
+
+  /// 生成洞察报告（新版）
+  /// [records] 记录列表（包含时间和内容）
+  /// [weekRange] 周范围
+  /// 返回值：洞察报告
+  Future<InsightReport> generateInsightReport(
+    List<InsightRequestRecord> records,
+    String weekRange,
+  );
 
   /// 检查 API 配置是否完整
   bool isConfigured();
