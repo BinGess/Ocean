@@ -10,6 +10,7 @@ import '../../domain/usecases/create_quick_note_usecase.dart';
 import '../../domain/usecases/get_records_usecase.dart';
 import '../../domain/usecases/update_record_usecase.dart';
 import '../../domain/usecases/generate_weekly_insight_usecase.dart';
+import '../../domain/usecases/generate_insight_report_usecase.dart';
 import '../../domain/usecases/get_weekly_insights_usecase.dart';
 import '../../data/repositories/audio_repository_impl.dart';
 import '../../data/repositories/record_repository_impl.dart';
@@ -117,12 +118,20 @@ Future<void> configureDependencies() async {
     ),
   );
 
-  // 生成周洞察
+  // 生成周洞察（旧版）
   getIt.registerLazySingleton<GenerateWeeklyInsightUseCase>(
     () => GenerateWeeklyInsightUseCase(
       recordRepository: getIt<RecordRepository>(),
       aiRepository: getIt<AIRepository>(),
       insightRepository: getIt<InsightRepository>(),
+    ),
+  );
+
+  // 生成洞察报告（新版 - 使用 Coze 智能体）
+  getIt.registerLazySingleton<GenerateInsightReportUseCase>(
+    () => GenerateInsightReportUseCase(
+      recordRepository: getIt<RecordRepository>(),
+      aiRepository: getIt<AIRepository>(),
     ),
   );
 
@@ -158,6 +167,7 @@ Future<void> configureDependencies() async {
   getIt.registerFactory<InsightBloc>(
     () => InsightBloc(
       generateWeeklyInsightUseCase: getIt<GenerateWeeklyInsightUseCase>(),
+      generateInsightReportUseCase: getIt<GenerateInsightReportUseCase>(),
       getWeeklyInsightsUseCase: getIt<GetWeeklyInsightsUseCase>(),
       insightRepository: getIt<InsightRepository>(),
     ),

@@ -2,6 +2,7 @@
 
 import 'package:equatable/equatable.dart';
 import '../../../domain/entities/weekly_insight.dart';
+import '../../../domain/entities/insight_report.dart';
 
 /// 洞察状态枚举
 enum InsightStatus {
@@ -16,11 +17,14 @@ class InsightState extends Equatable {
   /// 状态
   final InsightStatus status;
 
-  /// 洞察列表
+  /// 洞察列表（旧版）
   final List<WeeklyInsight> insights;
 
-  /// 当前洞察
+  /// 当前洞察（旧版）
   final WeeklyInsight? currentInsight;
+
+  /// 当前洞察报告（新版）
+  final InsightReport? currentReport;
 
   /// 错误信息
   final String? errorMessage;
@@ -32,6 +36,7 @@ class InsightState extends Equatable {
     required this.status,
     required this.insights,
     this.currentInsight,
+    this.currentReport,
     this.errorMessage,
     this.progressMessage,
   });
@@ -42,6 +47,7 @@ class InsightState extends Equatable {
       status: InsightStatus.initial,
       insights: [],
       currentInsight: null,
+      currentReport: null,
       errorMessage: null,
       progressMessage: null,
     );
@@ -52,15 +58,19 @@ class InsightState extends Equatable {
     InsightStatus? status,
     List<WeeklyInsight>? insights,
     WeeklyInsight? currentInsight,
+    InsightReport? currentReport,
     String? errorMessage,
     String? progressMessage,
     bool clearCurrent = false,
+    bool clearReport = false,
   }) {
     return InsightState(
       status: status ?? this.status,
       insights: insights ?? this.insights,
       currentInsight:
           clearCurrent ? null : (currentInsight ?? this.currentInsight),
+      currentReport:
+          clearReport ? null : (currentReport ?? this.currentReport),
       errorMessage: errorMessage,
       progressMessage: progressMessage,
     );
@@ -71,13 +81,14 @@ class InsightState extends Equatable {
   bool get isGenerating => status == InsightStatus.generating;
   bool get isSuccess => status == InsightStatus.success;
   bool get hasError => status == InsightStatus.error;
-  bool get isEmpty => insights.isEmpty;
+  bool get isEmpty => insights.isEmpty && currentReport == null;
 
   @override
   List<Object?> get props => [
         status,
         insights,
         currentInsight,
+        currentReport,
         errorMessage,
         progressMessage,
       ];

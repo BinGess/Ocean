@@ -11,6 +11,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/entities/nvc_analysis.dart';
+import '../../domain/entities/insight_report.dart';
 import '../constants/app_constants.dart';
 
 class CozeAIService {
@@ -321,6 +322,209 @@ class CozeAIService {
 
     // 原样返回
     return text.trim();
+  }
+
+  /// 生成周洞察报告
+  ///
+  /// [records] 本周记录列表
+  /// [weekRange] 周范围（如：2026-01-27 ~ 2026-02-02）
+  /// 返回 InsightReport 对象
+  Future<InsightReport> generateInsight(
+    List<InsightRequestRecord> records,
+    String weekRange,
+  ) async {
+    // 检查配置
+    if (EnvConfig.cozeApiToken.isEmpty || EnvConfig.cozeInsightProjectId.isEmpty) {
+      throw CozeAPIException(
+        '洞察智能体配置未完成，请在 .env 文件中配置 COZE_API_TOKEN 和 COZE_INSIGHT_PROJECT_ID',
+        code: 'CONFIG_ERROR',
+      );
+    }
+
+    if (records.isEmpty) {
+      throw CozeAPIException(
+        '没有足够的记录生成洞察',
+        code: 'NO_RECORDS',
+      );
+    }
+
+    print('🔮 CozeAI: 开始生成洞察，记录数: ${records.length}');
+
+    try {
+      // 构建请求内容（将记录转换为 JSON 数组）
+      final recordsJson = records.map((r) => {
+        'record_time': r.recordTime,
+        'content': r.content,
+      }).toList();
+      final promptText = jsonEncode(recordsJson);
+
+      // 调用洞察 API
+      final responseText = await _callInsightAPI(promptText);
+
+      print('✅ CozeAI: 收到洞察响应，长度: ${responseText.length}');
+      print('📝 CozeAI: 洞察原始响应:\n$responseText');
+
+      // 解析响应
+      final report = _parseInsightResponse(responseText, weekRange, records.length);
+
+      print('✅ CozeAI: 洞察生成完成');
+      return report;
+    } on DioException catch (e) {
+      throw CozeAPIException.fromDioError(e);
+    } catch (e) {
+      if (e is CozeAPIException) rethrow;
+      throw CozeAPIException(
+        '洞察生成失败: $e',
+        code: 'INSIGHT_ERROR',
+        originalError: e,
+      );
+    }
+  }
+
+  /// 调用洞察 API（SSE流式响应）
+  Future<String> _callInsightAPI(String promptText) async {
+    // 创建单独的 Dio 实例用于洞察 API
+    final insightDio = Dio();
+    insightDio.options.baseUrl = EnvConfig.cozeInsightBaseUrl;
+    insightDio.options.connectTimeout = AppConstants.cozeApiTimeout;
+    insightDio.options.receiveTimeout = const Duration(seconds: 120); // 洞察可能需要更长时间
+    insightDio.options.headers = {
+      'Authorization': 'Bearer ${EnvConfig.cozeApiToken}',
+      'Content-Type': 'application/json',
+    };
+
+    // 生成唯一的 session_id
+    final sessionId = _uuid.v4().replaceAll('-', '');
+
+    print('🔄 CozeAI: 发送洞察请求，session_id: $sessionId');
+    print('🔄 CozeAI: 使用 project_id: ${EnvConfig.cozeInsightProjectId}');
+
+    final response = await insightDio.post(
+      '/stream_run',
+      data: {
+        'content': {
+          'query': {
+            'prompt': [
+              {
+                'type': 'text',
+                'content': {'text': promptText},
+              },
+            ],
+          },
+        },
+        'type': 'query',
+        'session_id': sessionId,
+        'project_id': int.parse(EnvConfig.cozeInsightProjectId),
+      },
+      options: Options(responseType: ResponseType.stream),
+    );
+
+    if (response.statusCode == 200 && response.data is ResponseBody) {
+      final streamText = await utf8.decoder.bind(response.data.stream).join();
+      print('📥 CozeAI: 收到洞察流式响应，长度: ${streamText.length}');
+
+      final answer = _extractAnswerFromSSE(streamText);
+      return answer.isNotEmpty ? answer : streamText;
+    }
+
+    throw CozeAPIException(
+      '洞察API响应无效: HTTP ${response.statusCode}',
+      code: 'INVALID_RESPONSE',
+    );
+  }
+
+  /// 解析洞察响应
+  InsightReport _parseInsightResponse(String responseText, String weekRange, int recordCount) {
+    try {
+      // 尝试从响应中提取 JSON
+      final jsonText = _extractJsonFromText(responseText);
+      print('🔍 CozeAI: 提取的洞察JSON:\n$jsonText');
+
+      final jsonData = jsonDecode(jsonText) as Map<String, dynamic>;
+
+      return _parseInsightJson(jsonData, weekRange, recordCount);
+    } catch (e) {
+      print('⚠️ CozeAI: 洞察JSON解析失败: $e');
+      print('⚠️ CozeAI: 原始响应: $responseText');
+
+      // 检查是否是服务错误
+      if (responseText.contains('error') ||
+          responseText.contains('Error') ||
+          responseText.length < 100) {
+        throw CozeAPIException(
+          'AI服务暂时不可用，请稍后重试',
+          code: 'SERVICE_ERROR',
+          originalError: e,
+        );
+      }
+
+      throw CozeAPIException(
+        '洞察响应格式异常，无法解析',
+        code: 'PARSE_ERROR',
+        originalError: e,
+      );
+    }
+  }
+
+  /// 解析洞察 JSON
+  InsightReport _parseInsightJson(
+    Map<String, dynamic> json,
+    String weekRange,
+    int recordCount,
+  ) {
+    // 解析情绪概览
+    final emotionOverviewData = json['emotion_overview'] as Map<String, dynamic>?;
+    final emotionOverview = EmotionOverview(
+      summary: emotionOverviewData?['summary']?.toString() ?? '本周记录不足，无法生成完整的情绪分析。',
+    );
+
+    // 解析高频情境
+    final highFrequencyList = json['high_frequency_emotions'] as List<dynamic>? ?? [];
+    final highFrequencyEmotions = highFrequencyList.map((item) {
+      final map = item as Map<String, dynamic>;
+      return HighFrequencyEmotion(
+        content: map['content']?.toString() ?? '',
+        time: map['time']?.toString() ?? '',
+      );
+    }).toList();
+
+    // 解析模式假设
+    final patternData = json['pattern_hypothesis'] as Map<String, dynamic>?;
+    final highlightTagsList = patternData?['highlight_tags'] as List<dynamic>? ?? [];
+    final highlightTags = highlightTagsList.map((item) {
+      final map = item as Map<String, dynamic>;
+      return HighlightTag(
+        key: map['key']?.toString() ?? '',
+        value: map['value']?.toString() ?? '',
+      );
+    }).toList();
+
+    final patternHypothesis = PatternHypothesis(
+      text: patternData?['text']?.toString() ?? '暂无足够数据分析情绪模式',
+      highlightTags: highlightTags,
+    );
+
+    // 解析行动建议
+    final actionList = json['action_suggestions'] as List<dynamic>? ?? [];
+    final actionSuggestions = actionList.map((item) {
+      final map = item as Map<String, dynamic>;
+      return ActionSuggestion(
+        title: map['title']?.toString() ?? '',
+        content: map['content']?.toString() ?? '',
+      );
+    }).toList();
+
+    return InsightReport(
+      id: _uuid.v4(),
+      reportType: json['report_type']?.toString() ?? '每周洞察报告',
+      emotionOverview: emotionOverview,
+      highFrequencyEmotions: highFrequencyEmotions,
+      patternHypothesis: patternHypothesis,
+      actionSuggestions: actionSuggestions,
+      weekRange: weekRange,
+      createdAt: DateTime.now(),
+      recordCount: recordCount,
+    );
   }
 
   /// 灵活解析NVC JSON（支持多种字段名和格式）
