@@ -41,11 +41,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
+<<<<<<< HEAD
   // 防止错误弹窗重复显示
   bool _isShowingErrorDialog = false;
   // 记录上次处理的错误消息，避免重复处理同一个错误
   String? _lastHandledError;
 
+=======
+>>>>>>> 652bbbe (feat: 优化录制按钮的即时响应和交互体验)
   @override
   void initState() {
     super.initState();
