@@ -335,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     // 文字滚动区域 - 优化布局,给文案更多空间
                     Expanded(
-                      flex: 5,
+                      flex: 1,
                       child: _buildDescriptionSection(context),
                     ),
 
@@ -348,7 +348,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     // 录音按钮区域 - 调整比例,保持整体平衡
                     Expanded(
-                      flex: 2,
+                      flex: 1,
                       child: BlocBuilder<AudioBloc, AudioState>(
                         builder: (context, audioState) {
                           return _buildRecordSection(context, audioState);
@@ -447,7 +447,7 @@ class _HomeScreenState extends State<HomeScreen> {
         audioState.status == RecordingStatus.permissionDenied) {
       return Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
               Icons.mic_off,
@@ -505,46 +505,41 @@ class _HomeScreenState extends State<HomeScreen> {
               letterSpacing: 2.0,
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
 
           // 录音按钮 - 扩大可点击区域
-          Container(
-            width: 180,  // 扩大外层容器,增加可点击热区
-            height: 180,
-            alignment: Alignment.center,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,  // 确保整个区域都可点击
-              onLongPressStart: (_) {
-                if (!audioState.isRecording) {
-                  // 优先尝试流式录音，如果失败会自动降级到普通录音
-                  context.read<AudioBloc>().add(const AudioStartStreamingRecording());
+          Listener(
+            onPointerDown: (_) {
+              if (!audioState.isRecording) {
+                // 优先尝试流式录音，如果失败会自动降级到普通录音
+                context.read<AudioBloc>().add(const AudioStartStreamingRecording());
+              }
+            },
+            onPointerUp: (_) {
+              if (audioState.isRecording) {
+                // 如果是流式录音，触发完成事件
+                if (audioState.isStreamingRecording) {
+                  context.read<AudioBloc>().add(const AudioFinalizeStreaming());
+                } else {
+                  context.read<AudioBloc>().add(const AudioStopRecording());
                 }
-              },
-              onLongPressEnd: (_) {
-                if (audioState.isRecording) {
-                  // 如果是流式录音，触发完成事件
+              }
+            },
+            onPointerCancel: (_) {
+               // 异常取消时也停止录音
+               if (audioState.isRecording) {
                   if (audioState.isStreamingRecording) {
                     context.read<AudioBloc>().add(const AudioFinalizeStreaming());
                   } else {
                     context.read<AudioBloc>().add(const AudioStopRecording());
                   }
-                }
-              },
-              // 保留备用的tap处理,提高兼容性
-              onTapDown: (_) {
-                if (!audioState.isRecording) {
-                  context.read<AudioBloc>().add(const AudioStartStreamingRecording());
-                }
-              },
-              onTapUp: (_) {
-                if (audioState.isRecording) {
-                  if (audioState.isStreamingRecording) {
-                    context.read<AudioBloc>().add(const AudioFinalizeStreaming());
-                  } else {
-                    context.read<AudioBloc>().add(const AudioStopRecording());
-                  }
-                }
-              },
+               }
+            },
+            child: Container(
+              width: 140,  // 调整热区大小，避免溢出
+              height: 140,
+              alignment: Alignment.center,
+              color: Colors.transparent, // 确保透明区域也能响应点击
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 width: audioState.isRecording ? 100 : 120,
@@ -559,19 +554,28 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: audioState.isRecording ? 3 : 2.5,
                   ),
                   boxShadow: audioState.isRecording
-                    ? [
-                        BoxShadow(
-                          color: const Color(0xFFC4A57B).withValues(alpha: 0.3),
-                          blurRadius: 20,
-                          spreadRadius: 5,
-                        ),
-                      ]
-                    : [],
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFFC4A57B).withValues(alpha: 0.3),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          )
+                        ]
+                      : [
+                          BoxShadow(
+                            color: const Color(0xFFD9C9B8).withValues(alpha: 0.2),
+                            blurRadius: 10,
+                            spreadRadius: 2,
+                            offset: const Offset(0, 4),
+                          )
+                        ],
                 ),
                 child: Icon(
-                  Icons.mic,
-                  size: audioState.isRecording ? 44 : 50,
-                  color: const Color(0xFFC4A57B),
+                  audioState.isRecording ? Icons.stop_rounded : Icons.mic_rounded,
+                  size: 48,
+                  color: audioState.isRecording
+                    ? const Color(0xFFC4A57B)
+                    : const Color(0xFFD9C9B8),
                 ),
               ),
             ),
