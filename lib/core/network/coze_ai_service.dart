@@ -333,10 +333,17 @@ class CozeAIService {
     List<InsightRequestRecord> records,
     String weekRange,
   ) async {
+<<<<<<< HEAD
     // 检查配置（洞察智能体使用独立的 Token）
     if (EnvConfig.cozeInsightApiToken.isEmpty || EnvConfig.cozeInsightProjectId.isEmpty) {
       throw CozeAPIException(
         '洞察智能体配置未完成，请在 .env 文件中配置 COZE_INSIGHT_API_TOKEN 和 COZE_INSIGHT_PROJECT_ID',
+=======
+    // 检查配置
+    if (EnvConfig.cozeApiToken.isEmpty || EnvConfig.cozeInsightProjectId.isEmpty) {
+      throw CozeAPIException(
+        '洞察智能体配置未完成，请在 .env 文件中配置 COZE_API_TOKEN 和 COZE_INSIGHT_PROJECT_ID',
+>>>>>>> 5e01d66 (feat: 实现洞察功能的智能体API集成)
         code: 'CONFIG_ERROR',
       );
     }
@@ -383,13 +390,21 @@ class CozeAIService {
 
   /// 调用洞察 API（SSE流式响应）
   Future<String> _callInsightAPI(String promptText) async {
+<<<<<<< HEAD
     // 创建单独的 Dio 实例用于洞察 API（使用独立的 Token）
+=======
+    // 创建单独的 Dio 实例用于洞察 API
+>>>>>>> 5e01d66 (feat: 实现洞察功能的智能体API集成)
     final insightDio = Dio();
     insightDio.options.baseUrl = EnvConfig.cozeInsightBaseUrl;
     insightDio.options.connectTimeout = AppConstants.cozeApiTimeout;
     insightDio.options.receiveTimeout = const Duration(seconds: 120); // 洞察可能需要更长时间
     insightDio.options.headers = {
+<<<<<<< HEAD
       'Authorization': 'Bearer ${EnvConfig.cozeInsightApiToken}',
+=======
+      'Authorization': 'Bearer ${EnvConfig.cozeApiToken}',
+>>>>>>> 5e01d66 (feat: 实现洞察功能的智能体API集成)
       'Content-Type': 'application/json',
     };
 
