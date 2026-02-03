@@ -423,7 +423,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             result?.analysis != null &&
                             _completedAudioPath != null) {
                           messenger.showSnackBar(
-                            const SnackBar(content: Text('正在后台保存记录...')),
+                            SnackBar(
+                              content: Text(
+                                '正在后台保存记录...',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              backgroundColor: const Color(0xFF5D4E3C).withValues(alpha: 0.9),
+                              duration: const Duration(milliseconds: 1500),
+                              behavior: SnackBarBehavior.floating,
+                              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
                           );
                           recordBloc.add(
                             RecordCreateQuickNote(
@@ -505,7 +521,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      backgroundColor: const Color(0xFF4CAF50).withValues(alpha: 0.9),
+                      backgroundColor: const Color(0xFF5D4E3C).withValues(alpha: 0.9),
                       duration: const Duration(milliseconds: 2000),
                       behavior: SnackBarBehavior.floating,
                       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -689,10 +705,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
 
     // 正常录音界面
+    // 使用 SingleChildScrollView 避免在小屏幕或大字体模式下溢出
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           // 提示文字
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 150),
@@ -845,6 +863,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 : const SizedBox.shrink(),
           ),
         ],
+      ),
       ),
     );
   }

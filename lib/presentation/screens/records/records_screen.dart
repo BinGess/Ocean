@@ -52,7 +52,23 @@ class _RecordsScreenState extends State<RecordsScreen> {
           RecordDelete(id: record.id),
         );
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('记录已删除')),
+          SnackBar(
+            content: Text(
+              '记录已删除',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            backgroundColor: const Color(0xFF5D4E3C).withValues(alpha: 0.9),
+            duration: const Duration(milliseconds: 1500),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
         );
       }
       // 弹窗关闭后刷新列表
