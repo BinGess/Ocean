@@ -83,11 +83,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    // 初始化水波纹动画控制器（始终运行，循环播放）
+    // 初始化水波纹动画控制器
     _rippleController = AnimationController(
       vsync: this,
       duration: _rippleSlowDuration,
-    )..repeat();
+    );
+
+    // 确保动画在第一帧之后启动（解决初始状态不显示动画的问题）
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_rippleController.isAnimating) {
+        _rippleController.repeat();
+      }
+    });
 
     _descriptionTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!mounted) return;
@@ -731,42 +738,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
             const SizedBox(height: 12),
 
-            // 录音按钮 - 优化触摸响应
+            // 录音按钮 - 只允许长按操作，屏蔽快速点击
             GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTapDown: (_) {
-              // 立即设置按压状态，提供即时视觉反馈
-              setState(() => _isPressed = true);
-              // 触觉反馈
-              HapticFeedback.lightImpact();
-              // 记录开始时间
-              _recordingStartTime = DateTime.now();
-              // 触发录音
-              if (!audioState.isRecording) {
-                context.read<AudioBloc>().add(const AudioStartStreamingRecording());
-              }
-            },
-            onTapUp: (_) {
-              setState(() => _isPressed = false);
-              _tryStopRecording(context);
-            },
-            onTapCancel: () {
-              setState(() => _isPressed = false);
-              // onTapCancel 不停止录音，让用户继续录音
-              // 这样如果用户手指滑出按钮区域，录音会继续
-            },
-            onLongPressStart: (_) {
-              // 长按时保持按压状态（录音已由 onTapDown 触发，这里不再重复触发）
-              if (!_isPressed) {
+              // 快速点击不触发录音，只有长按才开始录音
+              onLongPressStart: (_) {
+                // 长按开始：设置视觉反馈并开始录音
                 setState(() => _isPressed = true);
                 HapticFeedback.lightImpact();
                 _recordingStartTime = DateTime.now();
-              }
-            },
-            onLongPressEnd: (_) {
-              setState(() => _isPressed = false);
-              _tryStopRecording(context);
-            },
+                // 触发录音
+                if (!audioState.isRecording) {
+                  context.read<AudioBloc>().add(const AudioStartStreamingRecording());
+                }
+              },
+              onLongPressEnd: (_) {
+                // 长按结束：停止录音
+                setState(() => _isPressed = false);
+                _tryStopRecording(context);
+              },
+              onLongPressCancel: () {
+                // 长按取消（手指滑出）：保持录音继续，只重置视觉状态
+                setState(() => _isPressed = false);
+              },
             child: SizedBox(
               width: 160,
               height: 160,
