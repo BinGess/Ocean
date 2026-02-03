@@ -216,7 +216,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     switch (mode) {
       case ProcessingMode.onlyRecord:
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('正在后台保存记录...')),
+          SnackBar(
+            content: const Row(
+              children: [
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFAF6F1)),
+                  ),
+                ),
+                SizedBox(width: 10),
+                Text('正在保存记录...'),
+              ],
+            ),
+            duration: const Duration(seconds: 2),
+          ),
         );
         context.read<RecordBloc>().add(
               RecordCreateQuickNote(
@@ -233,7 +249,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         if (moods != null) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('正在后台保存记录...')),
+            SnackBar(
+              content: const Row(
+                children: [
+                  SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFAF6F1)),
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Text('正在保存记录...'),
+                ],
+              ),
+              duration: const Duration(seconds: 2),
+            ),
           );
           context.read<RecordBloc>().add(
                 RecordCreateQuickNote(
@@ -251,7 +283,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         // 检查转写内容是否有效
         if (transcription == null || transcription.isEmpty || transcription == '正在转写中...') {
            ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(content: Text('转写未完成，请稍后...')),
+             SnackBar(
+               content: const Row(
+                 children: [
+                   Icon(Icons.hourglass_empty, color: Color(0xFFFFB74D), size: 20),
+                   SizedBox(width: 8),
+                   Text('转写未完成，请稍后...'),
+                 ],
+               ),
+               duration: const Duration(seconds: 2),
+             ),
            );
            return;
         }
@@ -263,7 +304,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         } else {
            // 如果没有转写文本，无法分析，降级为直接保存
            ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(content: Text('暂无转写文本，无法进行 NVC 分析，已自动转为仅记录')),
+             SnackBar(
+               content: const Row(
+                 children: [
+                   Icon(Icons.info_outline, color: Color(0xFFFFB74D), size: 20),
+                   SizedBox(width: 8),
+                   Flexible(child: Text('暂无转写文本，已自动转为仅记录')),
+                 ],
+               ),
+               duration: const Duration(seconds: 3),
+             ),
            );
            context.read<RecordBloc>().add(
               RecordCreateQuickNote(
@@ -332,7 +382,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               // 显示错误
               if (audioState.hasError && audioState.errorMessage != null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(audioState.errorMessage!)),
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: Color(0xFFEF5350), size: 20),
+                        const SizedBox(width: 8),
+                        Flexible(child: Text(audioState.errorMessage!)),
+                      ],
+                    ),
+                    duration: const Duration(seconds: 3),
+                  ),
                 );
               }
             },
@@ -359,7 +418,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             result?.analysis != null &&
                             _completedAudioPath != null) {
                           messenger.showSnackBar(
-                            const SnackBar(content: Text('正在后台保存记录...')),
+                            SnackBar(
+                              content: const Row(
+                                children: [
+                                  SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFAF6F1)),
+                                    ),
+                                  ),
+                                  SizedBox(width: 10),
+                                  Text('正在保存记录...'),
+                                ],
+                              ),
+                              duration: const Duration(seconds: 2),
+                            ),
                           );
                           recordBloc.add(
                             RecordCreateQuickNote(
@@ -373,7 +448,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         } else if (result?.action == NVCModalAction.delete) {
                           // 用户选择了删除，清理音频文件
                           messenger.showSnackBar(
-                            const SnackBar(content: Text('已取消保存')),
+                            SnackBar(
+                              content: const Row(
+                                children: [
+                                  Icon(Icons.cancel_outlined, color: Color(0xFFB0B0B0), size: 20),
+                                  SizedBox(width: 8),
+                                  Text('已取消保存'),
+                                ],
+                              ),
+                              duration: const Duration(seconds: 2),
+                            ),
                           );
                           _clearCompletedAudio();
                         }
@@ -416,7 +500,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
                 if (recordState.isSuccess && recordState.latestRecord != null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('记录已保存')),
+                    SnackBar(
+                      content: const Row(
+                        children: [
+                          Icon(Icons.check_circle, color: Color(0xFF4CAF50), size: 20),
+                          SizedBox(width: 8),
+                          Text('记录已保存'),
+                        ],
+                      ),
+                      duration: const Duration(seconds: 2),
+                    ),
                   );
                 }
               },
@@ -594,31 +687,33 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     // 正常录音界面
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 提示文字
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 150),
-            child: Text(
-              audioState.isRecording ? '松开结束' : '按住记录',
-              key: ValueKey(audioState.isRecording),
-              style: TextStyle(
-                fontSize: 14,
-                color: isActive
-                    ? const Color(0xFF5D4E3C)
-                    : const Color(0xFFB8ADA0),
-                fontWeight: FontWeight.w500,
-                letterSpacing: 2.0,
+      child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 提示文字
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 150),
+              child: Text(
+                audioState.isRecording ? '松开结束' : '按住记录',
+                key: ValueKey(audioState.isRecording),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isActive
+                      ? const Color(0xFF5D4E3C)
+                      : const Color(0xFFB8ADA0),
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 2.0,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-          // 录音按钮 - 优化触摸响应
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (_) {
+            // 录音按钮 - 优化触摸响应
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapDown: (_) {
               // 立即设置按压状态，提供即时视觉反馈
               setState(() => _isPressed = true);
               // 触觉反馈
@@ -652,8 +747,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               _tryStopRecording(context);
             },
             child: SizedBox(
-              width: 160,
-              height: 160,
+              width: 140,
+              height: 140,
               child: Center(
                 child: Stack(
                   alignment: Alignment.center,
@@ -766,9 +861,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOutCubic,  // 使用更流畅的动画曲线
       height: shouldShow
-          ? 200  // 转写框显示时的高度
-          : 24,  // 收起时的最小高度
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
+          ? 140  // 转写框显示时的高度（减小以避免溢出）
+          : 8,   // 收起时的最小高度
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 4),
       child: shouldShow
           ? _buildRealtimeTranscription(audioState, isConnecting: isConnecting)
           : const SizedBox.shrink(),
@@ -799,8 +894,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
 
     return Container(
-      constraints: const BoxConstraints(maxHeight: 180),  // 减少最大高度
-      padding: const EdgeInsets.all(14),  // 减少内边距,优化空间利用
+      constraints: const BoxConstraints(maxHeight: 130),  // 进一步减少最大高度
+      padding: const EdgeInsets.all(12),  // 减少内边距,优化空间利用
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(16),  // 稍微减小圆角
@@ -853,7 +948,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
           // 转写文本
           Flexible(

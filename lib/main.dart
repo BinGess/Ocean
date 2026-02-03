@@ -113,27 +113,33 @@ class _MainNavigationState extends State<MainNavigation> {
         ),
         child: SafeArea(
           child: SizedBox(
-            height: 62,
+            height: 72,  // 增加高度以提供更大的点击区域
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(
-                  index: 0,
-                  icon: Icons.folder_outlined,
-                  activeIcon: Icons.folder,
-                  label: '记录',
+                Expanded(
+                  child: _buildNavItem(
+                    index: 0,
+                    icon: Icons.folder_outlined,
+                    activeIcon: Icons.folder,
+                    label: '记录',
+                  ),
                 ),
-                _buildNavItem(
-                  index: 1,
-                  icon: Icons.circle_outlined,
-                  activeIcon: Icons.circle,
-                  label: '瞬记',
+                Expanded(
+                  child: _buildNavItem(
+                    index: 1,
+                    icon: Icons.circle_outlined,
+                    activeIcon: Icons.circle,
+                    label: '瞬记',
+                  ),
                 ),
-                _buildNavItem(
-                  index: 2,
-                  icon: Icons.auto_awesome_outlined,
-                  activeIcon: Icons.auto_awesome,
-                  label: '洞察',
+                Expanded(
+                  child: _buildNavItem(
+                    index: 2,
+                    icon: Icons.auto_awesome_outlined,
+                    activeIcon: Icons.auto_awesome,
+                    label: '洞察',
+                  ),
                 ),
               ],
             ),
@@ -160,20 +166,23 @@ class _MainNavigationState extends State<MainNavigation> {
       },
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        // 使用整个可用区域作为点击目标
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               isActive ? activeIcon : icon,
-              size: 24,
+              size: 26,  // 稍微增大图标
               color: color,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 12,  // 稍微增大字体
                 color: color,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
               ),
