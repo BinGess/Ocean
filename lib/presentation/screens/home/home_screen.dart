@@ -22,7 +22,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   String? _completedAudioPath;
   final List<String> _rollingDescriptions = [
     '任何感受可以被接纳',
@@ -45,6 +45,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   // 按钮脉冲动画控制器
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+  // 按下回弹动画控制器
+  late AnimationController _releaseController;
+  late Animation<double> _releaseAnimation;
 
   // 防止错误弹窗重复显示
   bool _isShowingErrorDialog = false;
@@ -76,6 +79,22 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+    _releaseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+    );
+    _releaseAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 1.0, end: 1.05)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 60,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.05, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeIn)),
+        weight: 40,
+      ),
+    ]).animate(_releaseController);
 
     _descriptionTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!mounted) return;
@@ -353,7 +372,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _descriptionTimer?.cancel();
     _descriptionController.dispose();
     _pulseController.dispose();
+    _releaseController.dispose();
     super.dispose();
+  }
+
+  void _triggerReleaseBounce() {
+    // 轻微系统点击音效，增强手感
+    SystemSound.play(SystemSoundType.click);
+    _releaseController.forward(from: 0);
   }
 
   @override
@@ -695,11 +721,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     // 合并状态：本地按压状态或实际录音状态
     final isActive = _isPressed || audioState.isRecording;
+    // 连接中状态：按住但尚未进入录音/流式录音
+    final isConnecting = _isPressed &&
+        !audioState.isRecording &&
+        !audioState.isStreamingRecording;
+    // 脉冲动画也应在按压/连接中出现，避免“怎么都不会出现”的体验
+    final shouldPulse =
+        _isPressed || audioState.isRecording || audioState.isStreamingRecording;
 
     // 控制脉冲动画
-    if (audioState.isRecording && !_pulseController.isAnimating) {
+    if (shouldPulse && !_pulseController.isAnimating) {
       _pulseController.repeat(reverse: true);
-    } else if (!audioState.isRecording && _pulseController.isAnimating) {
+    } else if (!shouldPulse && _pulseController.isAnimating) {
       _pulseController.stop();
       _pulseController.reset();
     }
@@ -715,7 +748,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 150),
             child: Text(
-              audioState.isRecording ? '松开结束' : '按住记录',
+              audioState.isRecording
+                  ? '松开结束'
+                  : (isConnecting ? '连接中...' : '按住记录'),
               key: ValueKey(audioState.isRecording),
               style: TextStyle(
                 fontSize: 14,
@@ -734,6 +769,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             onTapDown: (_) {
               // 立即设置按压状态，提供即时视觉反馈
               setState(() => _isPressed = true);
+              _releaseController.stop();
+              _releaseController.value = 0;
               // 触觉反馈
               HapticFeedback.lightImpact();
               // 记录开始时间
@@ -745,6 +782,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             },
             onTapUp: (_) {
               setState(() => _isPressed = false);
+              _triggerReleaseBounce();
               _tryStopRecording(context);
             },
             onTapCancel: () {
@@ -756,33 +794,39 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               // 长按时保持按压状态（录音已由 onTapDown 触发，这里不再重复触发）
               if (!_isPressed) {
                 setState(() => _isPressed = true);
+                _releaseController.stop();
+                _releaseController.value = 0;
                 HapticFeedback.lightImpact();
                 _recordingStartTime = DateTime.now();
               }
             },
             onLongPressEnd: (_) {
               setState(() => _isPressed = false);
+              _triggerReleaseBounce();
               _tryStopRecording(context);
             },
             child: SizedBox(
               width: 280, // 宽度保持较大，确保横向点击区域
               height: 150, // 高度减小以拉近与文案的距离，但仍覆盖按钮(120)和部分上下区域
               child: Center(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
                     // 外圈脉冲效果（录音时）
-                    if (audioState.isRecording)
+                    if (shouldPulse)
                       AnimatedBuilder(
                         animation: _pulseAnimation,
                         builder: (context, child) {
+                          final pulseColor = isConnecting
+                              ? const Color(0xFF76A7E1) // 连接中：偏蓝
+                              : const Color(0xFFC4A57B); // 录音中：暖色
                           return Container(
                             width: 120 * _pulseAnimation.value,
                             height: 120 * _pulseAnimation.value,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: const Color(0xFFC4A57B).withValues(
+                                color: pulseColor.withValues(
                                   alpha: 0.4 * (1.15 - _pulseAnimation.value) / 0.15,
                                 ),
                                 width: 2,
@@ -791,49 +835,149 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           );
                         },
                       ),
+                    // 松开时的外发光圈
+                    AnimatedBuilder(
+                      animation: _releaseController,
+                      builder: (context, child) {
+                        final t = _releaseController.value;
+                        if (t <= 0) {
+                          return const SizedBox.shrink();
+                        }
+                        final glowColor = const Color(0xFFE3C69A)
+                            .withValues(alpha: 0.35 * (1 - t));
+                        final size = 128 + (22 * t);
+                        return Container(
+                          width: size,
+                          height: size,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: glowColor,
+                              width: 2,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
 
-                    // 主按钮
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 100),
-                      curve: Curves.easeOutCubic,
-                      width: isActive ? 100 : 120,
-                      height: isActive ? 100 : 120,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: isActive ? 0.95 : 0.9),
-                        border: Border.all(
-                          color: isActive
-                              ? const Color(0xFFC4A57B)
-                              : const Color(0xFFD9C9B8),
-                          width: isActive ? 3 : 2.5,
-                        ),
-                        boxShadow: isActive
-                            ? [
-                                BoxShadow(
-                                  color: const Color(0xFFC4A57B).withValues(alpha: 0.35),
-                                  blurRadius: 24,
-                                  spreadRadius: 6,
-                                ),
-                              ]
-                            : [
-                                BoxShadow(
-                                  color: const Color(0xFFD9C9B8).withValues(alpha: 0.25),
-                                  blurRadius: 12,
-                                  spreadRadius: 3,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                      ),
+                    // 主按钮（轻微呼吸缩放）
+                    AnimatedBuilder(
+                      animation: Listenable.merge([_pulseController, _releaseController]),
+                      builder: (context, child) {
+                        final recordingScale = audioState.isRecording
+                            ? _pulseAnimation.value
+                            : 1.0;
+                        final pressScale = _isPressed ? 0.96 : 1.0;
+                        final releaseT = _releaseController.value;
+                        final scale = recordingScale * pressScale * _releaseAnimation.value;
+                        final baseBorderColor = isActive
+                            ? const Color(0xFFC4A57B)
+                            : const Color(0xFFD9C9B8);
+                        final highlightBorderColor = const Color(0xFFE3C69A);
+                        final borderColor =
+                            Color.lerp(baseBorderColor, highlightBorderColor, releaseT) ??
+                                baseBorderColor;
+                        final borderWidth = (isActive ? 3.0 : 2.5) + (0.6 * releaseT);
+                        return Transform.scale(
+                          scale: scale,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 90),
+                            curve: Curves.easeOutCubic,
+                            width: isActive ? 100 : 120,
+                            height: isActive ? 100 : 120,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withValues(alpha: isActive ? 0.95 : 0.9),
+                              border: Border.all(
+                                color: borderColor,
+                                width: borderWidth,
+                              ),
+                              boxShadow: isActive
+                                  ? [
+                                      BoxShadow(
+                                        color: const Color(0xFFC4A57B)
+                                            .withValues(alpha: 0.35 + (0.12 * releaseT)),
+                                        blurRadius: (_isPressed ? 16 : 24) + (6 * releaseT),
+                                        spreadRadius: (_isPressed ? 4 : 6) + (2 * releaseT),
+                                      ),
+                                    ]
+                                  : [
+                                      BoxShadow(
+                                        color: const Color(0xFFD9C9B8).withValues(alpha: 0.25),
+                                        blurRadius: _isPressed ? 8 : 12,
+                                        spreadRadius: _isPressed ? 2 : 3,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                            ),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 150),
+                              child: Icon(
+                                audioState.isRecording ? Icons.stop_rounded : Icons.mic_rounded,
+                                key: ValueKey(audioState.isRecording),
+                                size: isActive ? 40 : 48,
+                                color: isActive
+                                    ? const Color(0xFFC4A57B)
+                                    : const Color(0xFFD9C9B8),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+
+                    // 录音时长贴近按钮显示（带渐入/渐出）
+                    Positioned(
+                      bottom: 4,
                       child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 150),
-                        child: Icon(
-                          audioState.isRecording ? Icons.stop_rounded : Icons.mic_rounded,
-                          key: ValueKey(audioState.isRecording),
-                          size: isActive ? 40 : 48,
-                          color: isActive
-                              ? const Color(0xFFC4A57B)
-                              : const Color(0xFFD9C9B8),
-                        ),
+                        duration: const Duration(milliseconds: 220),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeInCubic,
+                        transitionBuilder: (child, animation) {
+                          final fade = FadeTransition(opacity: animation, child: child);
+                          final slide = SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0, 0.2),
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: fade,
+                          );
+                          return slide;
+                        },
+                        child: (audioState.isRecording && audioState.duration > 0)
+                            ? Container(
+                                key: const ValueKey('record-duration-badge'),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: const Color(0xFFE8DED0),
+                                    width: 1.2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.08),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  _formatDuration(audioState.duration),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF8B7D6B),
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.6,
+                                  ),
+                                ),
+                              )
+                            : const SizedBox(
+                                key: ValueKey('record-duration-empty'),
+                                height: 0,
+                                width: 0,
+                              ),
                       ),
                     ),
                   ],
@@ -842,25 +986,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ),
           ),
 
-          // 录音时长显示
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            height: audioState.isRecording && audioState.duration > 0 ? 40 : 0,
-            child: audioState.isRecording && audioState.duration > 0
-                ? Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: Text(
-                      _formatDuration(audioState.duration),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFF8B7D6B),
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          ),
+          // 录音时长显示（已移动到按钮附近）
+          const SizedBox(height: 16),
         ],
       ),
       ),
