@@ -22,7 +22,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   String? _completedAudioPath;
   final List<String> _rollingDescriptions = [
     '任何感受可以被接纳',
@@ -45,6 +45,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   // 按钮脉冲动画控制器
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+
+  // 水波纹动画控制器
+  late AnimationController _rippleController;
+  // 水波纹动画速度：普通状态慢，按压时加快
+  static const Duration _rippleSlowDuration = Duration(milliseconds: 3000);
+  static const Duration _rippleFastDuration = Duration(milliseconds: 1200);
 
   // 防止错误弹窗重复显示
   bool _isShowingErrorDialog = false;
@@ -76,6 +82,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    // 初始化水波纹动画控制器（始终运行，循环播放）
+    _rippleController = AnimationController(
+      vsync: this,
+      duration: _rippleSlowDuration,
+    )..repeat();
 
     _descriptionTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!mounted) return;
@@ -339,6 +351,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _descriptionTimer?.cancel();
     _descriptionController.dispose();
     _pulseController.dispose();
+    _rippleController.dispose();
     super.dispose();
   }
 
@@ -685,6 +698,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       _pulseController.reset();
     }
 
+    // 控制水波纹动画速度：按压时加快，松开时减慢
+    final targetDuration = isActive ? _rippleFastDuration : _rippleSlowDuration;
+    if (_rippleController.duration != targetDuration) {
+      final currentValue = _rippleController.value;
+      _rippleController.duration = targetDuration;
+      // 保持当前进度继续播放
+      _rippleController.forward(from: currentValue);
+      _rippleController.repeat();
+    }
+
     // 正常录音界面
     return Center(
       child: SingleChildScrollView(
@@ -747,12 +770,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               _tryStopRecording(context);
             },
             child: SizedBox(
-              width: 140,
-              height: 140,
+              width: 160,
+              height: 160,
               child: Center(
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
+                    // 水波纹效果（始终显示，多层叠加）
+                    ..._buildRippleLayers(isActive),
+
                     // 外圈脉冲效果（录音时）
                     if (audioState.isRecording)
                       AnimatedBuilder(
@@ -846,6 +872,55 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         ],
       ),
     );
+  }
+
+  /// 构建水波纹动画层
+  /// [isActive] 是否处于激活状态（按压或录音中）
+  List<Widget> _buildRippleLayers(bool isActive) {
+    // 创建3层水波纹，相位错开
+    return List.generate(3, (index) {
+      // 每层相位偏移 0.33
+      final phaseOffset = index / 3.0;
+
+      return AnimatedBuilder(
+        animation: _rippleController,
+        builder: (context, child) {
+          // 计算当前层的进度（0.0 ~ 1.0），考虑相位偏移
+          final progress = (_rippleController.value + phaseOffset) % 1.0;
+
+          // 水波纹从按钮边缘开始扩展
+          // 起始大小略大于按钮（120），最大扩展到 160
+          final minSize = 125.0;
+          final maxSize = 160.0;
+          final size = minSize + (maxSize - minSize) * progress;
+
+          // 透明度：开始时较明显，扩展时逐渐消失
+          // 激活状态下透明度更高
+          final baseOpacity = isActive ? 0.5 : 0.25;
+          final opacity = baseOpacity * (1.0 - progress);
+
+          // 边框宽度：开始时较粗，扩展时变细
+          final borderWidth = isActive ? 2.5 - progress * 1.5 : 1.5 - progress * 0.8;
+
+          // 颜色：激活时用金色，普通状态用浅褐色
+          final color = isActive
+              ? const Color(0xFFC4A57B)
+              : const Color(0xFFD9C9B8);
+
+          return Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: color.withValues(alpha: opacity),
+                width: borderWidth.clamp(0.5, 3.0),
+              ),
+            ),
+          );
+        },
+      );
+    });
   }
 
   /// 构建实时转写区域 - 固定高度,不影响按钮位置
