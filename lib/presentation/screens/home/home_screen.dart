@@ -699,12 +699,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
 
     // 控制水波纹动画速度：按压时加快，松开时减慢
+    // 确保动画始终运行，并根据状态调整速度
     final targetDuration = isActive ? _rippleFastDuration : _rippleSlowDuration;
-    if (_rippleController.duration != targetDuration) {
-      final currentValue = _rippleController.value;
+    if (_rippleController.duration != targetDuration || !_rippleController.isAnimating) {
       _rippleController.duration = targetDuration;
-      // 保持当前进度继续播放
-      _rippleController.forward(from: currentValue);
       _rippleController.repeat();
     }
 
