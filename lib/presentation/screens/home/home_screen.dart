@@ -734,16 +734,22 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   /// 构建实时转写区域 - 固定高度,不影响按钮位置
   Widget _buildTranscriptionArea(AudioState audioState) {
+    // 判断是否应该显示转写区域：
+    // 1. 正在流式录音时显示
+    // 2. 或者正在按压按钮且正在连接中时显示（提供即时反馈）
+    final isConnecting = _isPressed && !audioState.isStreamingRecording && !audioState.isRecording;
+    final shouldShow = audioState.isStreamingRecording || isConnecting;
+
     // 固定高度容器,保持布局稳定,优化动画性能
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOutCubic,  // 使用更流畅的动画曲线
-      height: (audioState.isStreamingRecording && audioState.realtimeTranscription != null)
-          ? 200  // 转写框显示时的高度(从220减少到200,给上方文案更多空间)
-          : 24,  // 收起时的最小高度(从40减少到24,优化间距)
+      height: shouldShow
+          ? 200  // 转写框显示时的高度
+          : 24,  // 收起时的最小高度
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
-      child: (audioState.isStreamingRecording && audioState.realtimeTranscription != null)
-          ? _buildRealtimeTranscription(audioState)
+      child: shouldShow
+          ? _buildRealtimeTranscription(audioState, isConnecting: isConnecting)
           : const SizedBox.shrink(),
     );
   }
@@ -756,7 +762,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   /// 构建实时转写显示widget
-  Widget _buildRealtimeTranscription(AudioState audioState) {
+  Widget _buildRealtimeTranscription(AudioState audioState, {bool isConnecting = false}) {
+    // 确定状态文本和颜色
+    String statusText;
+    Color statusColor;
+    if (isConnecting) {
+      statusText = '连接中...';
+      statusColor = const Color(0xFF2196F3); // 蓝色：连接中
+    } else if (audioState.isWebSocketConnected) {
+      statusText = '实时识别中';
+      statusColor = const Color(0xFF4CAF50); // 绿色：已连接
+    } else {
+      statusText = '离线录音中';
+      statusColor = const Color(0xFFFF9800); // 橙色：离线
+    }
+
     return Container(
       constraints: const BoxConstraints(maxHeight: 180),  // 减少最大高度
       padding: const EdgeInsets.all(14),  // 减少内边距,优化空间利用
@@ -782,20 +802,28 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           // 状态指示器
           Row(
             children: [
-              // 连接状态点
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: audioState.isWebSocketConnected
-                      ? const Color(0xFF4CAF50) // 绿色：已连接
-                      : const Color(0xFFFF9800), // 橙色：离线
-                  shape: BoxShape.circle,
+              // 连接状态点（连接中时显示动画）
+              if (isConnecting)
+                SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                  ),
+                )
+              else
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    shape: BoxShape.circle,
+                  ),
                 ),
-              ),
               const SizedBox(width: 8),
               Text(
-                audioState.isWebSocketConnected ? '实时识别中' : '离线录音中',
+                statusText,
                 style: const TextStyle(
                   fontSize: 12,
                   color: Color(0xFF8B7D6B),
@@ -810,7 +838,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           Flexible(
             child: SingleChildScrollView(
               child: Text(
-                audioState.realtimeTranscription ?? '等待识别...',
+                isConnecting ? '正在准备录音...' : (audioState.realtimeTranscription ?? '等待识别...'),
                 style: TextStyle(
                   fontSize: 16,
                   color: audioState.isTranscriptionFinal
