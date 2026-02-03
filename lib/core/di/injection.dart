@@ -164,7 +164,7 @@ Future<void> configureDependencies() async {
   );
 
   // 洞察 BLoC
-  getIt.registerFactory<InsightBloc>(
+  getIt.registerLazySingleton<InsightBloc>(
     () => InsightBloc(
       generateWeeklyInsightUseCase: getIt<GenerateWeeklyInsightUseCase>(),
       generateInsightReportUseCase: getIt<GenerateInsightReportUseCase>(),

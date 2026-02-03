@@ -2,6 +2,7 @@
 /// 使用 Hive 进行本地存储
 
 import '../../domain/entities/weekly_insight.dart';
+import '../../domain/entities/insight_report.dart';
 import '../../domain/repositories/insight_repository.dart';
 import '../datasources/local/hive_database.dart';
 import '../models/weekly_insight_model.dart';
@@ -97,5 +98,25 @@ class InsightRepositoryImpl implements InsightRepository {
   Future<bool> hasInsightForWeek(String weekRange) async {
     final insight = await getWeeklyInsight(weekRange);
     return insight != null;
+  }
+
+  @override
+  Future<void> saveInsightReport(InsightReport report) async {
+    await database.settingsBox.put('insight_report_${report.weekRange}', report.toJson());
+  }
+
+  @override
+  Future<InsightReport?> getInsightReport(String weekRange) async {
+    final json = database.settingsBox.get('insight_report_$weekRange');
+    if (json != null) {
+      try {
+        final map = Map<String, dynamic>.from(json as Map);
+        return InsightReport.fromJson(map);
+      } catch (e) {
+        print('Error parsing cached insight report: $e');
+        return null;
+      }
+    }
+    return null;
   }
 }

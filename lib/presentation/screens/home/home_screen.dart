@@ -216,7 +216,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     switch (mode) {
       case ProcessingMode.onlyRecord:
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('正在后台保存记录...')),
+          SnackBar(
+            content: Text(
+              '正在后台保存记录...',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            backgroundColor: const Color(0xFF5D4E3C).withValues(alpha: 0.9),
+            duration: const Duration(milliseconds: 1500),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
         );
         context.read<RecordBloc>().add(
               RecordCreateQuickNote(
@@ -233,7 +249,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         if (moods != null) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('正在后台保存记录...')),
+            SnackBar(
+              content: Text(
+                '正在后台保存记录...',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              backgroundColor: const Color(0xFF5D4E3C).withValues(alpha: 0.9),
+              duration: const Duration(milliseconds: 1500),
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
           );
           context.read<RecordBloc>().add(
                 RecordCreateQuickNote(
@@ -251,7 +283,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         // 检查转写内容是否有效
         if (transcription == null || transcription.isEmpty || transcription == '正在转写中...') {
            ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(content: Text('转写未完成，请稍后...')),
+             SnackBar(
+               content: Text(
+                 '转写未完成，请稍后...',
+                 style: TextStyle(
+                   color: Colors.white,
+                   fontSize: 14,
+                   fontWeight: FontWeight.w500,
+                 ),
+               ),
+               backgroundColor: const Color(0xFFFF9800).withValues(alpha: 0.9),
+               duration: const Duration(milliseconds: 2000),
+               behavior: SnackBarBehavior.floating,
+               margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+               shape: RoundedRectangleBorder(
+                 borderRadius: BorderRadius.circular(12),
+               ),
+             ),
            );
            return;
         }
@@ -263,7 +311,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         } else {
            // 如果没有转写文本，无法分析，降级为直接保存
            ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(content: Text('暂无转写文本，无法进行 NVC 分析，已自动转为仅记录')),
+             SnackBar(
+               content: Text(
+                 '暂无转写文本，无法进行 NVC 分析，已自动转为仅记录',
+                 style: TextStyle(
+                   color: Colors.white,
+                   fontSize: 14,
+                   fontWeight: FontWeight.w500,
+                 ),
+               ),
+               backgroundColor: const Color(0xFFFF9800).withValues(alpha: 0.9),
+               duration: const Duration(milliseconds: 2500),
+               behavior: SnackBarBehavior.floating,
+               margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+               shape: RoundedRectangleBorder(
+                 borderRadius: BorderRadius.circular(12),
+               ),
+             ),
            );
            context.read<RecordBloc>().add(
               RecordCreateQuickNote(
@@ -373,7 +437,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         } else if (result?.action == NVCModalAction.delete) {
                           // 用户选择了删除，清理音频文件
                           messenger.showSnackBar(
-                            const SnackBar(content: Text('已取消保存')),
+                            SnackBar(
+                              content: Text(
+                                '已取消保存',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              backgroundColor: const Color(0xFF9E9E9E).withValues(alpha: 0.9),
+                              duration: const Duration(milliseconds: 1500),
+                              behavior: SnackBarBehavior.floating,
+                              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
                           );
                           _clearCompletedAudio();
                         }
@@ -416,7 +496,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
                 if (recordState.isSuccess && recordState.latestRecord != null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('记录已保存')),
+                    SnackBar(
+                      content: Text(
+                        '记录已保存',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      backgroundColor: const Color(0xFF4CAF50).withValues(alpha: 0.9),
+                      duration: const Duration(milliseconds: 2000),
+                      behavior: SnackBarBehavior.floating,
+                      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   );
                 }
               },
@@ -615,7 +711,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ),
           const SizedBox(height: 16),
 
-          // 录音按钮 - 优化触摸响应
+          // 录音按钮 - 优化触摸响应，增大可点击区域
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTapDown: (_) {
@@ -652,8 +748,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               _tryStopRecording(context);
             },
             child: SizedBox(
-              width: 160,
-              height: 160,
+              width: 280, // 进一步扩大可点击区域从200到280
+              height: 280, // 进一步扩大可点击区域从200到280
               child: Center(
                 child: Stack(
                   alignment: Alignment.center,

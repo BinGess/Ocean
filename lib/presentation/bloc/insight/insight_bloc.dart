@@ -53,9 +53,9 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
   ) async {
     final currentWeekRange = _getCurrentWeekRange();
 
-    // 检查缓存是否有效
+    // 1. 检查内存缓存是否有效
     if (state.isCacheValid(currentWeekRange)) {
-      debugPrint('📦 InsightBloc: 使用缓存的洞察报告 (${state.lastFetchTime})');
+      debugPrint('📦 InsightBloc: 使用内存缓存的洞察报告 (${state.lastFetchTime})');
       // 缓存有效，直接返回成功状态（保持现有数据）
       if (state.status != InsightStatus.success) {
         emit(state.copyWith(status: InsightStatus.success));
@@ -63,8 +63,26 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
       return;
     }
 
+    // 2. 检查本地持久化缓存
+    try {
+      final cachedReport = await insightRepository.getInsightReport(currentWeekRange);
+      if (cachedReport != null) {
+        debugPrint('💾 InsightBloc: 使用本地缓存的洞察报告');
+        emit(state.copyWith(
+          status: InsightStatus.success,
+          currentReport: cachedReport,
+          lastFetchTime: DateTime.now(), // 视为刚刚获取
+          currentWeekRange: currentWeekRange,
+          progressMessage: null,
+        ));
+        return;
+      }
+    } catch (e) {
+      debugPrint('⚠️ InsightBloc: 读取本地缓存失败: $e');
+    }
+
     debugPrint('🔄 InsightBloc: 缓存无效或过期，重新生成洞察');
-    // 缓存无效，触发生成
+    // 3. 缓存无效，触发生成
     add(const InsightGenerateCurrentWeek());
   }
 
@@ -93,6 +111,9 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
       debugPrint('🔮 InsightBloc: 开始生成洞察报告');
       final report = await generateInsightReportUseCase(params);
       debugPrint('✅ InsightBloc: 洞察报告生成成功');
+
+      // 保存到本地缓存
+      await insightRepository.saveInsightReport(report);
 
       emit(state.copyWith(
         status: InsightStatus.success,
