@@ -48,9 +48,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // 水波纹动画控制器
   late AnimationController _rippleController;
-  // 水波纹动画速度：普通状态慢，按压时加快
-  static const Duration _rippleSlowDuration = Duration(milliseconds: 3000);
-  static const Duration _rippleFastDuration = Duration(milliseconds: 1200);
+  // 水波纹动画速度：普通状态较慢但可见，按压时加快
+  static const Duration _rippleSlowDuration = Duration(milliseconds: 2200);
+  static const Duration _rippleFastDuration = Duration(milliseconds: 1000);
 
   // 防止错误弹窗重复显示
   bool _isShowingErrorDialog = false;
@@ -890,22 +890,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
           // 水波纹从按钮边缘开始扩展
           // 起始大小略大于按钮（120），最大扩展到 160
-          final minSize = 125.0;
-          final maxSize = 160.0;
+          final minSize = isActive ? 125.0 : 122.0;
+          final maxSize = isActive ? 160.0 : 155.0;
           final size = minSize + (maxSize - minSize) * progress;
 
-          // 透明度：开始时较明显，扩展时逐渐消失
+          // 透明度：使用非线性曲线，让波纹在中段更明显
           // 激活状态下透明度更高
-          final baseOpacity = isActive ? 0.5 : 0.25;
-          final opacity = baseOpacity * (1.0 - progress);
+          final baseOpacity = isActive ? 0.55 : 0.4;
+          // 使用 sin 曲线让中间段更明显，两端淡出
+          final curve = (1.0 - progress) * (0.3 + 0.7 * (1.0 - progress));
+          final opacity = baseOpacity * curve;
 
           // 边框宽度：开始时较粗，扩展时变细
-          final borderWidth = isActive ? 2.5 - progress * 1.5 : 1.5 - progress * 0.8;
+          final borderWidth = isActive
+              ? 2.5 - progress * 1.5
+              : 2.0 - progress * 1.0;
 
-          // 颜色：激活时用金色，普通状态用浅褐色
+          // 颜色：激活时用金色，普通状态用稍深的褐色以增加可见度
           final color = isActive
               ? const Color(0xFFC4A57B)
-              : const Color(0xFFD9C9B8);
+              : const Color(0xFFCDBBA8);  // 稍深的褐色
 
           return Container(
             width: size,
@@ -914,7 +918,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               shape: BoxShape.circle,
               border: Border.all(
                 color: color.withValues(alpha: opacity),
-                width: borderWidth.clamp(0.5, 3.0),
+                width: borderWidth.clamp(0.8, 3.0),
               ),
             ),
           );
