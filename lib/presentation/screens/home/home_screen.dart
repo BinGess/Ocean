@@ -727,8 +727,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               ),
             ),
           ),
-          const SizedBox(height: 8),
-
+          
           // 录音按钮 - 优化触摸响应，增大可点击区域
           GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -766,8 +765,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               _tryStopRecording(context);
             },
             child: SizedBox(
-              width: 280, // 进一步扩大可点击区域从200到280
-              height: 280, // 进一步扩大可点击区域从200到280
+              width: 280, // 宽度保持较大，确保横向点击区域
+              height: 150, // 高度减小以拉近与文案的距离，但仍覆盖按钮(120)和部分上下区域
               child: Center(
                 child: Stack(
                   alignment: Alignment.center,
