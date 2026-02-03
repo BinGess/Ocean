@@ -51,6 +51,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     super.initState();
     // 加载最近的记录
     context.read<RecordBloc>().add(const RecordLoadList(limit: 5));
+
+    // 主动检查并请求录音权限（避免在按下录音按钮时才弹出权限对话框）
+    _checkAndRequestPermission();
+
     // 初始页设为中间的大数值，方便无限滚动
     int initialPage = 1000;
     _currentDescriptionIndex = initialPage;
@@ -77,6 +81,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         curve: Curves.easeInOut,
       );
     });
+  }
+
+  /// 检查并请求录音权限
+  /// 在页面初始化时调用，避免用户按下录音按钮时才弹出权限对话框
+  void _checkAndRequestPermission() {
+    final audioBloc = context.read<AudioBloc>();
+    final audioState = audioBloc.state;
+
+    // 如果还没有权限，先检查权限状态
+    if (!audioState.hasPermission) {
+      // 延迟一小段时间再请求，让页面先完成渲染
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (!mounted) return;
+        // 直接请求权限（会触发系统权限对话框）
+        context.read<AudioBloc>().add(const AudioRequestPermission());
+      });
+    }
   }
 
   void _handleRecordComplete(String audioPath) {
