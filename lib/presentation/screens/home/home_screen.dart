@@ -592,13 +592,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               }
             },
             onLongPressStart: (_) {
-              // 长按也触发，确保兼容性
+              // 长按时保持按压状态（录音已由 onTapDown 触发，这里不再重复触发）
               if (!_isPressed) {
                 setState(() => _isPressed = true);
                 HapticFeedback.lightImpact();
-                if (!audioState.isRecording) {
-                  context.read<AudioBloc>().add(const AudioStartStreamingRecording());
-                }
               }
             },
             onLongPressEnd: (_) {

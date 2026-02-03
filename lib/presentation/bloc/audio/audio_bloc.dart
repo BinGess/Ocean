@@ -20,6 +20,9 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
   StreamSubscription<List<int>>? _audioStreamSubscription;
   StreamSubscription<ASRResponse>? _asrResponseSubscription;
 
+  // 防止重复触发的标志
+  bool _isConnecting = false;
+
   AudioBloc({
     required this.audioRepository,
     this.asrClient,
@@ -253,6 +256,12 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
   ) async {
     debugPrint('AudioBloc: _onStartStreamingRecording called');
 
+    // 防止重复触发：如果已经在录音、正在连接中，直接返回
+    if (_isConnecting || state.isRecording || state.status == RecordingStatus.streamingRecording) {
+      debugPrint('AudioBloc: Already recording or connecting, ignoring duplicate start request');
+      return;
+    }
+
     if (!state.hasPermission) {
       debugPrint('AudioBloc: No permission for streaming');
       emit(state.copyWith(
@@ -268,6 +277,9 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
       add(const AudioStartRecording());
       return;
     }
+
+    // 设置连接中标志，防止重复触发
+    _isConnecting = true;
 
     try {
       // 1. 连接WebSocket
@@ -343,8 +355,14 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
       // 启动时长计时器
       _startDurationTimer();
 
+      // 连接完成，重置标志
+      _isConnecting = false;
+
       debugPrint('AudioBloc: Streaming recording fully initialized');
     } catch (e) {
+      // 重置连接标志
+      _isConnecting = false;
+
       // 流式录音失败，降级到普通录音
       debugPrint('AudioBloc: Streaming failed, fallback to normal recording: $e');
 
@@ -451,6 +469,9 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
   /// 清理流式资源
   Future<void> _cleanupStreamingResources() async {
     debugPrint('AudioBloc: Cleaning up streaming resources');
+
+    // 重置连接标志
+    _isConnecting = false;
 
     await _audioStreamSubscription?.cancel();
     _audioStreamSubscription = null;
