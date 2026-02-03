@@ -37,6 +37,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   // 本地按压状态 - 用于即时视觉反馈
   bool _isPressed = false;
 
+  // 录音开始时间 - 用于最小录音时长检查
+  DateTime? _recordingStartTime;
+  // 最小录音时长（毫秒）- 防止误触
+  static const int _minRecordingDurationMs = 800;
+
   // 按钮脉冲动画控制器
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -97,6 +102,38 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         // 直接请求权限（会触发系统权限对话框）
         context.read<AudioBloc>().add(const AudioRequestPermission());
       });
+    }
+  }
+
+  /// 尝试停止录音（检查最小录音时长）
+  void _tryStopRecording(BuildContext context) {
+    // 获取当前最新状态（不使用 BlocBuilder 捕获的旧状态）
+    final currentState = context.read<AudioBloc>().state;
+
+    if (!currentState.isRecording) {
+      debugPrint('HomeScreen: 录音未开始，忽略停止请求');
+      return;
+    }
+
+    // 检查最小录音时长
+    if (_recordingStartTime != null) {
+      final elapsed = DateTime.now().difference(_recordingStartTime!).inMilliseconds;
+      if (elapsed < _minRecordingDurationMs) {
+        debugPrint('HomeScreen: 录音时长不足 ${_minRecordingDurationMs}ms (当前: ${elapsed}ms)，继续录音');
+        // 时长不足，不停止录音，让用户继续录音
+        // 用户需要再次点击才能停止
+        return;
+      }
+    }
+
+    debugPrint('HomeScreen: 停止录音');
+    HapticFeedback.lightImpact();
+    _recordingStartTime = null;
+
+    if (currentState.isStreamingRecording) {
+      context.read<AudioBloc>().add(const AudioFinalizeStreaming());
+    } else {
+      context.read<AudioBloc>().add(const AudioStopRecording());
     }
   }
 
@@ -586,6 +623,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               setState(() => _isPressed = true);
               // 触觉反馈
               HapticFeedback.lightImpact();
+              // 记录开始时间
+              _recordingStartTime = DateTime.now();
               // 触发录音
               if (!audioState.isRecording) {
                 context.read<AudioBloc>().add(const AudioStartStreamingRecording());
@@ -593,42 +632,24 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             },
             onTapUp: (_) {
               setState(() => _isPressed = false);
-              if (audioState.isRecording) {
-                HapticFeedback.lightImpact();
-                if (audioState.isStreamingRecording) {
-                  context.read<AudioBloc>().add(const AudioFinalizeStreaming());
-                } else {
-                  context.read<AudioBloc>().add(const AudioStopRecording());
-                }
-              }
+              _tryStopRecording(context);
             },
             onTapCancel: () {
               setState(() => _isPressed = false);
-              if (audioState.isRecording) {
-                if (audioState.isStreamingRecording) {
-                  context.read<AudioBloc>().add(const AudioFinalizeStreaming());
-                } else {
-                  context.read<AudioBloc>().add(const AudioStopRecording());
-                }
-              }
+              // onTapCancel 不停止录音，让用户继续录音
+              // 这样如果用户手指滑出按钮区域，录音会继续
             },
             onLongPressStart: (_) {
               // 长按时保持按压状态（录音已由 onTapDown 触发，这里不再重复触发）
               if (!_isPressed) {
                 setState(() => _isPressed = true);
                 HapticFeedback.lightImpact();
+                _recordingStartTime = DateTime.now();
               }
             },
             onLongPressEnd: (_) {
               setState(() => _isPressed = false);
-              if (audioState.isRecording) {
-                HapticFeedback.lightImpact();
-                if (audioState.isStreamingRecording) {
-                  context.read<AudioBloc>().add(const AudioFinalizeStreaming());
-                } else {
-                  context.read<AudioBloc>().add(const AudioStopRecording());
-                }
-              }
+              _tryStopRecording(context);
             },
             child: SizedBox(
               width: 160,
