@@ -43,10 +43,12 @@ class CozeAIService {
   /// NVC 洞察分析
   ///
   /// 将用户的转写文本发送给智能体，获取NVC分析结果
+  /// 内置自动重试机制，对于临时性服务错误会自动重试
   ///
   /// [transcription] 转写文本
+  /// [maxRetries] 最大重试次数（默认2次）
   /// 返回 NVCAnalysis 对象
-  Future<NVCAnalysis> analyzeNVC(String transcription) async {
+  Future<NVCAnalysis> analyzeNVC(String transcription, {int maxRetries = 2}) async {
     // 检查配置（只需要 Token 和 Project ID）
     if (EnvConfig.cozeApiToken.isEmpty || EnvConfig.cozeProjectId.isEmpty) {
       throw CozeAPIException(
@@ -57,35 +59,65 @@ class CozeAIService {
 
     print('🤖 CozeAI: 开始NVC分析，文本长度: ${transcription.length}');
 
-    try {
-      // 构建提示词
-      final promptText = _buildNVCPrompt(transcription);
+    // 构建提示词（只构建一次）
+    final promptText = _buildNVCPrompt(transcription);
 
-      // 调用 Coze API
-      final responseText = await _callCozeAPI(promptText);
+    CozeAPIException? lastError;
 
-      print('✅ CozeAI: 收到AI响应，长度: ${responseText.length}');
-      print('📝 CozeAI: AI原始响应内容:\n$responseText');
+    for (int attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          print('🔄 CozeAI: 第 $attempt 次重试...');
+          // 短暂延迟后重试
+          await Future.delayed(Duration(milliseconds: 500 * attempt));
+        }
 
-      // 解析响应
-      final nvcAnalysis = _parseNVCResponse(responseText, transcription);
+        // 调用 Coze API
+        final responseText = await _callCozeAPI(promptText);
 
-      print('✅ CozeAI: NVC分析完成');
-      print('📊 CozeAI: 解析结果 - 观察: ${nvcAnalysis.observation}');
-      print('📊 CozeAI: 解析结果 - 感受: ${nvcAnalysis.feelings}');
-      print('📊 CozeAI: 解析结果 - 需要: ${nvcAnalysis.needs}');
-      print('📊 CozeAI: 解析结果 - 请求: ${nvcAnalysis.request}');
-      print('📊 CozeAI: 解析结果 - AI洞察: ${nvcAnalysis.insight}');
-      return nvcAnalysis;
-    } on DioException catch (e) {
-      throw CozeAPIException.fromDioError(e);
-    } catch (e) {
-      throw CozeAPIException(
-        'NVC分析失败: $e',
-        code: 'PARSE_ERROR',
-        originalError: e,
-      );
+        print('✅ CozeAI: 收到AI响应，长度: ${responseText.length}');
+        print('📝 CozeAI: AI原始响应内容:\n$responseText');
+
+        // 解析响应
+        final nvcAnalysis = _parseNVCResponse(responseText, transcription);
+
+        print('✅ CozeAI: NVC分析完成');
+        print('📊 CozeAI: 解析结果 - 观察: ${nvcAnalysis.observation}');
+        print('📊 CozeAI: 解析结果 - 感受: ${nvcAnalysis.feelings}');
+        print('📊 CozeAI: 解析结果 - 需要: ${nvcAnalysis.needs}');
+        print('📊 CozeAI: 解析结果 - 请求: ${nvcAnalysis.request}');
+        print('📊 CozeAI: 解析结果 - AI洞察: ${nvcAnalysis.insight}');
+        return nvcAnalysis;
+      } on CozeAPIException catch (e) {
+        lastError = e;
+        // 对于服务错误（5xx错误码），尝试重试
+        if (e.code?.startsWith('SERVICE_ERROR') == true && attempt < maxRetries) {
+          print('⚠️ CozeAI: 服务暂时不可用，准备重试 (${attempt + 1}/$maxRetries)');
+          continue;
+        }
+        // 其他错误或已用完重试次数，直接抛出
+        rethrow;
+      } on DioException catch (e) {
+        lastError = CozeAPIException.fromDioError(e);
+        // 对于网络超时，尝试重试
+        if ((e.type == DioExceptionType.connectionTimeout ||
+             e.type == DioExceptionType.receiveTimeout) &&
+            attempt < maxRetries) {
+          print('⚠️ CozeAI: 网络超时，准备重试 (${attempt + 1}/$maxRetries)');
+          continue;
+        }
+        throw lastError;
+      } catch (e) {
+        throw CozeAPIException(
+          'NVC分析失败: $e',
+          code: 'PARSE_ERROR',
+          originalError: e,
+        );
+      }
     }
+
+    // 如果所有重试都失败了，抛出最后一个错误
+    throw lastError ?? CozeAPIException('分析失败，请稍后重试', code: 'UNKNOWN_ERROR');
   }
 
   /// 构建 NVC 分析提示词
@@ -193,6 +225,7 @@ class CozeAIService {
   }
 
   /// 从 SSE 流中提取答案
+  /// 如果检测到服务端错误，会抛出 CozeAPIException
   String _extractAnswerFromSSE(String streamText) {
     final buffer = StringBuffer();
     final lines = streamText.split(RegExp(r'\r?\n'));
@@ -215,6 +248,26 @@ class CozeAIService {
 
         final eventType = jsonData['type'] ?? 'unknown';
 
+        // 检查 message_end 中是否有错误码
+        if (eventType == 'message_end') {
+          final content = jsonData['content'] as Map<String, dynamic>?;
+          final messageEnd = content?['message_end'] as Map<String, dynamic>?;
+          if (messageEnd != null) {
+            final errorCode = messageEnd['code']?.toString();
+            final errorMessage = messageEnd['message']?.toString() ?? '';
+
+            // 如果有错误码且不是成功码，抛出异常
+            if (errorCode != null && errorCode != '0' && errorCode.isNotEmpty) {
+              print('⚠️ CozeAI: SSE流中检测到服务端错误: code=$errorCode, message=$errorMessage');
+              throw CozeAPIException(
+                '服务暂时不可用，请稍后重试',
+                code: 'SERVICE_ERROR_$errorCode',
+                originalError: errorMessage,
+              );
+            }
+          }
+        }
+
         // 只有answer类型的事件才包含实际内容
         if (eventType == 'answer') {
           answerEventCount++;
@@ -225,7 +278,11 @@ class CozeAIService {
           }
         }
       } catch (e) {
-        // 静默处理解析错误
+        // 如果是我们主动抛出的 CozeAPIException，重新抛出
+        if (e is CozeAPIException) {
+          rethrow;
+        }
+        // 其他解析错误静默处理
         continue;
       }
     }
