@@ -385,7 +385,8 @@ class CozeAIService {
   Future<String> _callInsightAPI(String promptText) async {
     // 创建单独的 Dio 实例用于洞察 API（使用独立的 Token）
     final insightDio = Dio();
-    insightDio.options.baseUrl = EnvConfig.cozeInsightBaseUrl;
+    final baseUrl = EnvConfig.cozeInsightBaseUrl;
+    insightDio.options.baseUrl = baseUrl;
     insightDio.options.connectTimeout = AppConstants.cozeApiTimeout;
     insightDio.options.receiveTimeout = const Duration(seconds: 120); // 洞察可能需要更长时间
     insightDio.options.headers = {
@@ -396,41 +397,53 @@ class CozeAIService {
     // 生成唯一的 session_id
     final sessionId = _uuid.v4().replaceAll('-', '');
 
-    print('🔄 CozeAI: 发送洞察请求，session_id: $sessionId');
-    print('🔄 CozeAI: 使用 project_id: ${EnvConfig.cozeInsightProjectId}');
+    print('🔄 CozeAI: 发送洞察请求');
+    print('   Base URL: $baseUrl');
+    print('   Full URL: $baseUrl/stream_run');
+    print('   Session ID: $sessionId');
+    print('   Project ID: ${EnvConfig.cozeInsightProjectId}');
+    print('   Token configured: ${EnvConfig.cozeInsightApiToken.isNotEmpty ? "是 (${EnvConfig.cozeInsightApiToken.substring(0, 10)}...)" : "否"}');
 
-    final response = await insightDio.post(
-      '/stream_run',
-      data: {
-        'content': {
-          'query': {
-            'prompt': [
-              {
-                'type': 'text',
-                'content': {'text': promptText},
-              },
-            ],
+    try {
+      final response = await insightDio.post(
+        '/stream_run',
+        data: {
+          'content': {
+            'query': {
+              'prompt': [
+                {
+                  'type': 'text',
+                  'content': {'text': promptText},
+                },
+              ],
+            },
           },
+          'type': 'query',
+          'session_id': sessionId,
+          'project_id': int.parse(EnvConfig.cozeInsightProjectId),
         },
-        'type': 'query',
-        'session_id': sessionId,
-        'project_id': int.parse(EnvConfig.cozeInsightProjectId),
-      },
-      options: Options(responseType: ResponseType.stream),
-    );
+        options: Options(responseType: ResponseType.stream),
+      );
 
-    if (response.statusCode == 200 && response.data is ResponseBody) {
-      final streamText = await utf8.decoder.bind(response.data.stream).join();
-      print('📥 CozeAI: 收到洞察流式响应，长度: ${streamText.length}');
+      if (response.statusCode == 200 && response.data is ResponseBody) {
+        final streamText = await utf8.decoder.bind(response.data.stream).join();
+        print('📥 CozeAI: 收到洞察流式响应，长度: ${streamText.length}');
 
-      final answer = _extractAnswerFromSSE(streamText);
-      return answer.isNotEmpty ? answer : streamText;
+        final answer = _extractAnswerFromSSE(streamText);
+        return answer.isNotEmpty ? answer : streamText;
+      }
+
+      throw CozeAPIException(
+        '洞察API响应无效: HTTP ${response.statusCode}',
+        code: 'INVALID_RESPONSE',
+      );
+    } on DioException catch (e) {
+      print('❌ CozeAI: 洞察API请求失败');
+      print('   Status: ${e.response?.statusCode}');
+      print('   Message: ${e.message}');
+      print('   Response: ${e.response?.data}');
+      rethrow;
     }
-
-    throw CozeAPIException(
-      '洞察API响应无效: HTTP ${response.statusCode}',
-      code: 'INVALID_RESPONSE',
-    );
   }
 
   /// 解析洞察响应
