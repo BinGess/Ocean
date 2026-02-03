@@ -1,6 +1,7 @@
 /// 洞察仓储实现
 /// 使用 Hive 进行本地存储
 
+import 'dart:convert';
 import '../../domain/entities/weekly_insight.dart';
 import '../../domain/entities/insight_report.dart';
 import '../../domain/repositories/insight_repository.dart';
@@ -102,15 +103,18 @@ class InsightRepositoryImpl implements InsightRepository {
 
   @override
   Future<void> saveInsightReport(InsightReport report) async {
-    await database.settingsBox.put('insight_report_${report.weekRange}', report.toJson());
+    // 使用 jsonEncode 将对象转换为 JSON 字符串存储
+    // 避免 Hive 直接存储 Map 时可能出现的类型转换问题（如 _$EmotionOverviewImpl）
+    final jsonStr = jsonEncode(report.toJson());
+    await database.settingsBox.put('insight_report_${report.weekRange}', jsonStr);
   }
 
   @override
   Future<InsightReport?> getInsightReport(String weekRange) async {
-    final json = database.settingsBox.get('insight_report_$weekRange');
-    if (json != null) {
+    final jsonStr = database.settingsBox.get('insight_report_$weekRange');
+    if (jsonStr != null && jsonStr is String) {
       try {
-        final map = Map<String, dynamic>.from(json as Map);
+        final map = jsonDecode(jsonStr) as Map<String, dynamic>;
         return InsightReport.fromJson(map);
       } catch (e) {
         print('Error parsing cached insight report: $e');
