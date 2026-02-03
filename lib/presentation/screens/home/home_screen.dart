@@ -727,7 +727,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
 
           // 录音按钮 - 优化触摸响应，增大可点击区域
           GestureDetector(
