@@ -462,8 +462,11 @@ class CozeAIService {
   InsightReport _parseInsightResponse(String responseText, String weekRange, int recordCount) {
     try {
       // 尝试从响应中提取 JSON
-      final jsonText = _extractJsonFromText(responseText);
+      var jsonText = _extractJsonFromText(responseText);
       print('🔍 CozeAI: 提取的洞察JSON:\n$jsonText');
+
+      // 尝试修复常见的 JSON 格式问题
+      jsonText = _repairInsightJson(jsonText);
 
       final jsonData = jsonDecode(jsonText) as Map<String, dynamic>;
 
@@ -489,6 +492,41 @@ class CozeAIService {
         originalError: e,
       );
     }
+  }
+
+  /// 修复洞察 JSON 中的常见格式问题
+  /// 例如：{"key": "value": "xxx"} -> {"key": "need", "value": "xxx"}
+  String _repairInsightJson(String jsonText) {
+    // 修复 highlight_tags 中的格式问题
+    // 问题格式: {"key": "value": "实际值"}
+    // 正确格式: {"key": "need", "value": "实际值"}
+
+    // 匹配 {"key": "value": "xxx"} 这种错误格式
+    final pattern1 = RegExp(r'\{"key":\s*"value":\s*"([^"]+)"\}');
+    jsonText = jsonText.replaceAllMapped(pattern1, (match) {
+      final value = match.group(1);
+      return '{"key": "need", "value": "$value"}';
+    });
+
+    // 匹配 {"key": "trigger": "xxx"} 这种错误格式（如果存在）
+    final pattern2 = RegExp(r'\{"key":\s*"trigger":\s*"([^"]+)"\}');
+    jsonText = jsonText.replaceAllMapped(pattern2, (match) {
+      final value = match.group(1);
+      return '{"key": "trigger", "value": "$value"}';
+    });
+
+    // 修复可能的 Unicode 字符截断问题（移除不完整的 UTF-8 序列末尾）
+    // 如果 JSON 以不完整的中文字符结尾，尝试截断到最后一个完整的 JSON 结构
+    if (!jsonText.trimRight().endsWith('}')) {
+      // 找到最后一个完整的 } 位置
+      final lastBrace = jsonText.lastIndexOf('}');
+      if (lastBrace > 0) {
+        jsonText = jsonText.substring(0, lastBrace + 1);
+        print('🔧 CozeAI: 修复了不完整的 JSON 末尾');
+      }
+    }
+
+    return jsonText;
   }
 
   /// 解析洞察 JSON
