@@ -404,6 +404,18 @@ class CozeAIService {
     print('   Project ID: ${EnvConfig.cozeInsightProjectId}');
     print('   Token configured: ${EnvConfig.cozeInsightApiToken.isNotEmpty ? "是 (${EnvConfig.cozeInsightApiToken.substring(0, 10)}...)" : "否"}');
 
+    // 将 project_id 作为字符串处理，避免大数字精度问题
+    // 然后在 JSON 中直接使用数字（Dio 会正确序列化）
+    final projectIdStr = EnvConfig.cozeInsightProjectId;
+    final projectId = int.tryParse(projectIdStr) ?? 0;
+
+    if (projectId == 0) {
+      throw CozeAPIException(
+        '洞察智能体 Project ID 配置无效: $projectIdStr',
+        code: 'CONFIG_ERROR',
+      );
+    }
+
     try {
       final response = await insightDio.post(
         '/stream_run',
@@ -420,7 +432,7 @@ class CozeAIService {
           },
           'type': 'query',
           'session_id': sessionId,
-          'project_id': int.parse(EnvConfig.cozeInsightProjectId),
+          'project_id': projectId,
         },
         options: Options(responseType: ResponseType.stream),
       );
