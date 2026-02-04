@@ -22,7 +22,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   String? _completedAudioPath;
   final List<String> _rollingDescriptions = [
     '任何感受可以被接纳',
@@ -45,12 +45,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // 按钮脉冲动画控制器
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
-
-  // 水波纹动画控制器
-  late AnimationController _rippleController;
-  // 水波纹动画速度：普通状态较慢但可见，按压时加快
-  static const Duration _rippleSlowDuration = Duration(milliseconds: 2200);
-  static const Duration _rippleFastDuration = Duration(milliseconds: 1000);
 
   // 防止错误弹窗重复显示
   bool _isShowingErrorDialog = false;
@@ -82,19 +76,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
-
-    // 初始化水波纹动画控制器
-    _rippleController = AnimationController(
-      vsync: this,
-      duration: _rippleSlowDuration,
-    );
-
-    // 确保动画在第一帧之后启动（解决初始状态不显示动画的问题）
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !_rippleController.isAnimating) {
-        _rippleController.repeat();
-      }
-    });
 
     _descriptionTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!mounted) return;
@@ -358,7 +339,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _descriptionTimer?.cancel();
     _descriptionController.dispose();
     _pulseController.dispose();
-    _rippleController.dispose();
     super.dispose();
   }
 
@@ -705,14 +685,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _pulseController.reset();
     }
 
-    // 控制水波纹动画速度：按压时加快，松开时减慢
-    // 确保动画始终运行，并根据状态调整速度
-    final targetDuration = isActive ? _rippleFastDuration : _rippleSlowDuration;
-    if (_rippleController.duration != targetDuration || !_rippleController.isAnimating) {
-      _rippleController.duration = targetDuration;
-      _rippleController.repeat();
-    }
-
     // 正常录音界面
     return Center(
       child: SingleChildScrollView(
@@ -768,8 +740,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // 水波纹效果（始终显示，多层叠加）
-                    ..._buildRippleLayers(isActive),
+                    // 水波纹效果（独立Widget，自行管理动画）
+                    _RippleEffect(isActive: isActive),
 
                     // 外圈脉冲效果（录音时）
                     if (audioState.isRecording)
@@ -864,59 +836,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ],
       ),
     );
-  }
-
-  /// 构建水波纹动画层
-  /// [isActive] 是否处于激活状态（按压或录音中）
-  List<Widget> _buildRippleLayers(bool isActive) {
-    // 创建3层水波纹，相位错开
-    return List.generate(3, (index) {
-      // 每层相位偏移 0.33
-      final phaseOffset = index / 3.0;
-
-      return AnimatedBuilder(
-        animation: _rippleController,
-        builder: (context, child) {
-          // 计算当前层的进度（0.0 ~ 1.0），考虑相位偏移
-          final progress = (_rippleController.value + phaseOffset) % 1.0;
-
-          // 水波纹从按钮边缘开始扩展
-          // 起始大小略大于按钮（120），最大扩展到 160
-          final minSize = isActive ? 125.0 : 122.0;
-          final maxSize = isActive ? 160.0 : 155.0;
-          final size = minSize + (maxSize - minSize) * progress;
-
-          // 透明度：使用非线性曲线，让波纹在中段更明显
-          // 激活状态下透明度更高
-          final baseOpacity = isActive ? 0.55 : 0.4;
-          // 使用 sin 曲线让中间段更明显，两端淡出
-          final curve = (1.0 - progress) * (0.3 + 0.7 * (1.0 - progress));
-          final opacity = baseOpacity * curve;
-
-          // 边框宽度：开始时较粗，扩展时变细
-          final borderWidth = isActive
-              ? 2.5 - progress * 1.5
-              : 2.0 - progress * 1.0;
-
-          // 颜色：激活时用金色，普通状态用稍深的褐色以增加可见度
-          final color = isActive
-              ? const Color(0xFFC4A57B)
-              : const Color(0xFFCDBBA8);  // 稍深的褐色
-
-          return Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: color.withValues(alpha: opacity),
-                width: borderWidth.clamp(0.8, 3.0),
-              ),
-            ),
-          );
-        },
-      );
-    });
   }
 
   /// 构建实时转写区域 - 固定高度,不影响按钮位置
@@ -1126,6 +1045,97 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         );
       },
       ),
+    );
+  }
+}
+
+/// 水波纹动画效果 - 独立 Widget，自行管理动画生命周期
+/// 解决在 BlocBuilder 内部动画无法正确启动的问题
+class _RippleEffect extends StatefulWidget {
+  final bool isActive;
+
+  const _RippleEffect({required this.isActive});
+
+  @override
+  State<_RippleEffect> createState() => _RippleEffectState();
+}
+
+class _RippleEffectState extends State<_RippleEffect>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  static const Duration _slowDuration = Duration(milliseconds: 2200);
+  static const Duration _fastDuration = Duration(milliseconds: 1000);
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: widget.isActive ? _fastDuration : _slowDuration,
+    )..repeat(); // 立即开始循环动画
+  }
+
+  @override
+  void didUpdateWidget(_RippleEffect oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive != oldWidget.isActive) {
+      _controller.duration = widget.isActive ? _fastDuration : _slowDuration;
+      _controller.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Stack(
+          alignment: Alignment.center,
+          children: List.generate(3, (index) {
+            final phaseOffset = index / 3.0;
+            final progress = (_controller.value + phaseOffset) % 1.0;
+
+            // 波纹从按钮边缘向外扩展
+            final minSize = widget.isActive ? 125.0 : 122.0;
+            final maxSize = widget.isActive ? 160.0 : 155.0;
+            final size = minSize + (maxSize - minSize) * progress;
+
+            // 透明度：非线性衰减，中段更明显
+            final baseAlpha = widget.isActive ? 0.55 : 0.4;
+            final fade = (1.0 - progress) * (0.3 + 0.7 * (1.0 - progress));
+            final alpha = baseAlpha * fade;
+
+            // 边框宽度渐变
+            final borderWidth = widget.isActive
+                ? 2.5 - progress * 1.5
+                : 2.0 - progress * 1.0;
+
+            // 颜色
+            final color = widget.isActive
+                ? const Color(0xFFC4A57B)
+                : const Color(0xFFCDBBA8);
+
+            return Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: color.withValues(alpha: alpha),
+                  width: borderWidth.clamp(0.8, 3.0),
+                ),
+              ),
+            );
+          }),
+        );
+      },
     );
   }
 }
