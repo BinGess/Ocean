@@ -159,7 +159,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       context.read<RecordBloc>().add(RecordTranscribe(audioPath));
 
       // 显示处理选择模态框（等待转写完成）
-      showModalBottomSheet<ProcessingMode>(
+      showModalBottomSheet<ProcessingResult>(
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
@@ -169,15 +169,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             builder: (context, state) {
               return ProcessingChoiceModal(
                 transcription: state.transcription ?? '正在转写中...',
-                onSelect: (mode) => Navigator.of(context).pop(mode),
+                onSelect: (result) => Navigator.of(context).pop(result),
                 onCancel: () => Navigator.of(context).pop(),
               );
             },
           );
         },
-      ).then((mode) {
-        if (mode != null && _completedAudioPath != null) {
-          _handleProcessingModeSelected(mode);
+      ).then((result) {
+        if (result != null && _completedAudioPath != null) {
+          _handleProcessingModeSelected(result.mode, editedTranscription: result.transcription);
         }
       });
     }
@@ -185,7 +185,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   /// 显示处理选择模态框
   void _showProcessingChoice(String transcription) {
-    showModalBottomSheet<ProcessingMode>(
+    showModalBottomSheet<ProcessingResult>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -193,25 +193,25 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       builder: (context) {
         return ProcessingChoiceModal(
           transcription: transcription,
-          onSelect: (mode) => Navigator.of(context).pop(mode),
+          onSelect: (result) => Navigator.of(context).pop(result),
           onCancel: () => Navigator.of(context).pop(),
         );
       },
-    ).then((mode) {
-      if (mode != null && _completedAudioPath != null) {
-        _handleProcessingModeSelected(mode);
+    ).then((result) {
+      if (result != null && _completedAudioPath != null) {
+        _handleProcessingModeSelected(result.mode, editedTranscription: result.transcription);
       }
     });
   }
 
-  void _handleProcessingModeSelected(ProcessingMode mode) async {
+  void _handleProcessingModeSelected(ProcessingMode mode, {String? editedTranscription}) async {
     if (_completedAudioPath == null) return;
 
-    // 优先使用流式转写文本，如果没有则使用RecordBloc的转写文本
+    // 优先使用用户编辑后的转写文本，其次流式转写，最后RecordBloc的转写
     final audioState = context.read<AudioBloc>().state;
     final streamTranscription = audioState.realtimeTranscription;
     final recordTranscription = context.read<RecordBloc>().state.transcription;
-    final transcription = streamTranscription ?? recordTranscription;
+    final transcription = editedTranscription ?? streamTranscription ?? recordTranscription;
 
     switch (mode) {
       case ProcessingMode.onlyRecord:
