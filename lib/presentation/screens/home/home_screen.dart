@@ -926,68 +926,65 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       },
                     ),
 
-                    // 录音时长贴近按钮显示（带渐入/渐出）
-                    Positioned(
-                      bottom: 4,
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 220),
-                        switchInCurve: Curves.easeOutCubic,
-                        switchOutCurve: Curves.easeInCubic,
-                        transitionBuilder: (child, animation) {
-                          final fade = FadeTransition(opacity: animation, child: child);
-                          final slide = SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0, 0.2),
-                              end: Offset.zero,
-                            ).animate(animation),
-                            child: fade,
-                          );
-                          return slide;
-                        },
-                        child: (audioState.isRecording && audioState.duration > 0)
-                            ? Container(
-                                key: const ValueKey('record-duration-badge'),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: const Color(0xFFE8DED0),
-                                    width: 1.2,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.08),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Text(
-                                  _formatDuration(audioState.duration),
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF8B7D6B),
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.6,
-                                  ),
-                                ),
-                              )
-                            : const SizedBox(
-                                key: ValueKey('record-duration-empty'),
-                                height: 0,
-                                width: 0,
-                              ),
-                      ),
-                    ),
                   ],
                 ),
               ),
             ),
           ),
 
-          // 录音时长显示（已移动到按钮附近）
-          const SizedBox(height: 16),
+          // 录音时长显示（按钮下方）
+          const SizedBox(height: 10),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) {
+              final fade = FadeTransition(opacity: animation, child: child);
+              final slide = SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.15),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: fade,
+              );
+              return slide;
+            },
+            child: (audioState.isRecording && audioState.duration > 0)
+                ? Container(
+                    key: const ValueKey('record-duration-below'),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFE8DED0),
+                        width: 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      _formatDuration(audioState.duration),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF8B7D6B),
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                  )
+                : const SizedBox(
+                    key: ValueKey('record-duration-empty'),
+                    height: 0,
+                    width: 0,
+                  ),
+          ),
+          const SizedBox(height: 6),
         ],
       ),
       ),
