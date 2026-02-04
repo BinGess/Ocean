@@ -8,6 +8,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/repositories/audio_repository.dart';
 import '../../../core/network/doubao_asr_client.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/error/app_error_mapper.dart';
+import '../../../core/logging/app_logger.dart';
 import 'audio_event.dart';
 import 'audio_state.dart';
 

@@ -33,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   late final PageController _descriptionController;
   Timer? _descriptionTimer;
   int _currentDescriptionIndex = 0;
+  bool _isDescriptionPaused = false;
 
   // 本地按压状态 - 用于即时视觉反馈
   bool _isPressed = false;
@@ -82,8 +83,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    _descriptionTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+    _descriptionTimer = Timer.periodic(const Duration(seconds: 6), (_) {
       if (!mounted) return;
+      if (_isDescriptionPaused) return;
       _currentDescriptionIndex++;
       _descriptionController.animateToPage(
         _currentDescriptionIndex,
@@ -91,6 +93,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         curve: Curves.easeInOut,
       );
     });
+  }
+
+  void _pauseDescription() {
+    _isDescriptionPaused = true;
+  }
+
+  void _resumeDescription() {
+    _isDescriptionPaused = false;
   }
 
   /// 检查并请求录音权限
@@ -376,9 +386,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         ),
         child: Stack(
           children: [
-          // 主内容
-          BlocListener<AudioBloc, AudioState>(
-            listener: (context, audioState) {
+            // 背景纹理层
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: 0.35,
+                  child: CustomPaint(
+                    painter: _NoiseTexturePainter(),
+                  ),
+                ),
+              ),
+            ),
+            // 轻微光晕层已移除（避免角落阴影感）
+            // 主内容
+            BlocListener<AudioBloc, AudioState>(
+              listener: (context, audioState) {
               // 录音完成后处理
               if (audioState.isCompleted && audioState.audioPath != null) {
                 _handleRecordComplete(audioState.audioPath!);
@@ -692,6 +714,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     // 合并状态：本地按压状态或实际录音状态
     final isActive = _isPressed || audioState.isRecording;
+    final isConnecting = _isPressed &&
+        !audioState.isRecording &&
+        !audioState.isStreamingRecording;
 
     // 控制脉冲动画
     if (audioState.isRecording && !_pulseController.isAnimating) {
@@ -712,7 +737,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 150),
               child: Text(
-                audioState.isRecording ? '松开结束' : '按住记录',
+                audioState.isRecording
+                    ? '松开结束'
+                    : (isConnecting ? '连接中...' : '按住记录'),
                 key: ValueKey(audioState.isRecording),
                 style: TextStyle(
                   fontSize: 14,
@@ -733,6 +760,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               onLongPressStart: (_) {
                 // 长按开始：设置视觉反馈并开始录音
                 setState(() => _isPressed = true);
+                _pauseDescription();
                 HapticFeedback.lightImpact();
                 _recordingStartTime = DateTime.now();
                 // 触发录音
@@ -743,11 +771,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               onLongPressEnd: (_) {
                 // 长按结束：停止录音
                 setState(() => _isPressed = false);
+                _resumeDescription();
                 _tryStopRecording(context);
               },
               onLongPressCancel: () {
                 // 长按取消（手指滑出）：保持录音继续，只重置视觉状态
                 setState(() => _isPressed = false);
+                _resumeDescription();
               },
             child: SizedBox(
               width: 160,
@@ -764,13 +794,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       AnimatedBuilder(
                         animation: _pulseAnimation,
                         builder: (context, child) {
+                          final pulseColor = isConnecting
+                              ? const Color(0xFF7DBEF5)
+                              : const Color(0xFFC4A57B);
                           return Container(
                             width: 120 * _pulseAnimation.value,
                             height: 120 * _pulseAnimation.value,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: const Color(0xFFC4A57B).withValues(
+                                color: pulseColor.withValues(
                                   alpha: 0.4 * (1.15 - _pulseAnimation.value) / 0.15,
                                 ),
                                 width: 2,
@@ -788,7 +821,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       height: isActive ? 100 : 120,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: isActive ? 0.95 : 0.9),
+                        color: (isConnecting
+                                ? const Color(0xFFF2F7FF)
+                                : (audioState.isRecording
+                                    ? const Color(0xFFFFF7EE)
+                                    : Colors.white))
+                            .withValues(alpha: isActive ? 0.96 : 0.92),
                         border: Border.all(
                           color: isActive
                               ? const Color(0xFFC4A57B)
@@ -798,16 +836,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         boxShadow: isActive
                             ? [
                                 BoxShadow(
-                                  color: const Color(0xFFC4A57B).withValues(alpha: 0.35),
-                                  blurRadius: 24,
-                                  spreadRadius: 6,
+                                  color: const Color(0xFFC4A57B).withValues(alpha: 0.28),
+                                  blurRadius: 26,
+                                  spreadRadius: 5,
                                 ),
                               ]
                             : [
                                 BoxShadow(
-                                  color: const Color(0xFFD9C9B8).withValues(alpha: 0.25),
-                                  blurRadius: 12,
-                                  spreadRadius: 3,
+                                  color: const Color(0xFFD9C9B8).withValues(alpha: 0.22),
+                                  blurRadius: 14,
+                                  spreadRadius: 2.5,
                                   offset: const Offset(0, 4),
                                 ),
                               ],
@@ -865,7 +903,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     // 固定高度容器,保持布局稳定,优化动画性能
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
+      duration: const Duration(milliseconds: 280),
       curve: Curves.easeOutCubic,  // 使用更流畅的动画曲线
       height: shouldShow
           ? 140  // 转写框显示时的高度（减小以避免溢出）
@@ -900,6 +938,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       statusColor = const Color(0xFFFF9800); // 橙色：离线
     }
 
+    final transcription = audioState.realtimeTranscription?.trim();
+    final isEmptyText = transcription == null || transcription.isEmpty;
+
     return Container(
       constraints: const BoxConstraints(maxHeight: 130),  // 进一步减少最大高度
       padding: const EdgeInsets.all(12),  // 减少内边距,优化空间利用
@@ -908,12 +949,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         borderRadius: BorderRadius.circular(16),  // 稍微减小圆角
         border: Border.all(
           color: const Color(0xFFE8DED0),
-          width: 1.5,
+          width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),  // 减弱阴影
-            blurRadius: 10,
+            color: Colors.black.withValues(alpha: 0.05),  // 柔化阴影
+            blurRadius: 14,
             offset: const Offset(0, 3),
           ),
         ],
@@ -960,25 +1001,63 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           // 转写文本
           Flexible(
             child: SingleChildScrollView(
-              child: Text(
-                isConnecting ? '正在准备录音...' : (audioState.realtimeTranscription ?? '等待识别...'),
-                style: TextStyle(
-                  fontSize: 16,
-                  color: audioState.isTranscriptionFinal
-                      ? const Color(0xFF2C2C2C) // 黑色：最终结果
-                      : const Color(0xFF8B7D6B), // 灰色：临时结果
-                  fontStyle: audioState.isTranscriptionFinal
-                      ? FontStyle.normal
-                      : FontStyle.italic,
-                  height: 1.6,
-                  fontWeight: audioState.isTranscriptionFinal
-                      ? FontWeight.w500
-                      : FontWeight.normal,
-                ),
-              ),
+              child: isConnecting
+                  ? const Text(
+                      '正在准备录音...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF8B7D6B),
+                        height: 1.6,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    )
+                  : (isEmptyText
+                      ? _buildTranscriptionSkeleton()
+                      : Text(
+                          transcription!,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: audioState.isTranscriptionFinal
+                                ? const Color(0xFF2C2C2C) // 黑色：最终结果
+                                : const Color(0xFF8B7D6B), // 灰色：临时结果
+                            fontStyle: audioState.isTranscriptionFinal
+                                ? FontStyle.normal
+                                : FontStyle.italic,
+                            height: 1.6,
+                            fontWeight: audioState.isTranscriptionFinal
+                                ? FontWeight.w500
+                                : FontWeight.normal,
+                          ),
+                        )),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTranscriptionSkeleton() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _skeletonLine(widthFactor: 0.9),
+        const SizedBox(height: 8),
+        _skeletonLine(widthFactor: 0.7),
+        const SizedBox(height: 8),
+        _skeletonLine(widthFactor: 0.5),
+      ],
+    );
+  }
+
+  Widget _skeletonLine({required double widthFactor}) {
+    return FractionallySizedBox(
+      widthFactor: widthFactor,
+      child: Container(
+        height: 10,
+        decoration: BoxDecoration(
+          color: const Color(0xFFEFE6DA),
+          borderRadius: BorderRadius.circular(6),
+        ),
       ),
     );
   }
@@ -1009,8 +1088,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               double distance = (page - index).abs();
 
             // 根据距离计算样式（糯米色主题）
-            double scale = 0.7;
-            double opacity = 0.25;
+            double scale = 0.8;
+            double opacity = 0.2;
             Color color = const Color(0xFFD4C4B0); // 浅褐色
             FontWeight fontWeight = FontWeight.normal;
             double fontSize = 18;
@@ -1025,8 +1104,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             } else if (distance < 1.5) {
                // 相邻项
                double factor = 1.0 - (distance - 0.5);
-               scale = 0.7 + (0.3 * factor);
-               opacity = 0.25 + (0.75 * factor);
+               scale = 0.8 + (0.2 * factor);
+               opacity = 0.2 + (0.8 * factor);
                color = Color.lerp(
                  const Color(0xFFD4C4B0),
                  const Color(0xFF5D4E3C),
@@ -1155,4 +1234,24 @@ class _RippleEffectState extends State<_RippleEffect>
       },
     );
   }
+}
+
+/// 细腻噪点纹理（轻微）
+class _NoiseTexturePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFBFAF9C).withValues(alpha: 0.08)
+      ..strokeWidth = 1;
+    // 简单规则网格点，避免引入随机数导致抖动
+    const step = 18.0;
+    for (double y = 0; y < size.height; y += step) {
+      for (double x = 0; x < size.width; x += step) {
+        canvas.drawCircle(Offset(x + (y % (step * 0.6)), y), 0.8, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
