@@ -74,12 +74,16 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
     final isPlaceholder = widget.transcription.isEmpty ||
         widget.transcription == '正在转写中...';
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -116,8 +120,11 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F0E8),
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFFE8DED0),
+                width: 1,
+              ),
             ),
             constraints: const BoxConstraints(minHeight: 60, maxHeight: 120),
             child: isPlaceholder && !_userEdited
@@ -223,6 +230,7 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
 
           const SizedBox(height: 20),
         ],
+      ),
       ),
     );
   }
