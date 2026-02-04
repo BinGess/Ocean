@@ -106,7 +106,6 @@ class AudioRepositoryImpl implements AudioRepository {
           // 转发音频数据到流控制器
           if (_audioStreamController != null && !_audioStreamController!.isClosed) {
             _audioStreamController!.add(audioChunk);
-            debugPrint('AudioRepository: 转发音频块，大小: ${audioChunk.length} bytes');
           }
         },
         onError: (error) {
@@ -271,6 +270,17 @@ class AudioRepositoryImpl implements AudioRepository {
   Stream<List<int>>? getAudioStream() {
     // 返回广播流，允许多个监听者
     return _audioStreamController?.stream;
+  }
+
+  @override
+  Future<void> warmUp() async {
+    try {
+      // 预热权限与目录访问，降低首次录音时的 IO 抖动
+      await _recorder.hasPermission();
+      await getApplicationDocumentsDirectory();
+    } catch (_) {
+      // 忽略预热失败
+    }
   }
 
   Future<void> dispose() async {

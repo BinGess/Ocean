@@ -59,6 +59,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     // 主动检查并请求录音权限（避免在按下录音按钮时才弹出权限对话框）
     _checkAndRequestPermission();
+    // 预热录音资源，降低首次录音卡顿
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      context.read<AudioBloc>().add(const AudioWarmUp());
+    });
 
     // 初始页设为中间的大数值，方便无限滚动
     int initialPage = 1000;
@@ -527,6 +532,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
                     // 实时转写显示区域 - 固定高度,不会影响按钮位置
                     BlocBuilder<AudioBloc, AudioState>(
+                      buildWhen: (prev, next) =>
+                          prev.isStreamingRecording != next.isStreamingRecording ||
+                          prev.isWebSocketConnected != next.isWebSocketConnected ||
+                          prev.realtimeTranscription != next.realtimeTranscription ||
+                          prev.isTranscriptionFinal != next.isTranscriptionFinal ||
+                          prev.status != next.status,
                       builder: (context, audioState) {
                         return _buildTranscriptionArea(audioState);
                       },
@@ -536,6 +547,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     Expanded(
                       flex: 1,
                       child: BlocBuilder<AudioBloc, AudioState>(
+                        buildWhen: (prev, next) =>
+                            prev.status != next.status ||
+                            prev.duration != next.duration ||
+                            prev.hasPermission != next.hasPermission ||
+                            prev.isWebSocketConnected != next.isWebSocketConnected,
                         builder: (context, audioState) {
                           return _buildRecordSection(context, audioState);
                         },

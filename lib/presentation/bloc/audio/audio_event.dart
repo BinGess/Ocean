@@ -85,3 +85,8 @@ class AudioStreamError extends AudioEvent {
 class AudioFinalizeStreaming extends AudioEvent {
   const AudioFinalizeStreaming();
 }
+
+/// 预热事件（初始化权限/目录等，减少首录卡顿）
+class AudioWarmUp extends AudioEvent {
+  const AudioWarmUp();
+}

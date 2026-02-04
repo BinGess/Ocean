@@ -42,6 +42,7 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
     on<AudioUpdateStreamTranscription>(_onUpdateStreamTranscription);
     on<AudioStreamError>(_onStreamError);
     on<AudioFinalizeStreaming>(_onFinalizeStreaming);
+    on<AudioWarmUp>(_onWarmUp);
   }
 
   /// 检查权限
@@ -235,7 +236,7 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
   void _startDurationTimer() {
     _durationTimer?.cancel();
     _durationTimer = Timer.periodic(
-      const Duration(milliseconds: 100),
+      const Duration(milliseconds: 250),
       (timer) {
         final currentDuration = audioRepository.getCurrentDuration();
         add(AudioUpdateDuration(currentDuration));
@@ -341,9 +342,8 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
         (chunk) async {
           try {
             await asrClient!.sendAudio(Uint8List.fromList(chunk));
-            debugPrint('AudioBloc: Sent audio chunk: ${chunk.length} bytes');
           } catch (e) {
-            debugPrint('AudioBloc: Error sending audio chunk: $e');
+            AppLogger.e('AudioBloc: 发送音频分片失败', e);
           }
         },
         onError: (error) {
@@ -483,6 +483,18 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
       await asrClient?.disconnect();
     } catch (e) {
       debugPrint('AudioBloc: Error disconnecting ASR during cleanup: $e');
+    }
+  }
+
+  /// 预热录音相关资源
+  Future<void> _onWarmUp(
+    AudioWarmUp event,
+    Emitter<AudioState> emit,
+  ) async {
+    try {
+      await audioRepository.warmUp();
+    } catch (_) {
+      // 预热失败不影响主流程
     }
   }
 

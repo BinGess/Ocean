@@ -52,4 +52,7 @@ abstract class AudioRepository {
   /// 获取音频流（用于实时转录）
   /// 返回值：音频数据流
   Stream<List<int>>? getAudioStream();
+
+  /// 预热录音相关资源，降低首次录音卡顿
+  Future<void> warmUp();
 }
