@@ -161,15 +161,17 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
                       color: Color(0xFF5D4E3C),
                       height: 1.5,
                     ),
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                      hintText: '点击编辑转写内容...',
-                      hintStyle: TextStyle(
-                        fontSize: 15,
-                        color: Color(0xFFB8ADA0),
-                      ),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                    filled: true,
+                    fillColor: Colors.transparent,
+                    hintText: '点击编辑转写内容...',
+                    hintStyle: TextStyle(
+                      fontSize: 15,
+                      color: Color(0xFFB8ADA0),
+                    ),
                     ),
                     onChanged: (_) {
                       if (!_userEdited) {
