@@ -132,64 +132,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
             );
           }
 
-          if (state.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.edit_note,
-                    size: 64,
-                    color: Colors.grey[300],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '还没有记录',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey[500],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  TextButton(
-                    onPressed: widget.onNavigateToHome,
-                    style: TextButton.styleFrom(
-                      backgroundColor: const Color(0xFFE8DED0),
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.edit,
-                          color: Color(0xFF5D4E3C),
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          '暂无内容，写写',
-                          style: TextStyle(
-                            color: Color(0xFF5D4E3C),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
           // 按日期分组记录
           final groupedRecords = _groupRecordsByDate(state.records);
-          // 获取最近7天的日期（包括没有记录的天）
-          final dateRange = _getLast7Days();
+          // 无记录时仅显示当天卡片，避免空白多天列表
+          final dateRange = state.isEmpty ? _getTodayOnly() : _getLast7Days();
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -218,6 +164,12 @@ class _RecordsScreenState extends State<RecordsScreen> {
       final date = now.subtract(Duration(days: index));
       return DateTime(date.year, date.month, date.day);
     });
+  }
+
+  /// 仅返回当天日期
+  List<DateTime> _getTodayOnly() {
+    final now = DateTime.now();
+    return [DateTime(now.year, now.month, now.day)];
   }
 
   /// 按日期分组记录
