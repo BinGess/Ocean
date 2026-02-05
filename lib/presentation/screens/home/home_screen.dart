@@ -35,6 +35,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Timer? _descriptionTimer;
   int _currentDescriptionIndex = 0;
   bool _isDescriptionPaused = false;
+  final ScrollController _transcriptionScrollController = ScrollController();
+  String? _lastTranscriptionText;
 
   // 本地按压状态 - 用于即时视觉反馈
   bool _isPressed = false;
@@ -397,6 +399,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   void dispose() {
     _descriptionTimer?.cancel();
     _descriptionController.dispose();
+    _transcriptionScrollController.dispose();
     _pulseController.dispose();
     super.dispose();
   }
@@ -998,6 +1001,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final transcription = audioState.realtimeTranscription?.trim();
     final isEmptyText = transcription == null || transcription.isEmpty;
 
+    if (!isConnecting && !isEmptyText && transcription != _lastTranscriptionText) {
+      _lastTranscriptionText = transcription;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_transcriptionScrollController.hasClients) return;
+        _transcriptionScrollController.animateTo(
+          _transcriptionScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+        );
+      });
+    }
+
     return Container(
       constraints: const BoxConstraints(maxHeight: 130),  // 进一步减少最大高度
       padding: const EdgeInsets.all(12),  // 减少内边距,优化空间利用
@@ -1058,6 +1073,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           // 转写文本
           Flexible(
             child: SingleChildScrollView(
+              controller: _transcriptionScrollController,
               child: isConnecting
                   ? const Text(
                       '正在准备录音...',

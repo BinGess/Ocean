@@ -14,29 +14,53 @@ class InsightsScreen extends StatefulWidget {
   State<InsightsScreen> createState() => _InsightsScreenState();
 }
 
-class _InsightsScreenState extends State<InsightsScreen> {
+class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _refreshController;
+  bool _isRefreshing = false;
   @override
   void initState() {
     super.initState();
     // 加载当前周的洞察（优先使用缓存）
     context.read<InsightBloc>().add(const InsightLoadCurrentWeek());
+    _refreshController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
   }
 
   /// 强制刷新洞察
   Future<void> _onRefresh() async {
+    if (_isRefreshing) return;
+    setState(() => _isRefreshing = true);
+    _refreshController.repeat();
     context.read<InsightBloc>().add(const InsightGenerateCurrentWeek());
-    // 等待状态变化完成
-    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
+  @override
+  void dispose() {
+    _refreshController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF6F1),
-      body: BlocBuilder<InsightBloc, InsightState>(
+      body: BlocListener<InsightBloc, InsightState>(
+        listener: (context, state) {
+          if (_isRefreshing &&
+              (state.status == InsightStatus.success || state.status == InsightStatus.error)) {
+            _refreshController.stop();
+            if (mounted) {
+              setState(() => _isRefreshing = false);
+            }
+          }
+        },
+        child: BlocBuilder<InsightBloc, InsightState>(
         builder: (context, state) {
-          if (state.status == InsightStatus.loading ||
-              state.status == InsightStatus.generating) {
+          if ((state.status == InsightStatus.loading ||
+              state.status == InsightStatus.generating) &&
+              state.currentReport == null) {
             return _buildLoadingState(state.progressMessage);
           }
 
@@ -51,6 +75,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
             child: _buildInsightContent(context, state.currentReport!, state.lastFetchTime),
           );
         },
+      ),
       ),
     );
   }
@@ -195,10 +220,19 @@ class _InsightsScreenState extends State<InsightsScreen> {
                                 color: const Color(0xFFF5EBE0),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Icon(
-                                Icons.refresh,
-                                size: 18,
-                                color: Color(0xFFC4A57B),
+                              child: AnimatedBuilder(
+                                animation: _refreshController,
+                                builder: (context, child) {
+                                  return Transform.rotate(
+                                    angle: _refreshController.value * 6.283185307,
+                                    child: child,
+                                  );
+                                },
+                                child: const Icon(
+                                  Icons.refresh,
+                                  size: 18,
+                                  color: Color(0xFFC4A57B),
+                                ),
                               ),
                             ),
                           ),
