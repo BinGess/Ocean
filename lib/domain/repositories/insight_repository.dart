@@ -2,6 +2,8 @@
 // 定义周洞察相关的数据访问契约
 
 import '../entities/weekly_insight.dart';
+import '../entities/insight_report.dart';
+import '../entities/insight_report_cache.dart';
 
 abstract class InsightRepository {
   /// 创建周洞察
@@ -49,4 +51,13 @@ abstract class InsightRepository {
 
   /// 检查指定周是否已有洞察
   Future<bool> hasInsightForWeek(String weekRange);
+
+  /// 获取洞察报告缓存（新版）
+  Future<InsightReportCache?> getCachedInsightReport(String weekRange);
+
+  /// 保存洞察报告缓存（新版）
+  Future<void> saveInsightReportCache(InsightReport report, {DateTime? cachedAt});
+
+  /// 删除洞察报告缓存（新版）
+  Future<void> deleteInsightReportCache(String weekRange);
 }

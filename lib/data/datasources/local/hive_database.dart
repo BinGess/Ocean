@@ -10,11 +10,13 @@ class HiveDatabase {
   static const String recordsBoxName = 'records';
   static const String weeklyInsightsBoxName = 'weekly_insights';
   static const String settingsBoxName = 'settings';
+  static const String insightReportsBoxName = 'insight_reports_cache';
 
   // Box 引用
   late Box<RecordModel> recordsBox;
   late Box<WeeklyInsightModel> weeklyInsightsBox;
   late Box<dynamic> settingsBox;
+  late Box<String> insightReportsBox;
 
   /// 初始化数据库
   Future<void> init() async {
@@ -29,6 +31,7 @@ class HiveDatabase {
     weeklyInsightsBox =
         await Hive.openBox<WeeklyInsightModel>(weeklyInsightsBoxName);
     settingsBox = await Hive.openBox(settingsBoxName);
+    insightReportsBox = await Hive.openBox<String>(insightReportsBoxName);
   }
 
   /// 注册 Hive 类型适配器
@@ -52,6 +55,7 @@ class HiveDatabase {
     await recordsBox.clear();
     await weeklyInsightsBox.clear();
     await settingsBox.clear();
+    await insightReportsBox.clear();
   }
 
   /// 关闭数据库
@@ -59,6 +63,7 @@ class HiveDatabase {
     await recordsBox.close();
     await weeklyInsightsBox.close();
     await settingsBox.close();
+    await insightReportsBox.close();
   }
 
   /// 获取数据库统计信息
@@ -67,6 +72,7 @@ class HiveDatabase {
       'records_count': recordsBox.length,
       'insights_count': weeklyInsightsBox.length,
       'settings_count': settingsBox.length,
+      'insight_reports_count': insightReportsBox.length,
     };
   }
 }

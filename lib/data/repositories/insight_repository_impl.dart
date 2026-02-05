@@ -1,7 +1,10 @@
 /// 洞察仓储实现
 /// 使用 Hive 进行本地存储
 
+import 'dart:convert';
 import '../../domain/entities/weekly_insight.dart';
+import '../../domain/entities/insight_report.dart';
+import '../../domain/entities/insight_report_cache.dart';
 import '../../domain/repositories/insight_repository.dart';
 import '../datasources/local/hive_database.dart';
 import '../models/weekly_insight_model.dart';
@@ -97,5 +100,43 @@ class InsightRepositoryImpl implements InsightRepository {
   Future<bool> hasInsightForWeek(String weekRange) async {
     final insight = await getWeeklyInsight(weekRange);
     return insight != null;
+  }
+
+  @override
+  Future<InsightReportCache?> getCachedInsightReport(String weekRange) async {
+    final raw = database.insightReportsBox.get(weekRange);
+    if (raw == null) return null;
+
+    try {
+      final data = jsonDecode(raw) as Map<String, dynamic>;
+      final cachedAtStr = data['cached_at'] as String?;
+      final reportJson = data['report'] as Map<String, dynamic>?;
+      if (cachedAtStr == null || reportJson == null) return null;
+
+      final cachedAt = DateTime.tryParse(cachedAtStr);
+      if (cachedAt == null) return null;
+
+      final report = InsightReport.fromJson(reportJson);
+      return InsightReportCache(report: report, cachedAt: cachedAt);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> saveInsightReportCache(
+    InsightReport report, {
+    DateTime? cachedAt,
+  }) async {
+    final payload = {
+      'cached_at': (cachedAt ?? DateTime.now()).toIso8601String(),
+      'report': report.toJson(),
+    };
+    await database.insightReportsBox.put(report.weekRange, jsonEncode(payload));
+  }
+
+  @override
+  Future<void> deleteInsightReportCache(String weekRange) async {
+    await database.insightReportsBox.delete(weekRange);
   }
 }

@@ -63,6 +63,27 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
       return;
     }
 
+    // 检查本地持久化缓存
+    try {
+      final cached = await insightRepository.getCachedInsightReport(currentWeekRange);
+      if (cached != null) {
+        final now = DateTime.now();
+        if (now.difference(cached.cachedAt) < InsightState.cacheValidDuration) {
+          debugPrint('💾 InsightBloc: 使用本地缓存洞察报告 (${cached.cachedAt})');
+          emit(state.copyWith(
+            status: InsightStatus.success,
+            currentReport: cached.report,
+            lastFetchTime: cached.cachedAt,
+            currentWeekRange: currentWeekRange,
+            progressMessage: null,
+          ));
+          return;
+        }
+      }
+    } catch (_) {
+      // 缓存读取失败不影响主流程
+    }
+
     debugPrint('🔄 InsightBloc: 缓存无效或过期，重新生成洞察');
     // 缓存无效，触发生成
     add(const InsightGenerateCurrentWeek());
@@ -93,6 +114,13 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
       debugPrint('🔮 InsightBloc: 开始生成洞察报告');
       final report = await generateInsightReportUseCase(params);
       debugPrint('✅ InsightBloc: 洞察报告生成成功');
+
+      // 持久化缓存
+      try {
+        await insightRepository.saveInsightReportCache(report);
+      } catch (_) {
+        // 缓存写入失败不影响主流程
+      }
 
       emit(state.copyWith(
         status: InsightStatus.success,
