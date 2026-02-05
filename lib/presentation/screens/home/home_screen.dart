@@ -134,9 +134,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     if (_recordingStartTime != null) {
       final elapsed = DateTime.now().difference(_recordingStartTime!).inMilliseconds;
       if (elapsed < _minRecordingDurationMs) {
-        debugPrint('HomeScreen: 录音时长不足 ${_minRecordingDurationMs}ms (当前: ${elapsed}ms)，继续录音');
-        // 时长不足，不停止录音，让用户继续录音
-        // 用户需要再次点击才能停止
+        debugPrint('HomeScreen: 录音时长不足 ${_minRecordingDurationMs}ms (当前: ${elapsed}ms)，取消录音');
+        // 时长不足，取消录音并提示用户
+        _recordingStartTime = null;
+        context.read<AudioBloc>().add(const AudioCancelRecording());
+        HapticFeedback.lightImpact();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.info_outline, color: Color(0xFFFFB74D), size: 20),
+                SizedBox(width: 8),
+                Text('录音太短，请重试'),
+              ],
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
         return;
       }
     }
