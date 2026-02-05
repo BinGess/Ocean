@@ -36,8 +36,8 @@ class _SplashScreenState extends State<SplashScreen>
     // 启动动画
     _fadeController.forward();
 
-    // 0.5 秒后跳转到主页
-    Timer(const Duration(milliseconds: 500), () {
+    // 0.8 秒后跳转到主页
+    Timer(const Duration(milliseconds: 800), () {
       if (mounted) {
         widget.onComplete();
       }
