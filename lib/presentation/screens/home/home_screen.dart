@@ -51,6 +51,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   bool _isShowingErrorDialog = false;
   // 记录上次处理的错误消息，避免重复处理同一个错误
   String? _lastHandledError;
+  // 用户手动关闭的错误提示（避免一直显示）
+  String? _lastDismissedError;
+  // 忽略下一次完成回调（用于短录音取消）
+  bool _ignoreNextCompletion = false;
 
   @override
   void initState() {
@@ -125,18 +129,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     // 获取当前最新状态（不使用 BlocBuilder 捕获的旧状态）
     final currentState = context.read<AudioBloc>().state;
 
-    if (!currentState.isRecording) {
-      debugPrint('HomeScreen: 录音未开始，忽略停止请求');
-      return;
-    }
-
     // 检查最小录音时长
     if (_recordingStartTime != null) {
       final elapsed = DateTime.now().difference(_recordingStartTime!).inMilliseconds;
-      if (elapsed < _minRecordingDurationMs) {
-        debugPrint('HomeScreen: 录音时长不足 ${_minRecordingDurationMs}ms (当前: ${elapsed}ms)，取消录音');
-        // 时长不足，取消录音并提示用户
+      // 如果还未真正进入录音状态（连接中），直接取消
+      if (!currentState.isRecording) {
+        debugPrint('HomeScreen: 连接中已松开，取消录音');
         _recordingStartTime = null;
+        _ignoreNextCompletion = true;
+        _completedAudioPath = null;
+        context.read<AudioBloc>().requestCancel();
         context.read<AudioBloc>().add(const AudioCancelRecording());
         HapticFeedback.lightImpact();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -153,6 +155,33 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         );
         return;
       }
+      if (elapsed < _minRecordingDurationMs) {
+        debugPrint('HomeScreen: 录音时长不足 ${_minRecordingDurationMs}ms (当前: ${elapsed}ms)，取消录音');
+        // 时长不足，取消录音并提示用户
+        _recordingStartTime = null;
+        _ignoreNextCompletion = true;
+        _completedAudioPath = null;
+        context.read<AudioBloc>().requestCancel();
+        context.read<AudioBloc>().add(const AudioCancelRecording());
+        HapticFeedback.lightImpact();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.info_outline, color: Color(0xFFFFB74D), size: 20),
+                SizedBox(width: 8),
+                Text('录音太短，请重试'),
+              ],
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+    }
+    if (!currentState.isRecording) {
+      debugPrint('HomeScreen: 录音未开始或尚在连接，忽略停止请求');
+      return;
     }
 
     debugPrint('HomeScreen: 停止录音');
@@ -417,6 +446,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               listener: (context, audioState) {
               // 录音完成后处理
               if (audioState.isCompleted && audioState.audioPath != null) {
+                if (_ignoreNextCompletion) {
+                  _ignoreNextCompletion = false;
+                  return;
+                }
+                final minSeconds = _minRecordingDurationMs / 1000.0;
+                if (audioState.duration < minSeconds) {
+                  return;
+                }
                 _handleRecordComplete(audioState.audioPath!);
               }
 
@@ -774,6 +811,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               onLongPressStart: (_) {
                 // 长按开始：设置视觉反馈并开始录音
                 setState(() => _isPressed = true);
+                _ignoreNextCompletion = false;
                 _pauseDescription();
                 HapticFeedback.lightImpact();
                 _recordingStartTime = DateTime.now();

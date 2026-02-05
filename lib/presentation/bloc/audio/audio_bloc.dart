@@ -24,6 +24,12 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
 
   // 防止重复触发的标志
   bool _isConnecting = false;
+  // 连接期间取消标记
+  bool _cancelRequested = false;
+  // 最近一次是否被取消（防止误发完成事件）
+  bool _wasCanceled = false;
+  // 会话标识（取消后避免误发完成事件）
+  Object? _sessionToken;
 
   AudioBloc({
     required this.audioRepository,
@@ -45,6 +51,13 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
     on<AudioStreamError>(_onStreamError);
     on<AudioFinalizeStreaming>(_onFinalizeStreaming);
     on<AudioWarmUp>(_onWarmUp);
+  }
+
+  /// 外部请求取消（用于连接中提前终止）
+  void requestCancel() {
+    _cancelRequested = true;
+    _wasCanceled = true;
+    _sessionToken = null;
   }
 
   /// 检查权限
@@ -97,6 +110,8 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
     Emitter<AudioState> emit,
   ) async {
     debugPrint('AudioBloc: _onStartRecording called');
+    _sessionToken = Object();
+    _wasCanceled = false;
     if (!state.hasPermission) {
       debugPrint('AudioBloc: No permission');
       emit(state.copyWith(
@@ -142,6 +157,21 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
   ) async {
     debugPrint('AudioBloc: _onStopRecording called');
     _stopDurationTimer();
+    final session = _sessionToken;
+
+    if (_wasCanceled || _cancelRequested) {
+      emit(state.copyWith(
+        status: RecordingStatus.ready,
+        audioPath: null,
+        clearTranscription: true,
+      ));
+      _wasCanceled = false;
+      _cancelRequested = false;
+      if (_sessionToken == session) {
+        _sessionToken = null;
+      }
+      return;
+    }
 
     emit(state.copyWith(status: RecordingStatus.processing));
 
@@ -150,10 +180,14 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
       debugPrint('AudioBloc: stopRecording path: $audioPath');
 
       if (audioPath != null) {
+        if (_sessionToken != session || session == null) {
+          return;
+        }
         emit(state.copyWith(
           status: RecordingStatus.completed,
           audioPath: audioPath,
         ));
+        _sessionToken = null;
       } else {
         emit(state.copyWith(
           status: RecordingStatus.error,
@@ -210,14 +244,24 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
     Emitter<AudioState> emit,
   ) async {
     _stopDurationTimer();
+    final wasConnecting = _isConnecting;
+    _cancelRequested = wasConnecting;
+    _wasCanceled = true;
+    _sessionToken = null;
 
     try {
+      if (_isConnecting || state.isStreamingRecording) {
+        await _cleanupStreamingResources();
+        _isConnecting = false;
+      }
       await audioRepository.cancelRecording();
       emit(state.copyWith(
         status: RecordingStatus.ready,
         duration: 0.0,
         audioPath: null,
+        clearTranscription: true,
       ));
+      _cancelRequested = false;
     } catch (e) {
       emit(state.copyWith(
         status: RecordingStatus.error,
@@ -283,6 +327,17 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
 
     // 设置连接中标志，防止重复触发
     _isConnecting = true;
+    _sessionToken = Object();
+
+    // 如果已有取消请求（连接前就松开），直接退出
+    if (_cancelRequested) {
+      _cancelRequested = false;
+      _isConnecting = false;
+      _sessionToken = null;
+      return;
+    }
+
+    _wasCanceled = false;
 
     try {
       // 1. 连接WebSocket
@@ -294,6 +349,20 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
       );
 
       debugPrint('AudioBloc: ASR WebSocket connected');
+
+      // 如果连接期间用户已取消录音，直接退出
+      if (_cancelRequested) {
+        _isConnecting = false;
+        _cancelRequested = false;
+        await _cleanupStreamingResources();
+        emit(state.copyWith(
+          status: RecordingStatus.ready,
+          isWebSocketConnected: false,
+          errorMessage: null,
+          clearTranscription: true,
+        ));
+        return;
+      }
 
       // 更新状态为流式录音中
       emit(state.copyWith(
@@ -334,6 +403,19 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
 
       debugPrint('AudioBloc: Streaming recording started');
 
+      // 如果开始录音后用户已取消，立刻清理并退出
+      if (_cancelRequested) {
+        _cancelRequested = false;
+        await _cleanupStreamingResources();
+        emit(state.copyWith(
+          status: RecordingStatus.ready,
+          isWebSocketConnected: false,
+          errorMessage: null,
+          clearTranscription: true,
+        ));
+        return;
+      }
+
       // 4. 转发音频数据到ASR
       final audioStream = audioRepository.getAudioStream();
       if (audioStream == null) {
@@ -364,6 +446,19 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
     } catch (e) {
       // 重置连接标志
       _isConnecting = false;
+
+      // 如果是取消导致的中断，不做降级处理
+      if (_cancelRequested) {
+        _cancelRequested = false;
+        await _cleanupStreamingResources();
+        emit(state.copyWith(
+          status: RecordingStatus.ready,
+          isWebSocketConnected: false,
+          errorMessage: null,
+          clearTranscription: true,
+        ));
+        return;
+      }
 
       // 流式录音失败，降级到普通录音
       debugPrint('AudioBloc: Streaming failed, fallback to normal recording: $e');
@@ -424,6 +519,23 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
   ) async {
     debugPrint('AudioBloc: Finalizing streaming recording');
     _stopDurationTimer();
+    final session = _sessionToken;
+
+    if (_wasCanceled || _cancelRequested) {
+      await _cleanupStreamingResources();
+      emit(state.copyWith(
+        status: RecordingStatus.ready,
+        audioPath: null,
+        isWebSocketConnected: false,
+        clearTranscription: true,
+      ));
+      _wasCanceled = false;
+      _cancelRequested = false;
+      if (_sessionToken == session) {
+        _sessionToken = null;
+      }
+      return;
+    }
 
     emit(state.copyWith(status: RecordingStatus.processing));
 
@@ -446,11 +558,15 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
 
       // 5. 更新状态为完成
       if (audioPath != null) {
+        if (_sessionToken != session || session == null) {
+          return;
+        }
         emit(state.copyWith(
           status: RecordingStatus.completed,
           audioPath: audioPath,
           isWebSocketConnected: false,
         ));
+        _sessionToken = null;
       } else {
         emit(state.copyWith(
           status: RecordingStatus.error,
