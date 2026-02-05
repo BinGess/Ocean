@@ -14,6 +14,7 @@ import '../../widgets/mood_selection_modal.dart';
 import '../../widgets/nvc_confirmation_modal.dart';
 import '../../widgets/nvc_error_dialog.dart';
 import '../../widgets/loading_overlay.dart';
+import '../settings/settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -694,21 +695,30 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ),
           ),
 
-          // 右侧用户图标
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: const Color(0xFFD9C9B8),
-                width: 1.5,
+          // 右侧设置入口
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const SettingsScreen(),
+                ),
+              );
+            },
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFFD9C9B8),
+                  width: 1.5,
+                ),
               ),
-            ),
-            child: const Icon(
-              Icons.person_outline,
-              color: Color(0xFF8B7D6B),
-              size: 24,
+              child: const Icon(
+                Icons.settings_outlined,
+                color: Color(0xFF8B7D6B),
+                size: 22,
+              ),
             ),
           ),
         ],

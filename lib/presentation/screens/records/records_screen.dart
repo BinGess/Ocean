@@ -85,14 +85,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Color(0xFF8B7D6B)),
-            onPressed: () {
-              // TODO: 打开设置页面
-            },
-          ),
-        ],
+        actions: const [],
       ),
       body: BlocBuilder<RecordBloc, RecordState>(
         builder: (context, state) {
