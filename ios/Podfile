@@ -41,6 +41,11 @@ post_install do |installer|
     target.build_configurations.each do |config|
       # 统一提升 Pods 的最低部署版本，避免 Xcode 15+ 警告
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+
+      # 为 Release 配置生成 dSYM 文件
+      if config.name == 'Release' || config.name == 'Profile'
+        config.build_settings['DEBUG_INFORMATION_FORMAT'] = 'dwarf-with-dsym'
+      end
     end
   end
 end
