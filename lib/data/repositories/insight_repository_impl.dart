@@ -139,4 +139,28 @@ class InsightRepositoryImpl implements InsightRepository {
   Future<void> deleteInsightReportCache(String weekRange) async {
     await database.insightReportsBox.delete(weekRange);
   }
+
+  @override
+  Future<List<InsightReportCache>> getAllCachedInsightReports() async {
+    final List<InsightReportCache> results = [];
+    for (final raw in database.insightReportsBox.values) {
+      try {
+        final data = jsonDecode(raw) as Map<String, dynamic>;
+        final cachedAtStr = data['cached_at'] as String?;
+        final reportJson = data['report'] as Map<String, dynamic>?;
+        if (cachedAtStr == null || reportJson == null) continue;
+
+        final cachedAt = DateTime.tryParse(cachedAtStr);
+        if (cachedAt == null) continue;
+
+        final report = InsightReport.fromJson(reportJson);
+        results.add(InsightReportCache(report: report, cachedAt: cachedAt));
+      } catch (_) {
+        // 忽略解析失败的缓存
+      }
+    }
+
+    results.sort((a, b) => b.cachedAt.compareTo(a.cachedAt));
+    return results;
+  }
 }

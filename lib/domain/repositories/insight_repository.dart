@@ -60,4 +60,7 @@ abstract class InsightRepository {
 
   /// 删除洞察报告缓存（新版）
   Future<void> deleteInsightReportCache(String weekRange);
+
+  /// 获取所有洞察报告缓存（新版）
+  Future<List<InsightReportCache>> getAllCachedInsightReports();
 }
