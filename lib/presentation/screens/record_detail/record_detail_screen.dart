@@ -193,18 +193,44 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                 ),
               ),
             ),
-            TextButton(
-              onPressed: _saveAndClose,
-              child: const Text(
-                '完成',
-                style: TextStyle(
-                  color: Color(0xFF007AFF),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+          ],
+        ),
+        bottomNavigationBar: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F5F5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            top: false,
+            child: SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: _saveAndClose,
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFF5A9FD4),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  '完成',
+                  style: TextStyle(
+                    fontSize: 17,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
-          ],
+          ),
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
