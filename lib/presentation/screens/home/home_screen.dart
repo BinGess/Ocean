@@ -704,20 +704,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ),
               );
             },
-            child: Container(
+            child: const SizedBox(
               width: 44,
               height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0xFFD9C9B8),
-                  width: 1.5,
+              child: Center(
+                child: Icon(
+                  Icons.settings_outlined,
+                  color: Color(0xFF8B7D6B),
+                  size: 24,
                 ),
-              ),
-              child: const Icon(
-                Icons.settings_outlined,
-                color: Color(0xFF8B7D6B),
-                size: 22,
               ),
             ),
           ),
