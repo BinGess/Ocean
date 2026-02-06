@@ -1,7 +1,6 @@
 // 生成洞察报告用例
 // 分析一周的记录并生成洞察报告
 
-import 'package:intl/intl.dart';
 import '../entities/record.dart';
 import '../entities/insight_report.dart';
 import '../repositories/record_repository.dart';
@@ -74,12 +73,18 @@ class GenerateInsightReportUseCase
   }
 
   /// 将记录转换为洞察请求格式
+  /// 格式：2026-01-22 周四 21:30
   List<InsightRequestRecord> _convertToRequestRecords(List<Record> records) {
-    final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
+    const weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 
     return records.map((record) {
+      final date = record.createdAt;
+      final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final weekDay = weekDays[date.weekday - 1];
+      final timeStr = '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+
       return InsightRequestRecord(
-        recordTime: dateFormat.format(record.createdAt),
+        recordTime: '$dateStr $weekDay $timeStr',
         content: record.transcription,
       );
     }).toList();
