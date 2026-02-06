@@ -134,8 +134,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
           // 按日期分组记录
           final groupedRecords = _groupRecordsByDate(state.records);
-          // 无记录时仅显示当天卡片，避免空白多天列表
-          final dateRange = state.isEmpty ? _getTodayOnly() : _getLast7Days();
+          // 无记录时仅显示当天卡片；有记录时只展示有记录的日期，避免空白多天列表
+          final dateRange = state.isEmpty ? _getTodayOnly() : _getDatesWithRecords(groupedRecords);
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -170,6 +170,13 @@ class _RecordsScreenState extends State<RecordsScreen> {
   List<DateTime> _getTodayOnly() {
     final now = DateTime.now();
     return [DateTime(now.year, now.month, now.day)];
+  }
+
+  /// 仅返回有记录的日期（按时间倒序）
+  List<DateTime> _getDatesWithRecords(Map<DateTime, List<Record>> groupedRecords) {
+    final dates = groupedRecords.keys.toList();
+    dates.sort((a, b) => b.compareTo(a));
+    return dates;
   }
 
   /// 按日期分组记录

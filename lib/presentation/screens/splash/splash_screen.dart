@@ -108,7 +108,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                   // App 名称
                   const Text(
-                    'MindFlow',
+                    '瞬记',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w600,

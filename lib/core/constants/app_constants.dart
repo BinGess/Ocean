@@ -3,7 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConstants {
   // 应用信息
-  static const String appName = 'MindFlow';
+  static const String appName = '瞬记';
   static const String appVersion = '1.0.0';
 
   // 豆包语音识别 API 配置
