@@ -1,6 +1,7 @@
 // MindFlow 应用入口
 // 情绪觉察日记 App
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -96,7 +97,25 @@ class _AppEntryPointState extends State<AppEntryPoint> {
 
       // 预热录音资源
       audioBloc.add(const AudioWarmUp());
+
+      // 触发网络权限弹窗（iOS 首次网络请求会弹出"无线数据"权限）
+      _triggerNetworkPermission();
     });
+  }
+
+  /// 触发网络权限
+  /// iOS 首次发起网络请求时会弹出"是否允许使用无线数据"对话框
+  Future<void> _triggerNetworkPermission() async {
+    try {
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 3);
+      final request = await client.headUrl(Uri.parse('https://www.apple.com'));
+      final response = await request.close();
+      response.drain();
+      client.close();
+    } catch (_) {
+      // 忽略错误，仅用于触发权限弹窗
+    }
   }
 
   void _onSplashComplete() {
