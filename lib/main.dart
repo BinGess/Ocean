@@ -108,14 +108,15 @@ class _AppEntryPointState extends State<AppEntryPoint> {
   /// 触发网络权限
   /// iOS 首次发起网络请求时会弹出"是否允许使用无线数据"对话框
   void _triggerNetworkPermission() {
-    // 使用 Dio 发起一个简单的 GET 请求触发 iOS 网络权限弹窗
+    // 向 ASR 服务器域名发起请求，确保与后续 WebSocket 连接使用同一域名
+    // 这样 iOS 只会弹出一次网络权限对话框
     final dio = Dio(BaseOptions(
       connectTimeout: const Duration(seconds: 5),
       receiveTimeout: const Duration(seconds: 5),
     ));
 
-    // 不等待结果，仅触发网络请求
-    dio.get('https://www.apple.com/library/test/success.html').then((_) {
+    // 使用 ASR 服务的域名（与 WebSocket 连接同域名）
+    dio.get('https://openspeech.bytedance.com').then((_) {
       dio.close();
     }).catchError((_) {
       dio.close();
