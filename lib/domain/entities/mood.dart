@@ -1,5 +1,6 @@
 /// 情绪实体
 /// 对应 TypeScript 的 Mood 模型
+library;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 

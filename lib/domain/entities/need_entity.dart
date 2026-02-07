@@ -1,5 +1,6 @@
 /// 需要实体（NVC 需要）
 /// 对应 TypeScript 的 Need 模型
+library;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 

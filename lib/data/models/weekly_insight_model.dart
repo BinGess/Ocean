@@ -1,5 +1,6 @@
 /// 周洞察数据模型（Hive）
 /// 用于本地存储的 WeeklyInsight 模型
+library;
 
 import 'package:hive/hive.dart';
 import '../../domain/entities/weekly_insight.dart';

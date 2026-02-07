@@ -1,5 +1,6 @@
 /// 记录实体（领域层）
 /// 对应 TypeScript 的 Record 模型
+library;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'nvc_analysis.dart';

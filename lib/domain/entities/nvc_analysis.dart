@@ -1,5 +1,6 @@
 /// NVC 分析结果实体（非暴力沟通）
 /// 对应 TypeScript 的 NVCAnalysis 模型
+library;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
