@@ -75,6 +75,30 @@ class AppEntryPoint extends StatefulWidget {
 class _AppEntryPointState extends State<AppEntryPoint> {
   bool _showSplash = true;
 
+  @override
+  void initState() {
+    super.initState();
+    // 开屏期间预先请求权限和预热资源
+    _requestPermissionsAndWarmUp();
+  }
+
+  /// 请求权限并预热资源
+  void _requestPermissionsAndWarmUp() {
+    // 延迟 200ms 等待 BLoC 初始化完成
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (!mounted) return;
+      final audioBloc = context.read<AudioBloc>();
+
+      // 请求麦克风权限
+      if (!audioBloc.state.hasPermission) {
+        audioBloc.add(const AudioRequestPermission());
+      }
+
+      // 预热录音资源
+      audioBloc.add(const AudioWarmUp());
+    });
+  }
+
   void _onSplashComplete() {
     setState(() {
       _showSplash = false;
