@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -1233,7 +1234,7 @@ class _RippleEffectState extends State<_RippleEffect>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
-  static const Duration _slowDuration = Duration(milliseconds: 2200);
+  static const Duration _slowDuration = Duration(milliseconds: 5000); //调整首页的水波纹动画快慢
   static const Duration _fastDuration = Duration(milliseconds: 1000);
 
   @override
@@ -1272,14 +1273,16 @@ class _RippleEffectState extends State<_RippleEffect>
             final progress = (_controller.value + phaseOffset) % 1.0;
 
             // 波纹从按钮边缘向外扩展
-            final minSize = widget.isActive ? 125.0 : 122.0;
-            final maxSize = widget.isActive ? 160.0 : 155.0;
+            final minSize = widget.isActive ? 125.0 : 120.0;
+            final maxSize = widget.isActive ? 160.0 : 350.0; //调整水波纹的范围
             final size = minSize + (maxSize - minSize) * progress;
 
-            // 透明度：非线性衰减，中段更明显
-            final baseAlpha = widget.isActive ? 0.55 : 0.4;
-            final fade = (1.0 - progress) * (0.3 + 0.7 * (1.0 - progress));
-            final alpha = baseAlpha * fade;
+            // 透明度：扩散过程中持续衰减（非激活更明显），避免“到最外圈才消失”
+            final baseAlpha = widget.isActive ? 0.55 : 0.36;
+            final baseFade = widget.isActive
+                ? (1.0 - progress) * (0.3 + 0.7 * (1.0 - progress))
+                : math.pow(1.0 - progress, 1.7).toDouble();
+            final alpha = baseAlpha * baseFade;
 
             // 边框宽度渐变
             final borderWidth = widget.isActive
