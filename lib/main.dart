@@ -85,9 +85,6 @@ class _AppEntryPointState extends State<AppEntryPoint> {
 
   /// 请求权限并预热资源
   void _requestPermissionsAndWarmUp() {
-    // 立即触发网络权限弹窗（最优先，确保在开屏期间弹出）
-    _triggerNetworkPermission();
-
     // 延迟 200ms 等待 BLoC 初始化完成后请求麦克风权限
     Future.delayed(const Duration(milliseconds: 200), () {
       if (!mounted) return;
@@ -100,6 +97,11 @@ class _AppEntryPointState extends State<AppEntryPoint> {
 
       // 预热录音资源
       audioBloc.add(const AudioWarmUp());
+
+      // 麦克风权限请求后再触发网络权限弹窗（避免两个弹窗同时出现）
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _triggerNetworkPermission();
+      });
     });
   }
 
