@@ -66,13 +66,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     // 加载最近的记录
     context.read<RecordBloc>().add(const RecordLoadList(limit: 5));
 
-    // 主动检查并请求录音权限（避免在按下录音按钮时才弹出权限对话框）
+    // 注：权限和预热已在 AppEntryPoint 开屏期间处理
+    // 这里仅作为备用检查，确保权限状态正确
     _checkAndRequestPermission();
-    // 预热录音资源，降低首次录音卡顿
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (!mounted) return;
-      context.read<AudioBloc>().add(const AudioWarmUp());
-    });
 
     // 初始页设为中间的大数值，方便无限滚动
     int initialPage = 1000;
@@ -111,20 +107,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _isDescriptionPaused = false;
   }
 
-  /// 检查并请求录音权限
-  /// 在页面初始化时调用，避免用户按下录音按钮时才弹出权限对话框
+  /// 备用权限检查
+  /// 权限已在 AppEntryPoint 开屏期间请求
+  /// 这里仅作为备用，处理权限被拒绝后用户从设置中重新授予的情况
   void _checkAndRequestPermission() {
     final audioBloc = context.read<AudioBloc>();
-    final audioState = audioBloc.state;
-
-    // 如果还没有权限，先检查权限状态
-    if (!audioState.hasPermission) {
-      // 延迟一小段时间再请求，让页面先完成渲染
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (!mounted) return;
-        // 直接请求权限（会触发系统权限对话框）
-        context.read<AudioBloc>().add(const AudioRequestPermission());
-      });
+    // 仅检查权限状态，不主动请求（避免重复弹出对话框）
+    if (!audioBloc.state.hasPermission) {
+      audioBloc.add(const AudioCheckPermission());
     }
   }
 
@@ -146,15 +136,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         context.read<AudioBloc>().add(const AudioCancelRecording());
         HapticFeedback.lightImpact();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
+          const SnackBar(
+            content: Row(
               children: [
                 Icon(Icons.info_outline, color: Color(0xFFFFB74D), size: 20),
                 SizedBox(width: 8),
                 Text('录音太短，请重试'),
               ],
             ),
-            duration: const Duration(seconds: 2),
+            duration: Duration(seconds: 2),
           ),
         );
         return;
@@ -169,15 +159,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         context.read<AudioBloc>().add(const AudioCancelRecording());
         HapticFeedback.lightImpact();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
+          const SnackBar(
+            content: Row(
               children: [
                 Icon(Icons.info_outline, color: Color(0xFFFFB74D), size: 20),
                 SizedBox(width: 8),
                 Text('录音太短，请重试'),
               ],
             ),
-            duration: const Duration(seconds: 2),
+            duration: Duration(seconds: 2),
           ),
         );
         return;
@@ -278,8 +268,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     switch (mode) {
       case ProcessingMode.onlyRecord:
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
+          const SnackBar(
+            content: Row(
               children: [
                 SizedBox(
                   width: 18,
@@ -293,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 Text('正在保存记录...'),
               ],
             ),
-            duration: const Duration(seconds: 2),
+            duration: Duration(seconds: 2),
           ),
         );
         context.read<RecordBloc>().add(
@@ -311,8 +301,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         if (moods != null) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Row(
+            const SnackBar(
+              content: Row(
                 children: [
                   SizedBox(
                     width: 18,
@@ -326,7 +316,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   Text('正在保存记录...'),
                 ],
               ),
-              duration: const Duration(seconds: 2),
+              duration: Duration(seconds: 2),
             ),
           );
           context.read<RecordBloc>().add(
@@ -345,36 +335,36 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         // 检查转写内容是否有效
         if (transcription == null || transcription.isEmpty || transcription == '正在转写中...') {
            ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(
-               content: const Row(
+             const SnackBar(
+               content: Row(
                  children: [
                    Icon(Icons.hourglass_empty, color: Color(0xFFFFB74D), size: 20),
                    SizedBox(width: 8),
                    Text('转写未完成，请稍后...'),
                  ],
                ),
-               duration: const Duration(seconds: 2),
+               duration: Duration(seconds: 2),
              ),
            );
            return;
         }
 
         // 触发 NVC 分析，分析完成后会在 BlocListener 中处理
-        if (transcription != null && transcription.isNotEmpty) {
+        if (transcription.isNotEmpty) {
            context.read<RecordBloc>().add(RecordAnalyzeNVC(transcription));
            // 注意：这里不要立即清除 _completedAudioPath，因为后续保存还需要它
         } else {
            // 如果没有转写文本，无法分析，降级为直接保存
            ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(
-               content: const Row(
+             const SnackBar(
+               content: Row(
                  children: [
                    Icon(Icons.info_outline, color: Color(0xFFFFB74D), size: 20),
                    SizedBox(width: 8),
                    Flexible(child: Text('暂无转写文本，已自动转为仅记录')),
                  ],
                ),
-               duration: const Duration(seconds: 3),
+               duration: Duration(seconds: 3),
              ),
            );
            context.read<RecordBloc>().add(
@@ -455,7 +445,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   _ignoreNextCompletion = false;
                   return;
                 }
-                final minSeconds = _minRecordingDurationMs / 1000.0;
+                const minSeconds = _minRecordingDurationMs / 1000.0;
                 if (audioState.duration < minSeconds) {
                   return;
                 }
@@ -501,8 +491,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             result?.analysis != null &&
                             _completedAudioPath != null) {
                           messenger.showSnackBar(
-                            SnackBar(
-                              content: const Row(
+                            const SnackBar(
+                              content: Row(
                                 children: [
                                   SizedBox(
                                     width: 18,
@@ -516,7 +506,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                   Text('正在保存记录...'),
                                 ],
                               ),
-                              duration: const Duration(seconds: 2),
+                              duration: Duration(seconds: 2),
                             ),
                           );
                           recordBloc.add(
@@ -531,15 +521,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         } else if (result?.action == NVCModalAction.delete) {
                           // 用户选择了删除，清理音频文件
                           messenger.showSnackBar(
-                            SnackBar(
-                              content: const Row(
+                            const SnackBar(
+                              content: Row(
                                 children: [
                                   Icon(Icons.cancel_outlined, color: Color(0xFFB0B0B0), size: 20),
                                   SizedBox(width: 8),
                                   Text('已取消保存'),
                                 ],
                               ),
-                              duration: const Duration(seconds: 2),
+                              duration: Duration(seconds: 2),
                             ),
                           );
                           _clearCompletedAudio();
@@ -583,15 +573,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
                 if (recordState.isSuccess && recordState.latestRecord != null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Row(
+                    const SnackBar(
+                      content: Row(
                         children: [
                           Icon(Icons.check_circle, color: Color(0xFF4CAF50), size: 20),
                           SizedBox(width: 8),
                           Text('记录已保存'),
                         ],
                       ),
-                      duration: const Duration(seconds: 2),
+                      duration: Duration(seconds: 2),
                     ),
                   );
                 }
@@ -1088,7 +1078,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   : (isEmptyText
                       ? _buildTranscriptionSkeleton()
                       : Text(
-                          transcription!,
+                          transcription,
                           style: TextStyle(
                             fontSize: 16,
                             color: audioState.isTranscriptionFinal
