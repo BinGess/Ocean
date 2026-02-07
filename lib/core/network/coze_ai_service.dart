@@ -5,6 +5,7 @@
 /// - NVC分析（观察-感受-需要-请求）
 /// - SSE流式响应处理
 /// - 灵活的JSON解析
+library;
 
 import 'dart:async';
 import 'dart:convert';
@@ -288,7 +289,7 @@ class CozeAIService {
     }
 
     final result = buffer.toString();
-    print('✅ CozeAI: SSE解析完成: $eventCount个事件, ${answerEventCount}个answer事件, 提取${result.length}字符');
+    print('✅ CozeAI: SSE解析完成: $eventCount个事件, $answerEventCount个answer事件, 提取${result.length}字符');
 
     return result;
   }

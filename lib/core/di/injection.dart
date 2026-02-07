@@ -1,5 +1,6 @@
 /// 依赖注入配置
 /// 使用 get_it 进行依赖管理
+library;
 
 import 'package:get_it/get_it.dart';
 import '../../domain/repositories/audio_repository.dart';

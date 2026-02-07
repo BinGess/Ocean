@@ -185,10 +185,10 @@ class _HistoryReportsScreenState extends State<HistoryReportsScreen> {
     final diff = now.difference(cachedAt);
     final days = diff.inDays;
     if (days <= 0) return '今天';
-    if (days < 7) return '${days}天前';
+    if (days < 7) return '$days天前';
     final weeks = (days / 7).floor();
-    if (weeks < 5) return '${weeks}周前';
+    if (weeks < 5) return '$weeks周前';
     final months = (days / 30).floor();
-    return '${months}月前';
+    return '$months月前';
   }
 }

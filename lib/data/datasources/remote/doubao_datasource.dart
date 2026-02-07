@@ -1,5 +1,6 @@
 /// 豆包远程数据源
 /// 封装豆包 API 调用
+library;
 
 import 'dart:async';
 import 'dart:typed_data';

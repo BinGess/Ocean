@@ -1,5 +1,6 @@
 /// Hive 数据库配置
 /// 管理本地数据存储
+library;
 
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../models/record_model.dart';

@@ -1,5 +1,6 @@
 /// 豆包 LLM (大语言模型) 客户端
 /// 用于 NVC 分析和周洞察生成
+library;
 
 import 'dart:convert';
 import 'package:dio/dio.dart';

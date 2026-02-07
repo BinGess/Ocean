@@ -1,5 +1,6 @@
 /// AI 仓储实现
 /// 使用豆包 API 进行语音识别和 NVC 分析
+library;
 
 import 'dart:io';
 import 'dart:typed_data';

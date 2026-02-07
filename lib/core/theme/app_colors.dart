@@ -1,5 +1,6 @@
 /// 应用色彩配置
 /// 对应 React 版本的 Tailwind 配置
+library;
 
 import 'package:flutter/material.dart';
 

@@ -1,5 +1,6 @@
 /// 记录详情页面
 /// 用于查看和编辑单条记录，支持添加标签和触发NVC分析
+library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -52,7 +53,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
       builder: (context) => _TagEditDialog(
         title: '编辑我的感受',
         initialTags: _selectedMoods,
-        suggestions: ['焦虑', '开心', '平静', '愤怒', '悲伤', '好奇', '思考', '感激', '疲惫', '兴奋', '不适', '愧疚', '无奈'],
+        suggestions: const ['焦虑', '开心', '平静', '愤怒', '悲伤', '好奇', '思考', '感激', '疲惫', '兴奋', '不适', '愧疚', '无奈'],
         iconColor: const Color(0xFFFF9500),
         iconBgColor: const Color(0xFFFFF4E6),
         icon: Icons.favorite,

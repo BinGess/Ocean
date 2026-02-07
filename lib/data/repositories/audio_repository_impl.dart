@@ -1,5 +1,6 @@
 /// 音频仓储实现
 /// 使用 record 包进行音频录制
+library;
 
 import 'dart:async';
 import 'dart:io';
@@ -63,6 +64,7 @@ class AudioRepositoryImpl implements AudioRepository {
 
   /// 开始流式录音（用于实时转写）
   /// 返回值：是否成功开始录音
+  @override
   Future<bool> startStreamingRecording() async {
     try {
       // 检查权限

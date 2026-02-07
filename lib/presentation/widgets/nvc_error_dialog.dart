@@ -44,8 +44,8 @@ class NVCErrorDialog extends StatelessWidget {
             Container(
               width: 80,
               height: 80,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF4E6),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFFF4E6),
                 shape: BoxShape.circle,
               ),
               child: Icon(

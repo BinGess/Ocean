@@ -1,4 +1,5 @@
 /// 应用核心常量配置
+library;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConstants {
