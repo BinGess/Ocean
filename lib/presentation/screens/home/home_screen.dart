@@ -767,6 +767,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final isConnecting = _isPressed &&
         !audioState.isRecording &&
         !audioState.isStreamingRecording;
+    final isPressingOnly = _isPressed && !audioState.isRecording;
+    final buttonSize = audioState.isRecording ? 106.0 : (_isPressed ? 102.0 : 120.0);
+    final iconSize = audioState.isRecording ? 38.0 : (_isPressed ? 40.0 : 48.0);
+    final ringAlpha = isPressingOnly ? 0.5 : (isActive ? 0.35 : 0.12);
+    final ringWidth = isPressingOnly ? 2.4 : (isActive ? 1.8 : 1.2);
+    final mainBorderWidth = isPressingOnly ? 2.9 : (isActive ? 2.6 : 2.2);
+    final mainGlowAlpha = isPressingOnly ? 0.3 : (isActive ? 0.24 : 0.18);
+    final mainGlowBlur = isPressingOnly ? 28.0 : (isActive ? 24.0 : 12.0);
+    final mainGlowSpread = isPressingOnly ? 4.4 : (isActive ? 3.5 : 2.0);
 
     // 控制脉冲动画
     if (audioState.isRecording && !_pulseController.isAnimating) {
@@ -864,12 +873,30 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         },
                       ),
 
+                    // 按住时柔和外环，增强触达反馈
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOutCubic,
+                      width: isActive ? buttonSize + 20 : buttonSize + 6,
+                      height: isActive ? buttonSize + 20 : buttonSize + 6,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: (isConnecting
+                                  ? const Color(0xFF9ECDF4)
+                                  : const Color(0xFFD9C9B8))
+                              .withValues(alpha: ringAlpha),
+                          width: ringWidth,
+                        ),
+                      ),
+                    ),
+
                     // 主按钮
                     AnimatedContainer(
-                      duration: const Duration(milliseconds: 100),
+                      duration: const Duration(milliseconds: 160),
                       curve: Curves.easeOutCubic,
-                      width: isActive ? 100 : 120,
-                      height: isActive ? 100 : 120,
+                      width: buttonSize,
+                      height: buttonSize,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: (isConnecting
@@ -877,36 +904,37 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                 : (audioState.isRecording
                                     ? const Color(0xFFFFF7EE)
                                     : Colors.white))
-                            .withValues(alpha: isActive ? 0.96 : 0.92),
+                            .withValues(alpha: isActive ? 0.97 : 0.93),
                         border: Border.all(
                           color: isActive
                               ? const Color(0xFFC4A57B)
                               : const Color(0xFFD9C9B8),
-                          width: isActive ? 3 : 2.5,
+                          width: mainBorderWidth,
                         ),
                         boxShadow: isActive
                             ? [
                                 BoxShadow(
-                                  color: const Color(0xFFC4A57B).withValues(alpha: 0.28),
-                                  blurRadius: 26,
-                                  spreadRadius: 5,
+                                  color: const Color(0xFFC4A57B).withValues(alpha: mainGlowAlpha),
+                                  blurRadius: mainGlowBlur,
+                                  spreadRadius: mainGlowSpread,
+                                  offset: const Offset(0, 4),
                                 ),
                               ]
                             : [
                                 BoxShadow(
-                                  color: const Color(0xFFD9C9B8).withValues(alpha: 0.22),
-                                  blurRadius: 14,
-                                  spreadRadius: 2.5,
+                                  color: const Color(0xFFD9C9B8).withValues(alpha: 0.18),
+                                  blurRadius: 12,
+                                  spreadRadius: 2.0,
                                   offset: const Offset(0, 4),
                                 ),
                               ],
                       ),
                       child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 150),
+                        duration: const Duration(milliseconds: 180),
                         child: Icon(
                           audioState.isRecording ? Icons.stop_rounded : Icons.mic_rounded,
                           key: ValueKey(audioState.isRecording),
-                          size: isActive ? 40 : 48,
+                          size: iconSize,
                           color: isActive
                               ? const Color(0xFFC4A57B)
                               : const Color(0xFFD9C9B8),
@@ -1224,8 +1252,8 @@ class _RippleEffectState extends State<_RippleEffect>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
-  static const Duration _slowDuration = Duration(milliseconds: 5000); //调整首页的水波纹动画快慢
-  static const Duration _fastDuration = Duration(milliseconds: 1000);
+  static const Duration _slowDuration = Duration(milliseconds: 4200);
+  static const Duration _fastDuration = Duration(milliseconds: 900);
 
   @override
   void initState() {
@@ -1263,26 +1291,27 @@ class _RippleEffectState extends State<_RippleEffect>
             final progress = (_controller.value + phaseOffset) % 1.0;
 
             // 波纹从按钮边缘向外扩展
-            final minSize = widget.isActive ? 125.0 : 120.0;
-            final maxSize = widget.isActive ? 160.0 : 350.0; //调整水波纹的范围
+            final minSize = widget.isActive ? 126.0 : 118.0;
+            final maxSize = widget.isActive ? 178.0 : 220.0;
             final size = minSize + (maxSize - minSize) * progress;
 
             // 透明度：扩散过程中持续衰减（非激活更明显），避免“到最外圈才消失”
-            final baseAlpha = widget.isActive ? 0.55 : 0.36;
-            final baseFade = widget.isActive
-                ? (1.0 - progress) * (0.3 + 0.7 * (1.0 - progress))
-                : math.pow(1.0 - progress, 1.7).toDouble();
-            final alpha = baseAlpha * baseFade;
+            final baseAlpha = widget.isActive ? 0.48 : 0.28;
+            // 使用更前置的衰减曲线：刚开始扩散就变淡，而不是到最外层才明显消失
+            final fadeFactor = widget.isActive
+                ? math.pow(1.0 - progress, 2.0).toDouble()
+                : math.pow(1.0 - progress, 2.2).toDouble();
+            final alpha = (baseAlpha * fadeFactor).clamp(0.0, 1.0);
 
             // 边框宽度渐变
             final borderWidth = widget.isActive
-                ? 2.5 - progress * 1.5
-                : 2.0 - progress * 1.0;
+                ? 2.0 - progress * 1.0
+                : 1.6 - progress * 0.8;
 
             // 颜色
             final color = widget.isActive
                 ? const Color(0xFFC4A57B)
-                : const Color(0xFFCDBBA8);
+                : const Color(0xFFDCCDBF);
 
             return Container(
               width: size,
