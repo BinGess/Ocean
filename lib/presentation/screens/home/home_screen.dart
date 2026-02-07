@@ -66,13 +66,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     // 加载最近的记录
     context.read<RecordBloc>().add(const RecordLoadList(limit: 5));
 
-    // 主动检查并请求录音权限（避免在按下录音按钮时才弹出权限对话框）
+    // 注：权限和预热已在 AppEntryPoint 开屏期间处理
+    // 这里仅作为备用检查，确保权限状态正确
     _checkAndRequestPermission();
-    // 预热录音资源，降低首次录音卡顿
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (!mounted) return;
-      context.read<AudioBloc>().add(const AudioWarmUp());
-    });
 
     // 初始页设为中间的大数值，方便无限滚动
     int initialPage = 1000;
@@ -111,20 +107,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _isDescriptionPaused = false;
   }
 
-  /// 检查并请求录音权限
-  /// 在页面初始化时调用，避免用户按下录音按钮时才弹出权限对话框
+  /// 备用权限检查
+  /// 权限已在 AppEntryPoint 开屏期间请求
+  /// 这里仅作为备用，处理权限被拒绝后用户从设置中重新授予的情况
   void _checkAndRequestPermission() {
     final audioBloc = context.read<AudioBloc>();
-    final audioState = audioBloc.state;
-
-    // 如果还没有权限，先检查权限状态
-    if (!audioState.hasPermission) {
-      // 延迟一小段时间再请求，让页面先完成渲染
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (!mounted) return;
-        // 直接请求权限（会触发系统权限对话框）
-        context.read<AudioBloc>().add(const AudioRequestPermission());
-      });
+    // 仅检查权限状态，不主动请求（避免重复弹出对话框）
+    if (!audioBloc.state.hasPermission) {
+      audioBloc.add(const AudioCheckPermission());
     }
   }
 

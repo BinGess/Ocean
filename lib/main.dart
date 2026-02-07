@@ -1,6 +1,7 @@
 // MindFlow 应用入口
 // 情绪觉察日记 App
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -74,6 +75,50 @@ class AppEntryPoint extends StatefulWidget {
 
 class _AppEntryPointState extends State<AppEntryPoint> {
   bool _showSplash = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // 开屏期间预先请求权限和预热资源
+    _requestPermissionsAndWarmUp();
+  }
+
+  /// 请求权限并预热资源
+  void _requestPermissionsAndWarmUp() {
+    // 立即触发网络权限弹窗（最优先，确保在开屏期间弹出）
+    _triggerNetworkPermission();
+
+    // 延迟 200ms 等待 BLoC 初始化完成后请求麦克风权限
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (!mounted) return;
+      final audioBloc = context.read<AudioBloc>();
+
+      // 请求麦克风权限
+      if (!audioBloc.state.hasPermission) {
+        audioBloc.add(const AudioRequestPermission());
+      }
+
+      // 预热录音资源
+      audioBloc.add(const AudioWarmUp());
+    });
+  }
+
+  /// 触发网络权限
+  /// iOS 首次发起网络请求时会弹出"是否允许使用无线数据"对话框
+  void _triggerNetworkPermission() {
+    // 使用 Dio 发起一个简单的 GET 请求触发 iOS 网络权限弹窗
+    final dio = Dio(BaseOptions(
+      connectTimeout: const Duration(seconds: 5),
+      receiveTimeout: const Duration(seconds: 5),
+    ));
+
+    // 不等待结果，仅触发网络请求
+    dio.get('https://www.apple.com/library/test/success.html').then((_) {
+      dio.close();
+    }).catchError((_) {
+      dio.close();
+    });
+  }
 
   void _onSplashComplete() {
     setState(() {
