@@ -73,15 +73,15 @@ class _RecordsScreenState extends State<RecordsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: const Color(0xFFFAF6F1),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFFAF6F1),
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         title: const Text(
           '每日记录',
           style: TextStyle(
-            color: Color(0xFF2C2C2C),
+            color: Color(0xFF5D4E3C),
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
@@ -211,11 +211,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
             offset: const Offset(0, 2),
           ),
         ],
@@ -237,15 +237,15 @@ class _RecordsScreenState extends State<RecordsScreen> {
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF2C2C2C),
+                        color: Color(0xFF5D4E3C),
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       _getDateLabel(date),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 13,
-                        color: Colors.grey[500],
+                        color: Color(0xFFB8ADA0),
                       ),
                     ),
                   ],
@@ -300,12 +300,12 @@ class _RecordsScreenState extends State<RecordsScreen> {
         child: TextButton(
           onPressed: widget.onNavigateToHome,
           style: TextButton.styleFrom(
-            backgroundColor: const Color(0xFFF8F6F3),
+            backgroundColor: const Color(0xFFFAF8F5),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
               side: BorderSide(
-                color: Colors.grey[200]!,
+                color: const Color(0xFFEFE7DD),
                 width: 1,
               ),
             ),
@@ -323,7 +323,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 '暂无内容，写写',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey[600],
+                  color: const Color(0xFF8B7D6B),
                 ),
               ),
             ],
@@ -349,9 +349,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
             // 时间
             Text(
               _formatTime(record.createdAt),
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 13,
-                color: Colors.grey[500],
+                color: Color(0xFFB8ADA0),
               ),
             ),
 
@@ -392,8 +392,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
               record.transcription,
               style: const TextStyle(
                 fontSize: 15,
-                color: Color(0xFF4A4A4A),
-                height: 1.6,
+                color: Color(0xFF5D4E3C),
+                height: 1.8,
               ),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
