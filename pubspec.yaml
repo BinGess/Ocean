@@ -52,6 +52,7 @@ dependencies:
   bloc_concurrency: ^0.2.5
   url_launcher: ^6.3.0
   share_plus: ^10.0.2
+  screenshot: ^3.0.0
 
 dev_dependencies:
   flutter_test:

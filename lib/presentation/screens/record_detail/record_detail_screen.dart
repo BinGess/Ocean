@@ -11,6 +11,7 @@ import '../../bloc/record/record_state.dart';
 import '../../widgets/nvc_confirmation_modal.dart';
 import '../../widgets/nvc_error_dialog.dart';
 import '../../widgets/delete_confirmation_dialog.dart';
+import '../share/share_poster_screen.dart';
 
 class RecordDetailScreen extends StatefulWidget {
   final Record record;
@@ -183,6 +184,15 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
           ),
           centerTitle: true,
           actions: [
+            // 分享按钮
+            IconButton(
+              icon: const Icon(Icons.share_outlined, size: 22, color: Color(0xFF48697A)),
+              onPressed: () => SharePosterScreen.show(
+                context: context,
+                record: widget.record,
+              ),
+              tooltip: '分享海报',
+            ),
             TextButton(
               onPressed: _deleteRecord,
               child: const Text(
