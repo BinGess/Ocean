@@ -172,7 +172,7 @@ class InsightPoster extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            report.emotionOverview.content,
+            report.emotionOverview.summary,
             style: TextStyle(
               fontSize: 14,
               color: colorScheme.textPrimary,
@@ -212,7 +212,7 @@ class InsightPoster extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
-                emotion.situation,
+                emotion.content,
                 style: TextStyle(
                   fontSize: 13,
                   color: colorScheme.textPrimary,
@@ -228,7 +228,7 @@ class InsightPoster extends StatelessWidget {
 
   Widget _buildPatternInsight(PosterColorScheme colorScheme) {
     // 解析 patternHypothesis 中的 <highlight> 标签
-    final pattern = report.patternHypothesis.template;
+    final pattern = report.patternHypothesis.text;
 
     return Container(
       padding: const EdgeInsets.all(16),
