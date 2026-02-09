@@ -154,23 +154,16 @@ class InsightEditorialPoster extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '周',
+          '周洞察',
+          maxLines: 1,
+          softWrap: false,
+          overflow: TextOverflow.visible,
           style: TextStyle(
-            fontSize: 72,
+            fontSize: 64,
             fontWeight: FontWeight.w200,
             color: colorScheme.textPrimary,
-            height: 0.9,
-            letterSpacing: -2,
-          ),
-        ),
-        Text(
-          '洞察',
-          style: TextStyle(
-            fontSize: 72,
-            fontWeight: FontWeight.w200,
-            color: colorScheme.textPrimary,
-            height: 0.9,
-            letterSpacing: -2,
+            height: 1.0,
+            letterSpacing: -1.5,
           ),
         ),
         const SizedBox(height: 8),
@@ -228,9 +221,17 @@ class InsightEditorialPoster extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   color: colorScheme.textPrimary,
-                  height: 1.7,
+                  height: 1.65,
                 ),
-                maxLines: 4,
+                strutStyle: const StrutStyle(
+                  height: 1.65,
+                  forceStrutHeight: true,
+                ),
+                textHeightBehavior: const TextHeightBehavior(
+                  applyHeightToFirstAscent: false,
+                  applyHeightToLastDescent: true,
+                ),
+                maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
             ],
@@ -267,7 +268,15 @@ class InsightEditorialPoster extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               color: colorScheme.textPrimary,
-              height: 1.6,
+              height: 1.55,
+            ),
+            strutStyle: const StrutStyle(
+              height: 1.55,
+              forceStrutHeight: true,
+            ),
+            textHeightBehavior: const TextHeightBehavior(
+              applyHeightToFirstAscent: false,
+              applyHeightToLastDescent: true,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
