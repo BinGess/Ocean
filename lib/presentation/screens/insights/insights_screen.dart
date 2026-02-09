@@ -201,59 +201,62 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
                           color: Color(0xFFB8ADA0),
                         ),
                       ),
-                      // 分享、刷新按钮和更新时间
+                      // 分享、刷新按钮
                       Row(
                         children: [
-                          if (lastFetchTime != null)
-                            Text(
-                              _formatLastFetchTime(lastFetchTime),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFFB8ADA0),
-                              ),
-                            ),
-                          const SizedBox(width: 8),
                           // 分享按钮
-                          GestureDetector(
-                            onTap: () => ShareInsightScreen.show(
-                              context: context,
-                              report: report,
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF5EBE0),
-                                borderRadius: BorderRadius.circular(8),
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () => ShareInsightScreen.show(
+                                context: context,
+                                report: report,
                               ),
-                              child: const Icon(
-                                Icons.share_outlined,
-                                size: 18,
-                                color: Color(0xFF48697A),
+                              borderRadius: BorderRadius.circular(8),
+                              splashColor: const Color(0xFFC4A57B).withValues(alpha: 0.18),
+                              highlightColor: const Color(0xFFC4A57B).withValues(alpha: 0.12),
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF5EBE0),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.share_outlined,
+                                  size: 18,
+                                  color: Color(0xFFC4A57B),
+                                ),
                               ),
                             ),
                           ),
                           const SizedBox(width: 8),
                           // 刷新按钮
-                          GestureDetector(
-                            onTap: _onRefresh,
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF5EBE0),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: AnimatedBuilder(
-                                animation: _refreshController,
-                                builder: (context, child) {
-                                  return Transform.rotate(
-                                    angle: _refreshController.value * 6.283185307,
-                                    child: child,
-                                  );
-                                },
-                                child: const Icon(
-                                  Icons.refresh,
-                                  size: 18,
-                                  color: Color(0xFFC4A57B),
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: _onRefresh,
+                              borderRadius: BorderRadius.circular(8),
+                              splashColor: const Color(0xFFC4A57B).withValues(alpha: 0.18),
+                              highlightColor: const Color(0xFFC4A57B).withValues(alpha: 0.12),
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF5EBE0),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: AnimatedBuilder(
+                                  animation: _refreshController,
+                                  builder: (context, child) {
+                                    return Transform.rotate(
+                                      angle: _refreshController.value * 6.283185307,
+                                      child: child,
+                                    );
+                                  },
+                                  child: const Icon(
+                                    Icons.refresh,
+                                    size: 18,
+                                    color: Color(0xFFC4A57B),
+                                  ),
                                 ),
                               ),
                             ),

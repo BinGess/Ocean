@@ -63,28 +63,25 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
       return;
     }
 
-    // 检查本地持久化缓存
+    // 检查本地持久化缓存（同一周的缓存整周有效，同一次安装内不重复请求）
     try {
       final cached = await insightRepository.getCachedInsightReport(currentWeekRange);
       if (cached != null) {
-        final now = DateTime.now();
-        if (now.difference(cached.cachedAt) < InsightState.cacheValidDuration) {
-          debugPrint('💾 InsightBloc: 使用本地缓存洞察报告 (${cached.cachedAt})');
-          emit(state.copyWith(
-            status: InsightStatus.success,
-            currentReport: cached.report,
-            lastFetchTime: cached.cachedAt,
-            currentWeekRange: currentWeekRange,
-            progressMessage: null,
-          ));
-          return;
-        }
+        debugPrint('💾 InsightBloc: 使用本地缓存洞察报告 (${cached.cachedAt}, 本周有效)');
+        emit(state.copyWith(
+          status: InsightStatus.success,
+          currentReport: cached.report,
+          lastFetchTime: cached.cachedAt,
+          currentWeekRange: currentWeekRange,
+          progressMessage: null,
+        ));
+        return;
       }
     } catch (_) {
       // 缓存读取失败不影响主流程
     }
 
-    debugPrint('🔄 InsightBloc: 缓存无效或过期，重新生成洞察');
+    debugPrint('🔄 InsightBloc: 无本地缓存，重新生成洞察');
     // 缓存无效，触发生成
     add(const InsightGenerateCurrentWeek());
   }

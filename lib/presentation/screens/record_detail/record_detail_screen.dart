@@ -185,13 +185,32 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
           centerTitle: true,
           actions: [
             // 分享按钮
-            IconButton(
-              icon: const Icon(Icons.share_outlined, size: 22, color: Color(0xFF48697A)),
-              onPressed: () => SharePosterScreen.show(
-                context: context,
-                record: widget.record,
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => SharePosterScreen.show(
+                    context: context,
+                    record: widget.record,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                  splashColor: const Color(0xFFC4A57B).withValues(alpha: 0.18),
+                  highlightColor: const Color(0xFFC4A57B).withValues(alpha: 0.12),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5EBE0),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.share_outlined,
+                      size: 18,
+                      color: Color(0xFFC4A57B),
+                    ),
+                  ),
+                ),
               ),
-              tooltip: '分享海报',
             ),
             TextButton(
               onPressed: _deleteRecord,

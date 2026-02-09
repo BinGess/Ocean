@@ -4,9 +4,7 @@ library;
 
 import 'dart:convert';
 import 'package:dio/dio.dart';
-import '../constants/app_constants.dart';
 import '../../domain/entities/record.dart';
-import '../../domain/entities/weekly_insight.dart';
 
 /// LLM 响应
 class LLMResponse {
