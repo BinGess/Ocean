@@ -185,7 +185,8 @@ class RecordRepositoryImpl implements RecordRepository {
   ) async {
     final models = database.recordsBox.values
         .where((m) =>
-            m.createdAt.isAfter(start) && m.createdAt.isBefore(end))
+            // 使用包含边界的比较：>= start && <= end
+            !m.createdAt.isBefore(start) && !m.createdAt.isAfter(end))
         .toList();
 
     // 按创建时间降序排序
