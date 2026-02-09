@@ -43,8 +43,7 @@ class MindFlowApp extends StatelessWidget {
       providers: [
         // 全局 BLoC 提供者
         BlocProvider(
-          create: (context) => getIt<AudioBloc>()
-            ..add(const AudioCheckPermission()),
+          create: (context) => getIt<AudioBloc>(),
         ),
         BlocProvider(
           create: (context) => getIt<RecordBloc>(),
@@ -98,8 +97,8 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       // 预热录音资源
       audioBloc.add(const AudioWarmUp());
 
-      // 麦克风权限请求后再触发网络权限弹窗（避免两个弹窗同时出现）
-      Future.delayed(const Duration(milliseconds: 500), () {
+      // 麦克风权限请求后再触发网络权限弹窗（延迟足够时间让用户处理音频权限）
+      Future.delayed(const Duration(milliseconds: 1000), () {
         _triggerNetworkPermission();
       });
     });

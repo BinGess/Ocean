@@ -107,15 +107,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _isDescriptionPaused = false;
   }
 
-  /// 备用权限检查
+  /// 备用权限检查（已禁用，避免重复弹窗）
   /// 权限已在 AppEntryPoint 开屏期间请求
-  /// 这里仅作为备用，处理权限被拒绝后用户从设置中重新授予的情况
+  /// 这里不再主动检查，避免触发重复的权限对话框
   void _checkAndRequestPermission() {
-    final audioBloc = context.read<AudioBloc>();
-    // 仅检查权限状态，不主动请求（避免重复弹出对话框）
-    if (!audioBloc.state.hasPermission) {
-      audioBloc.add(const AudioCheckPermission());
-    }
+    // 不再调用 AudioCheckPermission，因为 record 包的 hasPermission()
+    // 在首次调用时会触发系统权限弹窗
+    // 权限请求已在 AppEntryPoint 中统一处理
   }
 
   /// 尝试停止录音（检查最小录音时长）
