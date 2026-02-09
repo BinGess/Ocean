@@ -335,10 +335,17 @@ class _SharePosterScreenState extends State<SharePosterScreen> {
       final file = File(filePath);
       await file.writeAsBytes(imageBytes);
 
+      // 获取分享位置（iOS需要）
+      final box = context.findRenderObject() as RenderBox?;
+      final sharePosition = box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : null;
+
       // 使用系统分享保存到相册
       await Share.shareXFiles(
         [XFile(filePath)],
         text: '保存到相册',
+        sharePositionOrigin: sharePosition,
       );
 
       if (mounted) {
@@ -389,10 +396,17 @@ class _SharePosterScreenState extends State<SharePosterScreen> {
       final file = File(filePath);
       await file.writeAsBytes(imageBytes);
 
+      // 获取分享位置（iOS需要）
+      final box = context.findRenderObject() as RenderBox?;
+      final sharePosition = box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : null;
+
       // 分享
       await Share.shareXFiles(
         [XFile(filePath)],
         subject: '瞬记 - 看见情绪的纹理',
+        sharePositionOrigin: sharePosition,
       );
     } catch (e) {
       _showError('分享失败: $e');

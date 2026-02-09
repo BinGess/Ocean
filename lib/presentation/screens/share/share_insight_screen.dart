@@ -1,14 +1,28 @@
 /// 分享洞察海报页面
+/// 支持三种风格切换和分享功能
 library;
 
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:screenshot/screenshot.dart';
 import '../../../domain/entities/insight_report.dart';
 import '../../widgets/share_poster/insight_poster.dart';
+import '../../widgets/share_poster/insight_aura_poster.dart';
+import '../../widgets/share_poster/insight_editorial_poster.dart';
+
+/// 洞察海报风格
+enum InsightPosterStyle {
+  /// 光晕渐变风格
+  aura,
+  /// 杂志风格
+  editorial,
+  /// 卡片风格（原始）
+  card,
+}
 
 class ShareInsightScreen extends StatefulWidget {
   final InsightReport report;
@@ -36,6 +50,8 @@ class ShareInsightScreen extends StatefulWidget {
 
 class _ShareInsightScreenState extends State<ShareInsightScreen> {
   final ScreenshotController _screenshotController = ScreenshotController();
+
+  InsightPosterStyle _currentStyle = InsightPosterStyle.aura;
   bool _isDarkMode = false;
   bool _isSharing = false;
 
@@ -85,10 +101,7 @@ class _ShareInsightScreenState extends State<ShareInsightScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Screenshot(
                   controller: _screenshotController,
-                  child: InsightPoster(
-                    report: widget.report,
-                    isDarkMode: _isDarkMode,
-                  ),
+                  child: _buildPoster(),
                 ),
               ),
             ),
@@ -99,6 +112,26 @@ class _ShareInsightScreenState extends State<ShareInsightScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildPoster() {
+    switch (_currentStyle) {
+      case InsightPosterStyle.aura:
+        return InsightAuraPoster(
+          report: widget.report,
+          isDarkMode: _isDarkMode,
+        );
+      case InsightPosterStyle.editorial:
+        return InsightEditorialPoster(
+          report: widget.report,
+          isDarkMode: _isDarkMode,
+        );
+      case InsightPosterStyle.card:
+        return InsightPoster(
+          report: widget.report,
+          isDarkMode: _isDarkMode,
+        );
+    }
   }
 
   Widget _buildBottomControls() {
@@ -116,26 +149,113 @@ class _ShareInsightScreenState extends State<ShareInsightScreen> {
       ),
       child: SafeArea(
         top: false,
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // 保存到相册
-            Expanded(
-              child: _buildActionButton(
-                icon: Icons.save_alt,
-                label: '保存图片',
-                onTap: _saveToGallery,
-                isPrimary: false,
-              ),
+            // 风格选择器
+            _buildStyleSelector(),
+
+            const SizedBox(height: 20),
+
+            // 操作按钮
+            Row(
+              children: [
+                // 保存到相册
+                Expanded(
+                  child: _buildActionButton(
+                    icon: Icons.save_alt,
+                    label: '保存图片',
+                    onTap: _saveToGallery,
+                    isPrimary: false,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // 分享
+                Expanded(
+                  flex: 2,
+                  child: _buildActionButton(
+                    icon: Icons.share,
+                    label: '分享',
+                    onTap: _shareImage,
+                    isPrimary: true,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            // 分享
-            Expanded(
-              flex: 2,
-              child: _buildActionButton(
-                icon: Icons.share,
-                label: '分享',
-                onTap: _shareImage,
-                isPrimary: true,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStyleSelector() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildStyleOption(
+          style: InsightPosterStyle.aura,
+          label: '光晕',
+          icon: Icons.blur_on,
+        ),
+        const SizedBox(width: 16),
+        _buildStyleOption(
+          style: InsightPosterStyle.editorial,
+          label: '杂志',
+          icon: Icons.article,
+        ),
+        const SizedBox(width: 16),
+        _buildStyleOption(
+          style: InsightPosterStyle.card,
+          label: '卡片',
+          icon: Icons.dashboard,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStyleOption({
+    required InsightPosterStyle style,
+    required String label,
+    required IconData icon,
+  }) {
+    final isSelected = _currentStyle == style;
+    final primaryColor = _isDarkMode ? Colors.white : const Color(0xFF48697A);
+    final secondaryColor = _isDarkMode ? Colors.white38 : const Color(0xFF9CA3AF);
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _currentStyle = style;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (_isDarkMode ? Colors.white12 : const Color(0xFFE6EEF2))
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? primaryColor : Colors.transparent,
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 24,
+              color: isSelected ? primaryColor : secondaryColor,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: isSelected ? primaryColor : secondaryColor,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
             ),
           ],
@@ -215,9 +335,16 @@ class _ShareInsightScreenState extends State<ShareInsightScreen> {
       final file = File(filePath);
       await file.writeAsBytes(imageBytes);
 
+      // 获取分享位置（iOS需要）
+      final box = context.findRenderObject() as RenderBox?;
+      final sharePosition = box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : null;
+
       await Share.shareXFiles(
         [XFile(filePath)],
         text: '保存到相册',
+        sharePositionOrigin: sharePosition,
       );
 
       if (mounted) {
@@ -267,9 +394,16 @@ class _ShareInsightScreenState extends State<ShareInsightScreen> {
       final file = File(filePath);
       await file.writeAsBytes(imageBytes);
 
+      // 获取分享位置（iOS需要）
+      final box = context.findRenderObject() as RenderBox?;
+      final sharePosition = box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : null;
+
       await Share.shareXFiles(
         [XFile(filePath)],
         subject: '瞬记周洞察 - 看见情绪的纹理',
+        sharePositionOrigin: sharePosition,
       );
     } catch (e) {
       _showError('分享失败: $e');
@@ -290,7 +424,7 @@ class _ShareInsightScreenState extends State<ShareInsightScreen> {
             children: [
               const Icon(Icons.error_outline, color: Colors.white, size: 20),
               const SizedBox(width: 8),
-              Text(message),
+              Flexible(child: Text(message)),
             ],
           ),
           backgroundColor: const Color(0xFFEF4444),
