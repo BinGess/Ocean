@@ -43,6 +43,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
         context: context,
         initialAnalysis: record.nvc!,
         transcription: record.transcription,
+        record: record, // 传递完整记录用于分享
         onRevert: () {
           // TODO: 还原为仅记录模式
         },

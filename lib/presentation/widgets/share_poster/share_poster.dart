@@ -5,3 +5,4 @@ export 'poster_data.dart';
 export 'soul_receipt_poster.dart';
 export 'aura_gradient_poster.dart';
 export 'editorial_poster.dart';
+export 'insight_poster.dart';

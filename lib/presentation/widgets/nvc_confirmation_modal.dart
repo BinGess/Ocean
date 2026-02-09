@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import '../../../domain/entities/nvc_analysis.dart';
+import '../../domain/entities/nvc_analysis.dart';
+import '../../domain/entities/record.dart';
 import 'delete_confirmation_dialog.dart';
+import '../screens/share/share_poster_screen.dart';
 
 class NVCConfirmationModal extends StatefulWidget {
   final NVCAnalysis initialAnalysis;
   final String transcription;
   final Function(NVCAnalysis) onConfirm;
   final VoidCallback? onRevert;
+  final Record? record; // 可选的完整记录，用于分享
 
   const NVCConfirmationModal({
     super.key,
@@ -14,6 +17,7 @@ class NVCConfirmationModal extends StatefulWidget {
     required this.transcription,
     required this.onConfirm,
     this.onRevert,
+    this.record,
   });
 
   @override
@@ -24,6 +28,7 @@ class NVCConfirmationModal extends StatefulWidget {
     required NVCAnalysis initialAnalysis,
     required String transcription,
     VoidCallback? onRevert,
+    Record? record,
   }) {
     return showModalBottomSheet<NVCModalResult>(
       context: context,
@@ -36,6 +41,7 @@ class NVCConfirmationModal extends StatefulWidget {
           NVCModalResult(action: NVCModalAction.confirm, analysis: analysis),
         ),
         onRevert: onRevert,
+        record: record,
       ),
     );
   }
@@ -336,16 +342,31 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                TextButton(
-                  onPressed: _handleDelete,
-                  child: const Text(
-                    '删除',
-                    style: TextStyle(
-                      color: Color(0xFFFF3B30),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 分享按钮
+                    if (widget.record != null)
+                      IconButton(
+                        icon: const Icon(Icons.share_outlined, size: 22, color: Color(0xFF48697A)),
+                        onPressed: () => SharePosterScreen.show(
+                          context: context,
+                          record: widget.record!,
+                        ),
+                        tooltip: '分享海报',
+                      ),
+                    TextButton(
+                      onPressed: _handleDelete,
+                      child: const Text(
+                        '删除',
+                        style: TextStyle(
+                          color: Color(0xFFFF3B30),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),

@@ -6,6 +6,7 @@ import '../../bloc/insight/insight_bloc.dart';
 import '../../bloc/insight/insight_state.dart';
 import '../../bloc/insight/insight_event.dart';
 import 'history_reports_screen.dart';
+import '../share/share_insight_screen.dart';
 
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({super.key});
@@ -200,7 +201,7 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
                           color: Color(0xFFB8ADA0),
                         ),
                       ),
-                      // 刷新按钮和更新时间
+                      // 分享、刷新按钮和更新时间
                       Row(
                         children: [
                           if (lastFetchTime != null)
@@ -212,6 +213,27 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
                               ),
                             ),
                           const SizedBox(width: 8),
+                          // 分享按钮
+                          GestureDetector(
+                            onTap: () => ShareInsightScreen.show(
+                              context: context,
+                              report: report,
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF5EBE0),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.share_outlined,
+                                size: 18,
+                                color: Color(0xFF48697A),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // 刷新按钮
                           GestureDetector(
                             onTap: _onRefresh,
                             child: Container(
