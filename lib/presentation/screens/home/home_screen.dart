@@ -63,8 +63,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
-    // 加载最近的记录
-    context.read<RecordBloc>().add(const RecordLoadList(limit: 5));
+    // 注：不在此处加载记录列表，避免与 RecordsScreen 冲突
+    // RecordsScreen 会加载完整的记录列表
+    // 如果在此处使用 limit:5 加载，会覆盖 RecordsScreen 的完整列表
 
     // 注：权限和预热已在 AppEntryPoint 开屏期间处理
     // 这里仅作为备用检查，确保权限状态正确
