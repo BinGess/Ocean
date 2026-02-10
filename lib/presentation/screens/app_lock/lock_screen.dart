@@ -42,7 +42,12 @@ class _LockScreenState extends State<LockScreen> {
   @override
   void initState() {
     super.initState();
-    _initLockScreen();
+    // 延迟初始化，确保 widget 完全渲染后再执行
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _initLockScreen();
+      }
+    });
   }
 
   @override
@@ -52,36 +57,51 @@ class _LockScreenState extends State<LockScreen> {
   }
 
   Future<void> _initLockScreen() async {
-    // 检查是否被锁定
-    await _checkLockout();
+    try {
+      // 检查是否被锁定
+      await _checkLockout();
 
-    // 检查是否支持生物识别
-    final biometricEnabled = await _appLockService.isBiometricEnabled;
-    if (biometricEnabled) {
-      final biometricName = await _appLockService.biometricName;
-      setState(() {
-        _showBiometricButton = true;
-        _biometricIcon = biometricName.contains('Face')
-            ? Icons.face
-            : Icons.fingerprint;
-      });
+      // 检查是否支持生物识别
+      final biometricEnabled = await _appLockService.isBiometricEnabled;
+      if (biometricEnabled && mounted) {
+        final biometricName = await _appLockService.biometricName;
+        if (mounted) {
+          setState(() {
+            _showBiometricButton = true;
+            _biometricIcon = biometricName.contains('Face')
+                ? Icons.face
+                : Icons.fingerprint;
+          });
 
-      // 自动触发生物识别
-      if (!_isLockedOut) {
-        _authenticateWithBiometrics();
+          // 延迟自动触发生物识别，确保 UI 完全准备好
+          if (!_isLockedOut) {
+            await Future.delayed(const Duration(milliseconds: 300));
+            if (mounted) {
+              _authenticateWithBiometrics();
+            }
+          }
+        }
       }
+    } catch (e) {
+      debugPrint('LockScreen: 初始化失败: $e');
     }
   }
 
   Future<void> _checkLockout() async {
-    final isLockedOut = await _appLockService.isLockedOut;
-    if (isLockedOut) {
-      final seconds = await _appLockService.lockoutRemainingSeconds;
-      setState(() {
-        _isLockedOut = true;
-        _lockoutSeconds = seconds;
-      });
-      _startLockoutTimer();
+    try {
+      final isLockedOut = await _appLockService.isLockedOut;
+      if (isLockedOut && mounted) {
+        final seconds = await _appLockService.lockoutRemainingSeconds;
+        if (mounted) {
+          setState(() {
+            _isLockedOut = true;
+            _lockoutSeconds = seconds;
+          });
+          _startLockoutTimer();
+        }
+      }
+    } catch (e) {
+      debugPrint('LockScreen: 检查锁定状态失败: $e');
     }
   }
 
@@ -150,12 +170,16 @@ class _LockScreenState extends State<LockScreen> {
   }
 
   Future<void> _authenticateWithBiometrics() async {
-    if (_isLockedOut) return;
+    if (_isLockedOut || !mounted) return;
 
-    final success = await _appLockService.authenticateWithBiometrics();
-    if (success) {
-      _appLockService.clearBackgroundTime();
-      widget.onUnlocked();
+    try {
+      final success = await _appLockService.authenticateWithBiometrics();
+      if (success && mounted) {
+        _appLockService.clearBackgroundTime();
+        widget.onUnlocked();
+      }
+    } catch (e) {
+      debugPrint('LockScreen: 生物识别失败: $e');
     }
   }
 

@@ -89,8 +89,12 @@ class _AppEntryPointState extends State<AppEntryPoint> with WidgetsBindingObserv
     WidgetsBinding.instance.addObserver(this);
     // 开屏期间预先请求权限和预热资源
     _requestPermissionsAndWarmUp();
-    // 检查是否需要显示锁屏
-    _checkLockOnStart();
+    // 延迟检查锁屏，确保 widget 树已完成构建
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _checkLockOnStart();
+      }
+    });
   }
 
   @override
@@ -123,23 +127,32 @@ class _AppEntryPointState extends State<AppEntryPoint> with WidgetsBindingObserv
     if (_isCheckingLock) return;
     _isCheckingLock = true;
 
-    final shouldLock = await _appLockService.shouldShowLockScreen();
-    if (shouldLock && mounted) {
-      setState(() {
-        _showLockScreen = true;
-      });
+    try {
+      final shouldLock = await _appLockService.shouldShowLockScreen();
+      if (shouldLock && mounted) {
+        setState(() {
+          _showLockScreen = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('AppEntryPoint: 检查锁屏失败: $e');
+    } finally {
+      _isCheckingLock = false;
     }
-    _isCheckingLock = false;
   }
 
   void _onAppBackground() async {
-    _appLockService.onAppBackground();
-    // 显示隐私遮罩
-    final isEnabled = await _appLockService.isEnabled;
-    if (isEnabled && mounted) {
-      setState(() {
-        _showPrivacyBlur = true;
-      });
+    try {
+      _appLockService.onAppBackground();
+      // 显示隐私遮罩
+      final isEnabled = await _appLockService.isEnabled;
+      if (isEnabled && mounted) {
+        setState(() {
+          _showPrivacyBlur = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('AppEntryPoint: 处理后台切换失败: $e');
     }
   }
 
@@ -151,12 +164,16 @@ class _AppEntryPointState extends State<AppEntryPoint> with WidgetsBindingObserv
       });
     }
 
-    // 检查是否需要显示锁屏
-    final shouldLock = await _appLockService.shouldShowLockScreen();
-    if (shouldLock && mounted) {
-      setState(() {
-        _showLockScreen = true;
-      });
+    try {
+      // 检查是否需要显示锁屏
+      final shouldLock = await _appLockService.shouldShowLockScreen();
+      if (shouldLock && mounted) {
+        setState(() {
+          _showLockScreen = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('AppEntryPoint: 检查前台锁屏失败: $e');
     }
   }
 
