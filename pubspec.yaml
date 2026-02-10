@@ -54,6 +54,10 @@ dependencies:
   share_plus: ^10.0.2
   screenshot: ^3.0.0
 
+  # 安全与隐私
+  flutter_secure_storage: ^9.0.0
+  local_auth: ^2.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
