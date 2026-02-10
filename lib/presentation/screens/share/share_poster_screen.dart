@@ -128,6 +128,16 @@ class _SharePosterScreenState extends State<SharePosterScreen> {
           data: _posterData,
           isDarkMode: _isDarkMode,
         );
+      case PosterStyle.swissMinimal:
+        return SwissMinimalPoster(
+          data: _posterData,
+          isDarkMode: _isDarkMode,
+        );
+      case PosterStyle.glass:
+        return GlassPoster(
+          data: _posterData,
+          isDarkMode: _isDarkMode,
+        );
     }
   }
 
@@ -186,27 +196,42 @@ class _SharePosterScreenState extends State<SharePosterScreen> {
   }
 
   Widget _buildStyleSelector() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _buildStyleOption(
-          style: PosterStyle.soulReceipt,
-          label: '票据',
-          icon: Icons.receipt_long,
-        ),
-        const SizedBox(width: 16),
-        _buildStyleOption(
-          style: PosterStyle.auraGradient,
-          label: '光晕',
-          icon: Icons.blur_on,
-        ),
-        const SizedBox(width: 16),
-        _buildStyleOption(
-          style: PosterStyle.editorial,
-          label: '杂志',
-          icon: Icons.article,
-        ),
-      ],
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildStyleOption(
+            style: PosterStyle.soulReceipt,
+            label: '票据',
+            icon: Icons.receipt_long,
+          ),
+          const SizedBox(width: 16),
+          _buildStyleOption(
+            style: PosterStyle.auraGradient,
+            label: '光晕',
+            icon: Icons.blur_on,
+          ),
+          const SizedBox(width: 16),
+          _buildStyleOption(
+            style: PosterStyle.editorial,
+            label: '杂志',
+            icon: Icons.article,
+          ),
+          const SizedBox(width: 16),
+          _buildStyleOption(
+            style: PosterStyle.swissMinimal,
+            label: '瑞士',
+            icon: Icons.grid_on,
+          ),
+          const SizedBox(width: 16),
+          _buildStyleOption(
+            style: PosterStyle.glass,
+            label: '玻璃',
+            icon: Icons.blur_circular,
+          ),
+        ],
+      ),
     );
   }
 

@@ -13,6 +13,8 @@ import '../../../domain/entities/insight_report.dart';
 import '../../widgets/share_poster/insight_poster.dart';
 import '../../widgets/share_poster/insight_aura_poster.dart';
 import '../../widgets/share_poster/insight_editorial_poster.dart';
+import '../../widgets/share_poster/insight_swiss_poster.dart';
+import '../../widgets/share_poster/insight_glass_poster.dart';
 
 /// 洞察海报风格
 enum InsightPosterStyle {
@@ -22,6 +24,10 @@ enum InsightPosterStyle {
   editorial,
   /// 卡片风格（原始）
   card,
+  /// 瑞士极简风格
+  swiss,
+  /// 玻璃拟态风格
+  glass,
 }
 
 class ShareInsightScreen extends StatefulWidget {
@@ -131,6 +137,16 @@ class _ShareInsightScreenState extends State<ShareInsightScreen> {
           report: widget.report,
           isDarkMode: _isDarkMode,
         );
+      case InsightPosterStyle.swiss:
+        return InsightSwissPoster(
+          report: widget.report,
+          isDarkMode: _isDarkMode,
+        );
+      case InsightPosterStyle.glass:
+        return InsightGlassPoster(
+          report: widget.report,
+          isDarkMode: _isDarkMode,
+        );
     }
   }
 
@@ -189,27 +205,42 @@ class _ShareInsightScreenState extends State<ShareInsightScreen> {
   }
 
   Widget _buildStyleSelector() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _buildStyleOption(
-          style: InsightPosterStyle.aura,
-          label: '光晕',
-          icon: Icons.blur_on,
-        ),
-        const SizedBox(width: 16),
-        _buildStyleOption(
-          style: InsightPosterStyle.editorial,
-          label: '杂志',
-          icon: Icons.article,
-        ),
-        const SizedBox(width: 16),
-        _buildStyleOption(
-          style: InsightPosterStyle.card,
-          label: '卡片',
-          icon: Icons.dashboard,
-        ),
-      ],
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildStyleOption(
+            style: InsightPosterStyle.aura,
+            label: '光晕',
+            icon: Icons.blur_on,
+          ),
+          const SizedBox(width: 16),
+          _buildStyleOption(
+            style: InsightPosterStyle.editorial,
+            label: '杂志',
+            icon: Icons.article,
+          ),
+          const SizedBox(width: 16),
+          _buildStyleOption(
+            style: InsightPosterStyle.card,
+            label: '卡片',
+            icon: Icons.dashboard,
+          ),
+          const SizedBox(width: 16),
+          _buildStyleOption(
+            style: InsightPosterStyle.swiss,
+            label: '瑞士',
+            icon: Icons.grid_on,
+          ),
+          const SizedBox(width: 16),
+          _buildStyleOption(
+            style: InsightPosterStyle.glass,
+            label: '玻璃',
+            icon: Icons.blur_circular,
+          ),
+        ],
+      ),
     );
   }
 

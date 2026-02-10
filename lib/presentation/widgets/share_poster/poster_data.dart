@@ -12,6 +12,10 @@ enum PosterStyle {
   auraGradient,
   /// 杂志封面 - 极简排版风格
   editorial,
+  /// 瑞士极简 - 严格网格
+  swissMinimal,
+  /// 玻璃拟态 - 轻透卡片
+  glass,
 }
 
 /// 海报数据
