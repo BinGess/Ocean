@@ -43,7 +43,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
         context: context,
         initialAnalysis: record.nvc!,
         transcription: record.transcription,
-        record: record, // 传递完整记录用于分享
         onRevert: () {
           // TODO: 还原为仅记录模式
         },
@@ -305,8 +304,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
-              side: BorderSide(
-                color: const Color(0xFFEFE7DD),
+              side: const BorderSide(
+                color: Color(0xFFEFE7DD),
                 width: 1,
               ),
             ),
@@ -320,11 +319,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 color: Colors.grey[500],
               ),
               const SizedBox(width: 8),
-              Text(
+              const Text(
                 '暂无内容，写写',
                 style: TextStyle(
                   fontSize: 14,
-                  color: const Color(0xFF8B7D6B),
+                  color: Color(0xFF8B7D6B),
                 ),
               ),
             ],
