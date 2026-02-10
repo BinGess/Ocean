@@ -282,8 +282,8 @@ class _LockScreenState extends State<LockScreen> {
             Container(
               width: 80,
               height: 80,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5EBE0),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF5EBE0),
                 shape: BoxShape.circle,
               ),
               child: const Icon(

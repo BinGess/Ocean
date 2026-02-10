@@ -356,7 +356,7 @@ class _GridPainter extends CustomPainter {
 
     // 四个角落的网格点
     final positions = [
-      Offset(margin, margin),
+      const Offset(margin, margin),
       Offset(size.width - margin, margin),
       Offset(margin, size.height - margin),
       Offset(size.width - margin, size.height - margin),

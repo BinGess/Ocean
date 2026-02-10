@@ -345,45 +345,22 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // 分享按钮
-                    if (widget.record != null)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => SharePosterScreen.show(
-                              context: context,
-                              record: widget.record!,
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                            splashColor: const Color(0xFFC4A57B).withValues(alpha: 0.18),
-                            highlightColor: const Color(0xFFC4A57B).withValues(alpha: 0.12),
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF5EBE0),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.share_outlined,
-                                size: 18,
-                                color: Color(0xFFC4A57B),
-                              ),
-                            ),
-                          ),
+                    // 分享按钮（删除左侧，始终显示以保持入口统一）
+                    if (widget.record != null) ...[
+                      IconButton(
+                        onPressed: () => SharePosterScreen.show(
+                          context: context,
+                          record: widget.record!,
                         ),
+                        icon: const Icon(Icons.share_outlined, size: 22, color: Color(0xFFC4A57B)),
+                        tooltip: '分享',
                       ),
-                    TextButton(
+                      const SizedBox(width: 4),
+                    ],
+                    IconButton(
                       onPressed: _handleDelete,
-                      child: const Text(
-                        '删除',
-                        style: TextStyle(
-                          color: Color(0xFFFF3B30),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                      icon: const Icon(Icons.delete_outline, size: 22, color: Color(0xFFFF3B30)),
+                      tooltip: '删除',
                     ),
                   ],
                 ),

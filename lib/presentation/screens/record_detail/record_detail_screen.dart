@@ -184,44 +184,25 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
           ),
           centerTitle: true,
           actions: [
-            // 分享按钮
-            Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => SharePosterScreen.show(
-                    context: context,
-                    record: widget.record,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                  splashColor: const Color(0xFFC4A57B).withValues(alpha: 0.18),
-                  highlightColor: const Color(0xFFC4A57B).withValues(alpha: 0.12),
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5EBE0),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.share_outlined,
-                      size: 18,
-                      color: Color(0xFFC4A57B),
-                    ),
-                  ),
-                ),
+            // 分享按钮（使用 IconButton 保证在 AppBar 中始终可见）
+            IconButton(
+              onPressed: () => SharePosterScreen.show(
+                context: context,
+                record: widget.record,
+              ),
+              icon: const Icon(Icons.share_outlined, size: 22, color: Color(0xFFC4A57B)),
+              tooltip: '分享',
+              style: IconButton.styleFrom(
+                backgroundColor: const Color(0xFFF5EBE0),
+                foregroundColor: const Color(0xFFC4A57B),
               ),
             ),
-            TextButton(
+            const SizedBox(width: 4),
+            // 删除按钮（使用 IconButton 避免与分享按钮争抢空间导致被挤出）
+            IconButton(
               onPressed: _deleteRecord,
-              child: const Text(
-                '删除',
-                style: TextStyle(
-                  color: Color(0xFFFF3B30),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              icon: const Icon(Icons.delete_outline, size: 22, color: Color(0xFFFF3B30)),
+              tooltip: '删除',
             ),
           ],
         ),

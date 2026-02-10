@@ -15,13 +15,13 @@ class PrivacyBlurOverlay extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                const Color(0xFFFAF6F1),
-                const Color(0xFFF5EBE0),
+                Color(0xFFFAF6F1),
+                Color(0xFFF5EBE0),
               ],
             ),
           ),

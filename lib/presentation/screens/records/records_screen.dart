@@ -46,6 +46,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
         onRevert: () {
           // TODO: 还原为仅记录模式
         },
+        record: record, // 传入完整记录，用于右上角分享入口
       );
       // 如果是删除操作，删除记录
       if (result?.action == NVCModalAction.delete) {

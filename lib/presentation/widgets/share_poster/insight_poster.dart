@@ -2,9 +2,7 @@
 /// 用于分享周洞察报告
 library;
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../../domain/entities/insight_report.dart';
 import '../../../core/theme/poster_colors.dart';
 

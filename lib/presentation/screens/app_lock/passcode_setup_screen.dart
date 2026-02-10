@@ -313,8 +313,8 @@ class _PasscodeSetupScreenState extends State<PasscodeSetupScreen> {
               Container(
                 width: 100,
                 height: 100,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5EBE0),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF5EBE0),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
