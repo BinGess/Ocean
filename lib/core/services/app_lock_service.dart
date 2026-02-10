@@ -137,36 +137,56 @@ class AppLockService {
 
   /// 是否启用了应用锁
   Future<bool> get isEnabled async {
-    if (_isEnabled != null) return _isEnabled!;
-    final enabled = await _secureStorage.read(key: _keyEnabled);
-    _isEnabled = enabled == 'true';
-    return _isEnabled!;
+    try {
+      if (_isEnabled != null) return _isEnabled!;
+      final enabled = await _secureStorage.read(key: _keyEnabled);
+      _isEnabled = enabled == 'true';
+      return _isEnabled!;
+    } catch (e) {
+      debugPrint('AppLockService: 读取启用状态失败: $e');
+      return false;
+    }
   }
 
   /// 是否启用了生物识别
   Future<bool> get isBiometricEnabled async {
-    if (_isBiometricEnabled != null) return _isBiometricEnabled!;
-    final enabled = await _secureStorage.read(key: _keyBiometricEnabled);
-    _isBiometricEnabled = enabled == 'true';
-    return _isBiometricEnabled!;
+    try {
+      if (_isBiometricEnabled != null) return _isBiometricEnabled!;
+      final enabled = await _secureStorage.read(key: _keyBiometricEnabled);
+      _isBiometricEnabled = enabled == 'true';
+      return _isBiometricEnabled!;
+    } catch (e) {
+      debugPrint('AppLockService: 读取生物识别状态失败: $e');
+      return false;
+    }
   }
 
   /// 获取自动锁定时间
   Future<AutoLockDuration> get autoLockDuration async {
-    if (_autoLockDuration != null) return _autoLockDuration!;
-    final str = await _secureStorage.read(key: _keyAutoLockDuration);
-    if (str != null) {
-      _autoLockDuration = AutoLockDuration.fromSeconds(int.parse(str));
-    } else {
-      _autoLockDuration = AutoLockDuration.immediately;
+    try {
+      if (_autoLockDuration != null) return _autoLockDuration!;
+      final str = await _secureStorage.read(key: _keyAutoLockDuration);
+      if (str != null) {
+        _autoLockDuration = AutoLockDuration.fromSeconds(int.parse(str));
+      } else {
+        _autoLockDuration = AutoLockDuration.immediately;
+      }
+      return _autoLockDuration!;
+    } catch (e) {
+      debugPrint('AppLockService: 读取自动锁定时间失败: $e');
+      return AutoLockDuration.immediately;
     }
-    return _autoLockDuration!;
   }
 
   /// 是否已设置密码
   Future<bool> get hasPasscode async {
-    final passcode = await _secureStorage.read(key: _keyPasscode);
-    return passcode != null && passcode.isNotEmpty;
+    try {
+      final passcode = await _secureStorage.read(key: _keyPasscode);
+      return passcode != null && passcode.isNotEmpty;
+    } catch (e) {
+      debugPrint('AppLockService: 读取密码状态失败: $e');
+      return false;
+    }
   }
 
   /// 检查设备是否支持生物识别
@@ -217,20 +237,30 @@ class AppLockService {
 
   /// 是否处于锁定状态（密码错误次数过多）
   Future<bool> get isLockedOut async {
-    if (_lockoutEndTime == null) return false;
-    if (DateTime.now().isAfter(_lockoutEndTime!)) {
-      // 锁定已过期，重置
-      await _resetFailedAttempts();
+    try {
+      if (_lockoutEndTime == null) return false;
+      if (DateTime.now().isAfter(_lockoutEndTime!)) {
+        // 锁定已过期，重置
+        await _resetFailedAttempts();
+        return false;
+      }
+      return true;
+    } catch (e) {
+      debugPrint('AppLockService: 检查锁定状态失败: $e');
       return false;
     }
-    return true;
   }
 
   /// 获取锁定剩余时间（秒）
   Future<int> get lockoutRemainingSeconds async {
-    if (_lockoutEndTime == null) return 0;
-    final remaining = _lockoutEndTime!.difference(DateTime.now()).inSeconds;
-    return remaining > 0 ? remaining : 0;
+    try {
+      if (_lockoutEndTime == null) return 0;
+      final remaining = _lockoutEndTime!.difference(DateTime.now()).inSeconds;
+      return remaining > 0 ? remaining : 0;
+    } catch (e) {
+      debugPrint('AppLockService: 获取锁定时间失败: $e');
+      return 0;
+    }
   }
 
   /// 设置密码
@@ -356,22 +386,27 @@ class AppLockService {
 
   /// 检查是否需要显示锁屏
   Future<bool> shouldShowLockScreen() async {
-    if (!await isEnabled) {
+    try {
+      if (!await isEnabled) {
+        return false;
+      }
+
+      // 如果没有后台时间记录，说明是冷启动
+      if (_lastBackgroundTime == null) {
+        return true;
+      }
+
+      final duration = await autoLockDuration;
+      if (duration == AutoLockDuration.immediately) {
+        return true;
+      }
+
+      final elapsed = DateTime.now().difference(_lastBackgroundTime!).inSeconds;
+      return elapsed >= duration.seconds;
+    } catch (e) {
+      debugPrint('AppLockService: 检查锁屏状态失败: $e');
       return false;
     }
-
-    // 如果没有后台时间记录，说明是冷启动
-    if (_lastBackgroundTime == null) {
-      return true;
-    }
-
-    final duration = await autoLockDuration;
-    if (duration == AutoLockDuration.immediately) {
-      return true;
-    }
-
-    final elapsed = DateTime.now().difference(_lastBackgroundTime!).inSeconds;
-    return elapsed >= duration.seconds;
   }
 
   /// 清除后台时间（解锁成功后调用）
@@ -381,28 +416,36 @@ class AppLockService {
 
   /// 增加失败次数
   Future<void> _incrementFailedAttempts() async {
-    _failedAttempts++;
-    await _secureStorage.write(
-      key: _keyFailedAttempts,
-      value: _failedAttempts.toString(),
-    );
-
-    // 5次失败后锁定1分钟
-    if (_failedAttempts >= 5) {
-      _lockoutEndTime = DateTime.now().add(const Duration(minutes: 1));
+    try {
+      _failedAttempts++;
       await _secureStorage.write(
-        key: _keyLockoutEndTime,
-        value: _lockoutEndTime!.toIso8601String(),
+        key: _keyFailedAttempts,
+        value: _failedAttempts.toString(),
       );
+
+      // 5次失败后锁定1分钟
+      if (_failedAttempts >= 5) {
+        _lockoutEndTime = DateTime.now().add(const Duration(minutes: 1));
+        await _secureStorage.write(
+          key: _keyLockoutEndTime,
+          value: _lockoutEndTime!.toIso8601String(),
+        );
+      }
+    } catch (e) {
+      debugPrint('AppLockService: 记录失败次数失败: $e');
     }
   }
 
   /// 重置失败次数
   Future<void> _resetFailedAttempts() async {
-    _failedAttempts = 0;
-    _lockoutEndTime = null;
-    await _secureStorage.delete(key: _keyFailedAttempts);
-    await _secureStorage.delete(key: _keyLockoutEndTime);
+    try {
+      _failedAttempts = 0;
+      _lockoutEndTime = null;
+      await _secureStorage.delete(key: _keyFailedAttempts);
+      await _secureStorage.delete(key: _keyLockoutEndTime);
+    } catch (e) {
+      debugPrint('AppLockService: 重置失败次数失败: $e');
+    }
   }
 
   /// 获取当前失败次数

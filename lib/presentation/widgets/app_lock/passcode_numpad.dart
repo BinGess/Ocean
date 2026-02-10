@@ -113,12 +113,20 @@ class _NumpadButton extends StatefulWidget {
 class _NumpadButtonState extends State<_NumpadButton> {
   bool _isPressed = false;
 
+  void _triggerHaptic() {
+    try {
+      HapticFeedback.lightImpact();
+    } catch (_) {
+      // 某些设备可能不支持触觉反馈
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: (_) {
         setState(() => _isPressed = true);
-        HapticFeedback.lightImpact();
+        _triggerHaptic();
       },
       onTapUp: (_) {
         setState(() => _isPressed = false);
@@ -178,12 +186,20 @@ class _NumpadIconButton extends StatefulWidget {
 class _NumpadIconButtonState extends State<_NumpadIconButton> {
   bool _isPressed = false;
 
+  void _triggerHaptic() {
+    try {
+      HapticFeedback.lightImpact();
+    } catch (_) {
+      // 某些设备可能不支持触觉反馈
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: (_) {
         setState(() => _isPressed = true);
-        HapticFeedback.lightImpact();
+        _triggerHaptic();
       },
       onTapUp: (_) {
         setState(() => _isPressed = false);

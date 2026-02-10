@@ -61,6 +61,8 @@ class _LockScreenState extends State<LockScreen> {
       // 检查是否被锁定
       await _checkLockout();
 
+      if (!mounted) return;
+
       // 检查是否支持生物识别
       final biometricEnabled = await _appLockService.isBiometricEnabled;
       if (biometricEnabled && mounted) {
@@ -73,13 +75,8 @@ class _LockScreenState extends State<LockScreen> {
                 : Icons.fingerprint;
           });
 
-          // 延迟自动触发生物识别，确保 UI 完全准备好
-          if (!_isLockedOut) {
-            await Future.delayed(const Duration(milliseconds: 300));
-            if (mounted) {
-              _authenticateWithBiometrics();
-            }
-          }
+          // 注意：不再自动触发生物识别，由用户手动点击
+          // 这样可以避免在 release 版本中可能出现的问题
         }
       }
     } catch (e) {
@@ -108,6 +105,10 @@ class _LockScreenState extends State<LockScreen> {
   void _startLockoutTimer() {
     _lockoutTimer?.cancel();
     _lockoutTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
       if (_lockoutSeconds > 0) {
         setState(() {
           _lockoutSeconds--;
@@ -115,10 +116,16 @@ class _LockScreenState extends State<LockScreen> {
       } else {
         timer.cancel();
         // 重新检查锁定状态
-        final stillLocked = await _appLockService.isLockedOut;
-        setState(() {
-          _isLockedOut = stillLocked;
-        });
+        try {
+          final stillLocked = await _appLockService.isLockedOut;
+          if (mounted) {
+            setState(() {
+              _isLockedOut = stillLocked;
+            });
+          }
+        } catch (e) {
+          debugPrint('LockScreen: 检查锁定状态失败: $e');
+        }
       }
     });
   }
@@ -148,24 +155,34 @@ class _LockScreenState extends State<LockScreen> {
   }
 
   Future<void> _verifyPasscode() async {
-    final isValid = await _appLockService.verifyPasscode(_passcode);
-    if (isValid) {
-      _appLockService.clearBackgroundTime();
-      widget.onUnlocked();
-    } else {
-      HapticFeedback.heavyImpact();
-      _dotsKey.currentState?.shake();
+    try {
+      final isValid = await _appLockService.verifyPasscode(_passcode);
+      if (!mounted) return;
 
-      // 检查是否被锁定
-      await _checkLockout();
+      if (isValid) {
+        _appLockService.clearBackgroundTime();
+        widget.onUnlocked();
+      } else {
+        try {
+          HapticFeedback.heavyImpact();
+        } catch (_) {}
+        _dotsKey.currentState?.shake();
 
-      setState(() {
-        _hasError = true;
-        _errorMessage = _isLockedOut
-            ? '尝试次数过多，请稍后重试'
-            : '密码错误';
-        _passcode = '';
-      });
+        // 检查是否被锁定
+        await _checkLockout();
+
+        if (mounted) {
+          setState(() {
+            _hasError = true;
+            _errorMessage = _isLockedOut
+                ? '尝试次数过多，请稍后重试'
+                : '密码错误';
+            _passcode = '';
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('LockScreen: 验证密码失败: $e');
     }
   }
 
