@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'about_screen.dart';
 import 'export_screen.dart';
+import '../app_lock/app_lock_settings_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -31,6 +32,24 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // 安全与隐私分组
+          _buildSectionHeader('安全与隐私'),
+          const SizedBox(height: 8),
+          _buildNavItem(
+            title: '应用锁',
+            subtitle: '使用密码或生物识别保护隐私',
+            icon: Icons.lock_outline,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AppLockSettingsScreen()),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // 数据管理分组
+          _buildSectionHeader('数据管理'),
+          const SizedBox(height: 8),
           _buildNavItem(
             title: '导出',
             subtitle: '导出所有记录或洞察信息',
@@ -41,7 +60,11 @@ class SettingsScreen extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
+
+          // 其他分组
+          _buildSectionHeader('其他'),
+          const SizedBox(height: 8),
           _buildNavItem(
             title: '关于',
             subtitle: '应用信息与隐私协议',
@@ -53,6 +76,20 @@ class SettingsScreen extends StatelessWidget {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF8B7D6B),
+        ),
       ),
     );
   }

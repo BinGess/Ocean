@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/theme/app_theme.dart';
 import 'core/di/injection.dart';
+import 'core/services/app_lock_service.dart';
 import 'presentation/bloc/audio/audio_bloc.dart';
 import 'presentation/bloc/audio/audio_event.dart';
 import 'presentation/bloc/record/record_bloc.dart';
@@ -15,6 +16,8 @@ import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/records/records_screen.dart';
 import 'presentation/screens/insights/insights_screen.dart';
 import 'presentation/screens/splash/splash_screen.dart';
+import 'presentation/screens/app_lock/lock_screen.dart';
+import 'presentation/widgets/app_lock/privacy_blur_overlay.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -64,7 +67,7 @@ class MindFlowApp extends StatelessWidget {
   }
 }
 
-/// 应用入口点 - 管理开屏页到主导航的切换
+/// 应用入口点 - 管理开屏页到主导航的切换，以及应用锁
 class AppEntryPoint extends StatefulWidget {
   const AppEntryPoint({super.key});
 
@@ -72,14 +75,95 @@ class AppEntryPoint extends StatefulWidget {
   State<AppEntryPoint> createState() => _AppEntryPointState();
 }
 
-class _AppEntryPointState extends State<AppEntryPoint> {
+class _AppEntryPointState extends State<AppEntryPoint> with WidgetsBindingObserver {
   bool _showSplash = true;
+  bool _showLockScreen = false;
+  bool _showPrivacyBlur = false;
+  bool _isCheckingLock = false;
+
+  final _appLockService = getIt<AppLockService>();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // 开屏期间预先请求权限和预热资源
     _requestPermissionsAndWarmUp();
+    // 检查是否需要显示锁屏
+    _checkLockOnStart();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        // App 进入后台或失去焦点
+        _onAppBackground();
+        break;
+      case AppLifecycleState.resumed:
+        // App 恢复到前台
+        _onAppForeground();
+        break;
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        break;
+    }
+  }
+
+  Future<void> _checkLockOnStart() async {
+    if (_isCheckingLock) return;
+    _isCheckingLock = true;
+
+    final shouldLock = await _appLockService.shouldShowLockScreen();
+    if (shouldLock && mounted) {
+      setState(() {
+        _showLockScreen = true;
+      });
+    }
+    _isCheckingLock = false;
+  }
+
+  void _onAppBackground() async {
+    _appLockService.onAppBackground();
+    // 显示隐私遮罩
+    final isEnabled = await _appLockService.isEnabled;
+    if (isEnabled && mounted) {
+      setState(() {
+        _showPrivacyBlur = true;
+      });
+    }
+  }
+
+  void _onAppForeground() async {
+    // 隐藏隐私遮罩
+    if (mounted) {
+      setState(() {
+        _showPrivacyBlur = false;
+      });
+    }
+
+    // 检查是否需要显示锁屏
+    final shouldLock = await _appLockService.shouldShowLockScreen();
+    if (shouldLock && mounted) {
+      setState(() {
+        _showLockScreen = true;
+      });
+    }
+  }
+
+  void _onUnlocked() {
+    setState(() {
+      _showLockScreen = false;
+    });
   }
 
   /// 请求权限并预热资源
@@ -130,10 +214,26 @@ class _AppEntryPointState extends State<AppEntryPoint> {
 
   @override
   Widget build(BuildContext context) {
+    // 开屏页
     if (_showSplash) {
       return SplashScreen(onComplete: _onSplashComplete);
     }
-    return const MainNavigation();
+
+    // 主内容 + 锁屏层 + 隐私遮罩层
+    return Stack(
+      children: [
+        // 主导航
+        const MainNavigation(),
+
+        // 锁屏界面
+        if (_showLockScreen)
+          LockScreen(onUnlocked: _onUnlocked),
+
+        // 隐私遮罩（后台防窥）
+        if (_showPrivacyBlur && !_showLockScreen)
+          const PrivacyBlurOverlay(),
+      ],
+    );
   }
 }
 

@@ -23,6 +23,7 @@ import '../network/doubao_asr_client.dart';
 import '../network/doubao_llm_client.dart';
 import '../network/coze_ai_service.dart';
 import '../constants/app_constants.dart';
+import '../services/app_lock_service.dart';
 import '../../presentation/bloc/audio/audio_bloc.dart';
 import '../../presentation/bloc/record/record_bloc.dart';
 import '../../presentation/bloc/insight/insight_bloc.dart';
@@ -50,6 +51,13 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<CozeAIService>(
     () => CozeAIService(),
   );
+
+  // ===== Services =====
+
+  // 应用锁服务
+  final appLockService = AppLockService();
+  await appLockService.init();
+  getIt.registerSingleton<AppLockService>(appLockService);
 
   // ===== Data Sources =====
 
@@ -179,6 +187,9 @@ Future<void> configureDependencies() async {
 Future<void> cleanupDependencies() async {
   // 清理 BLoC
   // 注意：BLoC 由 Flutter 的 BlocProvider 管理生命周期
+
+  // 清理服务
+  getIt<AppLockService>().dispose();
 
   // 清理网络客户端
   getIt<DoubaoLLMClient>().dispose();
