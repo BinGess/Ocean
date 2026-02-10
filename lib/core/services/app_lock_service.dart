@@ -29,8 +29,8 @@ enum AutoLockDuration {
   }
 }
 
-/// 生物识别类型
-enum BiometricType {
+/// 生物识别类型（应用内部使用）
+enum AppBiometricType {
   none,
   fingerprint,
   face,
@@ -182,21 +182,20 @@ class AppLockService {
   }
 
   /// 获取可用的生物识别类型
-  Future<List<BiometricType>> get availableBiometrics async {
+  Future<List<AppBiometricType>> get availableBiometrics async {
     try {
       final available = await _localAuth.getAvailableBiometrics();
       return available.map((type) {
-        switch (type) {
-          case LocalBiometricType.fingerprint:
-            return BiometricType.fingerprint;
-          case LocalBiometricType.face:
-            return BiometricType.face;
-          case LocalBiometricType.iris:
-            return BiometricType.iris;
-          default:
-            return BiometricType.none;
+        if (type == BiometricType.fingerprint) {
+          return AppBiometricType.fingerprint;
+        } else if (type == BiometricType.face) {
+          return AppBiometricType.face;
+        } else if (type == BiometricType.iris) {
+          return AppBiometricType.iris;
+        } else {
+          return AppBiometricType.none;
         }
-      }).where((t) => t != BiometricType.none).toList();
+      }).where((t) => t != AppBiometricType.none).toList();
     } catch (e) {
       debugPrint('AppLockService: 获取生物识别类型失败: $e');
       return [];
@@ -206,11 +205,11 @@ class AppLockService {
   /// 获取生物识别名称（FaceID/TouchID）
   Future<String> get biometricName async {
     final types = await availableBiometrics;
-    if (types.contains(BiometricType.face)) {
+    if (types.contains(AppBiometricType.face)) {
       return 'Face ID';
-    } else if (types.contains(BiometricType.fingerprint)) {
+    } else if (types.contains(AppBiometricType.fingerprint)) {
       return 'Touch ID';
-    } else if (types.contains(BiometricType.iris)) {
+    } else if (types.contains(AppBiometricType.iris)) {
       return '虹膜识别';
     }
     return '生物识别';
