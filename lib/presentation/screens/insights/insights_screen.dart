@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -22,6 +23,8 @@ class InsightsScreen extends StatefulWidget {
 class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProviderStateMixin {
   late AnimationController _refreshController;
   bool _isRefreshing = false;
+  StreamSubscription? _authSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -31,6 +34,14 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
+
+    // 监听授权状态变化，当用户在启动弹窗中同意授权后自动刷新
+    _authSubscription = getIt<AIAuthService>().authStateStream.listen((isAuthorized) {
+      if (isAuthorized && mounted) {
+        // 授权状态变为已授权，重新加载洞察
+        context.read<InsightBloc>().add(const InsightLoadCurrentWeek());
+      }
+    });
   }
 
   /// 强制刷新洞察
@@ -88,6 +99,7 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _refreshController.dispose();
     super.dispose();
   }
