@@ -50,9 +50,9 @@ class AIAuthDialog extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        '欢迎使用Shunji',
+                        'AI功能使用协议',
                         style: TextStyle(
-                          fontSize: 22,
+                          fontSize: 20,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF2C2C2C),
                           height: 1.2,
@@ -60,154 +60,76 @@ class AIAuthDialog extends StatelessWidget {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
+                          horizontal: 10,
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF5F5F5),
+                          color: const Color(0xFFFFF8E7),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Text(
-                          'WELCOME',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF8B8B8B),
-                            letterSpacing: 0.5,
-                          ),
+                        child: const Icon(
+                          Icons.psychology_outlined,
+                          size: 20,
+                          color: Color(0xFFC4A57B),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
-                  // 欢迎语
-                  const Text(
-                    '尊敬的用户，您好：欢迎使用Shunji！',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF2C2C2C),
-                      height: 1.6,
-                    ),
+                  // 分隔线
+                  Container(
+                    height: 1,
+                    color: const Color(0xFFF0F0F0),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 服务商
+                  _buildInfoSection(
+                    label: '服务商',
+                    content: '本应用AI功能由第三方提供商「火山引擎豆包大模型」提供技术支持。',
                   ),
                   const SizedBox(height: 16),
 
-                  // 规定说明标题
-                  const Text(
-                    '根据相关规定',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF2C2C2C),
-                      height: 1.6,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // 规定说明正文
-                  RichText(
-                    text: TextSpan(
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF6B6B6B),
-                        height: 1.7,
-                      ),
-                      children: [
-                        const TextSpan(
-                          text: 'Shunji APP作为人工智能类应用，向您提供账号登录/注册、内容浏览/搜索/推荐及IM对话等基础服务。\n\n',
-                        ),
-                        const TextSpan(
-                          text: '我们会通过《',
-                        ),
-                        WidgetSpan(
-                          child: GestureDetector(
-                            onTap: () => _openPrivacyPolicy(context),
-                            child: const Text(
-                              '用户协议',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFFC4A57B),
-                                decoration: TextDecoration.underline,
-                                decorationColor: Color(0xFFC4A57B),
-                                height: 1.7,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const TextSpan(text: '》《'),
-                        WidgetSpan(
-                          child: GestureDetector(
-                            onTap: () => _openPrivacyPolicy(context),
-                            child: const Text(
-                              '隐私协议',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFFC4A57B),
-                                decoration: TextDecoration.underline,
-                                decorationColor: Color(0xFFC4A57B),
-                                height: 1.7,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const TextSpan(
-                          text:
-                              '》中说明收集、处理您个人信息的情况：使用基础服务仅需要必要信息，您可拒绝其他信息授权，但可能无法使用部分功能。',
-                        ),
-                      ],
-                    ),
+                  // 数据范围
+                  _buildInfoSection(
+                    label: '数据范围',
+                    content: '仅传输您输入的日记文字内容，不包含其他信息。',
                   ),
                   const SizedBox(height: 16),
 
-                  // 详情链接
-                  RichText(
-                    text: TextSpan(
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF6B6B6B),
-                        height: 1.7,
+                  // 数据用途
+                  _buildInfoSection(
+                    label: '数据用途',
+                    content: '仅用于情绪分析及日记辅助生成，不作他用。',
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 隐私保证
+                  _buildInfoSection(
+                    label: '隐私保证',
+                    content: '数据不包含任何个人身份信息（如手机号、姓名等），且全程加密传输。',
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 隐私政策链接
+                  Center(
+                    child: GestureDetector(
+                      onTap: () => _openPrivacyPolicy(context),
+                      child: const Text(
+                        '查看完整隐私政策 →',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFFC4A57B),
+                          decoration: TextDecoration.underline,
+                          decorationColor: Color(0xFFC4A57B),
+                        ),
                       ),
-                      children: [
-                        const TextSpan(text: '详情请查看《'),
-                        WidgetSpan(
-                          child: GestureDetector(
-                            onTap: () => _openPrivacyPolicy(context),
-                            child: const Text(
-                              '用户协议',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFFC4A57B),
-                                decoration: TextDecoration.underline,
-                                decorationColor: Color(0xFFC4A57B),
-                                height: 1.7,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const TextSpan(text: '》《'),
-                        WidgetSpan(
-                          child: GestureDetector(
-                            onTap: () => _openPrivacyPolicy(context),
-                            child: const Text(
-                              '隐私协议',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFFC4A57B),
-                                decoration: TextDecoration.underline,
-                                decorationColor: Color(0xFFC4A57B),
-                                height: 1.7,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const TextSpan(text: '》内容。'),
-                      ],
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 28),
 
-                  // "同意并继续"按钮
+                  // "同意"按钮
                   GestureDetector(
                     onTap: () => Navigator.of(context).pop(true),
                     child: Container(
@@ -230,14 +152,14 @@ class AIAuthDialog extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
 
-                  // "不同意"按钮
+                  // "拒绝"按钮
                   GestureDetector(
                     onTap: () => Navigator.of(context).pop(false),
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       child: const Text(
-                        '不同意',
+                        '暂不开启',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 15,
@@ -247,12 +169,62 @@ class AIAuthDialog extends StatelessWidget {
                       ),
                     ),
                   ),
+
+                  // 提示文字
+                  const SizedBox(height: 8),
+                  const Center(
+                    child: Text(
+                      '您可以随时在「设置」中重新开启',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFB8B8B8),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  /// 构建信息项
+  Widget _buildInfoSection({
+    required String label,
+    required String content,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F5F5),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF5D4E3C),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            content,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF6B6B6B),
+              height: 1.5,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
