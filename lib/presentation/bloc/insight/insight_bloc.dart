@@ -84,7 +84,7 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
       // 缓存读取失败不影响主流程
     }
 
-    // 检查AI授权状态 - 未授权时不自动弹窗，而是显示友好提示
+    // 检查AI授权状态 - 未授权时显示友好引导（不自动弹窗）
     final isAuthorized = await aiAuthService.isAuthorized;
     if (!isAuthorized) {
       debugPrint('InsightBloc: 无缓存且未授权AI，显示授权引导');
@@ -92,7 +92,7 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
         status: InsightStatus.needsAIAuth,
         clearReport: true,
       ));
-      return; // 不自动触发生成，等待用户手动操作
+      return; // 显示引导页面，等待用户手动操作
     }
 
     debugPrint('🔄 InsightBloc: 无本地缓存，重新生成洞察');
@@ -105,7 +105,7 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     InsightGenerateCurrentWeek event,
     Emitter<InsightState> emit,
   ) async {
-    // 1. 首先检查AI授权
+    // 1. 检查AI授权状态
     final isAuthorized = await aiAuthService.isAuthorized;
     if (!isAuthorized) {
       debugPrint('InsightBloc: 需要AI授权');
@@ -113,10 +113,10 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
         status: InsightStatus.needsAIAuth,
         clearReport: true,
       ));
-      return; // 等待UI层处理授权
+      return; // 显示引导页面，等待用户授权
     }
 
-    // 2. 已授权，继续原有逻辑
+    // 2. 已授权，继续生成逻辑
     final currentWeekRange = _getCurrentWeekRange();
 
     emit(state.copyWith(
