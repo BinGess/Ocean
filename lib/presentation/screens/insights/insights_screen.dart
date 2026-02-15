@@ -105,18 +105,15 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
               setState(() => _isRefreshing = false);
             }
           }
-
-          // 处理需要AI授权的情况
-          if (state.status == InsightStatus.needsAIAuth) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (ModalRoute.of(context)?.isCurrent ?? false) {
-                _handleAIAuthRequest(context);
-              }
-            });
-          }
+          // 注：needsAIAuth 状态不再自动弹窗，而是通过UI引导用户手动触发
         },
         child: BlocBuilder<InsightBloc, InsightState>(
         builder: (context, state) {
+          // 需要AI授权时显示友好的引导页面
+          if (state.status == InsightStatus.needsAIAuth) {
+            return _buildAIAuthPromptState();
+          }
+
           if ((state.status == InsightStatus.loading ||
               state.status == InsightStatus.generating) &&
               state.currentReport == null) {
@@ -135,6 +132,95 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
           );
         },
       ),
+      ),
+    );
+  }
+
+  /// AI授权引导状态
+  Widget _buildAIAuthPromptState() {
+    return SafeArea(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFF8E7),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.psychology_outlined,
+                  size: 40,
+                  color: Color(0xFFC4A57B),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                '开启智能洞察',
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Color(0xFF5D4E3C),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                '授权AI服务后，将为您分析本周情绪记录\n生成专属的情绪洞察报告',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFFB8ADA0),
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 32),
+              GestureDetector(
+                onTap: () => _handleAIAuthRequest(context),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFC4A57B),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFC4A57B).withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Text(
+                    '立即开启',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  );
+                },
+                child: const Text(
+                  '了解更多',
+                  style: TextStyle(
+                    color: Color(0xFF8B7D6B),
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

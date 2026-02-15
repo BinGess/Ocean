@@ -84,6 +84,17 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
       // 缓存读取失败不影响主流程
     }
 
+    // 检查AI授权状态 - 未授权时不自动弹窗，而是显示友好提示
+    final isAuthorized = await aiAuthService.isAuthorized;
+    if (!isAuthorized) {
+      debugPrint('InsightBloc: 无缓存且未授权AI，显示授权引导');
+      emit(state.copyWith(
+        status: InsightStatus.needsAIAuth,
+        clearReport: true,
+      ));
+      return; // 不自动触发生成，等待用户手动操作
+    }
+
     debugPrint('🔄 InsightBloc: 无本地缓存，重新生成洞察');
     // 缓存无效，触发生成
     add(const InsightGenerateCurrentWeek());
