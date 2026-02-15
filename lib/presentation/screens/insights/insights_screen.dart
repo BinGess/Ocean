@@ -5,8 +5,12 @@ import '../../../domain/entities/insight_report.dart';
 import '../../bloc/insight/insight_bloc.dart';
 import '../../bloc/insight/insight_state.dart';
 import '../../bloc/insight/insight_event.dart';
+import '../../widgets/ai_auth_dialog.dart';
+import '../../../core/di/injection.dart';
+import '../../../core/services/ai_auth_service.dart';
 import 'history_reports_screen.dart';
 import '../share/share_insight_screen.dart';
+import '../settings/settings_screen.dart';
 
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({super.key});
@@ -37,6 +41,51 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
     context.read<InsightBloc>().add(const InsightGenerateCurrentWeek());
   }
 
+  /// 处理AI授权请求
+  Future<void> _handleAIAuthRequest(BuildContext context) async {
+    final result = await AIAuthDialog.show(context: context);
+
+    if (result == true) {
+      // 用户同意授权
+      await getIt<AIAuthService>().grant();
+
+      // 重新触发洞察生成
+      if (mounted) {
+        context.read<InsightBloc>().add(const InsightGenerateCurrentWeek());
+      }
+    } else {
+      // 用户拒绝授权
+      _showAuthDeniedGuidance(context);
+    }
+  }
+
+  /// 显示拒绝授权引导
+  void _showAuthDeniedGuidance(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.info_outline, color: Color(0xFFFFB74D)),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text('AI功能需要授权才能使用，您可在设置中开启'),
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: '去设置',
+          textColor: const Color(0xFFC4A57B),
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _refreshController.dispose();
@@ -55,6 +104,15 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
             if (mounted) {
               setState(() => _isRefreshing = false);
             }
+          }
+
+          // 处理需要AI授权的情况
+          if (state.status == InsightStatus.needsAIAuth) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (ModalRoute.of(context)?.isCurrent ?? false) {
+                _handleAIAuthRequest(context);
+              }
+            });
           }
         },
         child: BlocBuilder<InsightBloc, InsightState>(

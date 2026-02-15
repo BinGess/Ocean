@@ -15,7 +15,10 @@ import '../../widgets/mood_selection_modal.dart';
 import '../../widgets/nvc_confirmation_modal.dart';
 import '../../widgets/nvc_error_dialog.dart';
 import '../../widgets/loading_overlay.dart';
+import '../../widgets/ai_auth_dialog.dart';
 import '../settings/settings_screen.dart';
+import '../../../core/di/injection.dart';
+import '../../../core/services/ai_auth_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -253,6 +256,58 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         _handleProcessingModeSelected(result.mode, editedTranscription: result.transcription);
       }
     });
+  }
+
+  /// 处理AI授权请求
+  Future<void> _handleAIAuthRequest(
+    BuildContext context,
+    RecordState state,
+  ) async {
+    final result = await AIAuthDialog.show(context: context);
+
+    if (result == true) {
+      // 用户同意授权
+      await getIt<AIAuthService>().grant();
+
+      // 重新触发AI分析
+      if (state.transcription != null && state.transcription!.isNotEmpty) {
+        if (!mounted) return;
+        context.read<RecordBloc>().add(
+              RecordAnalyzeNVC(state.transcription!),
+            );
+      }
+    } else {
+      // 用户拒绝授权
+      if (!mounted) return;
+      _showAuthDeniedGuidance(context);
+    }
+  }
+
+  /// 显示拒绝授权引导
+  void _showAuthDeniedGuidance(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.info_outline, color: Color(0xFFFFB74D)),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text('AI功能需要授权才能使用，您可在设置中开启'),
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: '去设置',
+          textColor: const Color(0xFFC4A57B),
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            );
+          },
+        ),
+      ),
+    );
   }
 
   void _handleProcessingModeSelected(ProcessingMode mode, {String? editedTranscription}) async {
@@ -534,6 +589,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           _clearCompletedAudio();
                         }
                       });
+                    }
+                  });
+                }
+
+                // 处理AI授权请求
+                if (recordState.status == RecordStatus.needsAIAuth) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (ModalRoute.of(context)?.isCurrent ?? false) {
+                      _handleAIAuthRequest(context, recordState);
                     }
                   });
                 }

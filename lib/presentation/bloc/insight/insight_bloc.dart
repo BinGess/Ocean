@@ -7,6 +7,7 @@ import '../../../domain/usecases/generate_weekly_insight_usecase.dart';
 import '../../../domain/usecases/generate_insight_report_usecase.dart';
 import '../../../domain/usecases/get_weekly_insights_usecase.dart';
 import '../../../domain/repositories/insight_repository.dart';
+import '../../../core/services/ai_auth_service.dart';
 import 'insight_event.dart';
 import 'insight_state.dart';
 
@@ -15,12 +16,14 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
   final GenerateInsightReportUseCase generateInsightReportUseCase;
   final GetWeeklyInsightsUseCase getWeeklyInsightsUseCase;
   final InsightRepository insightRepository;
+  final AIAuthService aiAuthService;
 
   InsightBloc({
     required this.generateWeeklyInsightUseCase,
     required this.generateInsightReportUseCase,
     required this.getWeeklyInsightsUseCase,
     required this.insightRepository,
+    required this.aiAuthService,
   }) : super(InsightState.initial()) {
     // 注册事件处理器
     on<InsightGenerateCurrentWeek>(_onGenerateCurrentWeek);
@@ -91,6 +94,18 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     InsightGenerateCurrentWeek event,
     Emitter<InsightState> emit,
   ) async {
+    // 1. 首先检查AI授权
+    final isAuthorized = await aiAuthService.isAuthorized;
+    if (!isAuthorized) {
+      debugPrint('InsightBloc: 需要AI授权');
+      emit(state.copyWith(
+        status: InsightStatus.needsAIAuth,
+        clearReport: true,
+      ));
+      return; // 等待UI层处理授权
+    }
+
+    // 2. 已授权，继续原有逻辑
     final currentWeekRange = _getCurrentWeekRange();
 
     emit(state.copyWith(

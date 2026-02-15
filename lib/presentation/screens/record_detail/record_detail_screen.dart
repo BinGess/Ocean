@@ -11,7 +11,11 @@ import '../../bloc/record/record_state.dart';
 import '../../widgets/nvc_confirmation_modal.dart';
 import '../../widgets/nvc_error_dialog.dart';
 import '../../widgets/delete_confirmation_dialog.dart';
+import '../../widgets/ai_auth_dialog.dart';
+import '../../../core/di/injection.dart';
+import '../../../core/services/ai_auth_service.dart';
 import '../share/share_poster_screen.dart';
+import '../settings/settings_screen.dart';
 
 class RecordDetailScreen extends StatefulWidget {
   final Record record;
@@ -113,11 +117,72 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
     }
   }
 
+  /// 处理AI授权请求
+  Future<void> _handleAIAuthRequest(BuildContext context, RecordState state) async {
+    final result = await AIAuthDialog.show(context: context);
+
+    if (result == true) {
+      // 用户同意授权
+      await getIt<AIAuthService>().grant();
+
+      // 重新触发NVC分析
+      if (state.transcription != null && state.transcription!.isNotEmpty) {
+        context.read<RecordBloc>().add(
+          RecordAnalyzeNVC(state.transcription!),
+        );
+        setState(() {
+          _isAnalyzing = true;
+        });
+      }
+    } else {
+      // 用户拒绝授权
+      _showAuthDeniedGuidance(context);
+    }
+  }
+
+  /// 显示拒绝授权引导
+  void _showAuthDeniedGuidance(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.info_outline, color: Color(0xFFFFB74D)),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text('AI功能需要授权才能使用，您可在设置中开启'),
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: '去设置',
+          textColor: const Color(0xFFC4A57B),
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<RecordBloc, RecordState>(
       listener: (context, state) {
-        if (state.status == RecordStatus.analyzed && _isAnalyzing) {
+        // 处理需要AI授权的情况
+        if (state.status == RecordStatus.needsAIAuth && _isAnalyzing) {
+          setState(() {
+            _isAnalyzing = false;
+          });
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (ModalRoute.of(context)?.isCurrent ?? false) {
+              _handleAIAuthRequest(context, state);
+            }
+          });
+        } else if (state.status == RecordStatus.analyzed && _isAnalyzing) {
           setState(() {
             _isAnalyzing = false;
           });

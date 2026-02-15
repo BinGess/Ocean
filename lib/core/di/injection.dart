@@ -24,6 +24,7 @@ import '../network/doubao_llm_client.dart';
 import '../network/coze_ai_service.dart';
 import '../constants/app_constants.dart';
 import '../services/app_lock_service.dart';
+import '../services/ai_auth_service.dart';
 import '../../presentation/bloc/audio/audio_bloc.dart';
 import '../../presentation/bloc/record/record_bloc.dart';
 import '../../presentation/bloc/insight/insight_bloc.dart';
@@ -58,6 +59,11 @@ Future<void> configureDependencies() async {
   final appLockService = AppLockService();
   await appLockService.init();
   getIt.registerSingleton<AppLockService>(appLockService);
+
+  // AI授权服务
+  final aiAuthService = AIAuthService();
+  await aiAuthService.init();
+  getIt.registerSingleton<AIAuthService>(aiAuthService);
 
   // ===== Data Sources =====
 
@@ -169,6 +175,7 @@ Future<void> configureDependencies() async {
       updateRecordUseCase: getIt<UpdateRecordUseCase>(),
       recordRepository: getIt<RecordRepository>(),
       aiRepository: getIt<AIRepository>(),
+      aiAuthService: getIt<AIAuthService>(),
     ),
   );
 
@@ -179,6 +186,7 @@ Future<void> configureDependencies() async {
       generateInsightReportUseCase: getIt<GenerateInsightReportUseCase>(),
       getWeeklyInsightsUseCase: getIt<GetWeeklyInsightsUseCase>(),
       insightRepository: getIt<InsightRepository>(),
+      aiAuthService: getIt<AIAuthService>(),
     ),
   );
 }
@@ -190,6 +198,7 @@ Future<void> cleanupDependencies() async {
 
   // 清理服务
   getIt<AppLockService>().dispose();
+  getIt<AIAuthService>().dispose();
 
   // 清理网络客户端
   getIt<DoubaoLLMClient>().dispose();
