@@ -97,8 +97,8 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     final result = await _showEditDialog(
       title: '编辑事实观察',
       initialValue: _observation,
-      iconColor: const Color(0xFF007AFF),
-      iconBgColor: const Color(0xFFE8F4FD),
+      iconColor: const Color(0xFF4CAF50),
+      iconBgColor: const Color(0xFFE8F5E9),
       icon: Icons.remove_red_eye_outlined,
     );
     if (result != null) {
@@ -110,8 +110,8 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     final result = await _showEditDialog(
       title: '编辑行动 Tips',
       initialValue: _insight,
-      iconColor: const Color(0xFFAF52DE),
-      iconBgColor: const Color(0xFFF3EBFF),
+      iconColor: const Color(0xFFFFB300),
+      iconBgColor: const Color(0xFFFFF8E1),
       icon: Icons.lightbulb_outline,
     );
     if (result != null) {
@@ -261,7 +261,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                     child: TextButton(
                       onPressed: () => Navigator.pop(context, controller.text),
                       style: TextButton.styleFrom(
-                        backgroundColor: const Color(0xFF007AFF),
+                        backgroundColor: const Color(0xFFC4A57B),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -381,7 +381,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFF9E6), // 浅黄色背景
+                      color: const Color(0xFFF7F0E8), // 米色背景
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -399,14 +399,14 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                   // 洞察标签
                   Row(
                     children: [
-                      Icon(Icons.auto_awesome_outlined, size: 16, color: Colors.grey[400]),
+                      const Icon(Icons.auto_awesome, size: 16, color: Color(0xFFC4A57B)),
                       const SizedBox(width: 6),
-                      Text(
+                      const Text(
                         '洞察',
                         style: TextStyle(
-                          color: Colors.grey[500],
+                          color: Color(0xFFC4A57B),
                           fontSize: 13,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -414,12 +414,12 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
 
                   const SizedBox(height: 12),
 
-                  // 1. 事实观察（带蓝色边框）
+                  // 1. 事实观察
                   _buildNVCCard(
                     context: context,
                     icon: Icons.remove_red_eye_outlined,
-                    iconColor: const Color(0xFF007AFF),
-                    iconBgColor: const Color(0xFFE8F4FD),
+                    iconColor: const Color(0xFF4CAF50),
+                    iconBgColor: const Color(0xFFE8F5E9),
                     title: '事实观察',
                     content: Text(
                       _observation,
@@ -430,7 +430,6 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                       ),
                     ),
                     onEdit: _editObservation,
-                    highlighted: true,
                   ),
 
                   const SizedBox(height: 12),
@@ -448,13 +447,17 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                       children: _feelings.map((f) => Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFF4E6), // 浅黄色
+                          color: Colors.transparent,
                           borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0xFFE0D5C5),
+                            width: 1,
+                          ),
                         ),
                         child: Text(
                           f.feeling,
                           style: const TextStyle(
-                            color: Color(0xFFCC7A00),
+                            color: Color(0xFF5D4E3C),
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
@@ -490,9 +493,9 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                   _buildNVCCard(
                     context: context,
                     icon: Icons.lightbulb_outline,
-                    iconColor: const Color(0xFFAF52DE),
-                    iconBgColor: const Color(0xFFF3EBFF),
-                    title: '行动Tips',
+                    iconColor: const Color(0xFFFFB300),
+                    iconBgColor: const Color(0xFFFFF8E1),
+                    title: '行动 Tips',
                     content: Text(
                       _insight,
                       style: const TextStyle(
@@ -530,7 +533,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                 child: TextButton(
                   onPressed: _handleConfirm,
                   style: TextButton.styleFrom(
-                    backgroundColor: const Color(0xFF5A9FD4),
+                    backgroundColor: const Color(0xFFC4A57B),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -561,25 +564,19 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     required String title,
     required Widget content,
     required VoidCallback onEdit,
-    bool highlighted = false,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: highlighted
-            ? Border.all(color: const Color(0xFF007AFF), width: 2)
-            : null,
-        boxShadow: highlighted
-            ? [
-                BoxShadow(
-                  color: const Color(0xFF007AFF).withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -954,7 +951,7 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                   child: TextButton(
                     onPressed: () => Navigator.pop(context, _selectedTags),
                     style: TextButton.styleFrom(
-                      backgroundColor: const Color(0xFF007AFF),
+                      backgroundColor: const Color(0xFFC4A57B),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),

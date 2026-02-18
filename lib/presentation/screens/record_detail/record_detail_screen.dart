@@ -290,7 +290,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
               child: TextButton(
                 onPressed: _saveAndClose,
                 style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFF5A9FD4),
+                  backgroundColor: const Color(0xFFC4A57B),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -318,7 +318,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF9E6), // 浅黄色背景
+                  color: const Color(0xFFF7F0E8), // 米色背景
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -332,6 +332,24 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
               ),
 
               const SizedBox(height: 16),
+
+              // 洞察标签
+              Row(
+                children: [
+                  const Icon(Icons.auto_awesome, size: 16, color: Color(0xFFC4A57B)),
+                  const SizedBox(width: 6),
+                  const Text(
+                    '洞察',
+                    style: TextStyle(
+                      color: Color(0xFFC4A57B),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
 
               // 感受标签卡片
               Container(
@@ -422,14 +440,18 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                                     return Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFFF4E6),
+                                        color: Colors.transparent,
                                         borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(
+                                          color: const Color(0xFFE0D5C5),
+                                          width: 1,
+                                        ),
                                       ),
                                       child: Text(
                                         mood,
                                         style: const TextStyle(
                                           fontSize: 13,
-                                          color: Color(0xFFCC7A00),
+                                          color: Color(0xFF5D4E3C),
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -848,7 +870,7 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                   child: TextButton(
                     onPressed: () => Navigator.pop(context, _selectedTags),
                     style: TextButton.styleFrom(
-                      backgroundColor: const Color(0xFF007AFF),
+                      backgroundColor: const Color(0xFFC4A57B),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
