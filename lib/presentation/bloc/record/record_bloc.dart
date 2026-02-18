@@ -251,6 +251,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
         status: RecordStatus.success,
         records: updatedRecords,
         clearSelection: state.selectedRecord?.id == event.id,
+        clearLatest: true,
       ));
     } catch (e) {
       emit(state.copyWith(
