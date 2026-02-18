@@ -14,7 +14,7 @@ import '../../widgets/processing_choice_modal.dart';
 import '../../widgets/mood_selection_modal.dart';
 import '../../widgets/nvc_confirmation_modal.dart';
 import '../../widgets/nvc_error_dialog.dart';
-import '../../widgets/loading_overlay.dart';
+import '../../widgets/nvc_analyzing_modal.dart';
 import '../../widgets/ai_auth_dialog.dart';
 import '../settings/settings_screen.dart';
 import '../../../core/di/injection.dart';
@@ -405,6 +405,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
         // 触发 NVC 分析，分析完成后会在 BlocListener 中处理
         if (transcription.isNotEmpty) {
+           // 显示NVC分析加载动画弹窗
+           NVCAnalyzingModal.show(
+             context: context,
+             transcription: transcription,
+           );
            context.read<RecordBloc>().add(RecordAnalyzeNVC(transcription));
            // 注意：这里不要立即清除 _completedAudioPath，因为后续保存还需要它
         } else {
@@ -526,6 +531,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               listener: (context, recordState) {
                 if (recordState.isAnalyzed && recordState.nvcAnalysis != null) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
+                    // 先关闭分析加载动画弹窗
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    }
+
                     if (ModalRoute.of(context)?.isCurrent ?? false) {
                       final messenger = ScaffoldMessenger.of(context);
                       final recordBloc = context.read<RecordBloc>();
@@ -596,6 +606,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 // 处理AI授权请求
                 if (recordState.status == RecordStatus.needsAIAuth) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
+                    // 先关闭分析加载动画弹窗
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    }
                     if (ModalRoute.of(context)?.isCurrent ?? false) {
                       _handleAIAuthRequest(context, recordState);
                     }
@@ -612,6 +626,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   _isShowingErrorDialog = true;
                   _lastHandledError = recordState.errorMessage;
                   WidgetsBinding.instance.addPostFrameCallback((_) {
+                    // 先关闭分析加载动画弹窗
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    }
                     if (ModalRoute.of(context)?.isCurrent ?? false) {
                       final transcription = recordState.transcription;
                       NVCErrorDialog.show(context: context).then((action) {
@@ -694,23 +712,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ),
           ),
 
-          // 加载遮罩
-          BlocBuilder<RecordBloc, RecordState>(
-            builder: (context, state) {
-              String? message;
-              // 仅在 NVC 分析时显示全屏遮罩，因为分析需要用户确认后续步骤
-              if (state.isAnalyzing) {
-                message = '正在分析...';
-              }
-              // 注意：isCreating (保存中) 不再显示全屏遮罩，改为后台执行 + SnackBar 提示
-              // 这样即使用户网络慢，也不会感觉界面死机
-
-              return LoadingOverlay(
-                isLoading: state.isAnalyzing,
-                message: message,
-              );
-            },
-          ),
+          // NVC分析时已使用NVCAnalyzingModal，不再需要LoadingOverlay
           ],
         ),
       ),
