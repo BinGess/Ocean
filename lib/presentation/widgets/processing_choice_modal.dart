@@ -96,18 +96,23 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
                 '录音完成',
                 style: TextStyle(
                   fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF5D4E3C),
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF2C2C2C),
                 ),
               ),
               GestureDetector(
                 onTap: widget.onCancel,
                 child: Container(
-                  padding: const EdgeInsets.all(4),
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF2F2F2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   child: const Icon(
                     Icons.close,
-                    size: 24,
-                    color: Color(0xFF8B7D6B),
+                    size: 20,
+                    color: Color(0xFF8B8B8B),
                   ),
                 ),
               ),
@@ -120,11 +125,8 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: const Color(0xFFE8DED0),
-                width: 1,
-              ),
             ),
             constraints: const BoxConstraints(minHeight: 60, maxHeight: 120),
             child: isPlaceholder && !_userEdited
@@ -182,19 +184,19 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
                   ),
           ),
 
-          const SizedBox(height: 28),
+          const SizedBox(height: 24),
 
           // 选项标题
           const Text(
             '选择处理方式',
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF5D4E3C),
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+              color: Color(0xFFAAAAAA),
             ),
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // 选项卡片（2列布局）
           Row(
@@ -205,8 +207,8 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
                   icon: Icons.lightbulb_outline,
                   title: 'NVC 分析',
                   description: '完整的情绪分析',
-                  iconColor: const Color(0xFFB794F6), // 紫色
-                  backgroundColor: const Color(0xFFF3EBFF),
+                  iconColor: const Color(0xFFC4A57B),
+                  backgroundColor: const Color(0xFFFFF0E6),
                   onTap: widget.onNVCInsight ?? () {
                     _selectMode(ProcessingMode.withNVC);
                   },
@@ -221,8 +223,8 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
                   icon: Icons.description_outlined,
                   title: '仅记录文本',
                   description: '不做进一步分析',
-                  iconColor: const Color(0xFF7DBEF5), // 蓝色
-                  backgroundColor: const Color(0xFFE8F4FD),
+                  iconColor: const Color(0xFF9E9E9E),
+                  backgroundColor: const Color(0xFFF2F2F2),
                   onTap: () {
                     _selectMode(ProcessingMode.onlyRecord);
                   },
@@ -282,12 +284,15 @@ class _ProcessingOption extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFFFAF8F5),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFFE8DED0),
-              width: 1,
-            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -315,7 +320,7 @@ class _ProcessingOption extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF5D4E3C),
+                  color: Color(0xFF2C2C2C),
                 ),
                 textAlign: TextAlign.center,
               ),
