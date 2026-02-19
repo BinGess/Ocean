@@ -87,12 +87,25 @@ class AIAuthDialog extends StatelessWidget {
                       color: const Color(0xFFF7F0E8),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Text(
-                      'AI 分析功能由火山引擎豆包大模型提供支持。处理过程仅传输您的日记文字内容，用于情绪分析与日记辅助生成，数据不含任何身份信息，且全程加密传输。',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Color(0xFF6B6059),
-                        height: 1.7,
+                    child: RichText(
+                      text: const TextSpan(
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Color(0xFF6B6059),
+                          height: 1.7,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: '为提供 AI 情绪分析与结构化洞察服务，本应用集成了',
+                          ),
+                          TextSpan(
+                            text: '火山引擎（字节跳动旗下云服务）',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          TextSpan(
+                            text: '提供的豆包大模型。\n\n只有在您确认后，我们才会将当前日记的文本内容加密传输至上述服务商。我们承诺不会包含您的手机号、姓名或设备标识符等个人身份信息，且数据仅用于实时分析，不用于模型训练。',
+                          ),
+                        ],
                       ),
                     ),
                   ),

@@ -405,7 +405,28 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
         // 触发 NVC 分析，分析完成后会在 BlocListener 中处理
         if (transcription.isNotEmpty) {
-           // 显示NVC分析加载动画弹窗
+           // 首先检查 AI 授权
+           final aiAuthService = getIt<AIAuthService>();
+           final isAuthorized = await aiAuthService.isAuthorized;
+
+           if (!isAuthorized) {
+             // 显示 AI 授权对话框
+             if (!mounted) return;
+             final authResult = await AIAuthDialog.show(context: context);
+
+             if (authResult == true) {
+               // 用户同意授权
+               await aiAuthService.grant();
+             } else {
+               // 用户拒绝授权，显示引导提示
+               if (!mounted) return;
+               _showAuthDeniedGuidance(context);
+               return;
+             }
+           }
+
+           // 授权通过，显示NVC分析加载动画弹窗
+           if (!mounted) return;
            NVCAnalyzingModal.show(
              context: context,
              transcription: transcription,

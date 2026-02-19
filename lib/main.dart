@@ -8,7 +8,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/theme/app_theme.dart';
 import 'core/di/injection.dart';
 import 'core/services/app_lock_service.dart';
-import 'core/services/ai_auth_service.dart';
 import 'presentation/bloc/audio/audio_bloc.dart';
 import 'presentation/bloc/audio/audio_event.dart';
 import 'presentation/bloc/record/record_bloc.dart';
@@ -19,7 +18,6 @@ import 'presentation/screens/insights/insights_screen.dart';
 import 'presentation/screens/splash/splash_screen.dart';
 import 'presentation/screens/app_lock/lock_screen.dart';
 import 'presentation/widgets/app_lock/privacy_blur_overlay.dart';
-import 'presentation/widgets/ai_auth_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -84,7 +82,6 @@ class _AppEntryPointState extends State<AppEntryPoint> with WidgetsBindingObserv
   bool _isCheckingLock = false;
 
   final _appLockService = getIt<AppLockService>();
-  final _aiAuthService = getIt<AIAuthService>();
 
   @override
   void initState() {
@@ -230,26 +227,7 @@ class _AppEntryPointState extends State<AppEntryPoint> with WidgetsBindingObserv
       _showSplash = false;
     });
 
-    // Splash 结束后，按顺序处理授权流程
-    await _handleAuthorizationFlow();
-  }
-
-  /// 处理授权流程：AI授权 -> 麦克风权限 -> 网络权限
-  Future<void> _handleAuthorizationFlow() async {
-    // 1. 首先检查 AI 授权
-    final isAIAuthorized = await _aiAuthService.isAuthorized;
-    if (!isAIAuthorized && mounted) {
-      // 显示 AI 授权弹窗
-      final aiAuthResult = await AIAuthDialog.show(context: context);
-      if (aiAuthResult == true) {
-        await _aiAuthService.grant();
-      } else {
-        // 用户拒绝了 AI 授权，但仍可继续使用基础功能
-        debugPrint('用户拒绝了AI授权，可在设置中重新开启');
-      }
-    }
-
-    // 2. AI 授权完成后，再请求麦克风权限和预热
+    // Splash 结束后，直接请求麦克风权限和预热
     if (mounted) {
       _requestPermissionsAndWarmUp();
     }
