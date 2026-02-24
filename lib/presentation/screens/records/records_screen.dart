@@ -250,7 +250,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 20),
+        const SizedBox(height: 18),
 
         // 日期标题行
         Row(
@@ -258,44 +258,44 @@ class _RecordsScreenState extends State<RecordsScreen> {
             // 日期指示条
             Container(
               width: 3,
-              height: 20,
+              height: 18,
               decoration: BoxDecoration(
                 color: const Color(0xFFC4A57B),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 9),
             Text(
               _formatDateTitle(date),
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF2C2C2C),
-                letterSpacing: -0.3,
+                letterSpacing: -0.2,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 7),
             Text(
               _getDateLabel(date),
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 color: Color(0xFFAAAAAA),
               ),
             ),
           ],
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
 
         // 每日心情概览
         if (records.isNotEmpty)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+            margin: const EdgeInsets.only(bottom: 14),
             decoration: BoxDecoration(
               color: const Color(0xFFF7F0E8),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
@@ -303,28 +303,28 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 GestureDetector(
                   onTap: () => _handleMoodTap(date),
                   child: Container(
-                    width: 40,
-                    height: 40,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 3,
+                          offset: const Offset(0, 1),
                         ),
                       ],
                     ),
                     child: Center(
                       child: MoodIconByPath(
                         imagePath: _getDailyMoodImagePath(date),
-                        size: 22,
+                        size: 20,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 11),
                 Expanded(
                   child: GestureDetector(
                     onTap: () => _handleMoodTap(date),
@@ -335,16 +335,16 @@ class _RecordsScreenState extends State<RecordsScreen> {
                         const Text(
                           '今日心情',
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF5D4E3C),
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 1),
                         Text(
                           '共 ${records.length} 条记录 · 点击修改心情',
                           style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 11,
                             color: Color(0xFFAAAAAA),
                           ),
                         ),
@@ -384,19 +384,19 @@ class _RecordsScreenState extends State<RecordsScreen> {
         children: [
           // 左侧时间轴
           SizedBox(
-            width: 52,
+            width: 44,
             child: Column(
               children: [
                 // 时间
                 Text(
                   _formatTime(record.createdAt),
                   style: const TextStyle(
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: Color(0xFFAAAAAA),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 // 圆点
                 Container(
                   width: 8,
@@ -421,22 +421,22 @@ class _RecordsScreenState extends State<RecordsScreen> {
             ),
           ),
 
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
 
           // 右侧卡片
           Expanded(
             child: GestureDetector(
               onTap: () => _handleRecordTap(record),
               child: Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.03),
-                      blurRadius: 10,
+                      blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
                   ],
@@ -448,9 +448,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     Text(
                       record.transcription,
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 13,
                         color: Color(0xFF3C3C3C),
-                        height: 1.6,
+                        height: 1.5,
                       ),
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
@@ -458,19 +458,19 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
                     // 标签（下方）- 统一中性描边样式
                     if (hasNVC && record.nvc!.feelings.isNotEmpty) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
+                        spacing: 7,
+                        runSpacing: 5,
                         children: record.nvc!.feelings.take(3).map((feeling) {
                           return _buildMoodTag(feeling.feeling);
                         }).toList(),
                       ),
                     ] else if (hasMoods) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
+                        spacing: 7,
+                        runSpacing: 5,
                         children: record.moods!.take(3).map((mood) {
                           return _buildMoodTag(mood);
                         }).toList(),
@@ -489,10 +489,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
   /// 构建情绪标签 - 统一中性描边样式
   Widget _buildMoodTag(String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(5),
         border: Border.all(
           color: const Color(0xFFE0D5C5),
           width: 1,
@@ -501,7 +501,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
       child: Text(
         text,
         style: const TextStyle(
-          fontSize: 12,
+          fontSize: 11,
           color: Color(0xFF8B7D6B),
           fontWeight: FontWeight.w400,
         ),
