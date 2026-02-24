@@ -196,6 +196,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
         status: RecordStatus.success,
         records: records,
         hasMore: limit != null && records.length >= limit,
+        clearLatest: true,
       ));
     } catch (e) {
       emit(state.copyWith(
