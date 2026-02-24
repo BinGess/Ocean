@@ -316,13 +316,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
     final hasNVC = record.nvc != null;
     final hasMoods = record.moods != null && record.moods!.isNotEmpty;
 
-    // 获取情绪颜色
-    Color dotColor = const Color(0xFFC4A57B);
-    if (hasNVC && record.nvc!.feelings.isNotEmpty) {
-      dotColor = _getEmotionColor(record.nvc!.feelings.first.feeling);
-    } else if (hasMoods) {
-      dotColor = _getEmotionColor(record.moods!.first);
-    }
+    // 统一使用暖橙色
+    const dotColor = Color(0xFFC4A57B);
 
     return IntrinsicHeight(
       child: Row(
@@ -330,7 +325,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
         children: [
           // 左侧时间轴
           SizedBox(
-            width: 56,
+            width: 52,
             child: Column(
               children: [
                 // 时间
@@ -339,42 +334,26 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF8B7D6B),
+                    color: Color(0xFFAAAAAA),
                   ),
                 ),
                 const SizedBox(height: 8),
                 // 圆点
                 Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
                     color: dotColor,
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: dotColor.withOpacity(0.3),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
                   ),
                 ),
                 // 连接线
                 if (!isLast)
                   Expanded(
                     child: Container(
-                      width: 1.5,
+                      width: 1,
                       margin: const EdgeInsets.symmetric(vertical: 6),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            dotColor.withOpacity(0.4),
-                            const Color(0xFFE0D5C5).withOpacity(0.3),
-                          ],
-                        ),
-                      ),
+                      color: const Color(0xFFE8E0D5),
                     ),
                   )
                 else
@@ -394,12 +373,12 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
@@ -413,13 +392,12 @@ class _RecordsScreenState extends State<RecordsScreen> {
                         fontSize: 14,
                         color: Color(0xFF3C3C3C),
                         height: 1.6,
-                        letterSpacing: 0.1,
                       ),
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
 
-                    // 标签（下方）
+                    // 标签（下方）- 统一中性描边样式
                     if (hasNVC && record.nvc!.feelings.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       Wrap(
@@ -449,21 +427,24 @@ class _RecordsScreenState extends State<RecordsScreen> {
     );
   }
 
-  /// 构建情绪标签
+  /// 构建情绪标签 - 统一中性描边样式
   Widget _buildMoodTag(String text) {
-    final color = _getEmotionColor(text);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: const Color(0xFFE0D5C5),
+          width: 1,
+        ),
       ),
       child: Text(
         text,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 12,
-          color: color,
-          fontWeight: FontWeight.w500,
+          color: Color(0xFF8B7D6B),
+          fontWeight: FontWeight.w400,
         ),
       ),
     );
