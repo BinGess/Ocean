@@ -30,7 +30,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   String? _completedAudioPath;
   final List<String> _rollingDescriptions = [
-    '任何感受可以被接纳',
+    '任何感受都可以被接纳',
     '让情绪流淌',
     '允许任何事发生',
     '先看见，再思考',
