@@ -82,12 +82,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       viewportFraction: 0.18, // 缩小视口比例，让词条更紧凑
     );
 
-    // 初始化脉冲动画控制器
+    // 初始化脉冲动画控制器 - 强化膨胀效果
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1400),  // 稍微延长持续时间
     );
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.25).animate(  // 从1.15增加到1.25
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
@@ -504,14 +504,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         ),
         child: Stack(
           children: [
-            // 背景纹理层
+            // 背景纹理层 - 强化质感
             Positioned.fill(
               child: IgnorePointer(
-                child: Opacity(
-                  opacity: 0.35,
-                  child: CustomPaint(
-                    painter: _NoiseTexturePainter(),
-                  ),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: Opacity(
+                        opacity: 0.5,
+                        child: CustomPaint(
+                          painter: _NoiseTexturePainter(),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -856,12 +862,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final isPressingOnly = _isPressed && !audioState.isRecording;
     final buttonSize = audioState.isRecording ? 106.0 : (_isPressed ? 102.0 : 120.0);
     final iconSize = audioState.isRecording ? 38.0 : (_isPressed ? 40.0 : 48.0);
-    final ringAlpha = isPressingOnly ? 0.5 : (isActive ? 0.35 : 0.12);
-    final ringWidth = isPressingOnly ? 2.4 : (isActive ? 1.8 : 1.2);
-    final mainBorderWidth = isPressingOnly ? 2.9 : (isActive ? 2.6 : 2.2);
-    final mainGlowAlpha = isPressingOnly ? 0.3 : (isActive ? 0.24 : 0.18);
-    final mainGlowBlur = isPressingOnly ? 28.0 : (isActive ? 24.0 : 12.0);
-    final mainGlowSpread = isPressingOnly ? 4.4 : (isActive ? 3.5 : 2.0);
+    final ringAlpha = isPressingOnly ? 0.6 : (isActive ? 0.42 : 0.16);  // 增强透明度
+    final ringWidth = isPressingOnly ? 2.6 : (isActive ? 2.0 : 1.4);  // 增加边框宽度
+    final mainBorderWidth = isPressingOnly ? 3.1 : (isActive ? 2.8 : 2.4);  // 增加边框宽度
+    final mainGlowAlpha = isPressingOnly ? 0.4 : (isActive ? 0.32 : 0.24);  // 增强发光
+    final mainGlowBlur = isPressingOnly ? 32.0 : (isActive ? 28.0 : 16.0);  // 增大发光范围
+    final mainGlowSpread = isPressingOnly ? 5.0 : (isActive ? 4.0 : 2.5);  // 增加发光范围
 
     // 控制脉冲动画
     if (audioState.isRecording && !_pulseController.isAnimating) {
@@ -935,7 +941,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     // 水波纹效果（独立Widget，自行管理动画）
                     _RippleEffect(isActive: isActive),
 
-                    // 外圈脉冲效果（录音时）
+                    // 外圈脉冲效果（录音时） - 强化版
                     if (audioState.isRecording)
                       AnimatedBuilder(
                         animation: _pulseAnimation,
@@ -943,6 +949,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           final pulseColor = isConnecting
                               ? const Color(0xFF7DBEF5)
                               : const Color(0xFFC4A57B);
+                          // 调整 alpha 计算，适配新的动画范围 1.0-1.25
+                          final alphaFactor = (1.25 - _pulseAnimation.value) / 0.25;
                           return Container(
                             width: 120 * _pulseAnimation.value,
                             height: 120 * _pulseAnimation.value,
@@ -950,9 +958,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               shape: BoxShape.circle,
                               border: Border.all(
                                 color: pulseColor.withValues(
-                                  alpha: 0.4 * (1.15 - _pulseAnimation.value) / 0.15,
+                                  alpha: 0.5 * alphaFactor,  // 从0.4增加到0.5
                                 ),
-                                width: 2,
+                                width: 2.5,  // 从2增加到2.5
                               ),
                             ),
                           );
@@ -1376,28 +1384,28 @@ class _RippleEffectState extends State<_RippleEffect>
             final phaseOffset = index / 3.0;
             final progress = (_controller.value + phaseOffset) % 1.0;
 
-            // 波纹从按钮边缘向外扩展
+            // 波纹从按钮边缘向外扩展 - 强化效果
             final minSize = widget.isActive ? 126.0 : 118.0;
-            final maxSize = widget.isActive ? 178.0 : 220.0;
+            final maxSize = widget.isActive ? 200.0 : 260.0;  // 增加最大尺寸
             final size = minSize + (maxSize - minSize) * progress;
 
-            // 透明度：扩散过程中持续衰减（非激活更明显），避免“到最外圈才消失”
-            final baseAlpha = widget.isActive ? 0.48 : 0.28;
-            // 使用更前置的衰减曲线：刚开始扩散就变淡，而不是到最外层才明显消失
+            // 透明度：更强的初始值，更缓的衰减 - 增强视觉效果
+            final baseAlpha = widget.isActive ? 0.62 : 0.42;  // 大幅提高初始透明度
+            // 使用更温和的衰减曲线，使波纹更可见
             final fadeFactor = widget.isActive
-                ? math.pow(1.0 - progress, 2.0).toDouble()
-                : math.pow(1.0 - progress, 2.2).toDouble();
+                ? math.pow(1.0 - progress, 1.6).toDouble()  // 从2.0改为1.6，衰减更缓
+                : math.pow(1.0 - progress, 1.8).toDouble();  // 从2.2改为1.8，衰减更缓
             final alpha = (baseAlpha * fadeFactor).clamp(0.0, 1.0);
 
-            // 边框宽度渐变
+            // 边框宽度渐变 - 增强边框
             final borderWidth = widget.isActive
-                ? 2.0 - progress * 1.0
-                : 1.6 - progress * 0.8;
+                ? 2.4 - progress * 1.0  // 从2.0改为2.4
+                : 2.0 - progress * 0.8;  // 从1.6改为2.0
 
             // 颜色
             final color = widget.isActive
                 ? const Color(0xFFC4A57B)
-                : const Color(0xFFDCCDBF);
+                : const Color(0xFFD4BAA6);  // 更明显的色彩
 
             return Container(
               width: size,
@@ -1417,18 +1425,29 @@ class _RippleEffectState extends State<_RippleEffect>
   }
 }
 
-/// 细腻噪点纹理（轻微）
+/// 细腻噪点纹理 - 增强版
 class _NoiseTexturePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFFBFAF9C).withValues(alpha: 0.08)
-      ..strokeWidth = 1;
-    // 简单规则网格点，避免引入随机数导致抖动
-    const step = 18.0;
-    for (double y = 0; y < size.height; y += step) {
-      for (double x = 0; x < size.width; x += step) {
-        canvas.drawCircle(Offset(x + (y % (step * 0.6)), y), 0.8, paint);
+    // 第一层：细小点纹理
+    final smallPointPaint = Paint()
+      ..color = const Color(0xFFB5A597).withValues(alpha: 0.12)
+      ..strokeWidth = 0;
+    const smallStep = 12.0;
+    for (double y = 0; y < size.height; y += smallStep) {
+      for (double x = 0; x < size.width; x += smallStep) {
+        canvas.drawCircle(Offset(x + (y % (smallStep * 0.5)), y), 0.6, smallPointPaint);
+      }
+    }
+
+    // 第二层：较大稀疏点纹理，增加深度
+    final largePointPaint = Paint()
+      ..color = const Color(0xFFA89480).withValues(alpha: 0.08)
+      ..strokeWidth = 0;
+    const largeStep = 24.0;
+    for (double y = 0; y < size.height; y += largeStep) {
+      for (double x = 0; x < size.width; x += largeStep) {
+        canvas.drawCircle(Offset(x + (y % (largeStep * 0.4)), y), 1.0, largePointPaint);
       }
     }
   }
