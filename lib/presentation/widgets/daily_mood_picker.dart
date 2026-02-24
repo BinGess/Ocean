@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 /// 每日心情数据
 class DailyMood {
-  final String emoji;
+  final String imagePath;
   final String label;
   final Color color;
 
   const DailyMood({
-    required this.emoji,
+    required this.imagePath,
     required this.label,
     required this.color,
   });
@@ -15,43 +15,43 @@ class DailyMood {
 
 /// 预定义的心情选项
 const List<DailyMood> dailyMoods = [
-  DailyMood(emoji: '😊', label: '开心', color: Color(0xFFFFD93D)),
-  DailyMood(emoji: '😌', label: '平静', color: Color(0xFF6BCB77)),
-  DailyMood(emoji: '🥰', label: '幸福', color: Color(0xFFFF6B6B)),
-  DailyMood(emoji: '😔', label: '低落', color: Color(0xFF748DA6)),
-  DailyMood(emoji: '😤', label: '烦躁', color: Color(0xFFFF8B4D)),
-  DailyMood(emoji: '😰', label: '焦虑', color: Color(0xFF9B7EDE)),
-  DailyMood(emoji: '😴', label: '疲惫', color: Color(0xFFB4B4B4)),
-  DailyMood(emoji: '🤔', label: '困惑', color: Color(0xFF4ECDC4)),
+  DailyMood(imagePath: 'assets/images/moods/happy.png', label: '开心', color: Color(0xFFFFD93D)),
+  DailyMood(imagePath: 'assets/images/moods/calm.png', label: '平静', color: Color(0xFF6BCB77)),
+  DailyMood(imagePath: 'assets/images/moods/loved.png', label: '幸福', color: Color(0xFFFF6B6B)),
+  DailyMood(imagePath: 'assets/images/moods/sad.png', label: '低落', color: Color(0xFF748DA6)),
+  DailyMood(imagePath: 'assets/images/moods/annoyed.png', label: '烦躁', color: Color(0xFFFF8B4D)),
+  DailyMood(imagePath: 'assets/images/moods/anxious.png', label: '焦虑', color: Color(0xFF9B7EDE)),
+  DailyMood(imagePath: 'assets/images/moods/tired.png', label: '疲惫', color: Color(0xFFB4B4B4)),
+  DailyMood(imagePath: 'assets/images/moods/confused.png', label: '困惑', color: Color(0xFF4ECDC4)),
 ];
 
-/// 默认心情（微笑）
+/// 默认心情（开心）
 const DailyMood defaultMood = DailyMood(
-  emoji: '😊',
+  imagePath: 'assets/images/moods/happy.png',
   label: '开心',
   color: Color(0xFFFFD93D),
 );
 
 /// 每日心情选择器弹窗
 class DailyMoodPicker extends StatelessWidget {
-  final String? selectedEmoji;
+  final String? selectedImagePath;
   final Function(DailyMood) onSelect;
 
   const DailyMoodPicker({
     super.key,
-    this.selectedEmoji,
+    this.selectedImagePath,
     required this.onSelect,
   });
 
   static Future<DailyMood?> show({
     required BuildContext context,
-    String? currentEmoji,
+    String? currentImagePath,
   }) {
     return showModalBottomSheet<DailyMood>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => DailyMoodPicker(
-        selectedEmoji: currentEmoji,
+        selectedImagePath: currentImagePath,
         onSelect: (mood) => Navigator.of(context).pop(mood),
       ),
     );
@@ -111,7 +111,7 @@ class DailyMoodPicker extends StatelessWidget {
             itemCount: dailyMoods.length,
             itemBuilder: (context, index) {
               final mood = dailyMoods[index];
-              final isSelected = selectedEmoji == mood.emoji;
+              final isSelected = selectedImagePath == mood.imagePath;
 
               return GestureDetector(
                 onTap: () => onSelect(mood),
@@ -129,9 +129,10 @@ class DailyMoodPicker extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        mood.emoji,
-                        style: const TextStyle(fontSize: 32),
+                      Image.asset(
+                        mood.imagePath,
+                        width: 32,
+                        height: 32,
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -162,11 +163,11 @@ String getDailyMoodKey(DateTime date) {
   return 'daily_mood_${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 }
 
-/// 根据 emoji 获取 DailyMood 对象
-DailyMood? getMoodByEmoji(String? emoji) {
-  if (emoji == null) return null;
+/// 根据图片路径获取 DailyMood 对象
+DailyMood? getMoodByImagePath(String? imagePath) {
+  if (imagePath == null) return null;
   try {
-    return dailyMoods.firstWhere((mood) => mood.emoji == emoji);
+    return dailyMoods.firstWhere((mood) => mood.imagePath == imagePath);
   } catch (_) {
     return null;
   }

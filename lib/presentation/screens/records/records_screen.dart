@@ -48,9 +48,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
     for (int i = 0; i < 30; i++) {
       final date = now.subtract(Duration(days: i));
       final key = getDailyMoodKey(date);
-      final emoji = _database.settingsBox.get(key) as String?;
-      if (emoji != null) {
-        _dailyMoods[key] = emoji;
+      final imagePath = _database.settingsBox.get(key) as String?;
+      if (imagePath != null) {
+        _dailyMoods[key] = imagePath;
       }
     }
     if (mounted) setState(() {});
@@ -58,24 +58,24 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   Future<void> _handleMoodTap(DateTime date) async {
     final key = getDailyMoodKey(date);
-    final currentEmoji = _dailyMoods[key];
+    final currentImagePath = _dailyMoods[key];
 
     final selectedMood = await DailyMoodPicker.show(
       context: context,
-      currentEmoji: currentEmoji,
+      currentImagePath: currentImagePath,
     );
 
     if (selectedMood != null) {
-      await _database.settingsBox.put(key, selectedMood.emoji);
+      await _database.settingsBox.put(key, selectedMood.imagePath);
       setState(() {
-        _dailyMoods[key] = selectedMood.emoji;
+        _dailyMoods[key] = selectedMood.imagePath;
       });
     }
   }
 
-  String _getDailyMoodEmoji(DateTime date) {
+  String _getDailyMoodImagePath(DateTime date) {
     final key = getDailyMoodKey(date);
-    return _dailyMoods[key] ?? '😊';
+    return _dailyMoods[key] ?? defaultMood.imagePath;
   }
 
   void _handleRecordTap(Record record) async {
@@ -317,9 +317,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
                       ],
                     ),
                     child: Center(
-                      child: Text(
-                        _getDailyMoodEmoji(date),
-                        style: const TextStyle(fontSize: 22),
+                      child: Image.asset(
+                        _getDailyMoodImagePath(date),
+                        width: 22,
+                        height: 22,
                       ),
                     ),
                   ),
