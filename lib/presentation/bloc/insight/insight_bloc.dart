@@ -111,7 +111,7 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
       debugPrint('InsightBloc: 需要AI授权');
       emit(state.copyWith(
         status: InsightStatus.needsAIAuth,
-        clearReport: true,
+        clearReport: !event.preserveCurrentContent,
       ));
       return; // 显示引导页面，等待用户授权
     }
@@ -122,7 +122,7 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     emit(state.copyWith(
       status: InsightStatus.generating,
       progressMessage: '正在分析本周记录...',
-      clearReport: true,
+      clearReport: !event.preserveCurrentContent,
     ));
 
     try {

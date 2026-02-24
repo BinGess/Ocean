@@ -49,7 +49,9 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
     if (_isRefreshing) return;
     setState(() => _isRefreshing = true);
     _refreshController.repeat();
-    context.read<InsightBloc>().add(const InsightGenerateCurrentWeek());
+    context.read<InsightBloc>().add(
+      const InsightGenerateCurrentWeek(preserveCurrentContent: true),
+    );
   }
 
   /// 处理AI授权请求
@@ -111,18 +113,33 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
       body: BlocListener<InsightBloc, InsightState>(
         listener: (context, state) {
           if (_isRefreshing &&
-              (state.status == InsightStatus.success || state.status == InsightStatus.error)) {
+              (state.status == InsightStatus.success ||
+                  state.status == InsightStatus.error ||
+                  state.status == InsightStatus.needsAIAuth)) {
             _refreshController.stop();
+            _refreshController.reset();
             if (mounted) {
               setState(() => _isRefreshing = false);
             }
+          }
+
+          if (state.status == InsightStatus.error && state.currentReport != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.errorMessage ?? '刷新失败，请稍后重试')),
+            );
+          }
+
+          if (state.status == InsightStatus.needsAIAuth && state.currentReport != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('AI授权已失效，请在设置中重新开启')),
+            );
           }
           // 注：needsAIAuth 状态不再自动弹窗，而是通过UI引导用户手动触发
         },
         child: BlocBuilder<InsightBloc, InsightState>(
         builder: (context, state) {
-          // 需要AI授权时显示友好的引导页面
-          if (state.status == InsightStatus.needsAIAuth) {
+          // 无内容且需要AI授权时显示友好引导
+          if (state.status == InsightStatus.needsAIAuth && state.currentReport == null) {
             return _buildAIAuthPromptState();
           }
 
@@ -132,7 +149,7 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
             return _buildLoadingState(state.progressMessage);
           }
 
-          if (state.status == InsightStatus.error || state.currentReport == null) {
+          if (state.currentReport == null) {
             return _buildEmptyState(state.errorMessage);
           }
 
