@@ -6,10 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../domain/entities/record.dart';
+import '../../../core/di/injection.dart';
+import '../../../data/datasources/local/hive_database.dart';
 import '../../bloc/record/record_bloc.dart';
 import '../../bloc/record/record_state.dart';
 import '../../bloc/record/record_event.dart';
 import '../../widgets/nvc_confirmation_modal.dart';
+import '../../widgets/daily_mood_picker.dart';
 import '../record_detail/record_detail_screen.dart';
 
 class RecordsScreen extends StatefulWidget {
@@ -25,14 +28,54 @@ class RecordsScreen extends StatefulWidget {
 }
 
 class _RecordsScreenState extends State<RecordsScreen> {
+  final HiveDatabase _database = getIt<HiveDatabase>();
+  final Map<String, String> _dailyMoods = {};
+
   @override
   void initState() {
     super.initState();
     _loadRecords();
+    _loadDailyMoods();
   }
 
   void _loadRecords() {
     context.read<RecordBloc>().add(const RecordLoadList());
+  }
+
+  void _loadDailyMoods() {
+    // 加载最近30天的心情数据
+    final now = DateTime.now();
+    for (int i = 0; i < 30; i++) {
+      final date = now.subtract(Duration(days: i));
+      final key = getDailyMoodKey(date);
+      final emoji = _database.settingsBox.get(key) as String?;
+      if (emoji != null) {
+        _dailyMoods[key] = emoji;
+      }
+    }
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _handleMoodTap(DateTime date) async {
+    final key = getDailyMoodKey(date);
+    final currentEmoji = _dailyMoods[key];
+
+    final selectedMood = await DailyMoodPicker.show(
+      context: context,
+      currentEmoji: currentEmoji,
+    );
+
+    if (selectedMood != null) {
+      await _database.settingsBox.put(key, selectedMood.emoji);
+      setState(() {
+        _dailyMoods[key] = selectedMood.emoji;
+      });
+    }
+  }
+
+  String _getDailyMoodEmoji(DateTime date) {
+    final key = getDailyMoodKey(date);
+    return _dailyMoods[key] ?? '😊';
   }
 
   void _handleRecordTap(Record record) async {
@@ -244,7 +287,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
         const SizedBox(height: 16),
 
-        // 每日总结占位区（后续可扩展）
+        // 每日心情概览
         if (records.isNotEmpty)
           Container(
             width: double.infinity,
@@ -256,41 +299,57 @@ class _RecordsScreenState extends State<RecordsScreen> {
             ),
             child: Row(
               children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFC4A57B).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.auto_awesome,
-                    size: 16,
-                    color: Color(0xFFC4A57B),
+                // 心情图标（可点击）
+                GestureDetector(
+                  onTap: () => _handleMoodTap(date),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        _getDailyMoodEmoji(date),
+                        style: const TextStyle(fontSize: 22),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '今日情绪概览',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF5D4E3C),
+                  child: GestureDetector(
+                    onTap: () => _handleMoodTap(date),
+                    behavior: HitTestBehavior.opaque,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '今日心情',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF5D4E3C),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '共 ${records.length} 条记录',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFFAAAAAA),
+                        const SizedBox(height: 2),
+                        Text(
+                          '共 ${records.length} 条记录 · 点击修改心情',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFFAAAAAA),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
