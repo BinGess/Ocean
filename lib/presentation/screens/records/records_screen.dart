@@ -317,10 +317,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
                       ],
                     ),
                     child: Center(
-                      child: Image.asset(
-                        _getDailyMoodImagePath(date),
-                        width: 22,
-                        height: 22,
+                      child: MoodIconByPath(
+                        imagePath: _getDailyMoodImagePath(date),
+                        size: 22,
                       ),
                     ),
                   ),

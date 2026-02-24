@@ -92,6 +92,7 @@ flutter:
   # 资源文件
   assets:
     - assets/images/
+    - assets/images/moods/
     - assets/fonts/
     - .env
 

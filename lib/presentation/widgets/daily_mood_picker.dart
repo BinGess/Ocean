@@ -5,24 +5,26 @@ class DailyMood {
   final String imagePath;
   final String label;
   final Color color;
+  final String fallbackEmoji;
 
   const DailyMood({
     required this.imagePath,
     required this.label,
     required this.color,
+    required this.fallbackEmoji,
   });
 }
 
 /// 预定义的心情选项
 const List<DailyMood> dailyMoods = [
-  DailyMood(imagePath: 'assets/images/moods/happy.png', label: '开心', color: Color(0xFFFFD93D)),
-  DailyMood(imagePath: 'assets/images/moods/calm.png', label: '平静', color: Color(0xFF6BCB77)),
-  DailyMood(imagePath: 'assets/images/moods/loved.png', label: '幸福', color: Color(0xFFFF6B6B)),
-  DailyMood(imagePath: 'assets/images/moods/sad.png', label: '低落', color: Color(0xFF748DA6)),
-  DailyMood(imagePath: 'assets/images/moods/annoyed.png', label: '烦躁', color: Color(0xFFFF8B4D)),
-  DailyMood(imagePath: 'assets/images/moods/anxious.png', label: '焦虑', color: Color(0xFF9B7EDE)),
-  DailyMood(imagePath: 'assets/images/moods/tired.png', label: '疲惫', color: Color(0xFFB4B4B4)),
-  DailyMood(imagePath: 'assets/images/moods/confused.png', label: '困惑', color: Color(0xFF4ECDC4)),
+  DailyMood(imagePath: 'assets/images/moods/happy.png', label: '开心', color: Color(0xFFFFD93D), fallbackEmoji: '😊'),
+  DailyMood(imagePath: 'assets/images/moods/calm.png', label: '平静', color: Color(0xFF6BCB77), fallbackEmoji: '😌'),
+  DailyMood(imagePath: 'assets/images/moods/loved.png', label: '幸福', color: Color(0xFFFF6B6B), fallbackEmoji: '🥰'),
+  DailyMood(imagePath: 'assets/images/moods/sad.png', label: '低落', color: Color(0xFF748DA6), fallbackEmoji: '😔'),
+  DailyMood(imagePath: 'assets/images/moods/annoyed.png', label: '烦躁', color: Color(0xFFFF8B4D), fallbackEmoji: '😤'),
+  DailyMood(imagePath: 'assets/images/moods/anxious.png', label: '焦虑', color: Color(0xFF9B7EDE), fallbackEmoji: '😰'),
+  DailyMood(imagePath: 'assets/images/moods/tired.png', label: '疲惫', color: Color(0xFFB4B4B4), fallbackEmoji: '😴'),
+  DailyMood(imagePath: 'assets/images/moods/confused.png', label: '困惑', color: Color(0xFF4ECDC4), fallbackEmoji: '🤔'),
 ];
 
 /// 默认心情（开心）
@@ -30,6 +32,7 @@ const DailyMood defaultMood = DailyMood(
   imagePath: 'assets/images/moods/happy.png',
   label: '开心',
   color: Color(0xFFFFD93D),
+  fallbackEmoji: '😊',
 );
 
 /// 每日心情选择器弹窗
@@ -129,11 +132,7 @@ class DailyMoodPicker extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Image.asset(
-                        mood.imagePath,
-                        width: 32,
-                        height: 32,
-                      ),
+                      MoodIcon(mood: mood, size: 32),
                       const SizedBox(height: 6),
                       Text(
                         mood.label,
@@ -170,5 +169,50 @@ DailyMood? getMoodByImagePath(String? imagePath) {
     return dailyMoods.firstWhere((mood) => mood.imagePath == imagePath);
   } catch (_) {
     return null;
+  }
+}
+
+/// 心情图标组件 - 优先显示图片，加载失败时显示 emoji
+class MoodIcon extends StatelessWidget {
+  final DailyMood mood;
+  final double size;
+
+  const MoodIcon({
+    super.key,
+    required this.mood,
+    required this.size,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      mood.imagePath,
+      width: size,
+      height: size,
+      errorBuilder: (context, error, stackTrace) {
+        return Text(
+          mood.fallbackEmoji,
+          style: TextStyle(fontSize: size * 0.85),
+        );
+      },
+    );
+  }
+}
+
+/// 根据图片路径显示心情图标
+class MoodIconByPath extends StatelessWidget {
+  final String? imagePath;
+  final double size;
+
+  const MoodIconByPath({
+    super.key,
+    this.imagePath,
+    required this.size,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final mood = getMoodByImagePath(imagePath) ?? defaultMood;
+    return MoodIcon(mood: mood, size: size);
   }
 }
