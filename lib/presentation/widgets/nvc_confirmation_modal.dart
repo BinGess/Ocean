@@ -59,8 +59,8 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     _observation = _stripSquareBrackets(widget.initialAnalysis.observation);
     _feelings = List.from(widget.initialAnalysis.feelings);
     _needs = List.from(widget.initialAnalysis.needs);
-    _insight = widget.initialAnalysis.insight ??
-               widget.initialAnalysis.request ??
+    _insight = widget.initialAnalysis.request ??
+               widget.initialAnalysis.insight ??
                '尝试在双方情绪平稳时，以"我"开头表达感受，而非指责。';
   }
 
@@ -77,7 +77,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
       observation: _observation,
       feelings: _feelings,
       needs: _needs,
-      insight: _insight,
+      request: _insight,
       analyzedAt: DateTime.now(),
     );
     widget.onConfirm(updatedAnalysis);
