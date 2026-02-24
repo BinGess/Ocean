@@ -507,17 +507,29 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             // 背景纹理层 - 强化质感
             Positioned.fill(
               child: IgnorePointer(
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: Opacity(
-                        opacity: 0.5,
-                        child: CustomPaint(
-                          painter: _NoiseTexturePainter(),
-                        ),
-                      ),
+                child: Opacity(
+                  opacity: 0.7,
+                  child: CustomPaint(
+                    painter: _NoiseTexturePainter(),
+                    size: Size.infinite,
+                  ),
+                ),
+              ),
+            ),
+            // 额外的渐变叠加层 - 增加深度感
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: const Alignment(0, 0.3),
+                      radius: 1.2,
+                      colors: [
+                        const Color(0xFFF5EBE0).withValues(alpha: 0.0),
+                        const Color(0xFFE8DED0).withValues(alpha: 0.08),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -1425,29 +1437,79 @@ class _RippleEffectState extends State<_RippleEffect>
   }
 }
 
-/// 细腻噪点纹理 - 增强版
+/// 细腻噪点纹理 - 强化版（多层纹理叠加）
 class _NoiseTexturePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    // 第一层：细小点纹理
-    final smallPointPaint = Paint()
-      ..color = const Color(0xFFB5A597).withValues(alpha: 0.12)
+    // 第一层：密集细小点纹理 - 形成基础噪点感
+    final tinyPointPaint = Paint()
+      ..color = const Color(0xFFB5A597).withValues(alpha: 0.18)
       ..strokeWidth = 0;
-    const smallStep = 12.0;
-    for (double y = 0; y < size.height; y += smallStep) {
-      for (double x = 0; x < size.width; x += smallStep) {
-        canvas.drawCircle(Offset(x + (y % (smallStep * 0.5)), y), 0.6, smallPointPaint);
+    const tinyStep = 6.0;
+    for (double y = 0; y < size.height; y += tinyStep) {
+      for (double x = 0; x < size.width; x += tinyStep) {
+        final offsetX = (y * 0.7) % tinyStep;
+        canvas.drawCircle(Offset(x + offsetX, y), 0.4, tinyPointPaint);
       }
     }
 
-    // 第二层：较大稀疏点纹理，增加深度
-    final largePointPaint = Paint()
-      ..color = const Color(0xFFA89480).withValues(alpha: 0.08)
+    // 第二层：中等点纹理 - 增加层次
+    final mediumPointPaint = Paint()
+      ..color = const Color(0xFFA89480).withValues(alpha: 0.14)
       ..strokeWidth = 0;
-    const largeStep = 24.0;
+    const mediumStep = 14.0;
+    for (double y = 0; y < size.height; y += mediumStep) {
+      for (double x = 0; x < size.width; x += mediumStep) {
+        final offsetX = (y * 0.5) % mediumStep;
+        canvas.drawCircle(Offset(x + offsetX, y), 0.7, mediumPointPaint);
+      }
+    }
+
+    // 第三层：稀疏大点纹理 - 增加深度
+    final largePointPaint = Paint()
+      ..color = const Color(0xFF9A8672).withValues(alpha: 0.10)
+      ..strokeWidth = 0;
+    const largeStep = 28.0;
     for (double y = 0; y < size.height; y += largeStep) {
       for (double x = 0; x < size.width; x += largeStep) {
-        canvas.drawCircle(Offset(x + (y % (largeStep * 0.4)), y), 1.0, largePointPaint);
+        final offsetX = (y * 0.3) % largeStep;
+        canvas.drawCircle(Offset(x + offsetX, y), 1.2, largePointPaint);
+      }
+    }
+
+    // 第四层：细微横向纤维纹理 - 模拟纸张质感
+    final fiberPaint = Paint()
+      ..color = const Color(0xFFCBBBA8).withValues(alpha: 0.06)
+      ..strokeWidth = 0.5
+      ..strokeCap = StrokeCap.round;
+    const fiberStep = 20.0;
+    for (double y = 0; y < size.height; y += fiberStep) {
+      final startX = (y * 1.3) % 30;
+      final lineLength = 15.0 + (y % 20);
+      canvas.drawLine(
+        Offset(startX, y),
+        Offset(startX + lineLength, y + 0.5),
+        fiberPaint,
+      );
+    }
+
+    // 第五层：斜向细纹 - 增加有机感
+    final diagonalPaint = Paint()
+      ..color = const Color(0xFFD4C4B0).withValues(alpha: 0.05)
+      ..strokeWidth = 0.3
+      ..strokeCap = StrokeCap.round;
+    const diagonalStep = 35.0;
+    for (double y = 0; y < size.height + size.width; y += diagonalStep) {
+      final startY = y < size.width ? 0.0 : y - size.width;
+      final startX = y < size.width ? size.width - y : 0.0;
+      final endY = startY + 12;
+      final endX = startX + 12;
+      if (startX < size.width && startY < size.height) {
+        canvas.drawLine(
+          Offset(startX, startY),
+          Offset(endX.clamp(0, size.width), endY.clamp(0, size.height)),
+          diagonalPaint,
+        );
       }
     }
   }
