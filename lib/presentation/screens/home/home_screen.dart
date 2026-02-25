@@ -202,8 +202,28 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final audioState = context.read<AudioBloc>().state;
     final streamTranscription = audioState.realtimeTranscription;
 
+    // 如果流式转写结果为空，说明可能没有实际内容输入，取消录音
+    if (streamTranscription == null || streamTranscription.trim().isEmpty) {
+      debugPrint('HomeScreen: 转写结果为空，取消录音');
+      _completedAudioPath = null;
+      HapticFeedback.lightImpact();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.info_outline, color: Color(0xFFFFB74D), size: 20),
+              SizedBox(width: 8),
+              Text('内容太短，请重试'),
+            ],
+          ),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     // 如果有流式转写结果，直接使用；否则触发传统转写
-    if (streamTranscription != null && streamTranscription.isNotEmpty) {
+    if (streamTranscription.isNotEmpty) {
       // 使用流式转写结果，直接显示处理选择模态框
       debugPrint('HomeScreen: 使用流式转写结果: $streamTranscription');
       _showProcessingChoice(streamTranscription);
