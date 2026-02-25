@@ -1,5 +1,63 @@
 import 'package:flutter/material.dart';
 
+/// 全局间距规范 - 基于 4px 网格系统
+class AppSpacing {
+  AppSpacing._();
+
+  static const double xs = 4.0;
+  static const double sm = 8.0;
+  static const double md = 12.0;
+  static const double lg = 16.0;
+  static const double xl = 20.0;
+  static const double xxl = 24.0;
+  static const double xxxl = 32.0;
+
+  /// 页面水平内边距（统一 20px）
+  static const double pageHorizontal = 20.0;
+  /// 页面顶部内边距
+  static const double pageTop = 16.0;
+  /// 卡片内边距
+  static const double cardPadding = 16.0;
+  /// 卡片圆角
+  static const double cardRadius = 12.0;
+  /// 大卡片圆角
+  static const double cardRadiusLg = 20.0;
+}
+
+/// 全局颜色规范
+class AppColors {
+  AppColors._();
+
+  // 文字色阶
+  static const Color textPrimary = Color(0xFF2C2C2C);      // 最深 - 页面标题
+  static const Color textSecondary = Color(0xFF5D4E3C);     // 次深 - 正文/区块标题
+  static const Color textTertiary = Color(0xFF8B7D6B);      // 中等 - 辅助说明
+  static const Color textSubtle = Color(0xFFB8ADA0);        // 最浅 - 时间/元信息
+  static const Color textMuted = Color(0xFFAAAAAA);         // 灰色 - 占位/禁用
+
+  // 品牌/强调色
+  static const Color accent = Color(0xFFC4A57B);            // 主强调色
+  static const Color accentLight = Color(0xFFF5EBE0);       // 强调色浅底
+  static const Color accentWarm = Color(0xFFFFF8E7);        // 暖黄底色
+
+  // 背景色阶
+  static const Color bgPrimary = Color(0xFFFAF6F1);         // 主背景（暖米色）
+  static const Color bgCard = Colors.white;                  // 卡片背景
+  static const Color bgCardSecondary = Color(0xFFF7F0E8);   // 次级卡片背景
+  static const Color bgInput = Color(0xFFF5F5F5);           // 输入框背景
+
+  // 边框/分割线
+  static const Color border = Color(0xFFE0D5C5);            // 主边框
+  static const Color borderLight = Color(0xFFE8DED0);       // 浅边框
+  static const Color divider = Color(0xFFE8E0D5);           // 分割线
+
+  // 功能色
+  static const Color success = Color(0xFF4CAF50);
+  static const Color warning = Color(0xFFFFB74D);
+  static const Color error = Color(0xFFFF3B30);
+  static const Color info = Color(0xFF2196F3);
+}
+
 class AppTypography {
   AppTypography._();
 
@@ -229,6 +287,63 @@ class AppTypography {
     color: Color(0xFF6B6059),
     fontWeight: FontWeight.w600,
     letterSpacing: 0.2,
+    fontFamily: sansFamily,
+    fontFamilyFallback: _sansFallback,
+  );
+
+  /// 详情页标题（卡片内标题，比 sectionTitle 稍大）
+  static const TextStyle detailTitle = TextStyle(
+    fontSize: 17,
+    fontWeight: FontWeight.w600,
+    height: 1.3,
+    color: Color(0xFF2C2C2C),
+    fontFamily: sansFamily,
+    fontFamilyFallback: _sansFallback,
+  );
+
+  /// 详情页正文（比 bodyPrimary 稍大，适合阅读）
+  static const TextStyle detailBody = TextStyle(
+    fontSize: 17,
+    fontWeight: FontWeight.w400,
+    height: 1.6,
+    color: Color(0xFF4A4A4A),
+    fontFamily: sansFamily,
+    fontFamilyFallback: _sansFallback,
+  );
+
+  /// AppBar 标题
+  static const TextStyle appBarTitle = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    color: Color(0xFF8B7D6B),
+    fontFamily: sansFamily,
+    fontFamilyFallback: _sansFallback,
+  );
+
+  /// 标签文字（用于情绪标签等）
+  static const TextStyle tagLabel = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+    height: 1.25,
+    color: Color(0xFF5D4E3C),
+    fontFamily: sansFamily,
+    fontFamilyFallback: _sansFallback,
+  );
+
+  /// 按钮文字（大按钮）
+  static const TextStyle buttonLarge = TextStyle(
+    fontSize: 17,
+    fontWeight: FontWeight.w600,
+    color: Colors.white,
+    fontFamily: sansFamily,
+    fontFamilyFallback: _sansFallback,
+  );
+
+  /// 按钮文字（中等按钮）
+  static const TextStyle buttonMedium = TextStyle(
+    fontSize: 15,
+    fontWeight: FontWeight.w500,
+    color: Color(0xFF5D4E3C),
     fontFamily: sansFamily,
     fontFamilyFallback: _sansFallback,
   );

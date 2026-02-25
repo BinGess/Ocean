@@ -197,9 +197,8 @@ class _InsightsScreenState extends State<InsightsScreen>
               const SizedBox(height: 24),
               Text(
                 '开启智能洞察',
-                style: AppTypography.sectionTitle.copyWith(
-                  fontSize: 20,
-                  color: const Color(0xFF5D4E3C),
+                style: AppTypography.modalTitle.copyWith(
+                  color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 12),
@@ -229,10 +228,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                   ),
                   child: Text(
                     '立即开启',
-                    style: AppTypography.actionLabel.copyWith(
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
+                    style: AppTypography.modalButtonPrimary,
                   ),
                 ),
               ),
@@ -245,9 +241,8 @@ class _InsightsScreenState extends State<InsightsScreen>
                 },
                 child: Text(
                   '了解更多',
-                  style: AppTypography.sectionSubtle.copyWith(
-                    color: const Color(0xFF8B7D6B),
-                    fontSize: 13,
+                  style: AppTypography.modalCaption.copyWith(
+                    color: AppColors.textTertiary,
                   ),
                 ),
               ),
@@ -309,9 +304,8 @@ class _InsightsScreenState extends State<InsightsScreen>
               const SizedBox(height: 24),
               Text(
                 '本周没有足够的内容生成洞察',
-                style: AppTypography.sectionTitle.copyWith(
-                  fontSize: 17,
-                  color: const Color(0xFF5D4E3C),
+                style: AppTypography.detailTitle.copyWith(
+                  color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 12),
@@ -836,9 +830,9 @@ class _InsightsScreenState extends State<InsightsScreen>
         children: [
           Text(
             suggestion.title,
-            style: AppTypography.sectionTitle.copyWith(
-              fontSize: 15,
-              color: const Color(0xFF5D4E3C),
+            style: AppTypography.bodyPrimary.copyWith(
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 8),

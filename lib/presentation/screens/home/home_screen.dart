@@ -19,6 +19,7 @@ import '../../widgets/nvc_error_dialog.dart';
 import '../../widgets/nvc_analyzing_modal.dart';
 import '../../widgets/ai_auth_dialog.dart';
 import '../../widgets/quote_display.dart';
+import '../../../core/theme/app_typography.dart';
 import '../settings/settings_screen.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
@@ -817,7 +818,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   /// 顶部信息栏
   Widget _buildHeader(BuildContext context, String dateStr, String greeting) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.pageHorizontal, AppSpacing.pageTop, AppSpacing.pageHorizontal, 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -828,22 +829,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               children: [
                 Text(
                   dateStr,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFFB8ADA0),
-                    fontWeight: FontWeight.normal,
-                    letterSpacing: 0.5,
+                  style: AppTypography.homeDate.copyWith(
+                    color: AppColors.textSubtle,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 Text(
                   greeting,
-                  style: const TextStyle(
-                    fontSize: 32,
-                    color: Color(0xFF5D4E3C),
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.0,
-                  ),
+                  style: AppTypography.homeGreeting,
                 ),
               ],
             ),
@@ -864,7 +857,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               child: Center(
                 child: Icon(
                   Icons.settings_outlined,
-                  color: Color(0xFF8B7D6B),
+                  color: AppColors.textTertiary,
                   size: 24,
                 ),
               ),
@@ -960,12 +953,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ? '松开结束'
                     : (isConnecting ? '连接中...' : '按住记录'),
                 key: ValueKey(audioState.isRecording),
-                style: TextStyle(
-                  fontSize: 14,
+                style: AppTypography.recordHint.copyWith(
                   color: isActive
-                      ? const Color(0xFF5D4E3C)
-                      : const Color(0xFFB8ADA0),
-                  fontWeight: FontWeight.w500,
+                      ? AppColors.textSecondary
+                      : AppColors.textSubtle,
                   letterSpacing: 2.0,
                 ),
               ),
@@ -1179,11 +1170,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     padding: const EdgeInsets.only(top: 16),
                     child: Text(
                       _formatDuration(audioState.duration),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFF8B7D6B),
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 1.0,
+                      style: AppTypography.recordTimer.copyWith(
+                        color: AppColors.textTertiary,
                       ),
                     ),
                   )
@@ -1256,18 +1244,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
 
     return Container(
-      constraints: const BoxConstraints(maxHeight: 130),  // 进一步减少最大高度
-      padding: const EdgeInsets.all(12),  // 减少内边距,优化空间利用
+      constraints: const BoxConstraints(maxHeight: 130),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(16),  // 稍微减小圆角
+        color: AppColors.bgCard.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
         border: Border.all(
-          color: const Color(0xFFE8DED0),
+          color: AppColors.borderLight,
           width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),  // 柔化阴影
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 14,
             offset: const Offset(0, 3),
           ),
@@ -1302,9 +1290,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               const SizedBox(width: 8),
               Text(
                 statusText,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF8B7D6B),
+                style: AppTypography.transcriptionStatus.copyWith(
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1317,12 +1303,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             child: SingleChildScrollView(
               controller: _transcriptionScrollController,
               child: isConnecting
-                  ? const Text(
+                  ? Text(
                       '正在准备录音...',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFF8B7D6B),
-                        height: 1.6,
+                      style: AppTypography.transcriptionBody.copyWith(
+                        color: AppColors.textTertiary,
                         fontStyle: FontStyle.italic,
                       ),
                     )
@@ -1330,15 +1314,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       ? _buildTranscriptionSkeleton()
                       : Text(
                           transcription,
-                          style: TextStyle(
-                            fontSize: 16,
+                          style: AppTypography.transcriptionBody.copyWith(
                             color: audioState.isTranscriptionFinal
-                                ? const Color(0xFF2C2C2C) // 黑色：最终结果
-                                : const Color(0xFF8B7D6B), // 灰色：临时结果
+                                ? AppColors.textPrimary
+                                : AppColors.textTertiary,
                             fontStyle: audioState.isTranscriptionFinal
                                 ? FontStyle.normal
                                 : FontStyle.italic,
-                            height: 1.6,
                             fontWeight: audioState.isTranscriptionFinal
                                 ? FontWeight.w500
                                 : FontWeight.normal,
