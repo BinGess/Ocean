@@ -49,7 +49,8 @@ class CozeAIService {
   /// [transcription] 转写文本
   /// [maxRetries] 最大重试次数（默认2次）
   /// 返回 NVCAnalysis 对象
-  Future<NVCAnalysis> analyzeNVC(String transcription, {int maxRetries = 2}) async {
+  Future<NVCAnalysis> analyzeNVC(String transcription,
+      {int maxRetries = 2}) async {
     // 检查配置（只需要 Token 和 Project ID）
     if (EnvConfig.cozeApiToken.isEmpty || EnvConfig.cozeProjectId.isEmpty) {
       throw CozeAPIException(
@@ -58,10 +59,15 @@ class CozeAIService {
       );
     }
 
-    print('🤖 CozeAI: 开始NVC分析，文本长度: ${transcription.length}');
+    final userInput = transcription.trim();
+    if (userInput.isEmpty) {
+      throw CozeAPIException(
+        '输入内容为空，无法进行NVC分析',
+        code: 'EMPTY_INPUT',
+      );
+    }
 
-    // 构建提示词（只构建一次）
-    final promptText = _buildNVCPrompt(transcription);
+    print('🤖 CozeAI: 开始NVC分析，文本长度: ${userInput.length}');
 
     CozeAPIException? lastError;
 
@@ -74,7 +80,7 @@ class CozeAIService {
         }
 
         // 调用 Coze API
-        final responseText = await _callCozeAPI(promptText);
+        final responseText = await _callCozeAPI(userInput);
 
         print('✅ CozeAI: 收到AI响应，长度: ${responseText.length}');
         print('📝 CozeAI: AI原始响应内容:\n$responseText');
@@ -92,7 +98,8 @@ class CozeAIService {
       } on CozeAPIException catch (e) {
         lastError = e;
         // 对于服务错误（5xx错误码），尝试重试
-        if (e.code?.startsWith('SERVICE_ERROR') == true && attempt < maxRetries) {
+        if (e.code?.startsWith('SERVICE_ERROR') == true &&
+            attempt < maxRetries) {
           print('⚠️ CozeAI: 服务暂时不可用，准备重试 (${attempt + 1}/$maxRetries)');
           continue;
         }
@@ -102,7 +109,7 @@ class CozeAIService {
         lastError = CozeAPIException.fromDioError(e);
         // 对于网络超时，尝试重试
         if ((e.type == DioExceptionType.connectionTimeout ||
-             e.type == DioExceptionType.receiveTimeout) &&
+                e.type == DioExceptionType.receiveTimeout) &&
             attempt < maxRetries) {
           print('⚠️ CozeAI: 网络超时，准备重试 (${attempt + 1}/$maxRetries)');
           continue;
@@ -121,71 +128,20 @@ class CozeAIService {
     throw lastError ?? CozeAPIException('分析失败，请稍后重试', code: 'UNKNOWN_ERROR');
   }
 
-  /// 构建 NVC 分析提示词
-  String _buildNVCPrompt(String transcription) {
-    return '''你是一位专业的非暴力沟通（NVC）教练。请对以下文本进行深入的NVC分析。
-
-文本内容：
-「$transcription」
-
-请从以下4个维度进行详细分析：
-
-1. **观察（Observation）**：
-   - 客观描述文本中提到的具体事实
-   - 去除评判、解读和假设
-   - 用"我看到/听到..."的方式描述
-
-2. **感受（Feelings）**：
-   - 识别说话者可能的情绪感受
-   - 至少提供2-3个具体的感受词汇
-   - 可以是：焦虑、困惑、兴奋、失望、感激等
-   - 即使文本很短，也要根据语境推测可能的感受
-
-3. **需要（Needs）**：
-   - 分析这些感受背后未被满足的核心需求
-   - 至少提供2-3个需求
-   - 可以是：理解、尊重、安全感、自主性、连接等
-   - 说明为什么有这个需求
-
-4. **请求（Requests）**：
-   - 提供2-3个具体、可行的沟通建议
-   - 建议应该是正向的、具体的行动
-   - 例如："尝试在双方情绪平稳时，以'我'开头表达感受"
-
-**重要**：
-- 不要返回空数组，必须提供具体的分析内容
-- 即使文本很短，也要根据语境进行合理推测
-- 返回的JSON必须包含实际内容，不能只是重复文本
-
-请以JSON格式返回分析结果，**必须严格遵循以下格式**：
-{
-  "observation": "客观观察的内容（具体描述事实）",
-  "feelings": ["感受1", "感受2", "感受3"],
-  "needs": ["需要1", "需要2", "需要3"],
-  "requests": ["具体建议1", "具体建议2", "具体建议3"],
-  "insight": "总结性的AI洞察（可选）"
-}
-
-示例（针对"你总是不听我说话"）：
-{
-  "observation": "说话者提到对方'不听我说话'的情况发生频率很高",
-  "feelings": ["沮丧", "被忽视", "孤独"],
-  "needs": ["被倾听", "被理解", "连接"],
-  "requests": [
-    "请在我说话时保持眼神接触",
-    "听完我的话后，用自己的语言重复一遍你的理解",
-    "如果现在不方便，请告诉我什么时候可以好好聊"
-  ],
-  "insight": "说话者渴望被看见和理解，建议双方约定专门的沟通时间"
-}
-
-现在请分析上面的文本「$transcription」，返回详细的JSON分析结果：''';
-  }
-
   /// 调用 Coze API（SSE流式响应）
-  Future<String> _callCozeAPI(String promptText) async {
+  /// [userInput] 必须是用户原始输入文本，不额外拼接系统提示词
+  Future<String> _callCozeAPI(String userInput) async {
     // 生成唯一的session_id
     final sessionId = _uuid.v4().replaceAll('-', '');
+    final projectIdStr = EnvConfig.cozeProjectId;
+    final projectId = int.tryParse(projectIdStr);
+
+    if (projectId == null || projectId <= 0) {
+      throw CozeAPIException(
+        'NVC智能体 Project ID 配置无效: $projectIdStr',
+        code: 'CONFIG_ERROR',
+      );
+    }
 
     print('🔄 CozeAI: 发送请求，session_id: $sessionId');
 
@@ -197,14 +153,14 @@ class CozeAIService {
             'prompt': [
               {
                 'type': 'text',
-                'content': {'text': promptText},
+                'content': {'text': userInput},
               },
             ],
           },
         },
         'type': 'query',
         'session_id': sessionId,
-        'project_id': EnvConfig.cozeProjectId,
+        'project_id': projectId,
       },
       // 关键：使用流式响应
       options: Options(responseType: ResponseType.stream),
@@ -259,7 +215,8 @@ class CozeAIService {
 
             // 如果有错误码且不是成功码，抛出异常
             if (errorCode != null && errorCode != '0' && errorCode.isNotEmpty) {
-              print('⚠️ CozeAI: SSE流中检测到服务端错误: code=$errorCode, message=$errorMessage');
+              print(
+                  '⚠️ CozeAI: SSE流中检测到服务端错误: code=$errorCode, message=$errorMessage');
               throw CozeAPIException(
                 '服务暂时不可用，请稍后重试',
                 code: 'SERVICE_ERROR_$errorCode',
@@ -289,7 +246,8 @@ class CozeAIService {
     }
 
     final result = buffer.toString();
-    print('✅ CozeAI: SSE解析完成: $eventCount个事件, $answerEventCount个answer事件, 提取${result.length}字符');
+    print(
+        '✅ CozeAI: SSE解析完成: $eventCount个事件, $answerEventCount个answer事件, 提取${result.length}字符');
 
     return result;
   }
@@ -392,7 +350,8 @@ class CozeAIService {
     String weekRange,
   ) async {
     // 检查配置（洞察智能体使用独立的 Token）
-    if (EnvConfig.cozeInsightApiToken.isEmpty || EnvConfig.cozeInsightProjectId.isEmpty) {
+    if (EnvConfig.cozeInsightApiToken.isEmpty ||
+        EnvConfig.cozeInsightProjectId.isEmpty) {
       throw CozeAPIException(
         '洞察智能体配置未完成，请在 .env 文件中配置 COZE_INSIGHT_API_TOKEN 和 COZE_INSIGHT_PROJECT_ID',
         code: 'CONFIG_ERROR',
@@ -409,21 +368,30 @@ class CozeAIService {
     print('🔮 CozeAI: 开始生成洞察，记录数: ${records.length}');
 
     try {
-      // 构建请求内容（将记录转换为 JSON 数组）
-      final recordsJson = records.map((r) => {
-        'record_time': r.recordTime,
-        'content': r.content,
-      }).toList();
-      final promptText = jsonEncode(recordsJson);
+      // 仅上传用户输入内容（记录文本），不拼接本地提示词
+      final userContents = records
+          .map((r) => r.content.trim())
+          .where((text) => text.isNotEmpty)
+          .toList();
+
+      if (userContents.isEmpty) {
+        throw CozeAPIException(
+          '记录内容为空，无法生成洞察',
+          code: 'EMPTY_INPUT',
+        );
+      }
+
+      final userInputText = jsonEncode(userContents);
 
       // 调用洞察 API
-      final responseText = await _callInsightAPI(promptText);
+      final responseText = await _callInsightAPI(userInputText);
 
       print('✅ CozeAI: 收到洞察响应，长度: ${responseText.length}');
       print('📝 CozeAI: 洞察原始响应:\n$responseText');
 
       // 解析响应
-      final report = _parseInsightResponse(responseText, weekRange, records.length);
+      final report =
+          _parseInsightResponse(responseText, weekRange, records.length);
 
       print('✅ CozeAI: 洞察生成完成');
       return report;
@@ -440,13 +408,15 @@ class CozeAIService {
   }
 
   /// 调用洞察 API（SSE流式响应）
-  Future<String> _callInsightAPI(String promptText) async {
+  /// [userInputText] 必须是用户记录内容，不额外拼接系统提示词
+  Future<String> _callInsightAPI(String userInputText) async {
     // 创建单独的 Dio 实例用于洞察 API（使用独立的 Token）
     final insightDio = Dio();
     final baseUrl = EnvConfig.cozeInsightBaseUrl;
     insightDio.options.baseUrl = baseUrl;
     insightDio.options.connectTimeout = AppConstants.cozeApiTimeout;
-    insightDio.options.receiveTimeout = const Duration(seconds: 120); // 洞察可能需要更长时间
+    insightDio.options.receiveTimeout =
+        const Duration(seconds: 120); // 洞察可能需要更长时间
     insightDio.options.headers = {
       'Authorization': 'Bearer ${EnvConfig.cozeInsightApiToken}',
       'Content-Type': 'application/json',
@@ -460,14 +430,13 @@ class CozeAIService {
     print('   Full URL: $baseUrl/stream_run');
     print('   Session ID: $sessionId');
     print('   Project ID: ${EnvConfig.cozeInsightProjectId}');
-    print('   Token configured: ${EnvConfig.cozeInsightApiToken.isNotEmpty ? "是 (${EnvConfig.cozeInsightApiToken.substring(0, 10)}...)" : "否"}');
+    print(
+        '   Token configured: ${EnvConfig.cozeInsightApiToken.isNotEmpty ? "是 (${EnvConfig.cozeInsightApiToken.substring(0, 10)}...)" : "否"}');
 
-    // 将 project_id 作为字符串处理，避免大数字精度问题
-    // 然后在 JSON 中直接使用数字（Dio 会正确序列化）
     final projectIdStr = EnvConfig.cozeInsightProjectId;
-    final projectId = int.tryParse(projectIdStr) ?? 0;
+    final projectId = int.tryParse(projectIdStr);
 
-    if (projectId == 0) {
+    if (projectId == null || projectId <= 0) {
       throw CozeAPIException(
         '洞察智能体 Project ID 配置无效: $projectIdStr',
         code: 'CONFIG_ERROR',
@@ -483,7 +452,7 @@ class CozeAIService {
               'prompt': [
                 {
                   'type': 'text',
-                  'content': {'text': promptText},
+                  'content': {'text': userInputText},
                 },
               ],
             },
@@ -517,7 +486,8 @@ class CozeAIService {
   }
 
   /// 解析洞察响应
-  InsightReport _parseInsightResponse(String responseText, String weekRange, int recordCount) {
+  InsightReport _parseInsightResponse(
+      String responseText, String weekRange, int recordCount) {
     try {
       // 尝试从响应中提取 JSON
       var jsonText = _extractJsonFromText(responseText);
@@ -594,13 +564,16 @@ class CozeAIService {
     int recordCount,
   ) {
     // 解析情绪概览
-    final emotionOverviewData = json['emotion_overview'] as Map<String, dynamic>?;
+    final emotionOverviewData =
+        json['emotion_overview'] as Map<String, dynamic>?;
     final emotionOverview = EmotionOverview(
-      summary: emotionOverviewData?['summary']?.toString() ?? '本周记录不足，无法生成完整的情绪分析。',
+      summary:
+          emotionOverviewData?['summary']?.toString() ?? '本周记录不足，无法生成完整的情绪分析。',
     );
 
     // 解析高频情境
-    final highFrequencyList = json['high_frequency_emotions'] as List<dynamic>? ?? [];
+    final highFrequencyList =
+        json['high_frequency_emotions'] as List<dynamic>? ?? [];
     final highFrequencyEmotions = highFrequencyList.map((item) {
       final map = item as Map<String, dynamic>;
       return HighFrequencyEmotion(
@@ -611,7 +584,8 @@ class CozeAIService {
 
     // 解析模式假设
     final patternData = json['pattern_hypothesis'] as Map<String, dynamic>?;
-    final highlightTagsList = patternData?['highlight_tags'] as List<dynamic>? ?? [];
+    final highlightTagsList =
+        patternData?['highlight_tags'] as List<dynamic>? ?? [];
     final highlightTags = highlightTagsList.map((item) {
       final map = item as Map<String, dynamic>;
       return HighlightTag(
@@ -736,7 +710,8 @@ class CozeAIService {
 
     // 请求：支持多种字段名和格式
     String? request;
-    final requestsField = json['requests'] ?? json['请求'] ?? json['建议'] ?? json['request'];
+    final requestsField =
+        json['requests'] ?? json['请求'] ?? json['建议'] ?? json['request'];
     if (requestsField is List && requestsField.isNotEmpty) {
       // 如果是列表，格式化为带序号的列表
       request = requestsField
