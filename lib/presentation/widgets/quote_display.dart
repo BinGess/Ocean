@@ -22,17 +22,19 @@ class _QuoteDisplayState extends State<QuoteDisplay>
   late Animation<double> _transitionAnimation;
 
   int _currentIndex = 0;
+  int _displayIndex = 0;  // 实际显示的索引
   Timer? _autoSwitchTimer;
   bool _isAnimating = false;
+  bool _isFadingOut = true;  // 区分淡出/淡入阶段
 
   @override
   void initState() {
     super.initState();
 
-    // 动画控制器：用于切换过渡（3秒总时间）
+    // 动画控制器：每个阶段1秒，总共2秒
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3000),
+      duration: const Duration(milliseconds: 1000),
     );
 
     // 过渡动画曲线
@@ -55,25 +57,26 @@ class _QuoteDisplayState extends State<QuoteDisplay>
 
   /// 切换文案 - 执行 fade-out → 改变index → fade-in
   Future<void> _switchQuote() async {
-    if (_isAnimating) return;
+    if (_isAnimating || widget.quotes.isEmpty) return;
     _isAnimating = true;
 
-    // 前1.5秒：淡出并模糊
+    // 计算下一个索引
+    _currentIndex = (_currentIndex + 1) % widget.quotes.length;
+
+    // 阶段1：淡出当前文案（1秒）
+    _isFadingOut = true;
     await _animationController.forward();
 
-    // 改变索引
+    // 切换显示的文案索引
     if (mounted) {
       setState(() {
-        _currentIndex = (_currentIndex + 1) % widget.quotes.length;
+        _displayIndex = _currentIndex;
       });
     }
 
-    // 重置并反向运行（后1.5秒：淡入并清晰）
-    _animationController.reverse();
-
-    // 等待动画完成
-    await _animationController.forward();
-    _animationController.reset();
+    // 阶段2：淡入新文案（1秒）
+    _isFadingOut = false;
+    await _animationController.reverse();
 
     _isAnimating = false;
   }
@@ -84,7 +87,7 @@ class _QuoteDisplayState extends State<QuoteDisplay>
       return const Center(child: Text('暂无文案数据'));
     }
 
-    final currentQuote = widget.quotes[_currentIndex];
+    final displayQuote = widget.quotes[_displayIndex];
 
     return GestureDetector(
       onTap: _switchQuote,
@@ -94,7 +97,7 @@ class _QuoteDisplayState extends State<QuoteDisplay>
           child: AnimatedBuilder(
             animation: _transitionAnimation,
             builder: (context, child) {
-              return _buildQuoteContent(currentQuote);
+              return _buildQuoteContent(displayQuote);
             },
           ),
         ),
@@ -106,43 +109,38 @@ class _QuoteDisplayState extends State<QuoteDisplay>
   Widget _buildQuoteContent(Quote quote) {
     final progress = _transitionAnimation.value;
 
-    // 第一阶段（0-0.5）：淡出 + 模糊 + 微放大
-    // 第二阶段（0.5-1.0）：淡入 + 清晰 + 回正
-    if (progress < 0.5) {
-      // 淡出阶段（0 -> 1）
-      final fadeProgress = progress * 2;
-      final opacity = 1.0 - fadeProgress; // 1.0 -> 0.0
-      final blur = fadeProgress * 10.0;    // 0.0 -> 10.0px
-      final scale = 1.0 + (fadeProgress * 0.02); // 1.0 -> 1.02
+    // 淡出阶段：progress 0→1，opacity 1→0，blur 0→10，scale 1→1.02
+    // 淡入阶段：progress 1→0，opacity 0→1，blur 10→0，scale 0.98→1
 
-      return Transform.scale(
-        scale: scale,
-        child: Opacity(
-          opacity: opacity,
-          child: ImageFiltered(
-            imageFilter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-            child: _buildQuoteText(quote),
-          ),
-        ),
-      );
+    final double opacity;
+    final double blur;
+    final double scale;
+
+    if (_isFadingOut) {
+      // 淡出：progress从0到1
+      opacity = 1.0 - progress;           // 1.0 → 0.0
+      blur = progress * 10.0;             // 0.0 → 10.0
+      scale = 1.0 + (progress * 0.02);    // 1.0 → 1.02
     } else {
-      // 淡入阶段（0 -> 1）
-      final fadeProgress = (progress - 0.5) * 2;
-      final opacity = fadeProgress;           // 0.0 -> 1.0
-      final blur = (1.0 - fadeProgress) * 10.0; // 10.0 -> 0.0px
-      final scale = 0.98 + (fadeProgress * 0.02); // 0.98 -> 1.0
-
-      return Transform.scale(
-        scale: scale,
-        child: Opacity(
-          opacity: opacity,
-          child: ImageFiltered(
-            imageFilter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-            child: _buildQuoteText(quote),
-          ),
-        ),
-      );
+      // 淡入：progress从1到0
+      opacity = 1.0 - progress;           // 0.0 → 1.0
+      blur = progress * 10.0;             // 10.0 → 0.0
+      scale = 0.98 + ((1.0 - progress) * 0.02);  // 0.98 → 1.0
     }
+
+    return Transform.scale(
+      scale: scale,
+      child: Opacity(
+        opacity: opacity.clamp(0.0, 1.0),
+        child: ImageFiltered(
+          imageFilter: ui.ImageFilter.blur(
+            sigmaX: blur.clamp(0.0, 10.0),
+            sigmaY: blur.clamp(0.0, 10.0),
+          ),
+          child: _buildQuoteText(quote),
+        ),
+      ),
+    );
   }
 
   /// 构建文案和作者文本
