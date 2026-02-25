@@ -325,7 +325,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                   widget.record.transcription,
                   style: const TextStyle(
                     color: Color(0xFF4A4A4A),
-                    fontSize: 15,
+                    fontSize: 17,
                     height: 1.6,
                   ),
                 ),
@@ -389,7 +389,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                           child: Text(
                             '我现在的感受',
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 17,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF2C2C2C),
                             ),

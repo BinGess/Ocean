@@ -268,7 +268,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
             Text(
               _formatDateTitle(date),
               style: const TextStyle(
-                fontSize: 15,
+                fontSize: 17,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF2C2C2C),
                 letterSpacing: -0.2,
@@ -448,7 +448,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     Text(
                       record.transcription,
                       style: const TextStyle(
-                        fontSize: 13,
+                        fontSize: 15,
                         color: Color(0xFF3C3C3C),
                         height: 1.5,
                       ),
