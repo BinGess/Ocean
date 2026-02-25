@@ -48,7 +48,7 @@ class _QuoteDisplayState extends State<QuoteDisplay>
   }
 
   void _startAutoSwitch() {
-    _autoSwitchTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+    _autoSwitchTimer = Timer.periodic(const Duration(seconds: 8), (_) {
       if (mounted && !_isAnimating) {
         _switchQuote();
       }
