@@ -43,12 +43,12 @@ class _QuoteDisplayState extends State<QuoteDisplay>
       curve: Curves.easeInOut,
     );
 
-    // 启动自动切换（12秒）
+    // 启动自动切换（3秒）
     _startAutoSwitch();
   }
 
   void _startAutoSwitch() {
-    _autoSwitchTimer = Timer.periodic(const Duration(seconds: 12), (_) {
+    _autoSwitchTimer = Timer.periodic(const Duration(seconds: 3), (_) {
       if (mounted && !_isAnimating) {
         _switchQuote();
       }
