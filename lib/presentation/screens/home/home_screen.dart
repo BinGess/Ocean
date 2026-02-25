@@ -29,6 +29,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   String? _completedAudioPath;
+  // 用户编辑后的转写文本 - 用于NVC分析确认页面回显
+  String? _editedTranscription;
   final List<String> _rollingDescriptions = [
     '任何感受都可以被接纳',
     '让情绪流淌',
@@ -194,6 +196,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   void _handleRecordComplete(String audioPath) {
     setState(() {
       _completedAudioPath = audioPath;
+      _editedTranscription = null; // 清除上次编辑的转写文本
     });
     // 清除上次错误记录，允许新的错误被处理
     _lastHandledError = null;
@@ -339,6 +342,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final recordTranscription = context.read<RecordBloc>().state.transcription;
     final transcription = editedTranscription ?? streamTranscription ?? recordTranscription;
 
+    // 保存编辑后的转写文本，用于NVC分析确认页面回显
+    _editedTranscription = transcription;
+
     switch (mode) {
       case ProcessingMode.onlyRecord:
         ScaffoldMessenger.of(context).showSnackBar(
@@ -483,6 +489,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   void _clearCompletedAudio() {
     setState(() {
       _completedAudioPath = null;
+      _editedTranscription = null;
     });
   }
 
@@ -598,9 +605,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     if (ModalRoute.of(context)?.isCurrent ?? false) {
                       final messenger = ScaffoldMessenger.of(context);
                       final recordBloc = context.read<RecordBloc>();
-                      // 优先使用流式转写文本,避免显示占位符
+                      // 优先使用用户编辑后的转写文本，其次流式转写，最后RecordBloc的转写
                       final audioState = context.read<AudioBloc>().state;
-                      final transcription = audioState.realtimeTranscription ??
+                      final transcription = _editedTranscription ??
+                                           audioState.realtimeTranscription ??
                                            recordState.transcription ?? '';
                       NVCConfirmationModal.show(
                         context: context,
@@ -636,7 +644,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             RecordCreateQuickNote(
                               audioPath: _completedAudioPath!,
                               mode: ProcessingMode.withNVC,
-                              transcription: recordState.transcription,
+                              transcription: transcription,
                               nvcAnalysis: result!.analysis,
                             ),
                           );
