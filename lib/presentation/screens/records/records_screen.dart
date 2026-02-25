@@ -127,6 +127,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
         onRevert: () {},
         record: record,
       );
+
+      if (!mounted) return;
+
       if (result?.action == NVCModalAction.delete) {
         context.read<RecordBloc>().add(RecordDelete(id: record.id));
         ScaffoldMessenger.of(context).showSnackBar(
@@ -140,6 +143,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
           builder: (context) => RecordDetailScreen(record: record),
         ),
       );
+      if (!mounted) return;
       _loadRecords();
     }
   }
@@ -180,7 +184,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     onRefresh: () async => _loadRecords(),
                     color: _Colors.primary,
                     child: ListView.builder(
-                      padding: EdgeInsets.fromLTRB(
+                      padding: const EdgeInsets.fromLTRB(
                         _Spacing.xl,
                         _Spacing.sm,
                         _Spacing.xl,
@@ -206,7 +210,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
   /// 顶部标题栏
   Widget _buildHeader() {
     return Padding(
-      padding: EdgeInsets.fromLTRB(
+      padding: const EdgeInsets.fromLTRB(
         _Spacing.xl,
         _Spacing.lg,
         _Spacing.xl,
@@ -233,7 +237,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
               borderRadius: BorderRadius.circular(_Spacing.md),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -268,7 +272,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
               color: _Colors.primary,
             ),
           ),
-          SizedBox(height: _Spacing.lg),
+          const SizedBox(height: _Spacing.lg),
           Text(
             errorMessage ?? '加载失败',
             style: const TextStyle(
@@ -277,11 +281,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
               height: 1.4,
             ),
           ),
-          SizedBox(height: _Spacing.xl),
+          const SizedBox(height: _Spacing.xl),
           GestureDetector(
             onTap: _loadRecords,
             child: Container(
-              padding: EdgeInsets.symmetric(
+              padding: const EdgeInsets.symmetric(
                 horizontal: _Spacing.xxl,
                 vertical: _Spacing.md,
               ),
@@ -309,7 +313,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(height: _Spacing.xl),
+        const SizedBox(height: _Spacing.xl),
 
         // 日期标题行
         Row(
@@ -324,7 +328,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            SizedBox(width: _Spacing.sm),
+            const SizedBox(width: _Spacing.sm),
             Text(
               _formatDateTitle(date),
               style: const TextStyle(
@@ -335,7 +339,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 height: 1.3,
               ),
             ),
-            SizedBox(width: _Spacing.sm),
+            const SizedBox(width: _Spacing.sm),
             Text(
               _getDateLabel(date),
               style: const TextStyle(
@@ -347,7 +351,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
           ],
         ),
 
-        SizedBox(height: _Spacing.lg),
+        const SizedBox(height: _Spacing.lg),
 
         // 每日心情概览
         if (records.isNotEmpty) _buildDailyMoodCard(date, records),
@@ -370,8 +374,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
   Widget _buildDailyMoodCard(DateTime date, List<Record> records) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(_Spacing.md),
-      margin: EdgeInsets.only(bottom: _Spacing.lg),
+      padding: const EdgeInsets.all(_Spacing.md),
+      margin: const EdgeInsets.only(bottom: _Spacing.lg),
       decoration: BoxDecoration(
         color: _Colors.cardBg,
         borderRadius: BorderRadius.circular(_Spacing.md),
@@ -389,7 +393,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 4,
                     offset: const Offset(0, 1),
                   ),
@@ -403,7 +407,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
               ),
             ),
           ),
-          SizedBox(width: _Spacing.md),
+          const SizedBox(width: _Spacing.md),
           Expanded(
             child: GestureDetector(
               onTap: () => _handleMoodTap(date),
@@ -420,7 +424,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                       height: 1.3,
                     ),
                   ),
-                  SizedBox(height: _Spacing.xs),
+                  const SizedBox(height: _Spacing.xs),
                   Text(
                     '共 ${records.length} 条记录 · 点击修改心情',
                     style: const TextStyle(
@@ -462,7 +466,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     height: 1.3,
                   ),
                 ),
-                SizedBox(height: _Spacing.sm),
+                const SizedBox(height: _Spacing.sm),
                 // 圆点
                 Container(
                   width: 8,
@@ -477,32 +481,32 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   Expanded(
                     child: Container(
                       width: 1,
-                      margin: EdgeInsets.symmetric(vertical: _Spacing.sm),
+                      margin: const EdgeInsets.symmetric(vertical: _Spacing.sm),
                       color: _Colors.divider,
                     ),
                   )
                 else
-                  SizedBox(height: _Spacing.lg),
+                  const SizedBox(height: _Spacing.lg),
               ],
             ),
           ),
 
-          SizedBox(width: _Spacing.md),
+          const SizedBox(width: _Spacing.md),
 
           // 右侧卡片
           Expanded(
             child: GestureDetector(
               onTap: () => _handleRecordTap(record),
               child: Container(
-                margin: EdgeInsets.only(bottom: _Spacing.lg),
-                padding: EdgeInsets.all(_Spacing.md),
+                margin: const EdgeInsets.only(bottom: _Spacing.lg),
+                padding: const EdgeInsets.all(_Spacing.md),
                 decoration: BoxDecoration(
                   color: _Colors.surface,
                   borderRadius: BorderRadius.circular(_Spacing.lg),
                   border: Border.all(color: _Colors.border, width: 0.5),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
+                      color: Colors.black.withValues(alpha: 0.02),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -526,7 +530,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
                     // 心情标签
                     if (hasMoods) ...[
-                      SizedBox(height: _Spacing.sm),
+                      const SizedBox(height: _Spacing.sm),
                       Wrap(
                         spacing: _Spacing.xs,
                         runSpacing: _Spacing.xs,
@@ -541,7 +545,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                             ),
                           );
                           return Container(
-                            padding: EdgeInsets.symmetric(
+                            padding: const EdgeInsets.symmetric(
                               horizontal: _Spacing.sm,
                               vertical: 2,
                             ),
@@ -577,9 +581,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
                     // NVC分析摘要
                     if (hasNVC) ...[
-                      SizedBox(height: _Spacing.md),
+                      const SizedBox(height: _Spacing.md),
                       Container(
-                        padding: EdgeInsets.all(_Spacing.sm),
+                        padding: const EdgeInsets.all(_Spacing.sm),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFDFBF8),
                           borderRadius: BorderRadius.circular(_Spacing.sm),
@@ -604,7 +608,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
-                                    color: _Colors.primary.withOpacity(0.8),
+                                    color: _Colors.primary.withValues(alpha: 0.8),
                                   ),
                                 ),
                               ],
@@ -637,21 +641,21 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   Widget _buildEmptyState() {
     return Padding(
-      padding: EdgeInsets.only(top: _Spacing.xxxl),
+      padding: const EdgeInsets.only(top: _Spacing.xxxl),
       child: Center(
         child: Column(
           children: [
             Icon(
               Icons.edit_note,
               size: 48,
-              color: _Colors.textHint.withOpacity(0.3),
+              color: _Colors.textHint.withValues(alpha: 0.3),
             ),
-            SizedBox(height: _Spacing.md),
+            const SizedBox(height: _Spacing.md),
             Text(
               '暂无记录',
               style: TextStyle(
                 fontSize: _FontSize.body,
-                color: _Colors.textHint.withOpacity(0.5),
+                color: _Colors.textHint.withValues(alpha: 0.5),
               ),
             ),
           ],

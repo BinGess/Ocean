@@ -286,14 +286,14 @@ class _HomeScreenState extends State<HomeScreen>
 
       // 重新触发AI分析
       if (state.transcription != null && state.transcription!.isNotEmpty) {
-        if (!mounted) return;
+        if (!context.mounted) return;
         context.read<RecordBloc>().add(
               RecordAnalyzeNVC(state.transcription!),
             );
       }
     } else {
       // 用户拒绝授权
-      if (!mounted) return;
+      if (!context.mounted) return;
       _showAuthDeniedGuidance(context);
     }
   }
@@ -752,6 +752,7 @@ class _HomeScreenState extends State<HomeScreen>
                             // 立即重试NVC分析
                             if (transcription != null &&
                                 transcription.isNotEmpty) {
+                              if (!context.mounted) return;
                               context
                                   .read<RecordBloc>()
                                   .add(RecordAnalyzeNVC(transcription));
@@ -1102,7 +1103,7 @@ class _HomeScreenState extends State<HomeScreen>
                         gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          stops: [0.0, 0.5, 1.0],
+                          stops: const [0.0, 0.5, 1.0],
                           colors: isConnecting
                               ? [
                                   const Color(0xFFFAFDFF),
@@ -1176,7 +1177,7 @@ class _HomeScreenState extends State<HomeScreen>
                               Colors.white.withValues(alpha: isActive ? 0.08 : 0.15),
                               Colors.transparent,
                             ],
-                            stops: [0.0, 0.5, 1.0],
+                            stops: const [0.0, 0.5, 1.0],
                           ),
                         ),
                         child: AnimatedSwitcher(
