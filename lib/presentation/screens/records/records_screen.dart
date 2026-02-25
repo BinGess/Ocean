@@ -16,6 +16,46 @@ import '../../widgets/nvc_confirmation_modal.dart';
 import '../../widgets/daily_mood_picker.dart';
 import '../record_detail/record_detail_screen.dart';
 
+// ============================================================
+// Design Tokens - 统一的设计规范
+// ============================================================
+
+/// 字体大小 - 4级层次
+class _FontSize {
+  static const double display = 24.0; // 页面标题
+  static const double title = 16.0; // 区块标题
+  static const double body = 15.0; // 正文内容
+  static const double caption = 13.0; // 辅助说明
+  static const double label = 12.0; // 标签文字
+}
+
+/// 间距 - 基于 4px 网格
+class _Spacing {
+  static const double xs = 4.0;
+  static const double sm = 8.0;
+  static const double md = 12.0;
+  static const double lg = 16.0;
+  static const double xl = 20.0;
+  static const double xxl = 24.0;
+  static const double xxxl = 32.0;
+}
+
+/// 颜色 - 统一色板
+class _Colors {
+  static const Color background = Color(0xFFFAF6F1);
+  static const Color surface = Colors.white;
+  static const Color primary = Color(0xFFC4A57B);
+  static const Color textPrimary = Color(0xFF2C2C2C);
+  static const Color textSecondary = Color(0xFF5D4E3C);
+  static const Color textMuted = Color(0xFF8B7D6B);
+  static const Color textHint = Color(0xFFAAAAAA);
+  static const Color border = Color(0xFFE0D5C5);
+  static const Color divider = Color(0xFFE8E0D5);
+  static const Color cardBg = Color(0xFFF7F0E8);
+}
+
+// ============================================================
+
 class RecordsScreen extends StatefulWidget {
   final VoidCallback? onNavigateToHome;
 
@@ -44,7 +84,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
   }
 
   void _loadDailyMoods() {
-    // 加载最近30天的心情数据
     final now = DateTime.now();
     for (int i = 0; i < 30; i++) {
       final date = now.subtract(Duration(days: i));
@@ -88,6 +127,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
         onRevert: () {},
         record: record,
       );
+
+      if (!mounted) return;
+
       if (result?.action == NVCModalAction.delete) {
         context.read<RecordBloc>().add(RecordDelete(id: record.id));
         ScaffoldMessenger.of(context).showSnackBar(
@@ -101,6 +143,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
           builder: (context) => RecordDetailScreen(record: record),
         ),
       );
+      if (!mounted) return;
       _loadRecords();
     }
   }
@@ -108,47 +151,13 @@ class _RecordsScreenState extends State<RecordsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF6F1),
+      backgroundColor: _Colors.background,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 顶部标题
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '每日记录',
-                    style: AppTypography.pageTitle.copyWith(
-                      color: const Color(0xFF2C2C2C),
-                    ),
-                  ),
-                  // 可以放置筛选/搜索按钮
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.calendar_today_outlined,
-                      size: 18,
-                      color: Color(0xFF8B7D6B),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _buildHeader(),
 
             // 记录列表
             Expanded(
@@ -158,7 +167,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     return const Center(
                       child: CircularProgressIndicator(
                         valueColor:
-                            AlwaysStoppedAnimation<Color>(Color(0xFFC4A57B)),
+                            AlwaysStoppedAnimation<Color>(_Colors.primary),
                       ),
                     );
                   }
@@ -174,9 +183,14 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
                   return RefreshIndicator(
                     onRefresh: () async => _loadRecords(),
-                    color: const Color(0xFFC4A57B),
+                    color: _Colors.primary,
                     child: ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                      padding: const EdgeInsets.fromLTRB(
+                        _Spacing.xl,
+                        _Spacing.sm,
+                        _Spacing.xl,
+                        _Spacing.xxl,
+                      ),
                       itemCount: dateRange.length,
                       itemBuilder: (context, index) {
                         final date = dateRange[index];
@@ -194,6 +208,53 @@ class _RecordsScreenState extends State<RecordsScreen> {
     );
   }
 
+  /// 顶部标题栏
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        _Spacing.xl,
+        _Spacing.lg,
+        _Spacing.xl,
+        _Spacing.sm,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            '每日记录',
+            style: TextStyle(
+              color: _Colors.textPrimary,
+              fontSize: _FontSize.display,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.5,
+              height: 1.2,
+            ),
+          ),
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: _Colors.surface,
+              borderRadius: BorderRadius.circular(_Spacing.md),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.calendar_today_outlined,
+              size: 18,
+              color: _Colors.textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildErrorState(String? errorMessage) {
     return Center(
       child: Column(
@@ -204,34 +265,41 @@ class _RecordsScreenState extends State<RecordsScreen> {
             height: 64,
             decoration: BoxDecoration(
               color: const Color(0xFFFFF0E6),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(_Spacing.xl),
             ),
             child: const Icon(
               Icons.cloud_off_outlined,
               size: 28,
-              color: Color(0xFFC4A57B),
+              color: _Colors.primary,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: _Spacing.lg),
           Text(
             errorMessage ?? '加载失败',
-            style: AppTypography.bodySecondary.copyWith(
-              color: const Color(0xFF8B7D6B),
+            style: const TextStyle(
+              color: _Colors.textMuted,
+              fontSize: _FontSize.body,
+              height: 1.4,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: _Spacing.xl),
           GestureDetector(
             onTap: _loadRecords,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                horizontal: _Spacing.xxl,
+                vertical: _Spacing.md,
+              ),
               decoration: BoxDecoration(
-                color: const Color(0xFFC4A57B),
-                borderRadius: BorderRadius.circular(24),
+                color: _Colors.primary,
+                borderRadius: BorderRadius.circular(_Spacing.xxl),
               ),
               child: Text(
                 '重试',
                 style: AppTypography.actionLabel.copyWith(
                   color: Colors.white,
+                  fontSize: _FontSize.body,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -246,105 +314,48 @@ class _RecordsScreenState extends State<RecordsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 16),
+        const SizedBox(height: _Spacing.xl),
 
         // 日期标题行
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // 日期指示条
             Container(
               width: 3,
-              height: 18,
+              height: 16,
               decoration: BoxDecoration(
-                color: const Color(0xFFC4A57B),
+                color: _Colors.primary,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: _Spacing.sm),
             Text(
               _formatDateTitle(date),
-              style: AppTypography.sectionTitle.copyWith(
-                color: const Color(0xFF2C2C2C),
+              style: const TextStyle(
+                fontSize: _FontSize.title,
+                fontWeight: FontWeight.w600,
+                color: _Colors.textPrimary,
+                letterSpacing: -0.2,
+                height: 1.3,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: _Spacing.sm),
             Text(
               _getDateLabel(date),
-              style: AppTypography.sectionSubtle.copyWith(
-                color: const Color(0xFFAAAAAA),
+              style: const TextStyle(
+                fontSize: _FontSize.caption,
+                color: _Colors.textHint,
+                height: 1.3,
               ),
             ),
           ],
         ),
 
-        const SizedBox(height: 12),
+        const SizedBox(height: _Spacing.lg),
 
         // 每日心情概览
-        if (records.isNotEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF7F0E8),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                // 心情图标（可点击）
-                GestureDetector(
-                  onTap: () => _handleMoodTap(date),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 3,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: MoodIconByPath(
-                        imagePath: _getDailyMoodImagePath(date),
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _handleMoodTap(date),
-                    behavior: HitTestBehavior.opaque,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '今日心情',
-                          style: AppTypography.sectionSubtle.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF5D4E3C),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '共 ${records.length} 条记录 · 点击修改心情',
-                          style: AppTypography.chipLabel.copyWith(
-                            color: const Color(0xFFAAAAAA),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+        if (records.isNotEmpty) _buildDailyMoodCard(date, records),
 
         // 记录列表（时间轴样式）
         if (records.isEmpty)
@@ -360,13 +371,84 @@ class _RecordsScreenState extends State<RecordsScreen> {
     );
   }
 
+  /// 每日心情卡片
+  Widget _buildDailyMoodCard(DateTime date, List<Record> records) {
+    final mood = _getDailyMood(date);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(_Spacing.md),
+      margin: const EdgeInsets.only(bottom: _Spacing.lg),
+      decoration: BoxDecoration(
+        color: _Colors.cardBg,
+        borderRadius: BorderRadius.circular(_Spacing.md),
+      ),
+      child: Row(
+        children: [
+          // 心情图标（可点击）
+          GestureDetector(
+            onTap: () => _handleMoodTap(date),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: _Colors.surface,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: MoodIconByPath(
+                  imagePath: _getDailyMoodImagePath(date),
+                  size: 22,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: _Spacing.md),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _handleMoodTap(date),
+              behavior: HitTestBehavior.opaque,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    mood.label,
+                    style: const TextStyle(
+                      fontSize: _FontSize.caption,
+                      fontWeight: FontWeight.w600,
+                      color: _Colors.textSecondary,
+                      height: 1.3,
+                    ),
+                  ),
+                  const SizedBox(height: _Spacing.xs),
+                  Text(
+                    '共 ${records.length} 条记录 · 点击修改心情',
+                    style: const TextStyle(
+                      fontSize: _FontSize.label,
+                      color: _Colors.textHint,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// 构建时间轴样式的单条记录
   Widget _buildTimelineItem(Record record, bool isLast) {
-    final hasNVC = record.nvc != null;
-    final hasMoods = record.moods != null && record.moods!.isNotEmpty;
-
-    // 统一使用暖橙色
-    const dotColor = Color(0xFFC4A57B);
+    final moodTags = _normalizeMoodTags(record.moods);
+    final hasMoods = moodTags.isNotEmpty;
 
     return IntrinsicHeight(
       child: Row(
@@ -374,23 +456,26 @@ class _RecordsScreenState extends State<RecordsScreen> {
         children: [
           // 左侧时间轴
           SizedBox(
-            width: 44,
+            width: 48,
             child: Column(
               children: [
                 // 时间
                 Text(
                   _formatTime(record.createdAt),
-                  style: AppTypography.timeLabel.copyWith(
-                    color: const Color(0xFFAAAAAA),
+                  style: const TextStyle(
+                    fontSize: _FontSize.caption,
+                    fontWeight: FontWeight.w500,
+                    color: _Colors.textHint,
+                    height: 1.3,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: _Spacing.sm),
                 // 圆点
                 Container(
                   width: 8,
                   height: 8,
                   decoration: const BoxDecoration(
-                    color: dotColor,
+                    color: _Colors.primary,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -399,31 +484,32 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   Expanded(
                     child: Container(
                       width: 1,
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      color: const Color(0xFFE8E0D5),
+                      margin: const EdgeInsets.symmetric(vertical: _Spacing.sm),
+                      color: _Colors.divider,
                     ),
                   )
                 else
-                  const SizedBox(height: 16),
+                  const SizedBox(height: _Spacing.lg),
               ],
             ),
           ),
 
-          const SizedBox(width: 16),
+          const SizedBox(width: _Spacing.md),
 
           // 右侧卡片
           Expanded(
             child: GestureDetector(
               onTap: () => _handleRecordTap(record),
               child: Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.only(bottom: _Spacing.lg),
+                padding: const EdgeInsets.all(_Spacing.md),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  color: _Colors.surface,
+                  borderRadius: BorderRadius.circular(_Spacing.lg),
+                  border: Border.all(color: _Colors.border, width: 0.5),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
+                      color: Colors.black.withValues(alpha: 0.02),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -432,34 +518,47 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 内容（上方）
-                    Text(
-                      record.transcription,
-                      style: AppTypography.bodySecondary.copyWith(
-                        color: const Color(0xFF3C3C3C),
-                        height: 1.55,
+                    // 转写内容
+                    if (record.transcription.isNotEmpty)
+                      Text(
+                        record.transcription,
+                        style: const TextStyle(
+                          fontSize: _FontSize.body,
+                          color: _Colors.textPrimary,
+                          height: 1.6,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
 
-                    // 标签（下方）- 统一中性描边样式
-                    if (hasNVC && record.nvc!.feelings.isNotEmpty) ...[
-                      const SizedBox(height: 10),
+                    // 心情标签
+                    if (hasMoods) ...[
+                      const SizedBox(height: _Spacing.sm),
                       Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        children: record.nvc!.feelings.take(3).map((feeling) {
-                          return _buildMoodTag(feeling.feeling);
-                        }).toList(),
-                      ),
-                    ] else if (hasMoods) ...[
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        children: record.moods!.take(3).map((mood) {
-                          return _buildMoodTag(mood);
+                        spacing: _Spacing.xs,
+                        runSpacing: _Spacing.xs,
+                        children: moodTags.map((mood) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: _Spacing.sm,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _Colors.background,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: _Colors.border,
+                                width: 0.5,
+                              ),
+                            ),
+                            child: Text(
+                              mood,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: _Colors.textSecondary,
+                              ),
+                            ),
+                          );
                         }).toList(),
                       ),
                     ],
@@ -473,135 +572,58 @@ class _RecordsScreenState extends State<RecordsScreen> {
     );
   }
 
-  /// 构建情绪标签 - 统一中性描边样式
-  Widget _buildMoodTag(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(5),
-        border: Border.all(
-          color: const Color(0xFFE0D5C5),
-          width: 1,
-        ),
-      ),
-      child: Text(
-        text,
-        style: AppTypography.chipLabel.copyWith(
-          color: const Color(0xFF8B7D6B),
-        ),
-      ),
-    );
-  }
-
-  /// 构建空状态
   Widget _buildEmptyState() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 32),
-      child: Column(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5EBE0),
-              borderRadius: BorderRadius.circular(16),
+    return Padding(
+      padding: const EdgeInsets.only(top: _Spacing.xxxl),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(
+              Icons.edit_note,
+              size: 48,
+              color: _Colors.textHint.withValues(alpha: 0.3),
             ),
-            child: const Icon(
-              Icons.edit_note_outlined,
-              size: 26,
-              color: Color(0xFFB8ADA0),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '暂无记录',
-            style: AppTypography.bodySecondary.copyWith(
-              color: const Color(0xFFAAAAAA),
-            ),
-          ),
-          const SizedBox(height: 16),
-          GestureDetector(
-            onTap: widget.onNavigateToHome,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color(0xFFE0D5C5),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.add,
-                    size: 16,
-                    color: Color(0xFF8B7D6B),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '开始记录',
-                    style: AppTypography.actionLabel.copyWith(
-                      fontSize: 13,
-                      color: const Color(0xFF5D4E3C),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+            const SizedBox(height: _Spacing.md),
+            Text(
+              '暂无记录',
+              style: TextStyle(
+                fontSize: _FontSize.body,
+                color: _Colors.textHint.withValues(alpha: 0.5),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  // === 辅助方法 ===
+  Map<DateTime, List<Record>> _groupRecordsByDate(List<Record> records) {
+    final grouped = <DateTime, List<Record>>{};
+    for (var record in records) {
+      final date = DateTime(
+        record.createdAt.year,
+        record.createdAt.month,
+        record.createdAt.day,
+      );
+      if (!grouped.containsKey(date)) {
+        grouped[date] = [];
+      }
+      grouped[date]!.add(record);
+    }
+    return grouped;
+  }
+
+  List<DateTime> _getDatesWithRecords(Map<DateTime, List<Record>> grouped) {
+    final dates = grouped.keys.toList()..sort((a, b) => b.compareTo(a)); // 降序排列
+    return dates;
+  }
 
   List<DateTime> _getTodayOnly() {
     final now = DateTime.now();
     return [DateTime(now.year, now.month, now.day)];
   }
 
-  List<DateTime> _getDatesWithRecords(
-      Map<DateTime, List<Record>> groupedRecords) {
-    final dates = groupedRecords.keys.toList();
-    dates.sort((a, b) => b.compareTo(a));
-    return dates;
-  }
-
-  Map<DateTime, List<Record>> _groupRecordsByDate(List<Record> records) {
-    final grouped = <DateTime, List<Record>>{};
-
-    for (final record in records) {
-      final date = DateTime(
-        record.createdAt.year,
-        record.createdAt.month,
-        record.createdAt.day,
-      );
-
-      if (!grouped.containsKey(date)) {
-        grouped[date] = [];
-      }
-      grouped[date]!.add(record);
-    }
-
-    grouped.forEach((key, value) {
-      value.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    });
-
-    return grouped;
-  }
-
   String _formatDateTitle(DateTime date) {
-    return '${date.month}月${date.day}日';
-  }
-
-  String _getDateLabel(DateTime date) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
@@ -610,76 +632,46 @@ class _RecordsScreenState extends State<RecordsScreen> {
       return '今天';
     } else if (date == yesterday) {
       return '昨天';
+    } else {
+      return DateFormat('M月d日').format(date);
     }
+  }
+
+  String _getDateLabel(DateTime date) {
     final weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
     return weekDays[date.weekday - 1];
   }
 
-  String _formatTime(DateTime dateTime) {
-    return DateFormat('HH:mm').format(dateTime);
+  String _formatTime(DateTime time) {
+    return DateFormat('HH:mm').format(time);
   }
 
-  Color _getEmotionColor(String emotion) {
-    if (emotion.contains('愉悦') ||
-        emotion.contains('开心') ||
-        emotion.contains('兴奋') ||
-        emotion.contains('喜悦') ||
-        emotion.contains('快乐') ||
-        emotion.contains('满足')) {
-      return const Color(0xFFFF9500);
-    } else if (emotion.contains('焦虑') ||
-        emotion.contains('担心') ||
-        emotion.contains('紧张') ||
-        emotion.contains('害怕') ||
-        emotion.contains('不安')) {
-      return const Color(0xFF5AC8FA);
-    } else if (emotion.contains('平静') ||
-        emotion.contains('放松') ||
-        emotion.contains('安宁') ||
-        emotion.contains('舒适') ||
-        emotion.contains('宁静')) {
-      return const Color(0xFF34C759);
-    } else if (emotion.contains('愤怒') ||
-        emotion.contains('生气') ||
-        emotion.contains('烦躁') ||
-        emotion.contains('恼火') ||
-        emotion.contains('不满')) {
-      return const Color(0xFFFF6B6B);
-    } else if (emotion.contains('悲伤') ||
-        emotion.contains('难过') ||
-        emotion.contains('失落') ||
-        emotion.contains('沮丧') ||
-        emotion.contains('伤心') ||
-        emotion.contains('低落')) {
-      return const Color(0xFF8E8CD8);
-    } else if (emotion.contains('疲惫') ||
-        emotion.contains('困倦') ||
-        emotion.contains('倦怠') ||
-        emotion.contains('疲劳')) {
-      return const Color(0xFFA2845E);
-    } else {
-      return _getConsistentColorForText(emotion);
-    }
+  DailyMood _getDailyMood(DateTime date) {
+    final imagePath = _getDailyMoodImagePath(date);
+    return getMoodByImagePath(imagePath) ?? defaultMood;
   }
 
-  Color _getConsistentColorForText(String text) {
-    const colorPalette = [
-      Color(0xFF8E8E93),
-      Color(0xFF5AC8FA),
-      Color(0xFF34C759),
-      Color(0xFFFF9500),
-      Color(0xFF8E8CD8),
-      Color(0xFFFF6B6B),
-      Color(0xFFFFC107),
-      Color(0xFF4ECDC4),
-    ];
+  /// 统一清洗标签：
+  /// - 去掉空白项
+  /// - 将 "懊恼，沮丧，焦虑" 这类合并字符串拆成多个标签
+  /// - 去重并保持原顺序
+  List<String> _normalizeMoodTags(List<String>? moods) {
+    if (moods == null || moods.isEmpty) return const [];
 
-    int hash = 0;
-    for (int i = 0; i < text.length; i++) {
-      hash = text.codeUnitAt(i) + ((hash << 5) - hash);
+    final tags = <String>[];
+    final seen = <String>{};
+    final splitPattern = RegExp(r'[，,、；;|/\\\n]+');
+
+    for (final item in moods) {
+      for (final token in item.split(splitPattern)) {
+        final tag = token.trim();
+        if (tag.isEmpty) continue;
+        if (seen.add(tag)) {
+          tags.add(tag);
+        }
+      }
     }
-    hash = hash.abs();
 
-    return colorPalette[hash % colorPalette.length];
+    return tags;
   }
 }
