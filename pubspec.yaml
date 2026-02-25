@@ -93,6 +93,7 @@ flutter:
   assets:
     - assets/images/
     - assets/images/moods/
+    - assets/data/
     - assets/fonts/
     - .env
 

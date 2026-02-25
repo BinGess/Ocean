@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/entities/record.dart';
+import '../../../domain/entities/quote.dart';
 import '../../bloc/audio/audio_bloc.dart';
 import '../../bloc/audio/audio_state.dart';
 import '../../bloc/audio/audio_event.dart';
@@ -16,6 +18,7 @@ import '../../widgets/nvc_confirmation_modal.dart';
 import '../../widgets/nvc_error_dialog.dart';
 import '../../widgets/nvc_analyzing_modal.dart';
 import '../../widgets/ai_auth_dialog.dart';
+import '../../widgets/quote_page_view.dart';
 import '../settings/settings_screen.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
@@ -31,16 +34,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   String? _completedAudioPath;
   // 用户编辑后的转写文本 - 用于NVC分析确认页面回显
   String? _editedTranscription;
-  final List<String> _rollingDescriptions = [
-    '任何感受都可以被接纳',
-    '让情绪流淌',
-    '允许任何事发生',
-    '先看见，再思考',
-  ];
-  late final PageController _descriptionController;
-  Timer? _descriptionTimer;
-  int _currentDescriptionIndex = 0;
-  bool _isDescriptionPaused = false;
+  List<Quote> _quotes = [];
+  bool _quotesLoaded = false;
   final ScrollController _transcriptionScrollController = ScrollController();
   String? _lastTranscriptionText;
 
@@ -76,13 +71,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     // 这里仅作为备用检查，确保权限状态正确
     _checkAndRequestPermission();
 
-    // 初始页设为中间的大数值，方便无限滚动
-    int initialPage = 1000;
-    _currentDescriptionIndex = initialPage;
-    _descriptionController = PageController(
-      initialPage: initialPage,
-      viewportFraction: 0.18, // 缩小视口比例，让词条更紧凑
-    );
+    // 加载文案数据
+    _loadQuotes();
 
     // 初始化脉冲动画控制器 - 强化膨胀效果
     _pulseController = AnimationController(
@@ -92,26 +82,25 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.25).animate(  // 从1.15增加到1.25
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
-
-    _descriptionTimer = Timer.periodic(const Duration(seconds: 6), (_) {
-      if (!mounted) return;
-      if (_isDescriptionPaused) return;
-      _currentDescriptionIndex++;
-      _descriptionController.animateToPage(
-        _currentDescriptionIndex,
-        duration: const Duration(milliseconds: 800),
-        curve: Curves.easeInOut,
-      );
-    });
   }
 
-  void _pauseDescription() {
-    _isDescriptionPaused = true;
+  /// 加载文案数据
+  Future<void> _loadQuotes() async {
+    try {
+      final jsonStr = await rootBundle.loadString('assets/data/quotes.json');
+      final List jsonList = jsonDecode(jsonStr);
+      setState(() {
+        _quotes = jsonList
+            .map((item) => Quote.fromJson(item as Map<String, dynamic>))
+            .toList();
+        _quotesLoaded = true;
+      });
+    } catch (e) {
+      debugPrint('Error loading quotes: $e');
+      setState(() => _quotesLoaded = true);
+    }
   }
 
-  void _resumeDescription() {
-    _isDescriptionPaused = false;
-  }
 
   /// 备用权限检查（已禁用，避免重复弹窗）
   /// 权限已在 AppEntryPoint 开屏期间请求
@@ -495,8 +484,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   @override
   void dispose() {
-    _descriptionTimer?.cancel();
-    _descriptionController.dispose();
     _transcriptionScrollController.dispose();
     _pulseController.dispose();
     super.dispose();
@@ -740,10 +727,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     // 顶部信息栏
                     _buildHeader(context, dateStr, greeting),
 
-                    // 文字滚动区域 - 优化布局,给文案更多空间
+                    // 文案展示区域
                     Expanded(
                       flex: 1,
-                      child: _buildDescriptionSection(context),
+                      child: _buildQuoteSection(),
                     ),
 
                     // 实时转写显示区域 - 固定高度,不会影响按钮位置
@@ -1288,86 +1275,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildDescriptionSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),  // 增加上下内边距
-      child: PageView.builder(
-        controller: _descriptionController,
-        scrollDirection: Axis.vertical,
-        physics: const BouncingScrollPhysics(),
-        itemBuilder: (context, index) {
-          final textIndex = index % _rollingDescriptions.length;
-          return AnimatedBuilder(
-            animation: _descriptionController,
-            builder: (context, child) {
-              double page = 0;
-              try {
-                if (_descriptionController.position.haveDimensions) {
-                  page = _descriptionController.page ?? _currentDescriptionIndex.toDouble();
-                } else {
-                  page = _currentDescriptionIndex.toDouble();
-                }
-              } catch (_) {
-                page = _currentDescriptionIndex.toDouble();
-              }
+  Widget _buildQuoteSection() {
+    if (!_quotesLoaded) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
 
-              double distance = (page - index).abs();
+    if (_quotes.isEmpty) {
+      return const Center(
+        child: Text('暂无文案数据'),
+      );
+    }
 
-            // 根据距离计算样式（糯米色主题）
-            double scale = 0.8;
-            double opacity = 0.2;
-            Color color = const Color(0xFFD4C4B0); // 浅褐色
-            FontWeight fontWeight = FontWeight.normal;
-            double fontSize = 18;
-
-            if (distance < 0.5) {
-               // 当前中心项
-               scale = 1.0;
-               opacity = 1.0;
-               color = const Color(0xFF5D4E3C); // 深褐色
-               fontWeight = FontWeight.w600;
-               fontSize = 26;
-            } else if (distance < 1.5) {
-               // 相邻项
-               double factor = 1.0 - (distance - 0.5);
-               scale = 0.8 + (0.2 * factor);
-               opacity = 0.2 + (0.8 * factor);
-               color = Color.lerp(
-                 const Color(0xFFD4C4B0),
-                 const Color(0xFF5D4E3C),
-                 factor,
-               )!;
-               fontSize = 18 + (8 * factor);
-               if (factor > 0.5) fontWeight = FontWeight.w500;
-            }
-
-            return Center(
-              child: Transform.scale(
-                scale: scale,
-                child: Opacity(
-                  opacity: opacity,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40.0),
-                    child: Text(
-                      _rollingDescriptions[textIndex],
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: color,
-                        fontSize: fontSize,
-                        fontWeight: fontWeight,
-                        height: 1.5,  // 增加行高,优化可读性
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-      ),
-    );
+    return QuotePageView(quotes: _quotes);
   }
 }
 
