@@ -448,7 +448,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     Text(
                       record.transcription,
                       style: const TextStyle(
-                        fontSize: 15,
+                        fontSize: 14,
                         color: Color(0xFF3C3C3C),
                         height: 1.5,
                       ),
