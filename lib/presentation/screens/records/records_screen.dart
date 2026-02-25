@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../domain/entities/record.dart';
 import '../../../core/di/injection.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../data/datasources/local/hive_database.dart';
 import '../../bloc/record/record_bloc.dart';
 import '../../bloc/record/record_state.dart';
@@ -118,13 +119,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     '每日记录',
-                    style: TextStyle(
-                      color: Color(0xFF2C2C2C),
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.5,
+                    style: AppTypography.pageTitle.copyWith(
+                      color: const Color(0xFF2C2C2C),
                     ),
                   ),
                   // 可以放置筛选/搜索按钮
@@ -159,7 +157,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   if (state.isLoading) {
                     return const Center(
                       child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC4A57B)),
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Color(0xFFC4A57B)),
                       ),
                     );
                   }
@@ -216,9 +215,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
           const SizedBox(height: 16),
           Text(
             errorMessage ?? '加载失败',
-            style: const TextStyle(
-              color: Color(0xFF8B7D6B),
-              fontSize: 14,
+            style: AppTypography.bodySecondary.copyWith(
+              color: const Color(0xFF8B7D6B),
             ),
           ),
           const SizedBox(height: 20),
@@ -230,12 +228,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 color: const Color(0xFFC4A57B),
                 borderRadius: BorderRadius.circular(24),
               ),
-              child: const Text(
+              child: Text(
                 '重试',
-                style: TextStyle(
+                style: AppTypography.actionLabel.copyWith(
                   color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -250,7 +246,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 18),
+        const SizedBox(height: 16),
 
         // 日期标题行
         Row(
@@ -264,35 +260,31 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(width: 9),
+            const SizedBox(width: 8),
             Text(
               _formatDateTitle(date),
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF2C2C2C),
-                letterSpacing: -0.2,
+              style: AppTypography.sectionTitle.copyWith(
+                color: const Color(0xFF2C2C2C),
               ),
             ),
-            const SizedBox(width: 7),
+            const SizedBox(width: 8),
             Text(
               _getDateLabel(date),
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFFAAAAAA),
+              style: AppTypography.sectionSubtle.copyWith(
+                color: const Color(0xFFAAAAAA),
               ),
             ),
           ],
         ),
 
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
 
         // 每日心情概览
         if (records.isNotEmpty)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-            margin: const EdgeInsets.only(bottom: 14),
+            margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
               color: const Color(0xFFF7F0E8),
               borderRadius: BorderRadius.circular(12),
@@ -324,7 +316,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 11),
+                const SizedBox(width: 10),
                 Expanded(
                   child: GestureDetector(
                     onTap: () => _handleMoodTap(date),
@@ -332,20 +324,18 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           '今日心情',
-                          style: TextStyle(
-                            fontSize: 12,
+                          style: AppTypography.sectionSubtle.copyWith(
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF5D4E3C),
+                            color: const Color(0xFF5D4E3C),
                           ),
                         ),
-                        const SizedBox(height: 1),
+                        const SizedBox(height: 2),
                         Text(
                           '共 ${records.length} 条记录 · 点击修改心情',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFFAAAAAA),
+                          style: AppTypography.chipLabel.copyWith(
+                            color: const Color(0xFFAAAAAA),
                           ),
                         ),
                       ],
@@ -390,10 +380,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 // 时间
                 Text(
                   _formatTime(record.createdAt),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFFAAAAAA),
+                  style: AppTypography.timeLabel.copyWith(
+                    color: const Color(0xFFAAAAAA),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -429,7 +417,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
               onTap: () => _handleRecordTap(record),
               child: Container(
                 margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
@@ -447,10 +435,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     // 内容（上方）
                     Text(
                       record.transcription,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF3C3C3C),
-                        height: 1.5,
+                      style: AppTypography.bodySecondary.copyWith(
+                        color: const Color(0xFF3C3C3C),
+                        height: 1.55,
                       ),
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
@@ -460,8 +447,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     if (hasNVC && record.nvc!.feelings.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       Wrap(
-                        spacing: 7,
-                        runSpacing: 5,
+                        spacing: 8,
+                        runSpacing: 6,
                         children: record.nvc!.feelings.take(3).map((feeling) {
                           return _buildMoodTag(feeling.feeling);
                         }).toList(),
@@ -469,8 +456,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     ] else if (hasMoods) ...[
                       const SizedBox(height: 10),
                       Wrap(
-                        spacing: 7,
-                        runSpacing: 5,
+                        spacing: 8,
+                        runSpacing: 6,
                         children: record.moods!.take(3).map((mood) {
                           return _buildMoodTag(mood);
                         }).toList(),
@@ -500,10 +487,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
       ),
       child: Text(
         text,
-        style: const TextStyle(
-          fontSize: 11,
-          color: Color(0xFF8B7D6B),
-          fontWeight: FontWeight.w400,
+        style: AppTypography.chipLabel.copyWith(
+          color: const Color(0xFF8B7D6B),
         ),
       ),
     );
@@ -530,11 +515,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             '暂无记录',
-            style: TextStyle(
-              fontSize: 14,
-              color: Color(0xFFAAAAAA),
+            style: AppTypography.bodySecondary.copyWith(
+              color: const Color(0xFFAAAAAA),
             ),
           ),
           const SizedBox(height: 16),
@@ -550,20 +534,20 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   width: 1,
                 ),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.add,
                     size: 16,
                     color: Color(0xFF8B7D6B),
                   ),
-                  SizedBox(width: 6),
+                  const SizedBox(width: 6),
                   Text(
                     '开始记录',
-                    style: TextStyle(
+                    style: AppTypography.actionLabel.copyWith(
                       fontSize: 13,
-                      color: Color(0xFF5D4E3C),
+                      color: const Color(0xFF5D4E3C),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -583,7 +567,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
     return [DateTime(now.year, now.month, now.day)];
   }
 
-  List<DateTime> _getDatesWithRecords(Map<DateTime, List<Record>> groupedRecords) {
+  List<DateTime> _getDatesWithRecords(
+      Map<DateTime, List<Record>> groupedRecords) {
     final dates = groupedRecords.keys.toList();
     dates.sort((a, b) => b.compareTo(a));
     return dates;

@@ -75,7 +75,8 @@ class AppEntryPoint extends StatefulWidget {
   State<AppEntryPoint> createState() => _AppEntryPointState();
 }
 
-class _AppEntryPointState extends State<AppEntryPoint> with WidgetsBindingObserver {
+class _AppEntryPointState extends State<AppEntryPoint>
+    with WidgetsBindingObserver {
   bool _showSplash = true;
   bool _showLockScreen = false;
   bool _showPrivacyBlur = false;
@@ -247,12 +248,10 @@ class _AppEntryPointState extends State<AppEntryPoint> with WidgetsBindingObserv
         const MainNavigation(),
 
         // 锁屏界面
-        if (_showLockScreen)
-          LockScreen(onUnlocked: _onUnlocked),
+        if (_showLockScreen) LockScreen(onUnlocked: _onUnlocked),
 
         // 隐私遮罩（后台防窥）
-        if (_showPrivacyBlur && !_showLockScreen)
-          const PrivacyBlurOverlay(),
+        if (_showPrivacyBlur && !_showLockScreen) const PrivacyBlurOverlay(),
       ],
     );
   }
@@ -297,18 +296,24 @@ class _MainNavigationState extends State<MainNavigation> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFFF7F4F0),
+          border: const Border(
+            top: BorderSide(
+              color: Color(0xFFE9E1D7),
+              width: 0.7,
+            ),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
+              color: const Color(0xFF6E5A45).withValues(alpha: 0.02),
+              blurRadius: 6,
+              offset: const Offset(0, -1),
             ),
           ],
         ),
         child: SafeArea(
           child: SizedBox(
-            height: 72,  // 增加高度以提供更大的点击区域
+            height: 72, // 增加高度以提供更大的点击区域
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -351,7 +356,7 @@ class _MainNavigationState extends State<MainNavigation> {
     required String label,
   }) {
     final isActive = _currentIndex == index;
-    final color = isActive ? const Color(0xFFC4A57B) : const Color(0xFFB8B8B8);
+    final color = isActive ? const Color(0xFFAD8558) : const Color(0xFFA19180);
 
     return GestureDetector(
       onTap: () {
@@ -370,14 +375,14 @@ class _MainNavigationState extends State<MainNavigation> {
           children: [
             Icon(
               isActive ? activeIcon : icon,
-              size: 26,  // 稍微增大图标
+              size: 26, // 稍微增大图标
               color: color,
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                fontSize: 12,  // 稍微增大字体
+                fontSize: 12, // 稍微增大字体
                 color: color,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
               ),

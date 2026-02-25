@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:ui' as ui;
 import '../../domain/entities/quote.dart';
+import '../../core/theme/app_typography.dart';
 
 /// 简洁的文案展示组件 - 仅显示文案内容和作者，不显示标签/指示器/提示
 class QuoteDisplay extends StatefulWidget {
@@ -22,10 +23,10 @@ class _QuoteDisplayState extends State<QuoteDisplay>
   late Animation<double> _transitionAnimation;
 
   int _currentIndex = 0;
-  int _displayIndex = 0;  // 实际显示的索引
+  int _displayIndex = 0; // 实际显示的索引
   Timer? _autoSwitchTimer;
   bool _isAnimating = false;
-  bool _isFadingOut = true;  // 区分淡出/淡入阶段
+  bool _isFadingOut = true; // 区分淡出/淡入阶段
 
   @override
   void initState() {
@@ -48,7 +49,7 @@ class _QuoteDisplayState extends State<QuoteDisplay>
   }
 
   void _startAutoSwitch() {
-    _autoSwitchTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+    _autoSwitchTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       if (mounted && !_isAnimating) {
         _switchQuote();
       }
@@ -84,21 +85,33 @@ class _QuoteDisplayState extends State<QuoteDisplay>
   @override
   Widget build(BuildContext context) {
     if (widget.quotes.isEmpty) {
-      return const Center(child: Text('暂无文案数据'));
+      return Center(
+        child: Text(
+          '暂无文案数据',
+          style: AppTypography.recordHint.copyWith(
+            letterSpacing: 0.3,
+            color: const Color(0xFF8F7760),
+          ),
+        ),
+      );
     }
 
     final displayQuote = widget.quotes[_displayIndex];
 
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: _switchQuote,
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40),
-          child: AnimatedBuilder(
-            animation: _transitionAnimation,
-            builder: (context, child) {
-              return _buildQuoteContent(displayQuote);
-            },
+          padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: AnimatedBuilder(
+              animation: _transitionAnimation,
+              builder: (context, child) {
+                return _buildQuoteContent(displayQuote);
+              },
+            ),
           ),
         ),
       ),
@@ -109,23 +122,24 @@ class _QuoteDisplayState extends State<QuoteDisplay>
   Widget _buildQuoteContent(Quote quote) {
     final progress = _transitionAnimation.value;
 
-    // 淡出阶段：progress 0→1，opacity 1→0，blur 0→10，scale 1→1.02
-    // 淡入阶段：progress 1→0，opacity 0→1，blur 10→0，scale 0.98→1
+    // 淡出阶段：progress 0→1，opacity 1→0，blur 0→6，scale 1→1.02
+    // 淡入阶段：progress 1→0，opacity 0→1，blur 6→0，scale 0.98→1
 
     final double opacity;
     final double blur;
     final double scale;
+    const maxBlur = 6.0;
 
     if (_isFadingOut) {
       // 淡出：progress从0到1
-      opacity = 1.0 - progress;           // 1.0 → 0.0
-      blur = progress * 10.0;             // 0.0 → 10.0
-      scale = 1.0 + (progress * 0.02);    // 1.0 → 1.02
+      opacity = 1.0 - progress; // 1.0 → 0.0
+      blur = progress * maxBlur; // 0.0 → 6.0
+      scale = 1.0 + (progress * 0.02); // 1.0 → 1.02
     } else {
       // 淡入：progress从1到0
-      opacity = 1.0 - progress;           // 0.0 → 1.0
-      blur = progress * 10.0;             // 10.0 → 0.0
-      scale = 0.98 + ((1.0 - progress) * 0.02);  // 0.98 → 1.0
+      opacity = 1.0 - progress; // 0.0 → 1.0
+      blur = progress * maxBlur; // 6.0 → 0.0
+      scale = 0.98 + ((1.0 - progress) * 0.02); // 0.98 → 1.0
     }
 
     return Transform.scale(
@@ -134,8 +148,8 @@ class _QuoteDisplayState extends State<QuoteDisplay>
         opacity: opacity.clamp(0.0, 1.0),
         child: ImageFiltered(
           imageFilter: ui.ImageFilter.blur(
-            sigmaX: blur.clamp(0.0, 10.0),
-            sigmaY: blur.clamp(0.0, 10.0),
+            sigmaX: blur.clamp(0.0, maxBlur),
+            sigmaY: blur.clamp(0.0, maxBlur),
           ),
           child: _buildQuoteText(quote),
         ),
@@ -153,27 +167,20 @@ class _QuoteDisplayState extends State<QuoteDisplay>
         Text(
           quote.content,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w500,
-            height: 1.8,
-            fontFamily: 'Georgia',
-            color: Color(0xFF5D4E3C),
-            letterSpacing: 0.3,
-          ),
+          style: AppTypography.quoteBody,
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 12),
+        Container(
+          width: 74,
+          height: 1,
+          color: const Color(0xFFE4D3BD).withValues(alpha: 0.9),
+        ),
+        const SizedBox(height: 10),
         // 作者信息（无衬线字体）
         Text(
-          '— ${quote.author} —',
+          quote.author,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            fontFamily: 'Helvetica',
-            color: Color(0xFF999999),
-            letterSpacing: 2.0,
-          ),
+          style: AppTypography.quoteAuthor,
         ),
       ],
     );

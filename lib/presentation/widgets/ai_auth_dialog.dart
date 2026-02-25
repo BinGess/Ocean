@@ -5,6 +5,7 @@ library;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/theme/app_typography.dart';
 
 class AIAuthDialog extends StatelessWidget {
   const AIAuthDialog({super.key});
@@ -14,7 +15,7 @@ class AIAuthDialog extends StatelessWidget {
     return showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.35),
+      barrierColor: Colors.black.withValues(alpha: 0.35),
       builder: (context) => const AIAuthDialog(),
     );
   }
@@ -32,7 +33,7 @@ class AIAuthDialog extends StatelessWidget {
             borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.12),
+                color: Colors.black.withValues(alpha: 0.12),
                 blurRadius: 24,
                 offset: const Offset(0, -4),
               ),
@@ -53,12 +54,7 @@ class AIAuthDialog extends StatelessWidget {
                       const Expanded(
                         child: Text(
                           '隐私功能使用协议',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF2C2C2C),
-                            height: 1.3,
-                          ),
+                          style: AppTypography.modalTitle,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -89,11 +85,7 @@ class AIAuthDialog extends StatelessWidget {
                     ),
                     child: RichText(
                       text: const TextSpan(
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: Color(0xFF6B6059),
-                          height: 1.7,
-                        ),
+                        style: AppTypography.modalBody,
                         children: [
                           TextSpan(
                             text: '为提供 AI 情绪分析与结构化洞察服务，本应用集成了',
@@ -103,7 +95,8 @@ class AIAuthDialog extends StatelessWidget {
                             style: TextStyle(fontWeight: FontWeight.w600),
                           ),
                           TextSpan(
-                            text: '提供的豆包大模型。\n\n只有在您确认后，我们才会将当前日记的文本内容加密传输至上述服务商。我们承诺不会包含您的手机号、姓名或设备标识符等个人身份信息，且数据仅用于实时分析，不用于模型训练。',
+                            text:
+                                '提供的豆包大模型。\n\n只有在您确认后，我们才会将当前日记的文本内容加密传输至上述服务商。我们承诺不会包含您的手机号、姓名或设备标识符等个人身份信息，且数据仅用于实时分析，不用于模型训练。',
                           ),
                         ],
                       ),
@@ -117,11 +110,7 @@ class AIAuthDialog extends StatelessWidget {
                       onTap: () => _openPrivacyPolicy(context),
                       child: const Text(
                         '查看完整隐私政策 →',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFFC4A57B),
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: AppTypography.modalCaption,
                       ),
                     ),
                   ),
@@ -140,11 +129,7 @@ class AIAuthDialog extends StatelessWidget {
                       child: const Text(
                         '同意并继续',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
+                        style: AppTypography.modalButtonPrimary,
                       ),
                     ),
                   ),
@@ -153,13 +138,12 @@ class AIAuthDialog extends StatelessWidget {
                   // 暂不开启
                   GestureDetector(
                     onTap: () => Navigator.of(context).pop(false),
-                    child: const Center(
+                    child: Center(
                       child: Text(
                         '暂不开启',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFFAAAAAA),
+                        style: AppTypography.modalBody.copyWith(
+                          color: const Color(0xFF8F7760),
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -170,10 +154,7 @@ class AIAuthDialog extends StatelessWidget {
                   const Center(
                     child: Text(
                       '您可以随时在「设置」中重新开启',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFFBBBBBB),
-                      ),
+                      style: AppTypography.modalCaption,
                     ),
                   ),
                 ],

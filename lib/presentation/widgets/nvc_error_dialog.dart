@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_typography.dart';
 
 /// NVC分析错误对话框
 /// 当AI分析失败时显示友好的错误提示
@@ -60,11 +61,7 @@ class NVCErrorDialog extends StatelessWidget {
             // 标题
             const Text(
               '智能体开小差了',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF2C2C2C),
-              ),
+              style: AppTypography.modalTitle,
             ),
 
             const SizedBox(height: 12),
@@ -73,11 +70,7 @@ class NVCErrorDialog extends StatelessWidget {
             Text(
               '可以先保存文本\n稍后再进行NVC分析',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.grey[600],
-                height: 1.6,
-              ),
+              style: AppTypography.modalBody.copyWith(color: Colors.grey[700]),
             ),
 
             const SizedBox(height: 32),
@@ -99,11 +92,7 @@ class NVCErrorDialog extends StatelessWidget {
                     ),
                     child: const Text(
                       '立即重试',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: AppTypography.modalButtonPrimary,
                     ),
                   ),
                 ),
@@ -128,10 +117,8 @@ class NVCErrorDialog extends StatelessWidget {
                     ),
                     child: Text(
                       '先保存文本',
-                      style: TextStyle(
-                        fontSize: 16,
+                      style: AppTypography.modalButtonSecondary.copyWith(
                         color: Colors.grey[700],
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -147,6 +134,6 @@ class NVCErrorDialog extends StatelessWidget {
 
 /// NVC错误对话框的操作枚举
 enum NVCErrorAction {
-  retry,    // 立即重试
+  retry, // 立即重试
   saveText, // 保存文本
 }

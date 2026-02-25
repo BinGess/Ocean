@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../../core/theme/app_typography.dart';
 
 /// NVC分析加载动画弹窗
 /// 展示更友好的分析过程动画，替代简单的loading spinner
@@ -39,29 +40,28 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
   late AnimationController _progressController;
   late AnimationController _sparkleController;
   late Animation<double> _pulseAnimation;
-  late Animation<double> _progressAnimation;
 
   int _currentStep = 0;
-  final List<_AnalysisStep> _steps = [
+  final List<_AnalysisStep> _steps = const [
     _AnalysisStep(
       icon: Icons.remove_red_eye_outlined,
       title: '识别事实观察',
-      color: const Color(0xFF4CAF50),
+      color: Color(0xFF4CAF50),
     ),
     _AnalysisStep(
       icon: Icons.favorite,
       title: '分析情绪感受',
-      color: const Color(0xFFFF9500),
+      color: Color(0xFFFF9500),
     ),
     _AnalysisStep(
       icon: Icons.spa_outlined,
       title: '理解内在需要',
-      color: const Color(0xFF34C759),
+      color: Color(0xFF34C759),
     ),
     _AnalysisStep(
       icon: Icons.lightbulb_outline,
       title: '生成行动建议',
-      color: const Color(0xFFFFB300),
+      color: Color(0xFFFFB300),
     ),
   ];
 
@@ -84,10 +84,6 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    _progressAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _progressController, curve: Curves.easeOutCubic),
-    );
-
     // 闪烁动画
     _sparkleController = AnimationController(
       vsync: this,
@@ -157,11 +153,7 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
                   // 标题
                   const Text(
                     '正在分析你的感受',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF2C2C2C),
-                    ),
+                    style: AppTypography.modalTitle,
                   ),
 
                   const SizedBox(height: 12),
@@ -169,9 +161,9 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
                   // 副标题
                   Text(
                     '使用NVC非暴力沟通框架',
-                    style: TextStyle(
+                    style: AppTypography.modalBody.copyWith(
                       fontSize: 14,
-                      color: Colors.grey[500],
+                      color: Colors.grey[600],
                     ),
                   ),
 
@@ -210,7 +202,7 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: const Color(0xFFC4A57B).withOpacity(0.3),
+                    color: const Color(0xFFC4A57B).withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
@@ -228,8 +220,13 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
                   final angle = (index * 60 + _sparkleController.value * 360) *
                       math.pi /
                       180;
-                  final radius = 45 + math.sin(_sparkleController.value * math.pi * 2 + index) * 5;
-                  final opacity = 0.3 + math.sin(_sparkleController.value * math.pi * 2 + index * 0.5) * 0.4;
+                  final radius = 45 +
+                      math.sin(_sparkleController.value * math.pi * 2 + index) *
+                          5;
+                  final opacity = 0.3 +
+                      math.sin(_sparkleController.value * math.pi * 2 +
+                              index * 0.5) *
+                          0.4;
                   return Transform.translate(
                     offset: Offset(
                       math.cos(angle) * radius,
@@ -239,7 +236,9 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
                       width: 6,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFC4A57B).withOpacity(opacity.clamp(0.0, 1.0)),
+                        color: const Color(0xFFC4A57B).withValues(
+                          alpha: opacity.clamp(0.0, 1.0),
+                        ),
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -261,7 +260,7 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFC4A57B).withOpacity(0.25),
+                      color: const Color(0xFFC4A57B).withValues(alpha: 0.25),
                       blurRadius: 20,
                       spreadRadius: 2,
                     ),
@@ -295,15 +294,18 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
           decoration: BoxDecoration(
             color: isCurrent
                 ? Colors.white
-                : (isCompleted ? Colors.white.withOpacity(0.7) : Colors.white.withOpacity(0.5)),
+                : (isCompleted
+                    ? Colors.white.withValues(alpha: 0.7)
+                    : Colors.white.withValues(alpha: 0.5)),
             borderRadius: BorderRadius.circular(16),
             border: isCurrent
-                ? Border.all(color: step.color.withOpacity(0.5), width: 1.5)
+                ? Border.all(
+                    color: step.color.withValues(alpha: 0.5), width: 1.5)
                 : null,
             boxShadow: isCurrent
                 ? [
                     BoxShadow(
-                      color: step.color.withOpacity(0.15),
+                      color: step.color.withValues(alpha: 0.15),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -319,7 +321,7 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
                 height: 40,
                 decoration: BoxDecoration(
                   color: isCurrent || isCompleted
-                      ? step.color.withOpacity(0.15)
+                      ? step.color.withValues(alpha: 0.15)
                       : const Color(0xFFF0F0F0),
                   shape: BoxShape.circle,
                 ),
@@ -338,8 +340,7 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
               Expanded(
                 child: Text(
                   step.title,
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: AppTypography.modalBody.copyWith(
                     fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
                     color: isCurrent || isCompleted
                         ? const Color(0xFF2C2C2C)
@@ -396,10 +397,8 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
               const SizedBox(width: 8),
               Text(
                 '分析内容',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[500],
-                  fontWeight: FontWeight.w500,
+                style: AppTypography.transcriptionStatus.copyWith(
+                  color: Colors.grey[600],
                 ),
               ),
             ],
@@ -407,9 +406,9 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
           const SizedBox(height: 8),
           Text(
             preview,
-            style: const TextStyle(
+            style: AppTypography.modalBody.copyWith(
               fontSize: 14,
-              color: Color(0xFF5D4E3C),
+              color: const Color(0xFF5D4E3C),
               height: 1.5,
             ),
           ),

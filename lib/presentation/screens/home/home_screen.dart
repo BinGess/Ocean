@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -23,6 +22,7 @@ import '../settings/settings_screen.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
 import '../../../core/services/quote_preloader.dart';
+import '../../../core/theme/app_typography.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,7 +31,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   String? _completedAudioPath;
   // 用户编辑后的转写文本 - 用于NVC分析确认页面回显
   String? _editedTranscription;
@@ -56,8 +57,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   bool _isShowingErrorDialog = false;
   // 记录上次处理的错误消息，避免重复处理同一个错误
   String? _lastHandledError;
-  // 用户手动关闭的错误提示（避免一直显示）
-  String? _lastDismissedError;
   // 忽略下一次完成回调（用于短录音取消）
   bool _ignoreNextCompletion = false;
 
@@ -78,9 +77,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     // 初始化脉冲动画控制器 - 强化膨胀效果
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),  // 稍微延长持续时间
+      duration: const Duration(milliseconds: 1400), // 稍微延长持续时间
     );
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.25).animate(  // 从1.15增加到1.25
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.25).animate(
+      // 从1.15增加到1.25
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
   }
@@ -101,7 +101,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
   }
 
-
   /// 备用权限检查（已禁用，避免重复弹窗）
   /// 权限已在 AppEntryPoint 开屏期间请求
   /// 这里不再主动检查，避免触发重复的权限对话框
@@ -118,7 +117,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     // 检查最小录音时长
     if (_recordingStartTime != null) {
-      final elapsed = DateTime.now().difference(_recordingStartTime!).inMilliseconds;
+      final elapsed =
+          DateTime.now().difference(_recordingStartTime!).inMilliseconds;
       // 如果还未真正进入录音状态（连接中），直接取消
       if (!currentState.isRecording) {
         debugPrint('HomeScreen: 连接中已松开，取消录音');
@@ -143,7 +143,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         return;
       }
       if (elapsed < _minRecordingDurationMs) {
-        debugPrint('HomeScreen: 录音时长不足 ${_minRecordingDurationMs}ms (当前: ${elapsed}ms)，取消录音');
+        debugPrint(
+            'HomeScreen: 录音时长不足 ${_minRecordingDurationMs}ms (当前: ${elapsed}ms)，取消录音');
         // 时长不足，取消录音并提示用户
         _recordingStartTime = null;
         _ignoreNextCompletion = true;
@@ -243,7 +244,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         },
       ).then((result) {
         if (result != null && _completedAudioPath != null) {
-          _handleProcessingModeSelected(result.mode, editedTranscription: result.transcription);
+          _handleProcessingModeSelected(result.mode,
+              editedTranscription: result.transcription);
         }
       });
     }
@@ -265,7 +267,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       },
     ).then((result) {
       if (result != null && _completedAudioPath != null) {
-        _handleProcessingModeSelected(result.mode, editedTranscription: result.transcription);
+        _handleProcessingModeSelected(result.mode,
+            editedTranscription: result.transcription);
       }
     });
   }
@@ -322,14 +325,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  void _handleProcessingModeSelected(ProcessingMode mode, {String? editedTranscription}) async {
+  void _handleProcessingModeSelected(ProcessingMode mode,
+      {String? editedTranscription}) async {
     if (_completedAudioPath == null) return;
 
     // 优先使用用户编辑后的转写文本，其次流式转写，最后RecordBloc的转写
     final audioState = context.read<AudioBloc>().state;
     final streamTranscription = audioState.realtimeTranscription;
     final recordTranscription = context.read<RecordBloc>().state.transcription;
-    final transcription = editedTranscription ?? streamTranscription ?? recordTranscription;
+    final transcription =
+        editedTranscription ?? streamTranscription ?? recordTranscription;
 
     // 保存编辑后的转写文本，用于NVC分析确认页面回显
     _editedTranscription = transcription;
@@ -345,7 +350,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFAF6F1)),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(Color(0xFFFAF6F1)),
                   ),
                 ),
                 SizedBox(width: 10),
@@ -378,7 +384,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFAF6F1)),
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(Color(0xFFFAF6F1)),
                     ),
                   ),
                   SizedBox(width: 10),
@@ -402,74 +409,77 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
       case ProcessingMode.withNVC:
         // 检查转写内容是否有效
-        if (transcription == null || transcription.isEmpty || transcription == '正在转写中...') {
-           ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(
-               content: Row(
-                 children: [
-                   Icon(Icons.hourglass_empty, color: Color(0xFFFFB74D), size: 20),
-                   SizedBox(width: 8),
-                   Text('转写未完成，请稍后...'),
-                 ],
-               ),
-               duration: Duration(seconds: 2),
-             ),
-           );
-           return;
+        if (transcription == null ||
+            transcription.isEmpty ||
+            transcription == '正在转写中...') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.hourglass_empty,
+                      color: Color(0xFFFFB74D), size: 20),
+                  SizedBox(width: 8),
+                  Text('转写未完成，请稍后...'),
+                ],
+              ),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          return;
         }
 
         // 触发 NVC 分析，分析完成后会在 BlocListener 中处理
         if (transcription.isNotEmpty) {
-           // 首先检查 AI 授权
-           final aiAuthService = getIt<AIAuthService>();
-           final isAuthorized = await aiAuthService.isAuthorized;
+          // 首先检查 AI 授权
+          final aiAuthService = getIt<AIAuthService>();
+          final isAuthorized = await aiAuthService.isAuthorized;
 
-           if (!isAuthorized) {
-             // 显示 AI 授权对话框
-             if (!mounted) return;
-             final authResult = await AIAuthDialog.show(context: context);
+          if (!isAuthorized) {
+            // 显示 AI 授权对话框
+            if (!mounted) return;
+            final authResult = await AIAuthDialog.show(context: context);
 
-             if (authResult == true) {
-               // 用户同意授权
-               await aiAuthService.grant();
-             } else {
-               // 用户拒绝授权，显示引导提示
-               if (!mounted) return;
-               _showAuthDeniedGuidance(context);
-               return;
-             }
-           }
+            if (authResult == true) {
+              // 用户同意授权
+              await aiAuthService.grant();
+            } else {
+              // 用户拒绝授权，显示引导提示
+              if (!mounted) return;
+              _showAuthDeniedGuidance(context);
+              return;
+            }
+          }
 
-           // 授权通过，显示NVC分析加载动画弹窗
-           if (!mounted) return;
-           NVCAnalyzingModal.show(
-             context: context,
-             transcription: transcription,
-           );
-           context.read<RecordBloc>().add(RecordAnalyzeNVC(transcription));
-           // 注意：这里不要立即清除 _completedAudioPath，因为后续保存还需要它
+          // 授权通过，显示NVC分析加载动画弹窗
+          if (!mounted) return;
+          NVCAnalyzingModal.show(
+            context: context,
+            transcription: transcription,
+          );
+          context.read<RecordBloc>().add(RecordAnalyzeNVC(transcription));
+          // 注意：这里不要立即清除 _completedAudioPath，因为后续保存还需要它
         } else {
-           // 如果没有转写文本，无法分析，降级为直接保存
-           ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(
-               content: Row(
-                 children: [
-                   Icon(Icons.info_outline, color: Color(0xFFFFB74D), size: 20),
-                   SizedBox(width: 8),
-                   Flexible(child: Text('暂无转写文本，已自动转为仅记录')),
-                 ],
-               ),
-               duration: Duration(seconds: 3),
-             ),
-           );
-           context.read<RecordBloc>().add(
-              RecordCreateQuickNote(
-                audioPath: _completedAudioPath!,
-                mode: ProcessingMode.onlyRecord,
-                transcription: transcription,
+          // 如果没有转写文本，无法分析，降级为直接保存
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Color(0xFFFFB74D), size: 20),
+                  SizedBox(width: 8),
+                  Flexible(child: Text('暂无转写文本，已自动转为仅记录')),
+                ],
               ),
-            );
-           // _clearCompletedAudio(); // 移至 BlocListener 处理
+              duration: Duration(seconds: 3),
+            ),
+          );
+          context.read<RecordBloc>().add(
+                RecordCreateQuickNote(
+                  audioPath: _completedAudioPath!,
+                  mode: ProcessingMode.onlyRecord,
+                  transcription: transcription,
+                ),
+              );
+          // _clearCompletedAudio(); // 移至 BlocListener 处理
         }
         break;
     }
@@ -508,265 +518,325 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
+            begin: Alignment.topLeft,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFFAF6F1), // 浅米白
-              Color(0xFFF5EBE0), // 米黄色
+              Color(0xFFFFF9F1),
+              Color(0xFFF7EDE0),
+              Color(0xFFF2E4D2),
             ],
+            stops: [0.0, 0.56, 1.0],
           ),
         ),
         child: Stack(
           children: [
-            // 背景纹理层 - 强化质感
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Opacity(
-                  opacity: 0.7,
-                  child: CustomPaint(
-                    painter: _NoiseTexturePainter(),
-                    size: Size.infinite,
-                  ),
-                ),
-              ),
-            ),
-            // 额外的渐变叠加层 - 增加深度感
+            // 顶部暖光层：让画面更柔和
             Positioned.fill(
               child: IgnorePointer(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: RadialGradient(
-                      center: const Alignment(0, 0.3),
-                      radius: 1.2,
+                      center: const Alignment(-0.72, -0.96),
+                      radius: 1.02,
                       colors: [
-                        const Color(0xFFF5EBE0).withValues(alpha: 0.0),
-                        const Color(0xFFE8DED0).withValues(alpha: 0.08),
+                        const Color(0xFFFFF8EE).withValues(alpha: 0.92),
+                        const Color(0xFFFFF8EE).withValues(alpha: 0.0),
                       ],
                     ),
                   ),
                 ),
               ),
             ),
-            // 轻微光晕层已移除（避免角落阴影感）
+            // 底部压暗层：建立空间纵深
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        const Color(0xFFCCB79F).withValues(alpha: 0.006),
+                        const Color(0xFFEDE3D6).withValues(alpha: 0.028),
+                      ],
+                      stops: const [0.80, 0.94, 1.0],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // 底部导航过渡层：减轻与底栏的割裂感
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        const Color(0xFFF6F2EC).withValues(alpha: 0.06),
+                        const Color(0xFFF7F4F0).withValues(alpha: 0.13),
+                      ],
+                      stops: const [0.82, 0.94, 1.0],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // 轻噪点纹理：低对比、低密度，避免脏感
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: 0.38,
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      painter: _PaperGrainPainter(),
+                      size: Size.infinite,
+                    ),
+                  ),
+                ),
+              ),
+            ),
             // 主内容
             BlocListener<AudioBloc, AudioState>(
               listener: (context, audioState) {
-              // 录音完成后处理
-              if (audioState.isCompleted && audioState.audioPath != null) {
-                if (_ignoreNextCompletion) {
-                  _ignoreNextCompletion = false;
-                  return;
-                }
-                const minSeconds = _minRecordingDurationMs / 1000.0;
-                if (audioState.duration < minSeconds) {
-                  return;
-                }
-                _handleRecordComplete(audioState.audioPath!);
-              }
-
-              // 显示错误
-              if (audioState.hasError && audioState.errorMessage != null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Row(
-                      children: [
-                        const Icon(Icons.error_outline, color: Color(0xFFEF5350), size: 20),
-                        const SizedBox(width: 8),
-                        Flexible(child: Text(audioState.errorMessage!)),
-                      ],
-                    ),
-                    duration: const Duration(seconds: 3),
-                  ),
-                );
-              }
-            },
-            child: BlocListener<RecordBloc, RecordState>(
-              listener: (context, recordState) {
-                if (recordState.isAnalyzed && recordState.nvcAnalysis != null) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    // 先关闭分析加载动画弹窗
-                    if (Navigator.of(context).canPop()) {
-                      Navigator.of(context).pop();
-                    }
-
-                    if (ModalRoute.of(context)?.isCurrent ?? false) {
-                      final messenger = ScaffoldMessenger.of(context);
-                      final recordBloc = context.read<RecordBloc>();
-                      // 优先使用用户编辑后的转写文本，其次流式转写，最后RecordBloc的转写
-                      final audioState = context.read<AudioBloc>().state;
-                      final transcription = _editedTranscription ??
-                                           audioState.realtimeTranscription ??
-                                           recordState.transcription ?? '';
-                      NVCConfirmationModal.show(
-                        context: context,
-                        initialAnalysis: recordState.nvcAnalysis!,
-                        transcription: transcription,
-                        onRevert: () {
-                          _handleProcessingModeSelected(ProcessingMode.onlyRecord);
-                        },
-                      ).then((result) {
-                        if (result?.action == NVCModalAction.confirm &&
-                            result?.analysis != null &&
-                            _completedAudioPath != null) {
-                          messenger.showSnackBar(
-                            const SnackBar(
-                              content: Row(
-                                children: [
-                                  SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFAF6F1)),
-                                    ),
-                                  ),
-                                  SizedBox(width: 10),
-                                  Text('正在保存记录...'),
-                                ],
-                              ),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                          recordBloc.add(
-                            RecordCreateQuickNote(
-                              audioPath: _completedAudioPath!,
-                              mode: ProcessingMode.withNVC,
-                              transcription: transcription,
-                              nvcAnalysis: result!.analysis,
-                            ),
-                          );
-                          _clearCompletedAudio();
-                        } else if (result?.action == NVCModalAction.delete) {
-                          // 用户选择了删除，清理音频文件
-                          messenger.showSnackBar(
-                            const SnackBar(
-                              content: Row(
-                                children: [
-                                  Icon(Icons.cancel_outlined, color: Color(0xFFB0B0B0), size: 20),
-                                  SizedBox(width: 8),
-                                  Text('已取消保存'),
-                                ],
-                              ),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                          _clearCompletedAudio();
-                        }
-                      });
-                    }
-                  });
+                // 录音完成后处理
+                if (audioState.isCompleted && audioState.audioPath != null) {
+                  if (_ignoreNextCompletion) {
+                    _ignoreNextCompletion = false;
+                    return;
+                  }
+                  const minSeconds = _minRecordingDurationMs / 1000.0;
+                  if (audioState.duration < minSeconds) {
+                    return;
+                  }
+                  _handleRecordComplete(audioState.audioPath!);
                 }
 
-                // 处理AI授权请求
-                if (recordState.status == RecordStatus.needsAIAuth) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    // 先关闭分析加载动画弹窗
-                    if (Navigator.of(context).canPop()) {
-                      Navigator.of(context).pop();
-                    }
-                    if (ModalRoute.of(context)?.isCurrent ?? false) {
-                      _handleAIAuthRequest(context, recordState);
-                    }
-                  });
-                }
-
-                // 处理NVC分析错误
-                // 添加防重复机制：只在有新错误且弹窗未显示时触发
-                if (recordState.hasError &&
-                    recordState.errorMessage != null &&
-                    _completedAudioPath != null &&
-                    !_isShowingErrorDialog &&
-                    recordState.errorMessage != _lastHandledError) {
-                  _isShowingErrorDialog = true;
-                  _lastHandledError = recordState.errorMessage;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    // 先关闭分析加载动画弹窗
-                    if (Navigator.of(context).canPop()) {
-                      Navigator.of(context).pop();
-                    }
-                    if (ModalRoute.of(context)?.isCurrent ?? false) {
-                      final transcription = recordState.transcription;
-                      NVCErrorDialog.show(context: context).then((action) {
-                        _isShowingErrorDialog = false;
-                        if (action == NVCErrorAction.retry) {
-                          // 清除错误记录，允许重试失败后再次显示错误
-                          _lastHandledError = null;
-                          // 立即重试NVC分析
-                          if (transcription != null && transcription.isNotEmpty) {
-                            context.read<RecordBloc>().add(RecordAnalyzeNVC(transcription));
-                          }
-                        } else if (action == NVCErrorAction.saveText) {
-                          // 保存为仅文本记录
-                          _handleProcessingModeSelected(ProcessingMode.onlyRecord);
-                        }
-                      });
-                    } else {
-                      _isShowingErrorDialog = false;
-                    }
-                  });
-                }
-
-                if (recordState.isSuccess && recordState.latestRecord != null) {
+                // 显示错误
+                if (audioState.hasError && audioState.errorMessage != null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Row(
                         children: [
-                          Icon(Icons.check_circle, color: Color(0xFF4CAF50), size: 20),
-                          SizedBox(width: 8),
-                          Text('记录已保存'),
+                          const Icon(Icons.error_outline,
+                              color: Color(0xFFEF5350), size: 20),
+                          const SizedBox(width: 8),
+                          Flexible(child: Text(audioState.errorMessage!)),
                         ],
                       ),
-                      duration: Duration(seconds: 2),
+                      duration: const Duration(seconds: 3),
                     ),
                   );
                 }
               },
-              child: SafeArea(
-                child: Column(
-                  children: [
-                    // 顶部信息栏
-                    _buildHeader(context, dateStr, greeting),
+              child: BlocListener<RecordBloc, RecordState>(
+                listener: (context, recordState) {
+                  if (recordState.isAnalyzed &&
+                      recordState.nvcAnalysis != null) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      // 先关闭分析加载动画弹窗
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      }
 
-                    // 文案展示区域
-                    Expanded(
-                      flex: 1,
-                      child: _buildQuoteSection(),
-                    ),
+                      if (ModalRoute.of(context)?.isCurrent ?? false) {
+                        final messenger = ScaffoldMessenger.of(context);
+                        final recordBloc = context.read<RecordBloc>();
+                        // 优先使用用户编辑后的转写文本，其次流式转写，最后RecordBloc的转写
+                        final audioState = context.read<AudioBloc>().state;
+                        final transcription = _editedTranscription ??
+                            audioState.realtimeTranscription ??
+                            recordState.transcription ??
+                            '';
+                        NVCConfirmationModal.show(
+                          context: context,
+                          initialAnalysis: recordState.nvcAnalysis!,
+                          transcription: transcription,
+                          onRevert: () {
+                            _handleProcessingModeSelected(
+                                ProcessingMode.onlyRecord);
+                          },
+                        ).then((result) {
+                          if (result?.action == NVCModalAction.confirm &&
+                              result?.analysis != null &&
+                              _completedAudioPath != null) {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                                Color(0xFFFAF6F1)),
+                                      ),
+                                    ),
+                                    SizedBox(width: 10),
+                                    Text('正在保存记录...'),
+                                  ],
+                                ),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                            recordBloc.add(
+                              RecordCreateQuickNote(
+                                audioPath: _completedAudioPath!,
+                                mode: ProcessingMode.withNVC,
+                                transcription: transcription,
+                                nvcAnalysis: result!.analysis,
+                              ),
+                            );
+                            _clearCompletedAudio();
+                          } else if (result?.action == NVCModalAction.delete) {
+                            // 用户选择了删除，清理音频文件
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Row(
+                                  children: [
+                                    Icon(Icons.cancel_outlined,
+                                        color: Color(0xFFB0B0B0), size: 20),
+                                    SizedBox(width: 8),
+                                    Text('已取消保存'),
+                                  ],
+                                ),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                            _clearCompletedAudio();
+                          }
+                        });
+                      }
+                    });
+                  }
 
-                    // 实时转写显示区域 - 固定高度,不会影响按钮位置
-                    BlocBuilder<AudioBloc, AudioState>(
-                      buildWhen: (prev, next) =>
-                          prev.isStreamingRecording != next.isStreamingRecording ||
-                          prev.isWebSocketConnected != next.isWebSocketConnected ||
-                          prev.realtimeTranscription != next.realtimeTranscription ||
-                          prev.isTranscriptionFinal != next.isTranscriptionFinal ||
-                          prev.status != next.status,
-                      builder: (context, audioState) {
-                        return _buildTranscriptionArea(audioState);
-                      },
-                    ),
+                  // 处理AI授权请求
+                  if (recordState.status == RecordStatus.needsAIAuth) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      // 先关闭分析加载动画弹窗
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      }
+                      if (ModalRoute.of(context)?.isCurrent ?? false) {
+                        _handleAIAuthRequest(context, recordState);
+                      }
+                    });
+                  }
 
-                    // 录音按钮区域 - 调整比例,保持整体平衡
-                    Expanded(
-                      flex: 1,
-                      child: BlocBuilder<AudioBloc, AudioState>(
+                  // 处理NVC分析错误
+                  // 添加防重复机制：只在有新错误且弹窗未显示时触发
+                  if (recordState.hasError &&
+                      recordState.errorMessage != null &&
+                      _completedAudioPath != null &&
+                      !_isShowingErrorDialog &&
+                      recordState.errorMessage != _lastHandledError) {
+                    _isShowingErrorDialog = true;
+                    _lastHandledError = recordState.errorMessage;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      // 先关闭分析加载动画弹窗
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      }
+                      if (ModalRoute.of(context)?.isCurrent ?? false) {
+                        final transcription = recordState.transcription;
+                        NVCErrorDialog.show(context: context).then((action) {
+                          _isShowingErrorDialog = false;
+                          if (action == NVCErrorAction.retry) {
+                            // 清除错误记录，允许重试失败后再次显示错误
+                            _lastHandledError = null;
+                            // 立即重试NVC分析
+                            if (transcription != null &&
+                                transcription.isNotEmpty) {
+                              context
+                                  .read<RecordBloc>()
+                                  .add(RecordAnalyzeNVC(transcription));
+                            }
+                          } else if (action == NVCErrorAction.saveText) {
+                            // 保存为仅文本记录
+                            _handleProcessingModeSelected(
+                                ProcessingMode.onlyRecord);
+                          }
+                        });
+                      } else {
+                        _isShowingErrorDialog = false;
+                      }
+                    });
+                  }
+
+                  if (recordState.isSuccess &&
+                      recordState.latestRecord != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Row(
+                          children: [
+                            Icon(Icons.check_circle,
+                                color: Color(0xFF4CAF50), size: 20),
+                            SizedBox(width: 8),
+                            Text('记录已保存'),
+                          ],
+                        ),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
+                child: SafeArea(
+                  child: Column(
+                    children: [
+                      // 顶部信息栏
+                      _buildHeader(context, dateStr, greeting),
+                      const SizedBox(height: 28),
+
+                      // 文案展示区域
+                      Expanded(
+                        flex: 1,
+                        child: _buildQuoteSection(),
+                      ),
+
+                      // 实时转写显示区域 - 固定高度,不会影响按钮位置
+                      BlocBuilder<AudioBloc, AudioState>(
                         buildWhen: (prev, next) =>
-                            prev.status != next.status ||
-                            prev.duration != next.duration ||
-                            prev.hasPermission != next.hasPermission ||
-                            prev.isWebSocketConnected != next.isWebSocketConnected,
+                            prev.isStreamingRecording !=
+                                next.isStreamingRecording ||
+                            prev.isWebSocketConnected !=
+                                next.isWebSocketConnected ||
+                            prev.realtimeTranscription !=
+                                next.realtimeTranscription ||
+                            prev.isTranscriptionFinal !=
+                                next.isTranscriptionFinal ||
+                            prev.status != next.status,
                         builder: (context, audioState) {
-                          return _buildRecordSection(context, audioState);
+                          return _buildTranscriptionArea(audioState);
                         },
                       ),
-                    ),
-                  ],
+
+                      // 录音按钮区域 - 调整比例,保持整体平衡
+                      Expanded(
+                        flex: 1,
+                        child: BlocBuilder<AudioBloc, AudioState>(
+                          buildWhen: (prev, next) =>
+                              prev.status != next.status ||
+                              prev.duration != next.duration ||
+                              prev.hasPermission != next.hasPermission ||
+                              prev.isWebSocketConnected !=
+                                  next.isWebSocketConnected,
+                          builder: (context, audioState) {
+                            return _buildRecordSection(context, audioState);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
 
-          // NVC分析时已使用NVCAnalyzingModal，不再需要LoadingOverlay
+            // NVC分析时已使用NVCAnalyzingModal，不再需要LoadingOverlay
           ],
         ),
       ),
@@ -787,22 +857,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               children: [
                 Text(
                   dateStr,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFFB8ADA0),
-                    fontWeight: FontWeight.normal,
-                    letterSpacing: 0.5,
-                  ),
+                  style: AppTypography.homeDate,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   greeting,
-                  style: const TextStyle(
-                    fontSize: 32,
-                    color: Color(0xFF5D4E3C),
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.0,
-                  ),
+                  style: AppTypography.homeGreeting,
                 ),
               ],
             ),
@@ -850,10 +910,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             const SizedBox(height: 16),
             const Text(
               '需要录音权限才能使用此功能',
-              style: TextStyle(
-                color: Color(0xFF8B7D6B),
-                fontSize: 15,
-              ),
+              style: AppTypography.modalBody,
             ),
             const SizedBox(height: 16),
             TextButton(
@@ -862,18 +919,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               },
               style: TextButton.styleFrom(
                 backgroundColor: const Color(0xFFE8DED0),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
                 ),
               ),
               child: const Text(
                 '授予权限',
-                style: TextStyle(
-                  color: Color(0xFF5D4E3C),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: AppTypography.modalButtonSecondary,
               ),
             ),
           ],
@@ -887,14 +941,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         !audioState.isRecording &&
         !audioState.isStreamingRecording;
     final isPressingOnly = _isPressed && !audioState.isRecording;
-    final buttonSize = audioState.isRecording ? 106.0 : (_isPressed ? 102.0 : 120.0);
-    final iconSize = audioState.isRecording ? 38.0 : (_isPressed ? 40.0 : 48.0);
-    final ringAlpha = isPressingOnly ? 0.6 : (isActive ? 0.42 : 0.16);  // 增强透明度
-    final ringWidth = isPressingOnly ? 2.6 : (isActive ? 2.0 : 1.4);  // 增加边框宽度
-    final mainBorderWidth = isPressingOnly ? 3.1 : (isActive ? 2.8 : 2.4);  // 增加边框宽度
-    final mainGlowAlpha = isPressingOnly ? 0.4 : (isActive ? 0.32 : 0.24);  // 增强发光
-    final mainGlowBlur = isPressingOnly ? 32.0 : (isActive ? 28.0 : 16.0);  // 增大发光范围
-    final mainGlowSpread = isPressingOnly ? 5.0 : (isActive ? 4.0 : 2.5);  // 增加发光范围
+    final buttonSize =
+        audioState.isRecording ? 106.0 : (_isPressed ? 104.0 : 112.0);
+    final iconSize = audioState.isRecording ? 32.0 : (_isPressed ? 34.0 : 38.0);
+    final ringAlpha = isPressingOnly ? 0.24 : 0.18;
+    final ringWidth = isPressingOnly ? 1.8 : 1.4;
+    final mainBorderWidth = isPressingOnly ? 1.8 : (isActive ? 1.6 : 1.4);
 
     // 控制脉冲动画
     if (audioState.isRecording && !_pulseController.isAnimating) {
@@ -919,13 +971,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ? '松开结束'
                     : (isConnecting ? '连接中...' : '按住记录'),
                 key: ValueKey(audioState.isRecording),
-                style: TextStyle(
-                  fontSize: 14,
+                style: AppTypography.recordHint.copyWith(
                   color: isActive
                       ? const Color(0xFF5D4E3C)
-                      : const Color(0xFFB8ADA0),
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 2.0,
+                      : const Color(0xFF8F7760),
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                  letterSpacing: 1.4,
                 ),
               ),
             ),
@@ -943,7 +994,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 _recordingStartTime = DateTime.now();
                 // 触发录音
                 if (!audioState.isRecording) {
-                  context.read<AudioBloc>().add(const AudioStartStreamingRecording());
+                  context
+                      .read<AudioBloc>()
+                      .add(const AudioStartStreamingRecording());
                 }
               },
               onLongPressEnd: (_) {
@@ -955,137 +1008,114 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 // 长按取消（手指滑出）：保持录音继续，只重置视觉状态
                 setState(() => _isPressed = false);
               },
-            child: SizedBox(
-              width: 160,
-              height: 160,
-              child: Center(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // 水波纹效果（独立Widget，自行管理动画）
-                    _RippleEffect(isActive: isActive),
-
-                    // 外圈脉冲效果（录音时） - 强化版
-                    if (audioState.isRecording)
-                      AnimatedBuilder(
-                        animation: _pulseAnimation,
-                        builder: (context, child) {
-                          final pulseColor = isConnecting
-                              ? const Color(0xFF7DBEF5)
-                              : const Color(0xFFC4A57B);
-                          // 调整 alpha 计算，适配新的动画范围 1.0-1.25
-                          final alphaFactor = (1.25 - _pulseAnimation.value) / 0.25;
-                          return Container(
-                            width: 120 * _pulseAnimation.value,
-                            height: 120 * _pulseAnimation.value,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: pulseColor.withValues(
-                                  alpha: 0.5 * alphaFactor,  // 从0.4增加到0.5
+              child: SizedBox(
+                width: 160,
+                height: 160,
+                child: Center(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // 录音中轻量状态环（简洁扁平）
+                      if (audioState.isRecording)
+                        AnimatedBuilder(
+                          animation: _pulseAnimation,
+                          builder: (context, child) {
+                            final pulseColor = isConnecting
+                                ? const Color(0xFF93BCDD)
+                                : const Color(0xFFB88F61);
+                            final alphaFactor =
+                                (1.25 - _pulseAnimation.value) / 0.25;
+                            return Container(
+                              width: 110 * _pulseAnimation.value,
+                              height: 110 * _pulseAnimation.value,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: pulseColor.withValues(
+                                    alpha: 0.18 * alphaFactor,
+                                  ),
+                                  width: 1.6,
                                 ),
-                                width: 2.5,  // 从2增加到2.5
                               ),
+                            );
+                          },
+                        ),
+
+                      // 交互外环（待机态不显示，避免“黑圈”）
+                      if (isActive)
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 120),
+                          curve: Curves.easeOut,
+                          width: buttonSize + 12,
+                          height: buttonSize + 12,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: (isConnecting
+                                      ? const Color(0xFFA4CAE9)
+                                      : const Color(0xFFB88F61))
+                                  .withValues(alpha: ringAlpha),
+                              width: ringWidth,
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        ),
 
-                    // 按住时柔和外环，增强触达反馈
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      curve: Curves.easeOutCubic,
-                      width: isActive ? buttonSize + 20 : buttonSize + 6,
-                      height: isActive ? buttonSize + 20 : buttonSize + 6,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: (isConnecting
-                                  ? const Color(0xFF9ECDF4)
-                                  : const Color(0xFFD9C9B8))
-                              .withValues(alpha: ringAlpha),
-                          width: ringWidth,
+                      // 主按钮（扁平简约）
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 140),
+                        curve: Curves.easeOut,
+                        width: buttonSize,
+                        height: buttonSize,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isConnecting
+                              ? const Color(0xFFEAF2FA)
+                              : (audioState.isRecording
+                                  ? const Color(0xFFE9D7BF)
+                                  : const Color(0xFFF6ECE0)),
+                          border: Border.all(
+                            color: isActive
+                                ? const Color(0xFFB88F61)
+                                : const Color(0xFFD8BFA2),
+                            width: mainBorderWidth,
+                          ),
+                          boxShadow: const [],
+                        ),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 140),
+                          child: Icon(
+                            audioState.isRecording
+                                ? Icons.stop_rounded
+                                : Icons.mic_rounded,
+                            key: ValueKey(audioState.isRecording),
+                            size: iconSize,
+                            color: const Color(0xFF7A5B37),
+                          ),
                         ),
                       ),
-                    ),
-
-                    // 主按钮
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 160),
-                      curve: Curves.easeOutCubic,
-                      width: buttonSize,
-                      height: buttonSize,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: (isConnecting
-                                ? const Color(0xFFF2F7FF)
-                                : (audioState.isRecording
-                                    ? const Color(0xFFFFF7EE)
-                                    : Colors.white))
-                            .withValues(alpha: isActive ? 0.97 : 0.93),
-                        border: Border.all(
-                          color: isActive
-                              ? const Color(0xFFC4A57B)
-                              : const Color(0xFFD9C9B8),
-                          width: mainBorderWidth,
-                        ),
-                        boxShadow: isActive
-                            ? [
-                                BoxShadow(
-                                  color: const Color(0xFFC4A57B).withValues(alpha: mainGlowAlpha),
-                                  blurRadius: mainGlowBlur,
-                                  spreadRadius: mainGlowSpread,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ]
-                            : [
-                                BoxShadow(
-                                  color: const Color(0xFFD9C9B8).withValues(alpha: 0.18),
-                                  blurRadius: 12,
-                                  spreadRadius: 2.0,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                      ),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 180),
-                        child: Icon(
-                          audioState.isRecording ? Icons.stop_rounded : Icons.mic_rounded,
-                          key: ValueKey(audioState.isRecording),
-                          size: iconSize,
-                          color: isActive
-                              ? const Color(0xFFC4A57B)
-                              : const Color(0xFFD9C9B8),
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
 
-          // 录音时长显示
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            height: audioState.isRecording && audioState.duration > 0 ? 40 : 0,
-            child: audioState.isRecording && audioState.duration > 0
-                ? Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: Text(
-                      _formatDuration(audioState.duration),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFF8B7D6B),
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 1.0,
+            // 录音时长显示
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              height:
+                  audioState.isRecording && audioState.duration > 0 ? 40 : 0,
+              child: audioState.isRecording && audioState.duration > 0
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: Text(
+                        _formatDuration(audioState.duration),
+                        style: AppTypography.recordTimer,
                       ),
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          ),
-        ],
-      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1095,16 +1125,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     // 判断是否应该显示转写区域：
     // 1. 正在流式录音时显示
     // 2. 或者正在按压按钮且正在连接中时显示（提供即时反馈）
-    final isConnecting = _isPressed && !audioState.isStreamingRecording && !audioState.isRecording;
+    final isConnecting = _isPressed &&
+        !audioState.isStreamingRecording &&
+        !audioState.isRecording;
     final shouldShow = audioState.isStreamingRecording || isConnecting;
 
     // 固定高度容器,保持布局稳定,优化动画性能
     return AnimatedContainer(
       duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOutCubic,  // 使用更流畅的动画曲线
+      curve: Curves.easeOutCubic, // 使用更流畅的动画曲线
       height: shouldShow
-          ? 140  // 转写框显示时的高度（减小以避免溢出）
-          : 8,   // 收起时的最小高度
+          ? 140 // 转写框显示时的高度（减小以避免溢出）
+          : 8, // 收起时的最小高度
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 4),
       child: shouldShow
           ? _buildRealtimeTranscription(audioState, isConnecting: isConnecting)
@@ -1120,7 +1152,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   /// 构建实时转写显示widget
-  Widget _buildRealtimeTranscription(AudioState audioState, {bool isConnecting = false}) {
+  Widget _buildRealtimeTranscription(AudioState audioState,
+      {bool isConnecting = false}) {
     // 确定状态文本和颜色
     String statusText;
     Color statusColor;
@@ -1138,7 +1171,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final transcription = audioState.realtimeTranscription?.trim();
     final isEmptyText = transcription == null || transcription.isEmpty;
 
-    if (!isConnecting && !isEmptyText && transcription != _lastTranscriptionText) {
+    if (!isConnecting &&
+        !isEmptyText &&
+        transcription != _lastTranscriptionText) {
       _lastTranscriptionText = transcription;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!_transcriptionScrollController.hasClients) return;
@@ -1151,18 +1186,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
 
     return Container(
-      constraints: const BoxConstraints(maxHeight: 130),  // 进一步减少最大高度
-      padding: const EdgeInsets.all(12),  // 减少内边距,优化空间利用
+      constraints: const BoxConstraints(maxHeight: 130), // 进一步减少最大高度
+      padding: const EdgeInsets.all(12), // 减少内边距,优化空间利用
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(16),  // 稍微减小圆角
+        borderRadius: BorderRadius.circular(16), // 稍微减小圆角
         border: Border.all(
           color: const Color(0xFFE8DED0),
           width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),  // 柔化阴影
+            color: Colors.black.withValues(alpha: 0.05), // 柔化阴影
             blurRadius: 14,
             offset: const Offset(0, 3),
           ),
@@ -1197,11 +1232,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               const SizedBox(width: 8),
               Text(
                 statusText,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF8B7D6B),
-                  fontWeight: FontWeight.w500,
-                ),
+                style: AppTypography.transcriptionStatus,
               ),
             ],
           ),
@@ -1219,24 +1250,24 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         color: Color(0xFF8B7D6B),
                         height: 1.6,
                         fontStyle: FontStyle.italic,
+                        fontFamily: AppTypography.sansFamily,
+                        fontFamilyFallback: ['PingFang SC', 'Roboto'],
                       ),
                     )
                   : (isEmptyText
                       ? _buildTranscriptionSkeleton()
                       : Text(
                           transcription,
-                          style: TextStyle(
-                            fontSize: 16,
+                          style: AppTypography.transcriptionBody.copyWith(
                             color: audioState.isTranscriptionFinal
-                                ? const Color(0xFF2C2C2C) // 黑色：最终结果
-                                : const Color(0xFF8B7D6B), // 灰色：临时结果
+                                ? const Color(0xFF4B3B2A)
+                                : const Color(0xFF8B7D6B),
                             fontStyle: audioState.isTranscriptionFinal
                                 ? FontStyle.normal
                                 : FontStyle.italic,
-                            height: 1.6,
                             fontWeight: audioState.isTranscriptionFinal
                                 ? FontWeight.w500
-                                : FontWeight.normal,
+                                : FontWeight.w400,
                           ),
                         )),
             ),
@@ -1280,182 +1311,86 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
 
     if (_quotes.isEmpty) {
-      return const Center(
-        child: Text('暂无文案数据'),
+      return Center(
+        child: Text(
+          '暂无文案数据',
+          style: AppTypography.recordHint.copyWith(
+            color: const Color(0xFF8F7760),
+            letterSpacing: 0.3,
+          ),
+        ),
       );
     }
 
-    return QuoteDisplay(quotes: _quotes);
-  }
-}
-
-/// 水波纹动画效果 - 独立 Widget，自行管理动画生命周期
-/// 解决在 BlocBuilder 内部动画无法正确启动的问题
-class _RippleEffect extends StatefulWidget {
-  final bool isActive;
-
-  const _RippleEffect({required this.isActive});
-
-  @override
-  State<_RippleEffect> createState() => _RippleEffectState();
-}
-
-class _RippleEffectState extends State<_RippleEffect>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  static const Duration _slowDuration = Duration(milliseconds: 4200);
-  static const Duration _fastDuration = Duration(milliseconds: 900);
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: widget.isActive ? _fastDuration : _slowDuration,
-    )..repeat(); // 立即开始循环动画
-  }
-
-  @override
-  void didUpdateWidget(_RippleEffect oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isActive != oldWidget.isActive) {
-      _controller.duration = widget.isActive ? _fastDuration : _slowDuration;
-      _controller.repeat();
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Stack(
-          alignment: Alignment.center,
-          children: List.generate(3, (index) {
-            final phaseOffset = index / 3.0;
-            final progress = (_controller.value + phaseOffset) % 1.0;
-
-            // 波纹从按钮边缘向外扩展 - 强化效果
-            final minSize = widget.isActive ? 126.0 : 118.0;
-            final maxSize = widget.isActive ? 200.0 : 260.0;  // 增加最大尺寸
-            final size = minSize + (maxSize - minSize) * progress;
-
-            // 透明度：更强的初始值，更缓的衰减 - 增强视觉效果
-            final baseAlpha = widget.isActive ? 0.62 : 0.42;  // 大幅提高初始透明度
-            // 使用更温和的衰减曲线，使波纹更可见
-            final fadeFactor = widget.isActive
-                ? math.pow(1.0 - progress, 1.6).toDouble()  // 从2.0改为1.6，衰减更缓
-                : math.pow(1.0 - progress, 1.8).toDouble();  // 从2.2改为1.8，衰减更缓
-            final alpha = (baseAlpha * fadeFactor).clamp(0.0, 1.0);
-
-            // 边框宽度渐变 - 增强边框
-            final borderWidth = widget.isActive
-                ? 2.4 - progress * 1.0  // 从2.0改为2.4
-                : 2.0 - progress * 0.8;  // 从1.6改为2.0
-
-            // 颜色
-            final color = widget.isActive
-                ? const Color(0xFFC4A57B)
-                : const Color(0xFFD4BAA6);  // 更明显的色彩
-
-            return Container(
-              width: size,
-              height: size,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: color.withValues(alpha: alpha),
-                  width: borderWidth.clamp(0.8, 3.0),
-                ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 0, 18, 2),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.white.withValues(alpha: 0.30),
+                  const Color(0xFFFFF7EC).withValues(alpha: 0.18),
+                ],
               ),
-            );
-          }),
-        );
-      },
+              border: Border.all(
+                color: const Color(0xFFE2CCB2).withValues(alpha: 0.80),
+                width: 0.8,
+              ),
+              boxShadow: const [],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: QuoteDisplay(quotes: _quotes),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
-/// 细腻噪点纹理 - 强化版（多层纹理叠加）
-class _NoiseTexturePainter extends CustomPainter {
+/// 轻量纸张噪点：低密度 + 轻纤维，避免背景脏感
+class _PaperGrainPainter extends CustomPainter {
+  static const double _step = 18.0;
+
+  double _hash(double x, double y) {
+    final v = math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+    return v - v.floorToDouble();
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
-    // 第一层：密集细小点纹理 - 形成基础噪点感
-    final tinyPointPaint = Paint()
-      ..color = const Color(0xFFB5A597).withValues(alpha: 0.18)
-      ..strokeWidth = 0;
-    const tinyStep = 6.0;
-    for (double y = 0; y < size.height; y += tinyStep) {
-      for (double x = 0; x < size.width; x += tinyStep) {
-        final offsetX = (y * 0.7) % tinyStep;
-        canvas.drawCircle(Offset(x + offsetX, y), 0.4, tinyPointPaint);
-      }
-    }
-
-    // 第二层：中等点纹理 - 增加层次
-    final mediumPointPaint = Paint()
-      ..color = const Color(0xFFA89480).withValues(alpha: 0.14)
-      ..strokeWidth = 0;
-    const mediumStep = 14.0;
-    for (double y = 0; y < size.height; y += mediumStep) {
-      for (double x = 0; x < size.width; x += mediumStep) {
-        final offsetX = (y * 0.5) % mediumStep;
-        canvas.drawCircle(Offset(x + offsetX, y), 0.7, mediumPointPaint);
-      }
-    }
-
-    // 第三层：稀疏大点纹理 - 增加深度
-    final largePointPaint = Paint()
-      ..color = const Color(0xFF9A8672).withValues(alpha: 0.10)
-      ..strokeWidth = 0;
-    const largeStep = 28.0;
-    for (double y = 0; y < size.height; y += largeStep) {
-      for (double x = 0; x < size.width; x += largeStep) {
-        final offsetX = (y * 0.3) % largeStep;
-        canvas.drawCircle(Offset(x + offsetX, y), 1.2, largePointPaint);
-      }
-    }
-
-    // 第四层：细微横向纤维纹理 - 模拟纸张质感
-    final fiberPaint = Paint()
-      ..color = const Color(0xFFCBBBA8).withValues(alpha: 0.06)
-      ..strokeWidth = 0.5
-      ..strokeCap = StrokeCap.round;
-    const fiberStep = 20.0;
-    for (double y = 0; y < size.height; y += fiberStep) {
-      final startX = (y * 1.3) % 30;
-      final lineLength = 15.0 + (y % 20);
-      canvas.drawLine(
-        Offset(startX, y),
-        Offset(startX + lineLength, y + 0.5),
-        fiberPaint,
-      );
-    }
-
-    // 第五层：斜向细纹 - 增加有机感
-    final diagonalPaint = Paint()
-      ..color = const Color(0xFFD4C4B0).withValues(alpha: 0.05)
-      ..strokeWidth = 0.3
-      ..strokeCap = StrokeCap.round;
-    const diagonalStep = 35.0;
-    for (double y = 0; y < size.height + size.width; y += diagonalStep) {
-      final startY = y < size.width ? 0.0 : y - size.width;
-      final startX = y < size.width ? size.width - y : 0.0;
-      final endY = startY + 12;
-      final endX = startX + 12;
-      if (startX < size.width && startY < size.height) {
-        canvas.drawLine(
-          Offset(startX, startY),
-          Offset(endX.clamp(0, size.width), endY.clamp(0, size.height)),
-          diagonalPaint,
-        );
+    final grainPaint = Paint()..style = PaintingStyle.fill;
+    for (double y = 0; y <= size.height; y += _step) {
+      for (double x = 0; x <= size.width; x += _step) {
+        final value = _hash(x, y);
+        if (value > 0.96) {
+          grainPaint.color = const Color(0xFF7A5B37).withValues(
+            alpha: 0.008 + (value - 0.96) * 0.01,
+          );
+          final offsetX = (value - 0.5) * 2.4;
+          final offsetY = (_hash(y, x) - 0.5) * 2.2;
+          canvas.drawCircle(
+            Offset(x + offsetX, y + offsetY),
+            0.45,
+            grainPaint,
+          );
+        } else if (value < 0.02) {
+          grainPaint.color = Colors.white.withValues(
+            alpha: 0.006 + (0.02 - value) * 0.01,
+          );
+          canvas.drawCircle(
+            Offset(x + 0.6, y + 0.6),
+            0.38,
+            grainPaint,
+          );
+        }
       }
     }
   }

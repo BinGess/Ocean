@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/record.dart';
+import '../../core/theme/app_typography.dart';
 
 /// 处理选择的结果，包含模式和用户可能编辑过的转写文本
 class ProcessingResult {
@@ -35,8 +36,8 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
   @override
   void initState() {
     super.initState();
-    final isPlaceholder = widget.transcription.isEmpty ||
-        widget.transcription == '正在转写中...';
+    final isPlaceholder =
+        widget.transcription.isEmpty || widget.transcription == '正在转写中...';
     _textController = TextEditingController(
       text: isPlaceholder ? '' : widget.transcription,
     );
@@ -47,8 +48,8 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
     super.didUpdateWidget(oldWidget);
     // 如果用户还没有手动编辑，且外部传入了新的转写文本，则更新
     if (!_userEdited && widget.transcription != oldWidget.transcription) {
-      final isPlaceholder = widget.transcription.isEmpty ||
-          widget.transcription == '正在转写中...';
+      final isPlaceholder =
+          widget.transcription.isEmpty || widget.transcription == '正在转写中...';
       if (!isPlaceholder) {
         _textController.text = widget.transcription;
       }
@@ -71,8 +72,8 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
 
   @override
   Widget build(BuildContext context) {
-    final isPlaceholder = widget.transcription.isEmpty ||
-        widget.transcription == '正在转写中...';
+    final isPlaceholder =
+        widget.transcription.isEmpty || widget.transcription == '正在转写中...';
 
     return Padding(
       padding: EdgeInsets.only(
@@ -84,158 +85,146 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // 标题栏
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                '录音完成',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF2C2C2C),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 标题栏
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '录音完成',
+                  style: AppTypography.modalTitle,
                 ),
-              ),
-              GestureDetector(
-                onTap: widget.onCancel,
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF2F2F2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.close,
-                    size: 20,
-                    color: Color(0xFF8B8B8B),
+                GestureDetector(
+                  onTap: widget.onCancel,
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF2F2F2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      size: 20,
+                      color: Color(0xFF8B8B8B),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 20),
-
-          // 转写文本 - 可编辑
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(16),
+              ],
             ),
-            constraints: const BoxConstraints(minHeight: 60, maxHeight: 120),
-            child: isPlaceholder && !_userEdited
-                ? const Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Color(0xFFB8ADA0),
+
+            const SizedBox(height: 20),
+
+            // 转写文本 - 可编辑
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              constraints: const BoxConstraints(minHeight: 60, maxHeight: 120),
+              child: isPlaceholder && !_userEdited
+                  ? Center(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Color(0xFFB8ADA0),
+                              ),
                             ),
                           ),
-                        ),
-                        SizedBox(width: 10),
-                        Text(
-                          '正在转写中...',
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: Color(0xFFB8ADA0),
+                          const SizedBox(width: 10),
+                          Text(
+                            '正在转写中...',
+                            style: AppTypography.modalBody.copyWith(
+                              color: const Color(0xFF9F8C7A),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  )
-                : TextField(
-                    controller: _textController,
-                    maxLines: null,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Color(0xFF5D4E3C),
-                      height: 1.5,
-                    ),
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      filled: false,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                      hintText: '点击编辑转写内容...',
-                      hintStyle: TextStyle(
-                        fontSize: 15,
-                        color: Color(0xFFB8ADA0),
+                        ],
                       ),
+                    )
+                  : TextField(
+                      controller: _textController,
+                      maxLines: null,
+                      style: AppTypography.modalBody.copyWith(
+                        color: const Color(0xFF5D4E3C),
+                        height: 1.5,
+                      ),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        filled: false,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                        hintText: '点击编辑转写内容...',
+                        hintStyle: AppTypography.modalBody,
+                      ),
+                      onChanged: (_) {
+                        if (!_userEdited) {
+                          setState(() => _userEdited = true);
+                        }
+                      },
                     ),
-                    onChanged: (_) {
-                      if (!_userEdited) {
-                        setState(() => _userEdited = true);
-                      }
+            ),
+
+            const SizedBox(height: 24),
+
+            // 选项标题
+            const Text(
+              '选择处理方式',
+              style: AppTypography.modalCaption,
+            ),
+
+            const SizedBox(height: 12),
+
+            // 选项卡片（2列布局）
+            Row(
+              children: [
+                // NVC 分析
+                Expanded(
+                  child: _ProcessingOption(
+                    icon: Icons.lightbulb_outline,
+                    title: 'NVC 分析',
+                    description: '完整的情绪分析',
+                    iconColor: const Color(0xFFC4A57B),
+                    backgroundColor: const Color(0xFFFFF0E6),
+                    onTap: widget.onNVCInsight ??
+                        () {
+                          _selectMode(ProcessingMode.withNVC);
+                        },
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // 仅记录文本
+                Expanded(
+                  child: _ProcessingOption(
+                    icon: Icons.description_outlined,
+                    title: '仅记录文本',
+                    description: '不做进一步分析',
+                    iconColor: const Color(0xFF9E9E9E),
+                    backgroundColor: const Color(0xFFF2F2F2),
+                    onTap: () {
+                      _selectMode(ProcessingMode.onlyRecord);
                     },
                   ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // 选项标题
-          const Text(
-            '选择处理方式',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w400,
-              color: Color(0xFFAAAAAA),
+                ),
+              ],
             ),
-          ),
 
-          const SizedBox(height: 12),
-
-          // 选项卡片（2列布局）
-          Row(
-            children: [
-              // NVC 分析
-              Expanded(
-                child: _ProcessingOption(
-                  icon: Icons.lightbulb_outline,
-                  title: 'NVC 分析',
-                  description: '完整的情绪分析',
-                  iconColor: const Color(0xFFC4A57B),
-                  backgroundColor: const Color(0xFFFFF0E6),
-                  onTap: widget.onNVCInsight ?? () {
-                    _selectMode(ProcessingMode.withNVC);
-                  },
-                ),
-              ),
-
-              const SizedBox(width: 12),
-
-              // 仅记录文本
-              Expanded(
-                child: _ProcessingOption(
-                  icon: Icons.description_outlined,
-                  title: '仅记录文本',
-                  description: '不做进一步分析',
-                  iconColor: const Color(0xFF9E9E9E),
-                  backgroundColor: const Color(0xFFF2F2F2),
-                  onTap: () {
-                    _selectMode(ProcessingMode.onlyRecord);
-                  },
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 20),
-        ],
-      ),
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }
@@ -288,7 +277,7 @@ class _ProcessingOption extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
+                color: Colors.black.withValues(alpha: 0.06),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -317,10 +306,8 @@ class _ProcessingOption extends StatelessWidget {
               // 标题
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF2C2C2C),
+                style: AppTypography.modalButtonSecondary.copyWith(
+                  color: const Color(0xFF2C2C2C),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -330,9 +317,8 @@ class _ProcessingOption extends StatelessWidget {
               // 描述
               Text(
                 description,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFFB8ADA0),
+                style: AppTypography.modalCaption.copyWith(
+                  color: const Color(0xFF9F8C7A),
                   height: 1.4,
                 ),
                 textAlign: TextAlign.center,

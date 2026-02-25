@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../domain/entities/insight_report.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../bloc/insight/insight_bloc.dart';
 import '../../bloc/insight/insight_state.dart';
 import '../../bloc/insight/insight_event.dart';
@@ -20,7 +21,8 @@ class InsightsScreen extends StatefulWidget {
   State<InsightsScreen> createState() => _InsightsScreenState();
 }
 
-class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProviderStateMixin {
+class _InsightsScreenState extends State<InsightsScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _refreshController;
   bool _isRefreshing = false;
   StreamSubscription? _authSubscription;
@@ -36,7 +38,8 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
     );
 
     // 监听授权状态变化，当用户在启动弹窗中同意授权后自动刷新
-    _authSubscription = getIt<AIAuthService>().authStateStream.listen((isAuthorized) {
+    _authSubscription =
+        getIt<AIAuthService>().authStateStream.listen((isAuthorized) {
       if (isAuthorized && mounted) {
         // 授权状态变为已授权，重新加载洞察
         context.read<InsightBloc>().add(const InsightLoadCurrentWeek());
@@ -50,8 +53,8 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
     setState(() => _isRefreshing = true);
     _refreshController.repeat();
     context.read<InsightBloc>().add(
-      const InsightGenerateCurrentWeek(preserveCurrentContent: true),
-    );
+          const InsightGenerateCurrentWeek(preserveCurrentContent: true),
+        );
   }
 
   /// 处理AI授权请求
@@ -123,13 +126,15 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
             }
           }
 
-          if (state.status == InsightStatus.error && state.currentReport != null) {
+          if (state.status == InsightStatus.error &&
+              state.currentReport != null) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.errorMessage ?? '刷新失败，请稍后重试')),
             );
           }
 
-          if (state.status == InsightStatus.needsAIAuth && state.currentReport != null) {
+          if (state.status == InsightStatus.needsAIAuth &&
+              state.currentReport != null) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('AI授权已失效，请在设置中重新开启')),
             );
@@ -137,30 +142,32 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
           // 注：needsAIAuth 状态不再自动弹窗，而是通过UI引导用户手动触发
         },
         child: BlocBuilder<InsightBloc, InsightState>(
-        builder: (context, state) {
-          // 无内容且需要AI授权时显示友好引导
-          if (state.status == InsightStatus.needsAIAuth && state.currentReport == null) {
-            return _buildAIAuthPromptState();
-          }
+          builder: (context, state) {
+            // 无内容且需要AI授权时显示友好引导
+            if (state.status == InsightStatus.needsAIAuth &&
+                state.currentReport == null) {
+              return _buildAIAuthPromptState();
+            }
 
-          if ((state.status == InsightStatus.loading ||
-              state.status == InsightStatus.generating) &&
-              state.currentReport == null) {
-            return _buildLoadingState(state.progressMessage);
-          }
+            if ((state.status == InsightStatus.loading ||
+                    state.status == InsightStatus.generating) &&
+                state.currentReport == null) {
+              return _buildLoadingState(state.progressMessage);
+            }
 
-          if (state.currentReport == null) {
-            return _buildEmptyState(state.errorMessage);
-          }
+            if (state.currentReport == null) {
+              return _buildEmptyState(state.errorMessage);
+            }
 
-          return RefreshIndicator(
-            onRefresh: _onRefresh,
-            color: const Color(0xFFC4A57B),
-            backgroundColor: Colors.white,
-            child: _buildInsightContent(context, state.currentReport!, state.lastFetchTime),
-          );
-        },
-      ),
+            return RefreshIndicator(
+              onRefresh: _onRefresh,
+              color: const Color(0xFFC4A57B),
+              backgroundColor: Colors.white,
+              child: _buildInsightContent(
+                  context, state.currentReport!, state.lastFetchTime),
+            );
+          },
+        ),
       ),
     );
   }
@@ -188,29 +195,27 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
                 ),
               ),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 '开启智能洞察',
-                style: TextStyle(
+                style: AppTypography.sectionTitle.copyWith(
                   fontSize: 20,
-                  color: Color(0xFF5D4E3C),
-                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF5D4E3C),
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 '授权AI服务后，将为您分析本周情绪记录\n生成专属的情绪洞察报告',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFFB8ADA0),
-                  height: 1.5,
+                style: AppTypography.bodySecondary.copyWith(
+                  color: const Color(0xFFB8ADA0),
                 ),
               ),
               const SizedBox(height: 32),
               GestureDetector(
                 onTap: () => _handleAIAuthRequest(context),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                   decoration: BoxDecoration(
                     color: const Color(0xFFC4A57B),
                     borderRadius: BorderRadius.circular(24),
@@ -222,12 +227,11 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
                       ),
                     ],
                   ),
-                  child: const Text(
+                  child: Text(
                     '立即开启',
-                    style: TextStyle(
+                    style: AppTypography.actionLabel.copyWith(
                       color: Colors.white,
                       fontSize: 16,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -239,10 +243,10 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
                     MaterialPageRoute(builder: (_) => const SettingsScreen()),
                   );
                 },
-                child: const Text(
+                child: Text(
                   '了解更多',
-                  style: TextStyle(
-                    color: Color(0xFF8B7D6B),
+                  style: AppTypography.sectionSubtle.copyWith(
+                    color: const Color(0xFF8B7D6B),
                     fontSize: 13,
                   ),
                 ),
@@ -271,9 +275,8 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
           const SizedBox(height: 24),
           Text(
             message ?? '正在生成洞察...',
-            style: const TextStyle(
-              fontSize: 15,
-              color: Color(0xFF8B7D6B),
+            style: AppTypography.bodyPrimary.copyWith(
+              color: const Color(0xFF8B7D6B),
             ),
           ),
         ],
@@ -304,41 +307,40 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
                 ),
               ),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 '本周没有足够的内容生成洞察',
-                style: TextStyle(
+                style: AppTypography.sectionTitle.copyWith(
                   fontSize: 17,
-                  color: Color(0xFF5D4E3C),
-                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF5D4E3C),
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 '记录更多内容后将自动生成',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFFB8ADA0),
-                  height: 1.5,
+                style: AppTypography.bodySecondary.copyWith(
+                  color: const Color(0xFFB8ADA0),
                 ),
               ),
               const SizedBox(height: 32),
               TextButton(
                 onPressed: () {
-                  context.read<InsightBloc>().add(const InsightGenerateCurrentWeek());
+                  context
+                      .read<InsightBloc>()
+                      .add(const InsightGenerateCurrentWeek());
                 },
                 style: TextButton.styleFrom(
                   backgroundColor: const Color(0xFFF5EBE0),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   '重新生成',
-                  style: TextStyle(
-                    color: Color(0xFF5D4E3C),
-                    fontSize: 14,
+                  style: AppTypography.actionLabel.copyWith(
+                    color: const Color(0xFF5D4E3C),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -351,7 +353,8 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
   }
 
   /// 洞察内容
-  Widget _buildInsightContent(BuildContext context, InsightReport report, DateTime? lastFetchTime) {
+  Widget _buildInsightContent(
+      BuildContext context, InsightReport report, DateTime? lastFetchTime) {
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
@@ -369,9 +372,8 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
                     children: [
                       Text(
                         _formatWeekRange(report.weekRange),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFFB8ADA0),
+                        style: AppTypography.pageMeta.copyWith(
+                          color: const Color(0xFFB8ADA0),
                         ),
                       ),
                       // 分享、刷新按钮
@@ -386,8 +388,10 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
                                 report: report,
                               ),
                               borderRadius: BorderRadius.circular(8),
-                              splashColor: const Color(0xFFC4A57B).withValues(alpha: 0.18),
-                              highlightColor: const Color(0xFFC4A57B).withValues(alpha: 0.12),
+                              splashColor: const Color(0xFFC4A57B)
+                                  .withValues(alpha: 0.18),
+                              highlightColor: const Color(0xFFC4A57B)
+                                  .withValues(alpha: 0.12),
                               child: Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
@@ -409,8 +413,10 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
                             child: InkWell(
                               onTap: _onRefresh,
                               borderRadius: BorderRadius.circular(8),
-                              splashColor: const Color(0xFFC4A57B).withValues(alpha: 0.18),
-                              highlightColor: const Color(0xFFC4A57B).withValues(alpha: 0.12),
+                              splashColor: const Color(0xFFC4A57B)
+                                  .withValues(alpha: 0.18),
+                              highlightColor: const Color(0xFFC4A57B)
+                                  .withValues(alpha: 0.12),
                               child: Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
@@ -421,7 +427,8 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
                                   animation: _refreshController,
                                   builder: (context, child) {
                                     return Transform.rotate(
-                                      angle: _refreshController.value * 6.283185307,
+                                      angle: _refreshController.value *
+                                          6.283185307,
                                       child: child,
                                     );
                                   },
@@ -444,10 +451,9 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
                     children: [
                       Text(
                         report.reportType,
-                        style: const TextStyle(
-                          fontSize: 24,
+                        style: AppTypography.pageTitle.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF5D4E3C),
+                          color: const Color(0xFF5D4E3C),
                         ),
                       ),
                       TextButton(
@@ -459,16 +465,15 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
                           );
                         },
                         style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 6),
                           minimumSize: const Size(0, 0),
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text(
+                        child: Text(
                           '查看历史报告',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF8B7D6B),
-                            fontWeight: FontWeight.w500,
+                          style: AppTypography.sectionSubtle.copyWith(
+                            color: const Color(0xFF8B7D6B),
                           ),
                         ),
                       ),
@@ -545,12 +550,10 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 '情绪概览',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF5D4E3C),
+                style: AppTypography.sectionTitle.copyWith(
+                  color: const Color(0xFF5D4E3C),
                 ),
               ),
             ],
@@ -558,10 +561,8 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
           const SizedBox(height: 16),
           Text(
             overview.summary,
-            style: const TextStyle(
-              fontSize: 15,
-              height: 1.8,
-              color: Color(0xFF5D4E3C),
+            style: AppTypography.bodyPrimary.copyWith(
+              color: const Color(0xFF5D4E3C),
             ),
           ),
         ],
@@ -604,12 +605,10 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 '高频情境',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF5D4E3C),
+                style: AppTypography.sectionTitle.copyWith(
+                  color: const Color(0xFF5D4E3C),
                 ),
               ),
             ],
@@ -635,11 +634,8 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
         children: [
           Text(
             '"${emotion.content}"',
-            style: const TextStyle(
-              fontSize: 14,
-              height: 1.6,
-              color: Color(0xFF5D4E3C),
-              fontStyle: FontStyle.italic,
+            style: AppTypography.bodyQuote.copyWith(
+              color: const Color(0xFF5D4E3C),
             ),
           ),
           const SizedBox(height: 8),
@@ -653,9 +649,8 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
               const SizedBox(width: 4),
               Text(
                 emotion.time,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFFB8ADA0),
+                style: AppTypography.timeLabel.copyWith(
+                  color: const Color(0xFFB8ADA0),
                 ),
               ),
             ],
@@ -700,12 +695,10 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 '潜在需求',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF5D4E3C),
+                style: AppTypography.sectionTitle.copyWith(
+                  color: const Color(0xFF5D4E3C),
                 ),
               ),
             ],
@@ -738,10 +731,8 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
       if (match.start > lastEnd) {
         spans.add(TextSpan(
           text: text.substring(lastEnd, match.start),
-          style: const TextStyle(
-            fontSize: 15,
-            height: 1.8,
-            color: Color(0xFF5D4E3C),
+          style: AppTypography.bodyPrimary.copyWith(
+            color: const Color(0xFF5D4E3C),
           ),
         ));
       }
@@ -751,10 +742,8 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
       final value = tagMap[key] ?? '{$key}';
       spans.add(TextSpan(
         text: value,
-        style: const TextStyle(
-          fontSize: 15,
-          height: 1.8,
-          color: Color(0xFFC4A57B),
+        style: AppTypography.bodyPrimary.copyWith(
+          color: const Color(0xFFC4A57B),
           fontWeight: FontWeight.w600,
         ),
       ));
@@ -766,10 +755,8 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
     if (lastEnd < text.length) {
       spans.add(TextSpan(
         text: text.substring(lastEnd),
-        style: const TextStyle(
-          fontSize: 15,
-          height: 1.8,
-          color: Color(0xFF5D4E3C),
+        style: AppTypography.bodyPrimary.copyWith(
+          color: const Color(0xFF5D4E3C),
         ),
       ));
     }
@@ -814,12 +801,10 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 '行动建议',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF5D4E3C),
+                style: AppTypography.sectionTitle.copyWith(
+                  color: const Color(0xFF5D4E3C),
                 ),
               ),
             ],
@@ -851,19 +836,16 @@ class _InsightsScreenState extends State<InsightsScreen> with SingleTickerProvid
         children: [
           Text(
             suggestion.title,
-            style: const TextStyle(
+            style: AppTypography.sectionTitle.copyWith(
               fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF5D4E3C),
+              color: const Color(0xFF5D4E3C),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             suggestion.content,
-            style: const TextStyle(
-              fontSize: 14,
-              height: 1.6,
-              color: Color(0xFF8B7D6B),
+            style: AppTypography.bodySecondary.copyWith(
+              color: const Color(0xFF8B7D6B),
             ),
           ),
         ],
