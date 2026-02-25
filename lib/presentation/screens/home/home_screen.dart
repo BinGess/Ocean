@@ -517,38 +517,73 @@ class _HomeScreenState extends State<HomeScreen>
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
+          // 优化：增加渐变层次感，从顶部暖白到底部米棕
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFFFF9F1),
-              Color(0xFFF7EDE0),
-              Color(0xFFF2E4D2),
+              Color(0xFFFFFBF7), // 顶部暖白（更亮）
+              Color(0xFFF8F2EB), // 中间过渡
+              Color(0xFFEFE6DB), // 底部米棕（更深）
             ],
             stops: [0.0, 0.56, 1.0],
           ),
         ),
         child: Stack(
           children: [
-            // 顶部暖光层：让画面更柔和
+            // 第1层：顶部柔光效果 - 模拟自然光源
+            Positioned(
+              top: -100,
+              left: -50,
+              right: -50,
+              height: 400,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment.topCenter,
+                      radius: 1.0,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.6),
+                        Colors.white.withValues(alpha: 0.0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // 第2层：纹理层 - 增强质感
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: _SoftUITexturePainter(),
+                  size: Size.infinite,
+                ),
+              ),
+            ),
+            // 第3层：中心柔和光晕 - 增加深度
             Positioned.fill(
               child: IgnorePointer(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: RadialGradient(
-                      center: const Alignment(-0.72, -0.96),
-                      radius: 1.02,
+                      center: const Alignment(0, 0.2),
+                      radius: 1.5,
                       colors: [
-                        const Color(0xFFFFF8EE).withValues(alpha: 0.92),
-                        const Color(0xFFFFF8EE).withValues(alpha: 0.0),
+                        const Color(0xFFFFF8F0).withValues(alpha: 0.4),
+                        Colors.transparent,
                       ],
                     ),
                   ),
                 ),
               ),
             ),
-            // 底部压暗层：建立空间纵深
-            Positioned.fill(
+            // 第4层：底部渐暗效果 - 增加层次
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 200,
               child: IgnorePointer(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
@@ -557,43 +592,8 @@ class _HomeScreenState extends State<HomeScreen>
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        const Color(0xFFCCB79F).withValues(alpha: 0.006),
-                        const Color(0xFFEDE3D6).withValues(alpha: 0.028),
+                        const Color(0xFFE8DED0).withValues(alpha: 0.15),
                       ],
-                      stops: const [0.80, 0.94, 1.0],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            // 底部导航过渡层：减轻与底栏的割裂感
-            Positioned.fill(
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        const Color(0xFFF6F2EC).withValues(alpha: 0.06),
-                        const Color(0xFFF7F4F0).withValues(alpha: 0.13),
-                      ],
-                      stops: const [0.82, 0.94, 1.0],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            // 轻噪点纹理：低对比、低密度，避免脏感
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Opacity(
-                  opacity: 0.38,
-                  child: RepaintBoundary(
-                    child: CustomPaint(
-                      painter: _PaperGrainPainter(),
-                      size: Size.infinite,
                     ),
                   ),
                 ),
@@ -1060,44 +1060,143 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                         ),
 
-                      // 主按钮（扁平简约）
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 140),
-                        curve: Curves.easeOut,
-                        width: buttonSize,
-                        height: buttonSize,
+                    // 按住时柔和外环，增强触达反馈 - Soft UI Evolution
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOutCubic,
+                      width: isActive ? buttonSize + 20 : buttonSize + 6,
+                      height: isActive ? buttonSize + 20 : buttonSize + 6,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: (isConnecting
+                                  ? const Color(0xFF9ECDF4)
+                                  : const Color(0xFFDACCBB))
+                              .withValues(alpha: ringAlpha),
+                          width: ringWidth,
+                        ),
+                        boxShadow: isActive
+                            ? [
+                                BoxShadow(
+                                  color: (isConnecting
+                                          ? const Color(0xFF9ECDF4)
+                                          : const Color(0xFFC4A57B))
+                                      .withValues(alpha: 0.1),
+                                  blurRadius: 12,
+                                  spreadRadius: 2,
+                                ),
+                              ]
+                            : [],
+                      ),
+                    ),
+
+                    // 主按钮 - Soft UI Evolution 风格质感
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      curve: Curves.easeOutCubic,
+                      width: buttonSize,
+                      height: buttonSize,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        // 渐变背景 - Soft UI Evolution 多层渐变
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          stops: [0.0, 0.5, 1.0],
+                          colors: isConnecting
+                              ? [
+                                  const Color(0xFFFAFDFF),
+                                  const Color(0xFFF5F9FE),
+                                  const Color(0xFFECF3F9),
+                                ]
+                              : audioState.isRecording
+                                  ? [
+                                      const Color(0xFFFFFEFC),
+                                      const Color(0xFFFAF6F0),
+                                      const Color(0xFFF5EEEA),
+                                    ]
+                                  : [
+                                      const Color(0xFFFFFFFF),
+                                      const Color(0xFFFAF8F5),
+                                      const Color(0xFFF5F1EC),
+                                    ],
+                        ),
+                        border: Border.all(
+                          color: isActive
+                              ? const Color(0xFFC4A57B)
+                              : const Color(0xFFE5DAD0),
+                          width: mainBorderWidth,
+                        ),
+                        boxShadow: [
+                          // 主阴影 - 下方深层（增强深度）
+                          BoxShadow(
+                            color: isActive
+                                ? const Color(0xFFC4A57B).withValues(alpha: 0.28)
+                                : const Color(0xFFD4C2B0).withValues(alpha: 0.4),
+                            blurRadius: isActive ? 24 : 20,
+                            spreadRadius: isActive ? 1 : 0,
+                            offset: const Offset(5, 8),
+                          ),
+                          // 次阴影 - 下方浅层（柔和过渡）
+                          BoxShadow(
+                            color: isActive
+                                ? const Color(0xFFB8956A).withValues(alpha: 0.12)
+                                : const Color(0xFFD9C9B8).withValues(alpha: 0.18),
+                            blurRadius: isActive ? 32 : 28,
+                            spreadRadius: isActive ? 3 : 2,
+                            offset: const Offset(6, 12),
+                          ),
+                          // 顶部高光 - Soft UI 特色（增强立体感）
+                          BoxShadow(
+                            color: Colors.white.withValues(alpha: isActive ? 0.95 : 0.85),
+                            blurRadius: isActive ? 18 : 14,
+                            spreadRadius: isActive ? 0 : -1,
+                            offset: const Offset(-5, -5),
+                          ),
+                          // 柔和发光 - 增加品质感
+                          if (isActive)
+                            BoxShadow(
+                              color: const Color(0xFFC4A57B).withValues(alpha: 0.15),
+                              blurRadius: 40,
+                              spreadRadius: 8,
+                              offset: const Offset(0, 0),
+                            ),
+                        ],
+                      ),
+                      // 内层容器 - Soft UI Evolution 内高光效果
+                      child: Container(
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: isConnecting
-                              ? const Color(0xFFEAF2FA)
-                              : (audioState.isRecording
-                                  ? const Color(0xFFE9D7BF)
-                                  : const Color(0xFFF6ECE0)),
-                          border: Border.all(
-                            color: isActive
-                                ? const Color(0xFFB88F61)
-                                : const Color(0xFFD8BFA2),
-                            width: mainBorderWidth,
+                          // 双层内高光 - 模拟高级质感
+                          gradient: RadialGradient(
+                            center: const Alignment(-0.35, -0.35),
+                            radius: 1.2,
+                            colors: [
+                              Colors.white.withValues(alpha: isActive ? 0.25 : 0.5),
+                              Colors.white.withValues(alpha: isActive ? 0.08 : 0.15),
+                              Colors.transparent,
+                            ],
+                            stops: [0.0, 0.5, 1.0],
                           ),
-                          boxShadow: const [],
                         ),
                         child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 140),
+                          duration: const Duration(milliseconds: 180),
                           child: Icon(
-                            audioState.isRecording
-                                ? Icons.stop_rounded
-                                : Icons.mic_rounded,
+                            audioState.isRecording ? Icons.stop_rounded : Icons.mic_rounded,
                             key: ValueKey(audioState.isRecording),
                             size: iconSize,
-                            color: const Color(0xFF7A5B37),
+                            color: isActive
+                                ? const Color(0xFFAB8A5B)  // 更深的棕色，活跃时更显眼
+                                : const Color(0xFFC2B0A0),  // 不活跃时柔和棕色
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
+          ),
 
             // 录音时长显示
             AnimatedContainer(
@@ -1355,43 +1454,88 @@ class _HomeScreenState extends State<HomeScreen>
   }
 }
 
-/// 轻量纸张噪点：低密度 + 轻纤维，避免背景脏感
-class _PaperGrainPainter extends CustomPainter {
-  static const double _step = 18.0;
-
-  double _hash(double x, double y) {
-    final v = math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
-    return v - v.floorToDouble();
-  }
-
+/// Soft UI Evolution 高级纹理 - 融合有机噪声和细腻质感
+class _SoftUITexturePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final grainPaint = Paint()..style = PaintingStyle.fill;
-    for (double y = 0; y <= size.height; y += _step) {
-      for (double x = 0; x <= size.width; x += _step) {
-        final value = _hash(x, y);
-        if (value > 0.96) {
-          grainPaint.color = const Color(0xFF7A5B37).withValues(
-            alpha: 0.008 + (value - 0.96) * 0.01,
-          );
-          final offsetX = (value - 0.5) * 2.4;
-          final offsetY = (_hash(y, x) - 0.5) * 2.2;
-          canvas.drawCircle(
-            Offset(x + offsetX, y + offsetY),
-            0.45,
-            grainPaint,
-          );
-        } else if (value < 0.02) {
-          grainPaint.color = Colors.white.withValues(
-            alpha: 0.006 + (0.02 - value) * 0.01,
-          );
-          canvas.drawCircle(
-            Offset(x + 0.6, y + 0.6),
-            0.38,
-            grainPaint,
-          );
-        }
-      }
+    // 第一层：有机噪声 - 形成细腻质感基础
+    final organicPaint = Paint()
+      ..color = const Color(0xFFA89480).withValues(alpha: 0.12)
+      ..strokeWidth = 0;
+
+    // 使用伪随机生成有机分布的微粒
+    for (int i = 0; i < 800; i++) {
+      final seed = i * 7919;  // 素数确保分布均匀
+      final x = ((seed * 1103515245 + 12345) % (size.width.toInt())) + 0.0;
+      final y = ((seed * 1103515245 * 2 + 12345) % (size.height.toInt())) + 0.0;
+      final radius = 0.3 + ((seed % 30) / 100.0);
+      canvas.drawCircle(Offset(x, y), radius, organicPaint);
+    }
+
+    // 第二层：中层纹理 - 增加深度感
+    final midtopePaint = Paint()
+      ..color = const Color(0xFFB5A597).withValues(alpha: 0.08)
+      ..strokeWidth = 0;
+
+    for (int i = 0; i < 400; i++) {
+      final seed = i * 9973;
+      final x = ((seed * 1103515245 + 54321) % (size.width.toInt())) + 0.0;
+      final y = ((seed * 1103515245 * 2 + 54321) % (size.height.toInt())) + 0.0;
+      final radius = 0.6 + ((seed % 20) / 50.0);
+      canvas.drawCircle(Offset(x, y), radius, midtopePaint);
+    }
+
+    // 第三层：柔和光纹 - 模拟光线反射
+    final softLightPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.04)
+      ..strokeWidth = 0;
+
+    for (int i = 0; i < 150; i++) {
+      final seed = i * 12289;
+      final x = ((seed * 1103515245 + 99999) % (size.width.toInt())) + 0.0;
+      final y = ((seed * 1103515245 * 2 + 99999) % (size.height.toInt())) + 0.0;
+      final radius = 1.0 + ((seed % 15) / 30.0);
+      canvas.drawCircle(Offset(x, y), radius, softLightPaint);
+    }
+
+    // 第四层：细微条纹 - 增加方向性和流动感
+    final stridePaint = Paint()
+      ..color = const Color(0xFFCBBBA8).withValues(alpha: 0.03)
+      ..strokeWidth = 0.4
+      ..strokeCap = StrokeCap.round;
+
+    const strideCount = 120;
+    for (int i = 0; i < strideCount; i++) {
+      final y = (i * size.height) / strideCount;
+      final seed = i * 15073;
+      final offsetX = ((seed * 1103515245) % 40).toDouble();
+      final angle = ((seed % 180) - 90) * 0.017453;  // 转换为弧度
+      final length = 12.0 + ((seed % 20) / 2.0);
+
+      final startX = offsetX;
+      final startY = y;
+      final endX = startX + (length * math.cos(angle));
+      final endY = startY + (length * math.sin(angle));
+
+      canvas.drawLine(
+        Offset(startX, startY),
+        Offset(endX, endY),
+        stridePaint,
+      );
+    }
+
+    // 第五层：深度阴影 - 增加立体感
+    final shadowPaint = Paint()
+      ..color = const Color(0xFF8B7D6B).withValues(alpha: 0.02)
+      ..strokeWidth = 0;
+
+    const shadowCount = 60;
+    for (int i = 0; i < shadowCount; i++) {
+      final seed = i * 17389;
+      final x = ((seed * 1103515245) % (size.width.toInt() ~/ 2)).toDouble();
+      final y = ((seed * 1103515245 * 2) % (size.height.toInt())).toDouble();
+      final radius = 2.0 + ((seed % 15) / 5.0);
+      canvas.drawCircle(Offset(x, y), radius, shadowPaint);
     }
   }
 
