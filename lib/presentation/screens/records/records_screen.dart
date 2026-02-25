@@ -22,11 +22,11 @@ import '../record_detail/record_detail_screen.dart';
 
 /// 字体大小 - 4级层次
 class _FontSize {
-  static const double display = 24.0;   // 页面标题
-  static const double title = 16.0;     // 区块标题
-  static const double body = 15.0;      // 正文内容
-  static const double caption = 13.0;   // 辅助说明
-  static const double label = 12.0;     // 标签文字
+  static const double display = 24.0; // 页面标题
+  static const double title = 16.0; // 区块标题
+  static const double body = 15.0; // 正文内容
+  static const double caption = 13.0; // 辅助说明
+  static const double label = 12.0; // 标签文字
 }
 
 /// 间距 - 基于 4px 网格
@@ -166,7 +166,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   if (state.isLoading) {
                     return const Center(
                       child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(_Colors.primary),
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(_Colors.primary),
                       ),
                     );
                   }
@@ -372,6 +373,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   /// 每日心情卡片
   Widget _buildDailyMoodCard(DateTime date, List<Record> records) {
+    final mood = _getDailyMood(date);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(_Spacing.md),
@@ -415,11 +418,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    '今日心情',
-                    style: TextStyle(
+                  Text(
+                    mood.label,
+                    style: const TextStyle(
                       fontSize: _FontSize.caption,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                       color: _Colors.textSecondary,
                       height: 1.3,
                     ),
@@ -444,8 +447,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   /// 构建时间轴样式的单条记录
   Widget _buildTimelineItem(Record record, bool isLast) {
-    final hasNVC = record.nvc != null;
-    final hasMoods = record.moods != null && record.moods!.isNotEmpty;
+    final moodTags = _normalizeMoodTags(record.moods);
+    final hasMoods = moodTags.isNotEmpty;
 
     return IntrinsicHeight(
       child: Row(
@@ -534,16 +537,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                       Wrap(
                         spacing: _Spacing.xs,
                         runSpacing: _Spacing.xs,
-                        children: record.moods!.map((mood) {
-                          final moodObj = dailyMoods.firstWhere(
-                            (m) => m.label == mood,
-                            orElse: () => const DailyMood(
-                              imagePath: '',
-                              label: '',
-                              color: Colors.grey,
-                              fallbackEmoji: '🏷️',
-                            ),
-                          );
+                        children: moodTags.map((mood) {
                           return Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: _Spacing.sm,
@@ -557,76 +551,15 @@ class _RecordsScreenState extends State<RecordsScreen> {
                                 width: 0.5,
                               ),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  moodObj.fallbackEmoji,
-                                  style: const TextStyle(fontSize: 10),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  mood,
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: _Colors.textSecondary,
-                                  ),
-                                ),
-                              ],
+                            child: Text(
+                              mood,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: _Colors.textSecondary,
+                              ),
                             ),
                           );
                         }).toList(),
-                      ),
-                    ],
-
-                    // NVC分析摘要
-                    if (hasNVC) ...[
-                      const SizedBox(height: _Spacing.md),
-                      Container(
-                        padding: const EdgeInsets.all(_Spacing.sm),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFDFBF8),
-                          borderRadius: BorderRadius.circular(_Spacing.sm),
-                          border: Border.all(
-                            color: const Color(0xFFF2ECDF),
-                            width: 0.5,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.psychology_outlined,
-                                  size: 14,
-                                  color: _Colors.primary,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'AI 洞察',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: _Colors.primary.withValues(alpha: 0.8),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (record.nvc!.needs.isNotEmpty) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                '需求: ${record.nvc!.needs.join("、")}',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: _Colors.textSecondary,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ],
-                        ),
                       ),
                     ],
                   ],
@@ -681,8 +614,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
   }
 
   List<DateTime> _getDatesWithRecords(Map<DateTime, List<Record>> grouped) {
-    final dates = grouped.keys.toList()
-      ..sort((a, b) => b.compareTo(a)); // 降序排列
+    final dates = grouped.keys.toList()..sort((a, b) => b.compareTo(a)); // 降序排列
     return dates;
   }
 
@@ -712,5 +644,34 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   String _formatTime(DateTime time) {
     return DateFormat('HH:mm').format(time);
+  }
+
+  DailyMood _getDailyMood(DateTime date) {
+    final imagePath = _getDailyMoodImagePath(date);
+    return getMoodByImagePath(imagePath) ?? defaultMood;
+  }
+
+  /// 统一清洗标签：
+  /// - 去掉空白项
+  /// - 将 "懊恼，沮丧，焦虑" 这类合并字符串拆成多个标签
+  /// - 去重并保持原顺序
+  List<String> _normalizeMoodTags(List<String>? moods) {
+    if (moods == null || moods.isEmpty) return const [];
+
+    final tags = <String>[];
+    final seen = <String>{};
+    final splitPattern = RegExp(r'[，,、；;|/\\\n]+');
+
+    for (final item in moods) {
+      for (final token in item.split(splitPattern)) {
+        final tag = token.trim();
+        if (tag.isEmpty) continue;
+        if (seen.add(tag)) {
+          tags.add(tag);
+        }
+      }
+    }
+
+    return tags;
   }
 }
