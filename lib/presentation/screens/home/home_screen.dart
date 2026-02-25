@@ -18,7 +18,7 @@ import '../../widgets/nvc_confirmation_modal.dart';
 import '../../widgets/nvc_error_dialog.dart';
 import '../../widgets/nvc_analyzing_modal.dart';
 import '../../widgets/ai_auth_dialog.dart';
-import '../../widgets/quote_page_view.dart';
+import '../../widgets/quote_display.dart';
 import '../settings/settings_screen.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
@@ -1285,7 +1285,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       );
     }
 
-    return QuotePageView(quotes: _quotes);
+    return QuoteDisplay(quotes: _quotes);
   }
 }
 
