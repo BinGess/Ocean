@@ -507,47 +507,88 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
+          // 优化：增加渐变层次感，从顶部暖白到底部米棕
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
+            stops: [0.0, 0.4, 1.0],
             colors: [
-              Color(0xFFFAF6F1), // 浅米白
-              Color(0xFFF5EBE0), // 米黄色
+              Color(0xFFFFFBF7), // 顶部暖白（更亮）
+              Color(0xFFF8F2EB), // 中间过渡
+              Color(0xFFEFE6DB), // 底部米棕（更深）
             ],
           ),
         ),
         child: Stack(
           children: [
-            // 背景纹理层 - 强化质感
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Opacity(
-                  opacity: 0.7,
-                  child: CustomPaint(
-                    painter: _NoiseTexturePainter(),
-                    size: Size.infinite,
-                  ),
-                ),
-              ),
-            ),
-            // 额外的渐变叠加层 - 增加深度感
-            Positioned.fill(
+            // 第1层：顶部柔光效果 - 模拟自然光源
+            Positioned(
+              top: -100,
+              left: -50,
+              right: -50,
+              height: 400,
               child: IgnorePointer(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: RadialGradient(
-                      center: const Alignment(0, 0.3),
-                      radius: 1.2,
+                      center: Alignment.topCenter,
+                      radius: 1.0,
                       colors: [
-                        const Color(0xFFF5EBE0).withValues(alpha: 0.0),
-                        const Color(0xFFE8DED0).withValues(alpha: 0.08),
+                        Colors.white.withValues(alpha: 0.6),
+                        Colors.white.withValues(alpha: 0.0),
                       ],
                     ),
                   ),
                 ),
               ),
             ),
-            // 轻微光晕层已移除（避免角落阴影感）
+            // 第2层：纹理层 - 增强质感
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: _SoftUITexturePainter(),
+                  size: Size.infinite,
+                ),
+              ),
+            ),
+            // 第3层：中心柔和光晕 - 增加深度
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: const Alignment(0, 0.2),
+                      radius: 1.5,
+                      colors: [
+                        const Color(0xFFFFF8F0).withValues(alpha: 0.4),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // 第4层：底部渐暗效果 - 增加层次
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 200,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        const Color(0xFFE8DED0).withValues(alpha: 0.15),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
             // 主内容
             BlocListener<AudioBloc, AudioState>(
               listener: (context, audioState) {
@@ -991,7 +1032,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         },
                       ),
 
-                    // 按住时柔和外环，增强触达反馈
+                    // 按住时柔和外环，增强触达反馈 - Soft UI Evolution
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 180),
                       curve: Curves.easeOutCubic,
@@ -1002,14 +1043,26 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         border: Border.all(
                           color: (isConnecting
                                   ? const Color(0xFF9ECDF4)
-                                  : const Color(0xFFD9C9B8))
+                                  : const Color(0xFFDACCBB))
                               .withValues(alpha: ringAlpha),
                           width: ringWidth,
                         ),
+                        boxShadow: isActive
+                            ? [
+                                BoxShadow(
+                                  color: (isConnecting
+                                          ? const Color(0xFF9ECDF4)
+                                          : const Color(0xFFC4A57B))
+                                      .withValues(alpha: 0.1),
+                                  blurRadius: 12,
+                                  spreadRadius: 2,
+                                ),
+                              ]
+                            : [],
                       ),
                     ),
 
-                    // 主按钮
+                    // 主按钮 - Soft UI Evolution 风格质感
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 160),
                       curve: Curves.easeOutCubic,
@@ -1017,45 +1070,97 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       height: buttonSize,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: (isConnecting
-                                ? const Color(0xFFF2F7FF)
-                                : (audioState.isRecording
-                                    ? const Color(0xFFFFF7EE)
-                                    : Colors.white))
-                            .withValues(alpha: isActive ? 0.97 : 0.93),
+                        // 渐变背景 - Soft UI Evolution 多层渐变
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          stops: [0.0, 0.5, 1.0],
+                          colors: isConnecting
+                              ? [
+                                  const Color(0xFFFAFDFF),
+                                  const Color(0xFFF5F9FE),
+                                  const Color(0xFFECF3F9),
+                                ]
+                              : audioState.isRecording
+                                  ? [
+                                      const Color(0xFFFFFEFC),
+                                      const Color(0xFFFAF6F0),
+                                      const Color(0xFFF5EEEA),
+                                    ]
+                                  : [
+                                      const Color(0xFFFFFFFF),
+                                      const Color(0xFFFAF8F5),
+                                      const Color(0xFFF5F1EC),
+                                    ],
+                        ),
                         border: Border.all(
                           color: isActive
                               ? const Color(0xFFC4A57B)
-                              : const Color(0xFFD9C9B8),
+                              : const Color(0xFFE5DAD0),
                           width: mainBorderWidth,
                         ),
-                        boxShadow: isActive
-                            ? [
-                                BoxShadow(
-                                  color: const Color(0xFFC4A57B).withValues(alpha: mainGlowAlpha),
-                                  blurRadius: mainGlowBlur,
-                                  spreadRadius: mainGlowSpread,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ]
-                            : [
-                                BoxShadow(
-                                  color: const Color(0xFFD9C9B8).withValues(alpha: 0.18),
-                                  blurRadius: 12,
-                                  spreadRadius: 2.0,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
+                        boxShadow: [
+                          // 主阴影 - 下方深层（增强深度）
+                          BoxShadow(
+                            color: isActive
+                                ? const Color(0xFFC4A57B).withValues(alpha: 0.28)
+                                : const Color(0xFFD4C2B0).withValues(alpha: 0.4),
+                            blurRadius: isActive ? 24 : 20,
+                            spreadRadius: isActive ? 1 : 0,
+                            offset: const Offset(5, 8),
+                          ),
+                          // 次阴影 - 下方浅层（柔和过渡）
+                          BoxShadow(
+                            color: isActive
+                                ? const Color(0xFFB8956A).withValues(alpha: 0.12)
+                                : const Color(0xFFD9C9B8).withValues(alpha: 0.18),
+                            blurRadius: isActive ? 32 : 28,
+                            spreadRadius: isActive ? 3 : 2,
+                            offset: const Offset(6, 12),
+                          ),
+                          // 顶部高光 - Soft UI 特色（增强立体感）
+                          BoxShadow(
+                            color: Colors.white.withValues(alpha: isActive ? 0.95 : 0.85),
+                            blurRadius: isActive ? 18 : 14,
+                            spreadRadius: isActive ? 0 : -1,
+                            offset: const Offset(-5, -5),
+                          ),
+                          // 柔和发光 - 增加品质感
+                          if (isActive)
+                            BoxShadow(
+                              color: const Color(0xFFC4A57B).withValues(alpha: 0.15),
+                              blurRadius: 40,
+                              spreadRadius: 8,
+                              offset: const Offset(0, 0),
+                            ),
+                        ],
                       ),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 180),
-                        child: Icon(
-                          audioState.isRecording ? Icons.stop_rounded : Icons.mic_rounded,
-                          key: ValueKey(audioState.isRecording),
-                          size: iconSize,
-                          color: isActive
-                              ? const Color(0xFFC4A57B)
-                              : const Color(0xFFD9C9B8),
+                      // 内层容器 - Soft UI Evolution 内高光效果
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          // 双层内高光 - 模拟高级质感
+                          gradient: RadialGradient(
+                            center: const Alignment(-0.35, -0.35),
+                            radius: 1.2,
+                            colors: [
+                              Colors.white.withValues(alpha: isActive ? 0.25 : 0.5),
+                              Colors.white.withValues(alpha: isActive ? 0.08 : 0.15),
+                              Colors.transparent,
+                            ],
+                            stops: [0.0, 0.5, 1.0],
+                          ),
+                        ),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 180),
+                          child: Icon(
+                            audioState.isRecording ? Icons.stop_rounded : Icons.mic_rounded,
+                            key: ValueKey(audioState.isRecording),
+                            size: iconSize,
+                            color: isActive
+                                ? const Color(0xFFAB8A5B)  // 更深的棕色，活跃时更显眼
+                                : const Color(0xFFC2B0A0),  // 不活跃时柔和棕色
+                          ),
                         ),
                       ),
                     ),
@@ -1383,80 +1488,88 @@ class _RippleEffectState extends State<_RippleEffect>
   }
 }
 
-/// 细腻噪点纹理 - 强化版（多层纹理叠加）
-class _NoiseTexturePainter extends CustomPainter {
+/// Soft UI Evolution 高级纹理 - 融合有机噪声和细腻质感
+class _SoftUITexturePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    // 第一层：密集细小点纹理 - 形成基础噪点感
-    final tinyPointPaint = Paint()
-      ..color = const Color(0xFFB5A597).withValues(alpha: 0.18)
+    // 第一层：有机噪声 - 形成细腻质感基础
+    final organicPaint = Paint()
+      ..color = const Color(0xFFA89480).withValues(alpha: 0.12)
       ..strokeWidth = 0;
-    const tinyStep = 6.0;
-    for (double y = 0; y < size.height; y += tinyStep) {
-      for (double x = 0; x < size.width; x += tinyStep) {
-        final offsetX = (y * 0.7) % tinyStep;
-        canvas.drawCircle(Offset(x + offsetX, y), 0.4, tinyPointPaint);
-      }
+
+    // 使用伪随机生成有机分布的微粒
+    for (int i = 0; i < 800; i++) {
+      final seed = i * 7919;  // 素数确保分布均匀
+      final x = ((seed * 1103515245 + 12345) % (size.width.toInt())) + 0.0;
+      final y = ((seed * 1103515245 * 2 + 12345) % (size.height.toInt())) + 0.0;
+      final radius = 0.3 + ((seed % 30) / 100.0);
+      canvas.drawCircle(Offset(x, y), radius, organicPaint);
     }
 
-    // 第二层：中等点纹理 - 增加层次
-    final mediumPointPaint = Paint()
-      ..color = const Color(0xFFA89480).withValues(alpha: 0.14)
+    // 第二层：中层纹理 - 增加深度感
+    final midtopePaint = Paint()
+      ..color = const Color(0xFFB5A597).withValues(alpha: 0.08)
       ..strokeWidth = 0;
-    const mediumStep = 14.0;
-    for (double y = 0; y < size.height; y += mediumStep) {
-      for (double x = 0; x < size.width; x += mediumStep) {
-        final offsetX = (y * 0.5) % mediumStep;
-        canvas.drawCircle(Offset(x + offsetX, y), 0.7, mediumPointPaint);
-      }
+
+    for (int i = 0; i < 400; i++) {
+      final seed = i * 9973;
+      final x = ((seed * 1103515245 + 54321) % (size.width.toInt())) + 0.0;
+      final y = ((seed * 1103515245 * 2 + 54321) % (size.height.toInt())) + 0.0;
+      final radius = 0.6 + ((seed % 20) / 50.0);
+      canvas.drawCircle(Offset(x, y), radius, midtopePaint);
     }
 
-    // 第三层：稀疏大点纹理 - 增加深度
-    final largePointPaint = Paint()
-      ..color = const Color(0xFF9A8672).withValues(alpha: 0.10)
+    // 第三层：柔和光纹 - 模拟光线反射
+    final softLightPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.04)
       ..strokeWidth = 0;
-    const largeStep = 28.0;
-    for (double y = 0; y < size.height; y += largeStep) {
-      for (double x = 0; x < size.width; x += largeStep) {
-        final offsetX = (y * 0.3) % largeStep;
-        canvas.drawCircle(Offset(x + offsetX, y), 1.2, largePointPaint);
-      }
+
+    for (int i = 0; i < 150; i++) {
+      final seed = i * 12289;
+      final x = ((seed * 1103515245 + 99999) % (size.width.toInt())) + 0.0;
+      final y = ((seed * 1103515245 * 2 + 99999) % (size.height.toInt())) + 0.0;
+      final radius = 1.0 + ((seed % 15) / 30.0);
+      canvas.drawCircle(Offset(x, y), radius, softLightPaint);
     }
 
-    // 第四层：细微横向纤维纹理 - 模拟纸张质感
-    final fiberPaint = Paint()
-      ..color = const Color(0xFFCBBBA8).withValues(alpha: 0.06)
-      ..strokeWidth = 0.5
+    // 第四层：细微条纹 - 增加方向性和流动感
+    final stridePaint = Paint()
+      ..color = const Color(0xFFCBBBA8).withValues(alpha: 0.03)
+      ..strokeWidth = 0.4
       ..strokeCap = StrokeCap.round;
-    const fiberStep = 20.0;
-    for (double y = 0; y < size.height; y += fiberStep) {
-      final startX = (y * 1.3) % 30;
-      final lineLength = 15.0 + (y % 20);
+
+    const strideCount = 120;
+    for (int i = 0; i < strideCount; i++) {
+      final y = (i * size.height) / strideCount;
+      final seed = i * 15073;
+      final offsetX = ((seed * 1103515245) % 40).toDouble();
+      final angle = ((seed % 180) - 90) * 0.017453;  // 转换为弧度
+      final length = 12.0 + ((seed % 20) / 2.0);
+
+      final startX = offsetX;
+      final startY = y;
+      final endX = startX + (length * math.cos(angle));
+      final endY = startY + (length * math.sin(angle));
+
       canvas.drawLine(
-        Offset(startX, y),
-        Offset(startX + lineLength, y + 0.5),
-        fiberPaint,
+        Offset(startX, startY),
+        Offset(endX, endY),
+        stridePaint,
       );
     }
 
-    // 第五层：斜向细纹 - 增加有机感
-    final diagonalPaint = Paint()
-      ..color = const Color(0xFFD4C4B0).withValues(alpha: 0.05)
-      ..strokeWidth = 0.3
-      ..strokeCap = StrokeCap.round;
-    const diagonalStep = 35.0;
-    for (double y = 0; y < size.height + size.width; y += diagonalStep) {
-      final startY = y < size.width ? 0.0 : y - size.width;
-      final startX = y < size.width ? size.width - y : 0.0;
-      final endY = startY + 12;
-      final endX = startX + 12;
-      if (startX < size.width && startY < size.height) {
-        canvas.drawLine(
-          Offset(startX, startY),
-          Offset(endX.clamp(0, size.width), endY.clamp(0, size.height)),
-          diagonalPaint,
-        );
-      }
+    // 第五层：深度阴影 - 增加立体感
+    final shadowPaint = Paint()
+      ..color = const Color(0xFF8B7D6B).withValues(alpha: 0.02)
+      ..strokeWidth = 0;
+
+    const shadowCount = 60;
+    for (int i = 0; i < shadowCount; i++) {
+      final seed = i * 17389;
+      final x = ((seed * 1103515245) % (size.width.toInt() ~/ 2)).toDouble();
+      final y = ((seed * 1103515245 * 2) % (size.height.toInt())).toDouble();
+      final radius = 2.0 + ((seed % 15) / 5.0);
+      canvas.drawCircle(Offset(x, y), radius, shadowPaint);
     }
   }
 
