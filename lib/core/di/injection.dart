@@ -27,6 +27,8 @@ import '../network/coze_ai_service.dart';
 import '../constants/app_constants.dart';
 import '../services/app_lock_service.dart';
 import '../services/ai_auth_service.dart';
+import '../services/quote_preloader.dart';
+import '../services/quote_update_manager.dart';
 import '../../presentation/bloc/audio/audio_bloc.dart';
 import '../../presentation/bloc/record/record_bloc.dart';
 import '../../presentation/bloc/insight/insight_bloc.dart';
@@ -114,6 +116,21 @@ Future<void> configureDependencies() async {
   // 文案仓储
   getIt.registerLazySingleton<QuotesRepository>(
     () => QuotesRepository(
+      hiveDatabase: getIt<HiveDatabase>(),
+    ),
+  );
+
+  // 文案预加载器（离线模式支持）
+  getIt.registerLazySingleton<QuotePreloader>(
+    () => QuotePreloader(
+      quotesRepository: getIt<QuotesRepository>(),
+    ),
+  );
+
+  // 文案更新管理器（版本控制和定期更新）
+  getIt.registerLazySingleton<QuoteUpdateManager>(
+    () => QuoteUpdateManager(
+      quotesRepository: getIt<QuotesRepository>(),
       hiveDatabase: getIt<HiveDatabase>(),
     ),
   );

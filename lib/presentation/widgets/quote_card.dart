@@ -54,27 +54,39 @@ class _QuoteCardState extends State<QuoteCard>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 主文案（衬线字体）- 带呼吸动效
-            FadeTransition(
-              opacity: _breathingAnimation,
-              child: Text(
-                widget.quote.content,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 24,
-                  height: 1.8,
-                  fontFamily: 'Georgia',  // 衬线字体
-                  fontWeight: FontWeight.w400,
-                  color: Color(0xFF5D4E3C),
-                  letterSpacing: 0.5,
+            // 主文案（衬线字体）- 带呼吸动效（优化：使用RepaintBoundary）
+            RepaintBoundary(
+              child: FadeTransition(
+                opacity: _breathingAnimation,
+                child: Text(
+                  widget.quote.content,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 22,  // 优化：从24调整为22，更好的屏幕适配
+                    height: 1.8,
+                    fontFamily: 'Georgia',  // 衬线字体
+                    fontWeight: FontWeight.w400,
+                    color: Color(0xFF5D4E3C),
+                    letterSpacing: 0.3,  // 优化：微调字距
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 32),
 
             // 作者信息（无衬线字体）- 保持不动
+            const Text(
+              '— ',
+              style: TextStyle(
+                fontSize: 12,
+                fontFamily: 'Helvetica',
+                fontWeight: FontWeight.w500,
+                color: Color(0xFFA89F97),
+                letterSpacing: 2.0,
+              ),
+            ),
             Text(
-              '— ${widget.quote.author}',
+              widget.quote.author,
               style: const TextStyle(
                 fontSize: 12,
                 fontFamily: 'Helvetica',  // 无衬线字体
@@ -87,36 +99,46 @@ class _QuoteCardState extends State<QuoteCard>
             const SizedBox(height: 48),
 
             // 分类标签
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F3F0),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                _categoryLabel(widget.quote.category),
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFFC4A57B),
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
+            _buildCategoryBadge(),
 
             const SizedBox(height: 16),
 
             // 提示：点击切换
-            Text(
-              '点击文案切换 →',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[400],
-                fontStyle: FontStyle.italic,
-              ),
-            ),
+            _buildHintText(),
           ],
         ),
+      ),
+    );
+  }
+
+  /// 分类标签
+  Widget _buildCategoryBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF5F3F0),
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+      ),
+      child: Text(
+        _categoryLabel(widget.quote.category),
+        style: const TextStyle(
+          fontSize: 11,
+          color: Color(0xFFC4A57B),
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  /// 提示文字
+  Widget _buildHintText() {
+    return Text(
+      '点击文案切换 →',
+      style: TextStyle(
+        fontSize: 12,
+        color: Colors.grey[400],
+        fontStyle: FontStyle.italic,
       ),
     );
   }

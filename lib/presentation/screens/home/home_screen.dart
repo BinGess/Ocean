@@ -22,6 +22,7 @@ import '../../widgets/quote_page_view.dart';
 import '../settings/settings_screen.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
+import '../../../core/services/quote_preloader.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -84,17 +85,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  /// 加载文案数据
+  /// 加载文案数据（使用QuotePreloader支持离线）
   Future<void> _loadQuotes() async {
     try {
-      final jsonStr = await rootBundle.loadString('assets/data/quotes.json');
-      final List jsonList = jsonDecode(jsonStr);
+      final preloader = getIt<QuotePreloader>();
+      await preloader.preload();
       setState(() {
-        _quotes = jsonList
-            .map((item) => Quote.fromJson(item as Map<String, dynamic>))
-            .toList();
+        _quotes = preloader.getCachedQuotes();
         _quotesLoaded = true;
       });
+      debugPrint('Successfully loaded ${_quotes.length} quotes from preloader');
     } catch (e) {
       debugPrint('Error loading quotes: $e');
       setState(() => _quotesLoaded = true);

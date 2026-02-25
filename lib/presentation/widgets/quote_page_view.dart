@@ -66,73 +66,107 @@ class _QuotePageViewState extends State<QuotePageView>
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // 文案PageView
-        PageView.builder(
-          controller: _pageController,
-          onPageChanged: (index) {
-            setState(() => _currentIndex = index);
-
-            // 触发水纹淡出效果
-            _rippleController.forward(from: 0);
-          },
-          itemCount: widget.quotes.length,
-          itemBuilder: (context, index) {
-            return QuoteCard(
-              quote: widget.quotes[index],
-              onNext: () {
-                if (index < widget.quotes.length - 1) {
-                  _pageController.nextPage(
-                    duration: const Duration(milliseconds: 600),
-                    curve: Curves.easeInOut,
-                  );
-                } else {
-                  _pageController.jumpToPage(0);
-                }
-              },
-            );
-          },
-        ),
-
-        // 水纹淡出效果
-        Positioned.fill(
-          child: IgnorePointer(
-            child: AnimatedBuilder(
-              animation: _rippleAnimation,
-              builder: (context, child) {
-                return CustomPaint(
-                  painter: _RipplePainter(
-                    progress: _rippleAnimation.value,
-                  ),
-                );
-              },
-            ),
+        // 文案PageView（优化：使用RepaintBoundary）
+        RepaintBoundary(
+          child: PageView.builder(
+            controller: _pageController,
+            onPageChanged: (index) {
+              setState(() => _currentIndex = index);
+              // 触发水纹淡出效果
+              _rippleController.forward(from: 0);
+            },
+            itemCount: widget.quotes.length,
+            itemBuilder: (context, index) {
+              return QuoteCard(
+                quote: widget.quotes[index],
+                onNext: () {
+                  if (index < widget.quotes.length - 1) {
+                    _pageController.nextPage(
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.easeInOut,
+                    );
+                  } else {
+                    _pageController.jumpToPage(0);
+                  }
+                },
+              );
+            },
           ),
         ),
 
-        // 页码指示器
-        Positioned(
-          bottom: 16,
-          left: 0,
-          right: 0,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              widget.quotes.length,
-              (index) => Container(
-                width: 6,
-                height: 6,
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _currentIndex == index
-                      ? const Color(0xFFC4A57B)
-                      : const Color(0xFFE8DCC8),
-                ),
+        // 水纹淡出效果（优化：使用RepaintBoundary）
+        Positioned.fill(
+          child: IgnorePointer(
+            child: RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: _rippleAnimation,
+                builder: (context, child) {
+                  return _buildRippleEffect();
+                },
               ),
             ),
           ),
         ),
+
+        // 页码指示器（优化：提取为单独方法）
+        Positioned(
+          bottom: 16,
+          left: 0,
+          right: 0,
+          child: _buildPageIndicator(),
+        ),
       ],
+    );
+  }
+
+  /// 构建水纹效果（优化：改进视觉呈现）
+  Widget _buildRippleEffect() {
+    final progress = _rippleAnimation.value;
+
+    if (progress < 0.5) {
+      // 前半段：模糊效果（0-1.5s）
+      final normalizedProgress = progress * 2;  // 0 to 1
+      final blur = normalizedProgress * 15;  // 0-15px blur，更平滑
+      return CustomPaint(
+        painter: _RipplePainter(
+          progress: progress,
+          blur: blur,
+          isBlurPhase: true,
+        ),
+      );
+    } else {
+      // 后半段：淡出（1.5-3s）
+      final normalizedProgress = (progress - 0.5) * 2;  // 0 to 1
+      final alpha = (1 - normalizedProgress) * 0.25;  // 0.25-0，更柔和
+      return CustomPaint(
+        painter: _RipplePainter(
+          progress: progress,
+          alpha: alpha,
+          isBlurPhase: false,
+        ),
+      );
+    }
+  }
+
+  /// 构建页码指示器
+  Widget _buildPageIndicator() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(
+        widget.quotes.length,
+        (index) => AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 6,
+          height: 6,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: _currentIndex == index
+                ? const Color(0xFFC4A57B)
+                : const Color(0xFFE8DCC8),
+          ),
+        ),
+      ),
     );
   }
 
@@ -145,34 +179,50 @@ class _QuotePageViewState extends State<QuotePageView>
   }
 }
 
+/// 水纹淡出动效绘制器（优化版）
 class _RipplePainter extends CustomPainter {
   final double progress;
+  final double alpha;
+  final double blur;
+  final bool isBlurPhase;
 
-  _RipplePainter({required this.progress});
+  const _RipplePainter({
+    required this.progress,
+    this.alpha = 0.0,
+    this.blur = 0.0,
+    this.isBlurPhase = false,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (progress < 0.5) {
-      // 前半段：模糊+缩放
-      final blur = progress * 20;  // 0-10px blur
-
-      canvas.saveLayer(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        Paint()..imageFilter = ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-      );
-      canvas.restore();
+    if (isBlurPhase) {
+      // 前半段：模糊效果，从0.05渐进到0.15不透明度
+      final opacity = 0.05 + (blur / 15) * 0.1;  // 0.05-0.15
+      if (blur > 0.5) {
+        final paint = Paint()
+          ..color = Colors.white.withOpacity(opacity)
+          ..imageFilter = ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur);
+        canvas.drawRect(
+          Rect.fromLTWH(0, 0, size.width, size.height),
+          paint,
+        );
+      }
     } else {
-      // 后半段：淡出
-      final alpha = (1 - progress) * 0.3;  // 0.3-0
-      canvas.drawRect(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        Paint()..color = Colors.white.withOpacity(alpha),
-      );
+      // 后半段：白色淡出，更平滑的渐隐效果
+      if (alpha > 0.01) {
+        canvas.drawRect(
+          Rect.fromLTWH(0, 0, size.width, size.height),
+          Paint()..color = Colors.white.withOpacity(alpha),
+        );
+      }
     }
   }
 
   @override
   bool shouldRepaint(_RipplePainter oldDelegate) {
-    return oldDelegate.progress != progress;
+    return oldDelegate.progress != progress ||
+        oldDelegate.alpha != alpha ||
+        oldDelegate.blur != blur ||
+        oldDelegate.isBlurPhase != isBlurPhase;
   }
 }
