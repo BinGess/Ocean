@@ -939,7 +939,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 // 长按开始：设置视觉反馈并开始录音
                 setState(() => _isPressed = true);
                 _ignoreNextCompletion = false;
-                _pauseDescription();
                 HapticFeedback.lightImpact();
                 _recordingStartTime = DateTime.now();
                 // 触发录音
@@ -950,13 +949,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               onLongPressEnd: (_) {
                 // 长按结束：停止录音
                 setState(() => _isPressed = false);
-                _resumeDescription();
                 _tryStopRecording(context);
               },
               onLongPressCancel: () {
                 // 长按取消（手指滑出）：保持录音继续，只重置视觉状态
                 setState(() => _isPressed = false);
-                _resumeDescription();
               },
             child: SizedBox(
               width: 160,

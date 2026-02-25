@@ -105,9 +105,9 @@ class QuoteService {
 
     for (final record in records) {
       // 从NVC分析中提取情绪
-      if (record.nvcAnalysis != null && record.nvcAnalysis!.feelings.isNotEmpty) {
-        for (final feeling in record.nvcAnalysis!.feelings) {
-          moods.add(feeling.label);
+      if (record.nvc != null && record.nvc!.feelings.isNotEmpty) {
+        for (final feeling in record.nvc!.feelings) {
+          moods.add(feeling.feeling);
         }
       }
 
