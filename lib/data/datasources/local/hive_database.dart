@@ -5,6 +5,7 @@ library;
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../models/record_model.dart';
 import '../../models/weekly_insight_model.dart';
+import '../../../domain/entities/quote.dart';
 
 class HiveDatabase {
   // Box 名称常量
@@ -12,12 +13,14 @@ class HiveDatabase {
   static const String weeklyInsightsBoxName = 'weekly_insights';
   static const String settingsBoxName = 'settings';
   static const String insightReportsBoxName = 'insight_reports_cache';
+  static const String quotesBoxName = 'quotes';
 
   // Box 引用
   late Box<RecordModel> recordsBox;
   late Box<WeeklyInsightModel> weeklyInsightsBox;
   late Box<dynamic> settingsBox;
   late Box<String> insightReportsBox;
+  late Box<String> quotesBox;  // 存储Quote为JSON字符串
 
   /// 初始化数据库
   Future<void> init() async {
@@ -33,6 +36,7 @@ class HiveDatabase {
         await Hive.openBox<WeeklyInsightModel>(weeklyInsightsBoxName);
     settingsBox = await Hive.openBox(settingsBoxName);
     insightReportsBox = await Hive.openBox<String>(insightReportsBoxName);
+    quotesBox = await Hive.openBox<String>(quotesBoxName);
   }
 
   /// 注册 Hive 类型适配器
@@ -57,6 +61,7 @@ class HiveDatabase {
     await weeklyInsightsBox.clear();
     await settingsBox.clear();
     await insightReportsBox.clear();
+    await quotesBox.clear();
   }
 
   /// 关闭数据库
@@ -65,6 +70,7 @@ class HiveDatabase {
     await weeklyInsightsBox.close();
     await settingsBox.close();
     await insightReportsBox.close();
+    await quotesBox.close();
   }
 
   /// 获取数据库统计信息
@@ -74,6 +80,7 @@ class HiveDatabase {
       'insights_count': weeklyInsightsBox.length,
       'settings_count': settingsBox.length,
       'insight_reports_count': insightReportsBox.length,
+      'quotes_count': quotesBox.length,
     };
   }
 }

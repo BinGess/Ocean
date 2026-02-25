@@ -7,6 +7,7 @@ import '../../domain/repositories/audio_repository.dart';
 import '../../domain/repositories/record_repository.dart';
 import '../../domain/repositories/ai_repository.dart';
 import '../../domain/repositories/insight_repository.dart';
+import '../../domain/services/quote_service.dart';
 import '../../domain/usecases/create_quick_note_usecase.dart';
 import '../../domain/usecases/get_records_usecase.dart';
 import '../../domain/usecases/update_record_usecase.dart';
@@ -17,6 +18,7 @@ import '../../data/repositories/audio_repository_impl.dart';
 import '../../data/repositories/record_repository_impl.dart';
 import '../../data/repositories/ai_repository_impl.dart';
 import '../../data/repositories/insight_repository_impl.dart';
+import '../../data/repositories/quotes_repository.dart';
 import '../../data/datasources/local/hive_database.dart';
 import '../../data/datasources/remote/doubao_datasource.dart';
 import '../network/doubao_asr_client.dart';
@@ -106,6 +108,13 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<InsightRepository>(
     () => InsightRepositoryImpl(
       database: getIt<HiveDatabase>(),
+    ),
+  );
+
+  // 文案仓储
+  getIt.registerLazySingleton<QuotesRepository>(
+    () => QuotesRepository(
+      hiveDatabase: getIt<HiveDatabase>(),
     ),
   );
 
