@@ -368,20 +368,23 @@ class CozeAIService {
     print('🔮 CozeAI: 开始生成洞察，记录数: ${records.length}');
 
     try {
-      // 仅上传用户输入内容（记录文本），不拼接本地提示词
-      final userContents = records
-          .map((r) => r.content.trim())
-          .where((text) => text.isNotEmpty)
+      // 仅上传用户记录内容（record_time + content），不拼接本地提示词
+      final userRecords = records
+          .map((r) => {
+                'record_time': r.recordTime.trim(),
+                'content': r.content.trim(),
+              })
+          .where((item) => (item['content'] as String).isNotEmpty)
           .toList();
 
-      if (userContents.isEmpty) {
+      if (userRecords.isEmpty) {
         throw CozeAPIException(
           '记录内容为空，无法生成洞察',
           code: 'EMPTY_INPUT',
         );
       }
 
-      final userInputText = jsonEncode(userContents);
+      final userInputText = jsonEncode(userRecords);
 
       // 调用洞察 API
       final responseText = await _callInsightAPI(userInputText);
