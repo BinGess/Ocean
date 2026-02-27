@@ -36,9 +36,28 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedMoods = widget.record.moods != null
-        ? List<String>.from(widget.record.moods!)
-        : [];
+    _selectedMoods = _normalizeMoodTags(widget.record.moods ?? const []);
+  }
+
+  List<String> _normalizeMoodTags(List<String> source) {
+    final seen = <String>{};
+    final result = <String>[];
+
+    for (final value in source) {
+      final parts = value
+          .split(RegExp(r'[、,，;；/|\n]+'))
+          .map((e) => e.trim())
+          .map((e) => e.replaceFirst(RegExp(r'^\d+\s*[.、\-)\]]\s*'), ''))
+          .where((e) => e.isNotEmpty);
+
+      for (final part in parts) {
+        if (seen.add(part)) {
+          result.add(part);
+        }
+      }
+    }
+
+    return result;
   }
 
   /// 格式化日期时间
@@ -58,7 +77,21 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
       builder: (context) => _TagEditDialog(
         title: '编辑我的感受',
         initialTags: _selectedMoods,
-        suggestions: const ['焦虑', '开心', '平静', '愤怒', '悲伤', '好奇', '思考', '感激', '疲惫', '兴奋', '不适', '愧疚', '无奈'],
+        suggestions: const [
+          '焦虑',
+          '开心',
+          '平静',
+          '愤怒',
+          '悲伤',
+          '好奇',
+          '思考',
+          '感激',
+          '疲惫',
+          '兴奋',
+          '不适',
+          '愧疚',
+          '无奈'
+        ],
         iconColor: const Color(0xFFFF9500),
         iconBgColor: const Color(0xFFFFF4E6),
         icon: Icons.favorite,
@@ -67,7 +100,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
 
     if (result != null) {
       setState(() {
-        _selectedMoods = result;
+        _selectedMoods = _normalizeMoodTags(result);
       });
       // TODO: 保存到数据库
     }
@@ -92,8 +125,8 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
 
     // 发送NVC分析请求
     context.read<RecordBloc>().add(
-      RecordAnalyzeNVC(widget.record.transcription),
-    );
+          RecordAnalyzeNVC(widget.record.transcription),
+        );
   }
 
   /// 保存并关闭
@@ -108,8 +141,8 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
     if (confirmed == true) {
       // 删除记录
       context.read<RecordBloc>().add(
-        RecordDelete(id: widget.record.id),
-      );
+            RecordDelete(id: widget.record.id),
+          );
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('记录已删除')),
       );
@@ -118,7 +151,8 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
   }
 
   /// 处理AI授权请求
-  Future<void> _handleAIAuthRequest(BuildContext context, RecordState state) async {
+  Future<void> _handleAIAuthRequest(
+      BuildContext context, RecordState state) async {
     final result = await AIAuthDialog.show(context: context);
 
     if (result == true) {
@@ -128,8 +162,8 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
       // 重新触发NVC分析
       if (state.transcription != null && state.transcription!.isNotEmpty) {
         context.read<RecordBloc>().add(
-          RecordAnalyzeNVC(state.transcription!),
-        );
+              RecordAnalyzeNVC(state.transcription!),
+            );
         setState(() {
           _isAnalyzing = true;
         });
@@ -203,8 +237,8 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
               } else if (result?.action == NVCModalAction.delete) {
                 // 用户选择了删除，删除这条记录
                 context.read<RecordBloc>().add(
-                  RecordDelete(id: widget.record.id),
-                );
+                      RecordDelete(id: widget.record.id),
+                    );
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('记录已删除')),
                 );
@@ -236,7 +270,8 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
           elevation: 0,
           surfaceTintColor: Colors.transparent,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, size: 20, color: Color(0xFF2C2C2C)),
+            icon: const Icon(Icons.arrow_back_ios,
+                size: 20, color: Color(0xFF2C2C2C)),
             onPressed: () => Navigator.of(context).pop(),
           ),
           title: Text(
@@ -255,7 +290,8 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                 context: context,
                 record: widget.record,
               ),
-              icon: const Icon(Icons.share_outlined, size: 22, color: Color(0xFFC4A57B)),
+              icon: const Icon(Icons.share_outlined,
+                  size: 22, color: Color(0xFFC4A57B)),
               tooltip: '分享',
               style: IconButton.styleFrom(
                 backgroundColor: const Color(0xFFF5EBE0),
@@ -266,7 +302,8 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
             // 删除按钮（使用 IconButton 避免与分享按钮争抢空间导致被挤出）
             IconButton(
               onPressed: _deleteRecord,
-              icon: const Icon(Icons.delete_outline, size: 22, color: Color(0xFFFF3B30)),
+              icon: const Icon(Icons.delete_outline,
+                  size: 22, color: Color(0xFFFF3B30)),
               tooltip: '删除',
             ),
           ],
@@ -336,7 +373,8 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
               // 洞察标签
               Row(
                 children: [
-                  const Icon(Icons.auto_awesome, size: 16, color: Color(0xFFC4A57B)),
+                  const Icon(Icons.auto_awesome,
+                      size: 16, color: Color(0xFFC4A57B)),
                   const SizedBox(width: 6),
                   const Text(
                     '洞察',
@@ -438,7 +476,8 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                                   runSpacing: 8,
                                   children: _selectedMoods.map((mood) {
                                     return Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 6),
                                       decoration: BoxDecoration(
                                         color: Colors.transparent,
                                         borderRadius: BorderRadius.circular(16),
@@ -677,7 +716,8 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                   runSpacing: 8,
                   children: _selectedTags.map((tag) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: widget.iconBgColor,
                         borderRadius: BorderRadius.circular(16),
@@ -734,12 +774,17 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                         return GestureDetector(
                           onTap: () => _toggleTag(tag),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
-                              color: isSelected ? widget.iconBgColor : Colors.white,
+                              color: isSelected
+                                  ? widget.iconBgColor
+                                  : Colors.white,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: isSelected ? widget.iconColor : const Color(0xFFE0E0E0),
+                                color: isSelected
+                                    ? widget.iconColor
+                                    : const Color(0xFFE0E0E0),
                                 width: 1,
                               ),
                             ),
@@ -747,8 +792,12 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                               tag,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: isSelected ? widget.iconColor : const Color(0xFF4A4A4A),
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                color: isSelected
+                                    ? widget.iconColor
+                                    : const Color(0xFF4A4A4A),
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
                               ),
                             ),
                           ),
@@ -806,7 +855,8 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                       ),
                       decoration: InputDecoration(
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
                         hintText: '输入并添加...',
                         hintStyle: TextStyle(
                           color: Colors.grey[400],

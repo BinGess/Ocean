@@ -6,6 +6,8 @@ import '../datasources/local/hive_database.dart';
 /// 文案仓储 - 管理文案数据的持久化和访问
 class QuotesRepository {
   final HiveDatabase _hiveDatabase;
+  static const String _seedVersionKey = 'quote_version';
+  static const String _seedVersion = '2.2.0';
 
   QuotesRepository({required HiveDatabase hiveDatabase})
       : _hiveDatabase = hiveDatabase;
@@ -15,10 +17,14 @@ class QuotesRepository {
     try {
       // 检查Hive中是否有数据
       final quotesBox = _hiveDatabase.quotesBox;
+      final settingsBox = _hiveDatabase.settingsBox;
+      final localVersion = settingsBox.get(_seedVersionKey) as String?;
 
-      if (quotesBox.isEmpty) {
-        // 首次使用：从assets加载种子数据
+      // 版本不一致时强制刷新种子文案，确保最新文案生效
+      if (quotesBox.isEmpty || localVersion != _seedVersion) {
+        await quotesBox.clear();
         await _loadSeedQuotes();
+        await settingsBox.put(_seedVersionKey, _seedVersion);
       }
 
       // 从Hive读取所有文案（JSON字符串转Quote对象）
@@ -106,6 +112,7 @@ class QuotesRepository {
   Future<void> reloadSeedQuotes() async {
     await clearAllQuotes();
     await _loadSeedQuotes();
+    await _hiveDatabase.settingsBox.put(_seedVersionKey, _seedVersion);
   }
 
   /// 根据ID获取单条文案
