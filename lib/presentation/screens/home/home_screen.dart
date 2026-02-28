@@ -482,9 +482,9 @@ class _HomeScreenState extends State<HomeScreen>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFD3E4EE),
-              Color(0xFFD1E1EB),
-              Color(0xFFD6E2E8),
+              Color(0xFFEFF6FF),
+              Color(0xFFF4F8FB),
+              Color(0xFFFFF7ED),
             ],
             stops: [0.0, 0.62, 1.0],
           ),
@@ -533,9 +533,9 @@ class _HomeScreenState extends State<HomeScreen>
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        const Color(0xFFE9E6E1).withValues(alpha: 0.0),
-                        const Color(0xFFE9E6E1).withValues(alpha: 0.64),
-                        const Color(0xFFE8E4DF),
+                        const Color(0xFFF6EBDD).withValues(alpha: 0.0),
+                        const Color(0xFFF6EBDD).withValues(alpha: 0.62),
+                        const Color(0xFFF6EBDD),
                       ],
                       stops: const [0.0, 0.56, 1.0],
                     ),
@@ -773,7 +773,7 @@ class _HomeScreenState extends State<HomeScreen>
             child: Text(
               greeting,
               style: AppTypography.homeGreeting.copyWith(
-                fontSize: 44,
+                fontSize: 38,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF353F49),
                 height: 1.05,
@@ -1083,7 +1083,7 @@ class _SoftUITexturePainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height * 0.155);
 
     final ringPaint = Paint()
-      ..color = const Color(0xFF9CBBCD).withValues(alpha: 0.22)
+      ..color = const Color(0xFFB8CCE1).withValues(alpha: 0.24)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.15;
 
@@ -1102,7 +1102,7 @@ class _SoftUITexturePainter extends CustomPainter {
         center: Alignment.topCenter,
         radius: 1.1,
         colors: [
-          const Color(0xFFB0C7D6).withValues(alpha: 0.04),
+          const Color(0xFFC9D9E8).withValues(alpha: 0.06),
           Colors.transparent,
         ],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height * 0.55));
