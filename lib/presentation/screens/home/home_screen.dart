@@ -21,6 +21,7 @@ import 'emotion_input_screen.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
 import '../../../core/services/quote_preloader.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -481,11 +482,7 @@ class _HomeScreenState extends State<HomeScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFEFF6FF),
-              Color(0xFFF4F8FB),
-              Color(0xFFFFF7ED),
-            ],
+            colors: AppColors.homeBackgroundGradient,
             stops: [0.0, 0.62, 1.0],
           ),
         ),
@@ -533,9 +530,9 @@ class _HomeScreenState extends State<HomeScreen>
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        const Color(0xFFF6EBDD).withValues(alpha: 0.0),
-                        const Color(0xFFF6EBDD).withValues(alpha: 0.62),
-                        const Color(0xFFF6EBDD),
+                        AppColors.pageWarmVeil.withValues(alpha: 0.0),
+                        AppColors.pageWarmVeil.withValues(alpha: 0.62),
+                        AppColors.pageWarmVeil,
                       ],
                       stops: const [0.0, 0.56, 1.0],
                     ),
@@ -773,7 +770,7 @@ class _HomeScreenState extends State<HomeScreen>
             child: Text(
               greeting,
               style: AppTypography.homeGreeting.copyWith(
-                fontSize: 38,
+                fontSize: 34,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF353F49),
                 height: 1.05,
@@ -969,9 +966,10 @@ class _HomeScreenState extends State<HomeScreen>
       );
     }
 
-    final quoteText = _quotes.isEmpty
+    final rawQuoteText = _quotes.isEmpty
         ? '观察当下，不做评判，这就是冥想的开始'
         : _quotes[_currentQuoteIndex % _quotes.length].content;
+    final quoteText = rawQuoteText.replaceFirst(RegExp(r'。$'), '');
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
@@ -988,22 +986,22 @@ class _HomeScreenState extends State<HomeScreen>
                 padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(24),
-                  color: const Color(0xFFF5F7FA).withValues(alpha: 0.66),
-                  gradient: const LinearGradient(
+                  color: const Color(0xFFF5F7FA).withValues(alpha: 0.38),
+                  gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Color(0xFFF7F9FC),
-                      Color(0xFFF2F5F8),
+                      const Color(0xFFF7F9FC).withValues(alpha: 0.54),
+                      const Color(0xFFF2F5F8).withValues(alpha: 0.44),
                     ],
                   ),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.68),
+                    color: Colors.white.withValues(alpha: 0.50),
                     width: 0.8,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF7A9CB4).withValues(alpha: 0.04),
+                      color: const Color(0xFF7A9CB4).withValues(alpha: 0.025),
                       blurRadius: 14,
                       offset: const Offset(0, 6),
                     ),
@@ -1013,7 +1011,7 @@ class _HomeScreenState extends State<HomeScreen>
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     Text(
-                      '一起来想想：',
+                      '今天想对你说：',
                       textAlign: TextAlign.center,
                       style: AppTypography.sectionSubtle.copyWith(
                         color: const Color(0xFFAFB8C1),

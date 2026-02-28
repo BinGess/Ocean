@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../domain/entities/insight_report.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../bloc/insight/insight_bloc.dart';
 import '../../bloc/insight/insight_state.dart';
@@ -112,61 +113,71 @@ class _InsightsScreenState extends State<InsightsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF6F1),
-      body: BlocListener<InsightBloc, InsightState>(
-        listener: (context, state) {
-          if (_isRefreshing &&
-              (state.status == InsightStatus.success ||
-                  state.status == InsightStatus.error ||
-                  state.status == InsightStatus.needsAIAuth)) {
-            _refreshController.stop();
-            _refreshController.reset();
-            if (mounted) {
-              setState(() => _isRefreshing = false);
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: AppColors.warmPageBackgroundGradient,
+            stops: [0.0, 0.62, 1.0],
+          ),
+        ),
+        child: BlocListener<InsightBloc, InsightState>(
+          listener: (context, state) {
+            if (_isRefreshing &&
+                (state.status == InsightStatus.success ||
+                    state.status == InsightStatus.error ||
+                    state.status == InsightStatus.needsAIAuth)) {
+              _refreshController.stop();
+              _refreshController.reset();
+              if (mounted) {
+                setState(() => _isRefreshing = false);
+              }
             }
-          }
 
-          if (state.status == InsightStatus.error &&
-              state.currentReport != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.errorMessage ?? '刷新失败，请稍后重试')),
-            );
-          }
+            if (state.status == InsightStatus.error &&
+                state.currentReport != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.errorMessage ?? '刷新失败，请稍后重试')),
+              );
+            }
 
-          if (state.status == InsightStatus.needsAIAuth &&
-              state.currentReport != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('AI授权已失效，请在设置中重新开启')),
-            );
-          }
-          // 注：needsAIAuth 状态不再自动弹窗，而是通过UI引导用户手动触发
-        },
-        child: BlocBuilder<InsightBloc, InsightState>(
-          builder: (context, state) {
-            // 无内容且需要AI授权时显示友好引导
             if (state.status == InsightStatus.needsAIAuth &&
-                state.currentReport == null) {
-              return _buildAIAuthPromptState();
+                state.currentReport != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('AI授权已失效，请在设置中重新开启')),
+              );
             }
-
-            if ((state.status == InsightStatus.loading ||
-                    state.status == InsightStatus.generating) &&
-                state.currentReport == null) {
-              return _buildLoadingState(state.progressMessage);
-            }
-
-            if (state.currentReport == null) {
-              return _buildEmptyState(state.errorMessage);
-            }
-
-            return RefreshIndicator(
-              onRefresh: _onRefresh,
-              color: const Color(0xFFC4A57B),
-              backgroundColor: Colors.white,
-              child: _buildInsightContent(
-                  context, state.currentReport!, state.lastFetchTime),
-            );
+            // 注：needsAIAuth 状态不再自动弹窗，而是通过UI引导用户手动触发
           },
+          child: BlocBuilder<InsightBloc, InsightState>(
+            builder: (context, state) {
+              // 无内容且需要AI授权时显示友好引导
+              if (state.status == InsightStatus.needsAIAuth &&
+                  state.currentReport == null) {
+                return _buildAIAuthPromptState();
+              }
+
+              if ((state.status == InsightStatus.loading ||
+                      state.status == InsightStatus.generating) &&
+                  state.currentReport == null) {
+                return _buildLoadingState(state.progressMessage);
+              }
+
+              if (state.currentReport == null) {
+                return _buildEmptyState(state.errorMessage);
+              }
+
+              return RefreshIndicator(
+                onRefresh: _onRefresh,
+                color: const Color(0xFFC4A57B),
+                backgroundColor: Colors.white,
+                child: _buildInsightContent(
+                    context, state.currentReport!, state.lastFetchTime),
+              );
+            },
+          ),
         ),
       ),
     );

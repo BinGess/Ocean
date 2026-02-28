@@ -45,7 +45,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
 
     for (final value in source) {
       final parts = value
-          .split(RegExp(r'[、,，;；/|\n]+'))
+          .split(RegExp(r'[，,、；;|/\\\n]+'))
           .map((e) => e.trim())
           .map((e) => e.replaceFirst(RegExp(r'^\d+\s*[.、\-)\]]\s*'), ''))
           .where((e) => e.isNotEmpty);
@@ -131,7 +131,11 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
 
   /// 保存并关闭
   void _saveAndClose() {
-    // TODO: 保存更新的moods到数据库
+    final updatedRecord = widget.record.copyWith(
+      moods: _selectedMoods,
+      updatedAt: DateTime.now(),
+    );
+    context.read<RecordBloc>().add(RecordUpdate(record: updatedRecord));
     Navigator.of(context).pop();
   }
 
@@ -227,12 +231,25 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
               context: context,
               initialAnalysis: state.nvcAnalysis!,
               transcription: widget.record.transcription,
+              record: widget.record,
               onRevert: () {
                 // 还原为仅记录
               },
             ).then((result) {
               if (result?.action == NVCModalAction.confirm) {
-                // TODO: 保存NVC分析结果到记录
+                final analysis = result?.analysis;
+                if (analysis != null) {
+                  final updatedRecord = widget.record.copyWith(
+                    nvc: analysis,
+                    processingMode: ProcessingMode.withNVC,
+                    moods: analysis.feelings.map((f) => f.feeling).toList(),
+                    needs: analysis.needs.map((n) => n.need).toList(),
+                    updatedAt: DateTime.now(),
+                  );
+                  context.read<RecordBloc>().add(
+                        RecordUpdate(record: updatedRecord),
+                      );
+                }
                 Navigator.of(context).pop(); // 关闭详情页
               } else if (result?.action == NVCModalAction.delete) {
                 // 用户选择了删除，删除这条记录
@@ -293,10 +310,6 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
               icon: const Icon(Icons.share_outlined,
                   size: 22, color: Color(0xFFC4A57B)),
               tooltip: '分享',
-              style: IconButton.styleFrom(
-                backgroundColor: const Color(0xFFF5EBE0),
-                foregroundColor: const Color(0xFFC4A57B),
-              ),
             ),
             const SizedBox(width: 4),
             // 删除按钮（使用 IconButton 避免与分享按钮争抢空间导致被挤出）
@@ -347,6 +360,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
+          physics: const BouncingScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -362,7 +376,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                   widget.record.transcription,
                   style: const TextStyle(
                     color: Color(0xFF4A4A4A),
-                    fontSize: 17,
+                    fontSize: 15,
                     height: 1.6,
                   ),
                 ),
@@ -427,7 +441,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                           child: Text(
                             '我现在的感受',
                             style: TextStyle(
-                              fontSize: 17,
+                              fontSize: 15,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF2C2C2C),
                             ),
@@ -530,7 +544,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                         const Text(
                           'NVC分析',
                           style: TextStyle(
-                            fontSize: 17,
+                            fontSize: 15,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF2C2C2C),
                           ),

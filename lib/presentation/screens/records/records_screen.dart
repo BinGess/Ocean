@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../domain/entities/record.dart';
 import '../../../core/di/injection.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/datasources/local/hive_database.dart';
 import '../../bloc/record/record_bloc.dart';
@@ -151,55 +152,69 @@ class _RecordsScreenState extends State<RecordsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _Colors.background,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: AppColors.warmPageBackgroundGradient,
+            stops: [0.0, 0.62, 1.0],
+          ),
+        ),
+        child: Stack(
           children: [
-            // 顶部标题
-            _buildHeader(),
+            SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 顶部标题
+                  _buildHeader(),
 
-            // 记录列表
-            Expanded(
-              child: BlocBuilder<RecordBloc, RecordState>(
-                builder: (context, state) {
-                  if (state.isLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(_Colors.primary),
-                      ),
-                    );
-                  }
+                  // 记录列表
+                  Expanded(
+                    child: BlocBuilder<RecordBloc, RecordState>(
+                      builder: (context, state) {
+                        if (state.isLoading) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  _Colors.primary),
+                            ),
+                          );
+                        }
 
-                  if (state.hasError) {
-                    return _buildErrorState(state.errorMessage);
-                  }
+                        if (state.hasError) {
+                          return _buildErrorState(state.errorMessage);
+                        }
 
-                  final groupedRecords = _groupRecordsByDate(state.records);
-                  final dateRange = state.isEmpty
-                      ? _getTodayOnly()
-                      : _getDatesWithRecords(groupedRecords);
+                        final groupedRecords = _groupRecordsByDate(state.records);
+                        final dateRange = state.isEmpty
+                            ? _getTodayOnly()
+                            : _getDatesWithRecords(groupedRecords);
 
-                  return RefreshIndicator(
-                    onRefresh: () async => _loadRecords(),
-                    color: _Colors.primary,
-                    child: ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(
-                        _Spacing.xl,
-                        _Spacing.sm,
-                        _Spacing.xl,
-                        _Spacing.xxl,
-                      ),
-                      itemCount: dateRange.length,
-                      itemBuilder: (context, index) {
-                        final date = dateRange[index];
-                        final records = groupedRecords[date] ?? [];
-                        return _buildDaySection(date, records);
+                        return RefreshIndicator(
+                          onRefresh: () async => _loadRecords(),
+                          color: _Colors.primary,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(
+                              _Spacing.xl,
+                              _Spacing.sm,
+                              _Spacing.xl,
+                              _Spacing.xxl,
+                            ),
+                            itemCount: dateRange.length,
+                            itemBuilder: (context, index) {
+                              final date = dateRange[index];
+                              final records = groupedRecords[date] ?? [];
+                              return _buildDaySection(date, records);
+                            },
+                          ),
+                        );
                       },
                     ),
-                  );
-                },
+                  ),
+                ],
               ),
             ),
           ],

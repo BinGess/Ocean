@@ -292,7 +292,7 @@ class _SharePosterScreenState extends State<SharePosterScreen> {
     required VoidCallback onTap,
     required bool isPrimary,
   }) {
-    final primaryColor = const Color(0xFF48697A);
+    const primaryColor = Color(0xFF48697A);
 
     return GestureDetector(
       onTap: _isSharing ? null : onTap,

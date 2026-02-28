@@ -636,7 +636,7 @@ class CozeAIService {
     if (cleaned.isEmpty) return [];
 
     return cleaned
-        .split(RegExp(r'[、,，;；/|\n]+'))
+        .split(RegExp(r'[，,、；;|/\\\n]+'))
         .map((e) => e.trim())
         .map((e) => e.replaceFirst(RegExp(r'^\d+\s*[.、\-)\]]\s*'), ''))
         .where((e) => e.isNotEmpty)

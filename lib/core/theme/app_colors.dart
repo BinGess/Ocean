@@ -17,6 +17,17 @@ class AppColors {
   static const Color background = Color(0xFFFBFAF9);
   static const Color backgroundLight = Color(0xFFFBFAF9);
   static const Color surfaceLight = Color(0xFFFFFFFF);
+  static const List<Color> homeBackgroundGradient = <Color>[
+    Color(0xFFF4F8FC),
+    Color(0xFFF7F6F2),
+    Color(0xFFFFF7ED),
+  ];
+  static const List<Color> warmPageBackgroundGradient = <Color>[
+    Color(0xFFFFFCF8),
+    Color(0xFFFDFBF6),
+    Color(0xFFFCF8F1),
+  ];
+  static const Color pageWarmVeil = Color(0xFFF6EBDD);
 
   // 文字颜色
   static const Color textPrimary = Color(0xFF3F4652);
