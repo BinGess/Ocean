@@ -574,6 +574,7 @@ class _InsightsScreenState extends State<InsightsScreen>
             overview.summary,
             style: AppTypography.bodyPrimary.copyWith(
               color: const Color(0xFF5D4E3C),
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],

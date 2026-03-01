@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -531,8 +532,8 @@ class _HomeScreenState extends State<HomeScreen>
                       end: Alignment.bottomCenter,
                       colors: [
                         AppColors.pageWarmVeil.withValues(alpha: 0.0),
-                        AppColors.pageWarmVeil.withValues(alpha: 0.62),
-                        AppColors.pageWarmVeil,
+                        AppColors.pageWarmVeil.withValues(alpha: 0.38),
+                        AppColors.pageWarmVeil.withValues(alpha: 0.60),
                       ],
                       stops: const [0.0, 0.56, 1.0],
                     ),
@@ -1074,40 +1075,187 @@ class _HomeScreenState extends State<HomeScreen>
   }
 }
 
-/// 背景纹理：顶部同心圆 + 轻颗粒
+/// 背景纹理：多组不规则同心纹（低对比、分布全页）
 class _SoftUITexturePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height * 0.155);
+    final shortSide = math.min(size.width, size.height);
 
-    final ringPaint = Paint()
-      ..color = const Color(0xFFB8CCE1).withValues(alpha: 0.24)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.15;
+    // 多个分散的纹理组：半径经过人工控制，避免组与组交叉
+    final clusters = <_RingCluster>[
+      const _RingCluster(
+        anchorX: 0.18,
+        anchorY: 0.17,
+        maxRadiusFactor: 0.30,
+        minRadiusFactor: 0.14,
+        rings: 5,
+        color: Color(0xFFB7CBE0),
+        alpha: 0.175,
+        irregularity: 0.050,
+        phase: 0.35,
+      ),
+      const _RingCluster(
+        anchorX: 0.80,
+        anchorY: 0.23,
+        maxRadiusFactor: 0.28,
+        minRadiusFactor: 0.13,
+        rings: 5,
+        color: Color(0xFFC0D2E5),
+        alpha: 0.16,
+        irregularity: 0.047,
+        phase: 1.12,
+      ),
+      const _RingCluster(
+        anchorX: 0.14,
+        anchorY: 0.53,
+        maxRadiusFactor: 0.27,
+        minRadiusFactor: 0.12,
+        rings: 5,
+        color: Color(0xFFB9CEE3),
+        alpha: 0.155,
+        irregularity: 0.048,
+        phase: 2.10,
+      ),
+      const _RingCluster(
+        anchorX: 0.84,
+        anchorY: 0.60,
+        maxRadiusFactor: 0.275,
+        minRadiusFactor: 0.125,
+        rings: 5,
+        color: Color(0xFFBED3E6),
+        alpha: 0.16,
+        irregularity: 0.049,
+        phase: 2.76,
+      ),
+      const _RingCluster(
+        anchorX: 0.50,
+        anchorY: 0.84,
+        maxRadiusFactor: 0.34,
+        minRadiusFactor: 0.16,
+        rings: 5,
+        color: Color(0xFFC4D8EA),
+        alpha: 0.15,
+        irregularity: 0.052,
+        phase: 3.42,
+      ),
+    ];
 
-    final ringHighlightPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.10)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.8;
+    for (final cluster in clusters) {
+      final center =
+          Offset(size.width * cluster.anchorX, size.height * cluster.anchorY);
+      final maxRadius = shortSide * cluster.maxRadiusFactor;
+      final minRadius = shortSide * cluster.minRadiusFactor;
+      final spacing = cluster.rings > 1
+          ? (maxRadius - minRadius) / (cluster.rings - 1)
+          : 0.0;
 
-    for (int i = 0; i < 6; i++) {
-      canvas.drawCircle(center, 68 + (i * 52), ringPaint);
-      canvas.drawCircle(center, 68 + (i * 52) - 1.2, ringHighlightPaint);
+      for (int i = 0; i < cluster.rings; i++) {
+        final radius = minRadius + spacing * i;
+        final progress = cluster.rings > 1 ? i / (cluster.rings - 1) : 0.0;
+        final strokeWidth =
+            (1.55 - progress * 0.50).clamp(0.96, 1.55).toDouble();
+        final alpha = (cluster.alpha * (1.0 - progress * 0.35))
+            .clamp(0.07, 0.25)
+            .toDouble();
+
+        final ringPath = _buildIrregularRingPath(
+          center: center,
+          radius: radius,
+          irregularity: cluster.irregularity,
+          phase: cluster.phase + i * 0.18,
+        );
+
+        final ringPaint = Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth
+          ..color = cluster.color.withValues(alpha: alpha);
+        canvas.drawPath(ringPath, ringPaint);
+
+        // 微弱高光描边，增强可见性但保持柔和
+        final highlightPaint = Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = (strokeWidth * 0.64).clamp(0.54, 1.10).toDouble()
+          ..color = Colors.white
+              .withValues(alpha: (alpha * 0.70).clamp(0.035, 0.13).toDouble());
+        canvas.drawPath(ringPath, highlightPaint);
+      }
     }
 
-    final softOverlay = Paint()
-      ..shader = RadialGradient(
-        center: Alignment.topCenter,
-        radius: 1.1,
+    // 一层全页低对比柔光，避免纹理边缘感太“硬”
+    final veilPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
         colors: [
-          const Color(0xFFC9D9E8).withValues(alpha: 0.06),
+          const Color(0xFFC7D8E8).withValues(alpha: 0.028),
+          const Color(0xFFD2DFEC).withValues(alpha: 0.006),
           Colors.transparent,
         ],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height * 0.55));
-    canvas.drawRect(
-        Rect.fromLTWH(0, 0, size.width, size.height * 0.55), softOverlay);
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), veilPaint);
+  }
+
+  Path _buildIrregularRingPath({
+    required Offset center,
+    required double radius,
+    required double irregularity,
+    required double phase,
+  }) {
+    const segments = 88;
+    final path = Path();
+
+    for (int i = 0; i <= segments; i++) {
+      final baseT = (i / segments) * math.pi * 2;
+      final warpedT = baseT +
+          math.sin(baseT * 1.75 + phase) * 0.10 +
+          math.cos(baseT * 3.35 - phase * 0.65) * 0.05;
+
+      final wobble1 = math.sin((warpedT * 1.90) + phase) * irregularity;
+      final wobble2 =
+          math.cos((warpedT * 4.90) - (phase * 1.30)) * irregularity * 0.72;
+      final wobble3 =
+          math.sin((warpedT * 8.60) + (phase * 0.88)) * irregularity * 0.42;
+      final wobble4 =
+          math.cos((warpedT * 12.40) - (phase * 0.45)) * irregularity * 0.20;
+      final r = radius * (1.0 + wobble1 + wobble2 + wobble3);
+
+      final x = center.dx + math.cos(warpedT) * (r + wobble4 * radius);
+      final y = center.dy + math.sin(warpedT) * (r - wobble4 * radius * 0.65);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+
+    path.close();
+    return path;
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _RingCluster {
+  final double anchorX;
+  final double anchorY;
+  final double maxRadiusFactor;
+  final double minRadiusFactor;
+  final int rings;
+  final Color color;
+  final double alpha;
+  final double irregularity;
+  final double phase;
+
+  const _RingCluster({
+    required this.anchorX,
+    required this.anchorY,
+    required this.maxRadiusFactor,
+    required this.minRadiusFactor,
+    required this.rings,
+    required this.color,
+    required this.alpha,
+    required this.irregularity,
+    required this.phase,
+  });
 }
