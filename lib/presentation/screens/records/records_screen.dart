@@ -77,6 +77,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
   final Map<String, String> _dailyMoods = {};
   final Map<String, DailySummary> _dailySummaries = {};
   final Set<String> _generatingSummaries = {};
+  bool _isRefreshingDailySummary = false;
 
   @override
   void initState() {
@@ -132,14 +133,13 @@ class _RecordsScreenState extends State<RecordsScreen> {
       date,
       records,
       onComplete: (summary) {
-        if (mounted && summary != null) {
-          setState(() {
+        if (!mounted) return;
+        setState(() {
+          if (summary != null) {
             _dailySummaries[summaryKey] = summary;
-            _generatingSummaries.remove(summaryKey);
-          });
-        } else {
+          }
           _generatingSummaries.remove(summaryKey);
-        }
+        });
       },
     );
   }
@@ -154,6 +154,67 @@ class _RecordsScreenState extends State<RecordsScreen> {
   bool _isGeneratingSummary(DateTime date) {
     final summaryKey = getDailySummaryKey(date);
     return _generatingSummaries.contains(summaryKey);
+  }
+
+  /// 强制刷新最近一天的日总结（忽略 userOverridden）
+  Future<void> _forceRefreshLatestDailySummary() async {
+    if (_isRefreshingDailySummary) return;
+
+    final records = context.read<RecordBloc>().state.records;
+    final groupedRecords = _groupRecordsByDate(records);
+    final dates = _getDatesWithRecords(groupedRecords);
+
+    DateTime? targetDate;
+    List<Record> targetRecords = const [];
+    for (final date in dates) {
+      final dayRecords = groupedRecords[date] ?? const [];
+      if (dayRecords.length >= DailySummaryService.minRecordCount) {
+        targetDate = date;
+        targetRecords = dayRecords;
+        break;
+      }
+    }
+
+    if (targetDate == null) {
+      _loadRecords();
+      return;
+    }
+
+    final summaryKey = getDailySummaryKey(targetDate);
+    setState(() {
+      _isRefreshingDailySummary = true;
+      _generatingSummaries.add(summaryKey);
+    });
+
+    try {
+      final summary = await _dailySummaryService.generateDailySummary(
+        targetDate,
+        targetRecords,
+        force: true,
+      );
+      if (!mounted) return;
+      setState(() {
+        if (summary != null) {
+          _dailySummaries[summaryKey] = summary;
+        }
+        _generatingSummaries.remove(summaryKey);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.refreshFailed)),
+      );
+      setState(() {
+        _generatingSummaries.remove(summaryKey);
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefreshingDailySummary = false;
+        });
+      }
+    }
   }
 
   Future<void> _handleMoodTap(DateTime date) async {
@@ -250,7 +311,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
                           return _buildErrorState(state.errorMessage);
                         }
 
-                        final groupedRecords = _groupRecordsByDate(state.records);
+                        final groupedRecords =
+                            _groupRecordsByDate(state.records);
                         final dateRange = state.isEmpty
                             ? _getTodayOnly()
                             : _getDatesWithRecords(groupedRecords);
@@ -313,24 +375,48 @@ class _RecordsScreenState extends State<RecordsScreen> {
               height: 1.2,
             ),
           ),
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: _Colors.surface,
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _isRefreshingDailySummary
+                  ? null
+                  : _forceRefreshLatestDailySummary,
               borderRadius: BorderRadius.circular(_Spacing.md),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+              splashColor: _Colors.primary.withValues(alpha: 0.18),
+              highlightColor: _Colors.primary.withValues(alpha: 0.10),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: _Colors.surface,
+                  borderRadius: BorderRadius.circular(_Spacing.md),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: const Icon(
-              Icons.calendar_today_outlined,
-              size: 18,
-              color: _Colors.textMuted,
+                child: Center(
+                  child: _isRefreshingDailySummary
+                      ? SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 1.8,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              _Colors.primary.withValues(alpha: 0.85),
+                            ),
+                          ),
+                        )
+                      : const Icon(
+                          Icons.refresh_rounded,
+                          size: 18,
+                          color: _Colors.primary,
+                        ),
+                ),
+              ),
             ),
           ),
         ],
@@ -457,26 +543,23 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   /// 每日心情卡片
   Widget _buildDailyMoodCard(DateTime date, List<Record> records) {
-    final mood = _getDailyMood(date);
     final l10n = AppLocalizations.of(context)!;
     final dailySummary = _getDailySummary(date);
     final isGenerating = _isGeneratingSummary(date);
     final moodKey = getDailyMoodKey(date);
     final hasUserSelectedMood = _dailyMoods.containsKey(moodKey);
 
-    // 如果用户没有手动选择心情，且有 AI 推荐，使用 AI 推荐的心情
-    String displayMoodImagePath;
-    String displayMoodLabel;
-    bool isAIRecommendation = false;
+    // 主心情文案始终来自心情图标映射，不被 AI 关键词覆盖
+    String displayMoodImagePath = _getDailyMoodImagePath(date);
 
-    if (!hasUserSelectedMood && dailySummary != null && !dailySummary.userOverridden) {
+    if (!hasUserSelectedMood &&
+        dailySummary != null &&
+        !dailySummary.userOverridden) {
       displayMoodImagePath = dailySummary.recommendedMoodImagePath;
-      displayMoodLabel = dailySummary.moodWord;
-      isAIRecommendation = true;
-    } else {
-      displayMoodImagePath = _getDailyMoodImagePath(date);
-      displayMoodLabel = mood.label;
     }
+    final displayMood = getMoodByImagePath(displayMoodImagePath) ?? defaultMood;
+    final displayMoodLabel = displayMood.label;
+    final aiMoodWord = dailySummary?.moodWord.trim() ?? '';
 
     return Container(
       width: double.infinity,
@@ -535,24 +618,26 @@ class _RecordsScreenState extends State<RecordsScreen> {
                               height: 1.3,
                             ),
                           ),
-                          // AI 推荐标识
-                          if (isAIRecommendation) ...[
+                          // AI 返回的情绪关键词标签（放在“心情”右侧）
+                          if (dailySummary != null &&
+                              aiMoodWord.isNotEmpty) ...[
                             const SizedBox(width: _Spacing.xs),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 1,
+                                horizontal: _Spacing.sm,
+                                vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: _Colors.primary.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(4),
+                                color: _Colors.primary.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(999),
                               ),
-                              child: const Text(
-                                'AI',
-                                style: TextStyle(
-                                  fontSize: 9,
+                              child: Text(
+                                aiMoodWord,
+                                style: const TextStyle(
+                                  fontSize: 10,
                                   fontWeight: FontWeight.w600,
                                   color: _Colors.primary,
+                                  height: 1.2,
                                 ),
                               ),
                             ),
@@ -574,43 +659,33 @@ class _RecordsScreenState extends State<RecordsScreen> {
                         ],
                       ),
                       const SizedBox(height: _Spacing.xs),
-                      Text(
-                        l10n.recordsCount(records.length),
-                        style: const TextStyle(
-                          fontSize: _FontSize.label,
-                          color: _Colors.textHint,
-                          height: 1.3,
+                      if (dailySummary != null &&
+                          dailySummary.oneSentence.isNotEmpty)
+                        Text(
+                          dailySummary.oneSentence,
+                          style: const TextStyle(
+                            fontSize: _FontSize.label,
+                            color: _Colors.textHint,
+                            height: 1.3,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        )
+                      else
+                        Text(
+                          l10n.recordsCount(records.length),
+                          style: const TextStyle(
+                            fontSize: _FontSize.label,
+                            color: _Colors.textHint,
+                            height: 1.3,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
               ),
             ],
           ),
-          // AI 生成的一句话总结
-          if (dailySummary != null && dailySummary.oneSentence.isNotEmpty) ...[
-            const SizedBox(height: _Spacing.sm),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(_Spacing.sm),
-              decoration: BoxDecoration(
-                color: _Colors.surface.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(_Spacing.sm),
-              ),
-              child: Text(
-                dailySummary.oneSentence,
-                style: const TextStyle(
-                  fontSize: _FontSize.label,
-                  color: _Colors.textSecondary,
-                  height: 1.4,
-                  fontStyle: FontStyle.italic,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -817,11 +892,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   String _formatTime(DateTime time) {
     return DateFormat('HH:mm').format(time);
-  }
-
-  DailyMood _getDailyMood(DateTime date) {
-    final imagePath = _getDailyMoodImagePath(date);
-    return getMoodByImagePath(imagePath) ?? defaultMood;
   }
 
   /// 统一清洗标签：

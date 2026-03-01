@@ -15,8 +15,8 @@ class DailySummaryService {
   final HiveDatabase _database;
   final CozeAIService _cozeAIService;
 
-  /// 防抖计时器，避免频繁生成
-  Timer? _debounceTimer;
+  /// 防抖计时器（按日期隔离，避免不同日期相互取消）
+  final Map<String, Timer> _debounceTimers = {};
 
   /// 最小记录数
   static const int minRecordCount = 2;
@@ -94,20 +94,21 @@ class DailySummaryService {
   ///
   /// [date] 日期
   /// [records] 当天的记录列表
+  /// [force] 是否强制生成（忽略 userOverridden）
   /// 返回生成的 DailySummary
   Future<DailySummary?> generateDailySummary(
-    DateTime date,
-    List<Record> records,
-  ) async {
+      DateTime date, List<Record> records,
+      {bool force = false}) async {
     // 检查记录数量
     if (records.length < minRecordCount) {
-      debugPrint('DailySummaryService: 记录数不足 (${records.length} < $minRecordCount)');
+      debugPrint(
+          'DailySummaryService: 记录数不足 (${records.length} < $minRecordCount)');
       return null;
     }
 
     // 检查是否需要重新生成
     final existing = getDailySummary(date);
-    if (existing != null && existing.userOverridden) {
+    if (!force && existing != null && existing.userOverridden) {
       debugPrint('DailySummaryService: 用户已手动设置，跳过自动生成');
       return existing;
     }
@@ -131,9 +132,13 @@ class DailySummaryService {
       );
 
       // 保存到缓存
-      await _saveDailySummary(summary);
+      // 保留用户覆盖标记，避免强制刷新后丢失状态
+      final summaryToSave = summary.copyWith(
+        userOverridden: existing?.userOverridden ?? false,
+      );
+      await _saveDailySummary(summaryToSave);
 
-      return summary;
+      return summaryToSave;
     } catch (e) {
       debugPrint('DailySummaryService: 生成日总结失败: $e');
       return null;
@@ -148,15 +153,20 @@ class DailySummaryService {
     List<Record> records, {
     void Function(DailySummary?)? onComplete,
   }) {
-    // 取消之前的计时器
-    _debounceTimer?.cancel();
+    final key = getDailySummaryKey(date);
+    // 仅取消同一天的防抖任务，不影响其他日期
+    _debounceTimers[key]?.cancel();
 
     // 设置新的计时器
-    _debounceTimer = Timer(
+    _debounceTimers[key] = Timer(
       const Duration(milliseconds: debounceDelayMs),
       () async {
-        final summary = await generateDailySummary(date, records);
-        onComplete?.call(summary);
+        try {
+          final summary = await generateDailySummary(date, records);
+          onComplete?.call(summary);
+        } finally {
+          _debounceTimers.remove(key);
+        }
       },
     );
   }
@@ -187,13 +197,14 @@ class DailySummaryService {
   String _formatRecordTime(DateTime time) {
     final weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
     final weekDay = weekDays[time.weekday - 1];
-    return DateFormat('yyyy-MM-dd').format(time) +
-        ' $weekDay ' +
-        DateFormat('HH:mm').format(time);
+    return '${DateFormat('yyyy-MM-dd').format(time)} $weekDay ${DateFormat('HH:mm').format(time)}';
   }
 
   /// 清理资源
   void dispose() {
-    _debounceTimer?.cancel();
+    for (final timer in _debounceTimers.values) {
+      timer.cancel();
+    }
+    _debounceTimers.clear();
   }
 }
