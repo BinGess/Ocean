@@ -625,6 +625,110 @@ class CozeAIService {
     );
   }
 
+  List<String> _splitTagText(String raw) {
+    final cleaned = raw
+        .trim()
+        .replaceAll(RegExp(r'^[\[\(\{（【\s]+|[\]\)\}）】\s]+$'), '')
+        .replaceAll('“', '')
+        .replaceAll('”', '')
+        .replaceAll('"', '');
+
+    if (cleaned.isEmpty) return [];
+
+    return cleaned
+        .split(RegExp(r'[，,、；;|/\\\n]+'))
+        .map((e) => e.trim())
+        .map((e) => e.replaceFirst(RegExp(r'^\d+\s*[.、\-)\]]\s*'), ''))
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+
+  IntensityLevel _parseIntensity(dynamic rawIntensity) {
+    final intensity = rawIntensity is num
+        ? rawIntensity.toInt()
+        : int.tryParse(rawIntensity?.toString() ?? '');
+
+    switch (intensity) {
+      case 1:
+        return IntensityLevel.veryLow;
+      case 2:
+        return IntensityLevel.low;
+      case 4:
+        return IntensityLevel.high;
+      case 5:
+        return IntensityLevel.veryHigh;
+      default:
+        return IntensityLevel.medium;
+    }
+  }
+
+  List<Feeling> _normalizeFeelingsField(dynamic feelingsField) {
+    final result = <Feeling>[];
+    final seen = <String>{};
+
+    void appendFeeling(String rawText, IntensityLevel intensity) {
+      for (final token in _splitTagText(rawText)) {
+        if (seen.add(token)) {
+          result.add(Feeling(feeling: token, intensity: intensity));
+        }
+      }
+    }
+
+    if (feelingsField is List) {
+      for (final item in feelingsField) {
+        if (item is Map) {
+          final text = item['feeling']?.toString() ??
+              item['emotion']?.toString() ??
+              item['name']?.toString() ??
+              '';
+          if (text.isNotEmpty) {
+            appendFeeling(text, _parseIntensity(item['intensity']));
+          }
+        } else if (item != null) {
+          appendFeeling(item.toString(), IntensityLevel.medium);
+        }
+      }
+    } else if (feelingsField is String) {
+      appendFeeling(feelingsField, IntensityLevel.medium);
+    }
+
+    return result;
+  }
+
+  List<Need> _normalizeNeedsField(dynamic needsField) {
+    final result = <Need>[];
+    final seen = <String>{};
+
+    void appendNeed(String rawText, String reason) {
+      for (final token in _splitTagText(rawText)) {
+        if (seen.add(token)) {
+          result.add(Need(need: token, reason: reason));
+        }
+      }
+    }
+
+    if (needsField is List) {
+      for (final item in needsField) {
+        if (item is Map) {
+          final text = item['need']?.toString() ??
+              item['name']?.toString() ??
+              item['value']?.toString() ??
+              '';
+          final reason = item['reason']?.toString() ?? '';
+          if (text.isNotEmpty) {
+            appendNeed(text, reason);
+          }
+        } else if (item != null) {
+          appendNeed(item.toString(), '');
+        }
+      }
+    } else if (needsField is String) {
+      appendNeed(needsField, '');
+    }
+
+    return result;
+  }
+
   /// 灵活解析NVC JSON（支持多种字段名和格式）
   NVCAnalysis _parseFlexibleNVCJson(
     Map<String, dynamic> json,
@@ -645,71 +749,11 @@ class CozeAIService {
       observation = originalText;
     }
 
-    // 感受：支持List和String格式，转换为Feeling对象
-    List<Feeling> feelings = [];
+    // 感受/需要：如果返回值中包含分隔符，自动拆为多个独立标签
     final feelingsField = json['feelings'] ?? json['感受'] ?? json['情绪'];
-    if (feelingsField is List) {
-      feelings = feelingsField.map((e) {
-        if (e is Map) {
-          // 如果是对象格式，尝试解析
-          try {
-            return Feeling.fromJson(e as Map<String, dynamic>);
-          } catch (_) {
-            // 解析失败，创建简化版
-            return Feeling(
-              feeling: e['feeling']?.toString() ?? e.toString(),
-              intensity: IntensityLevel.medium,
-            );
-          }
-        } else {
-          // 如果是字符串，创建默认强度的Feeling
-          return Feeling(
-            feeling: e.toString(),
-            intensity: IntensityLevel.medium,
-          );
-        }
-      }).toList();
-    } else if (feelingsField is String) {
-      feelings = [
-        Feeling(
-          feeling: feelingsField,
-          intensity: IntensityLevel.medium,
-        )
-      ];
-    }
-
-    // 需要：支持List和String格式，转换为Need对象
-    List<Need> needs = [];
     final needsField = json['needs'] ?? json['需要'] ?? json['需求'];
-    if (needsField is List) {
-      needs = needsField.map((e) {
-        if (e is Map) {
-          // 如果是对象格式，尝试解析
-          try {
-            return Need.fromJson(e as Map<String, dynamic>);
-          } catch (_) {
-            // 解析失败，创建简化版
-            return Need(
-              need: e['need']?.toString() ?? e.toString(),
-              reason: e['reason']?.toString() ?? '',
-            );
-          }
-        } else {
-          // 如果是字符串，创建默认Need
-          return Need(
-            need: e.toString(),
-            reason: '',
-          );
-        }
-      }).toList();
-    } else if (needsField is String) {
-      needs = [
-        Need(
-          need: needsField,
-          reason: '',
-        )
-      ];
-    }
+    final feelings = _normalizeFeelingsField(feelingsField);
+    final needs = _normalizeNeedsField(needsField);
 
     // 请求：支持多种字段名和格式
     String? request;

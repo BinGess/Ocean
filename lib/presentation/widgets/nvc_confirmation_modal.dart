@@ -57,11 +57,11 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
   void initState() {
     super.initState();
     _observation = _stripSquareBrackets(widget.initialAnalysis.observation);
-    _feelings = List.from(widget.initialAnalysis.feelings);
-    _needs = List.from(widget.initialAnalysis.needs);
+    _feelings = _normalizeFeelings(widget.initialAnalysis.feelings);
+    _needs = _normalizeNeeds(widget.initialAnalysis.needs);
     _insight = widget.initialAnalysis.request ??
-               widget.initialAnalysis.insight ??
-               '尝试在双方情绪平稳时，以"我"开头表达感受，而非指责。';
+        widget.initialAnalysis.insight ??
+        '尝试在双方情绪平稳时，以"我"开头表达感受，而非指责。';
   }
 
   String _stripSquareBrackets(String value) {
@@ -70,6 +70,50 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
       text = text.substring(1, text.length - 1).trim();
     }
     return text;
+  }
+
+  List<String> _splitTags(String raw) {
+    final cleaned = raw
+        .trim()
+        .replaceAll(RegExp(r'^[\[\(\{（【\s]+|[\]\)\}）】\s]+$'), '')
+        .replaceAll('“', '')
+        .replaceAll('”', '')
+        .replaceAll('"', '');
+
+    if (cleaned.isEmpty) return [];
+
+    return cleaned
+        .split(RegExp(r'[，,、；;|/\\\n]+'))
+        .map((e) => e.trim())
+        .map((e) => e.replaceFirst(RegExp(r'^\d+\s*[.、\-)\]]\s*'), ''))
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+
+  List<Feeling> _normalizeFeelings(List<Feeling> source) {
+    final seen = <String>{};
+    final result = <Feeling>[];
+    for (final item in source) {
+      for (final token in _splitTags(item.feeling)) {
+        if (seen.add(token)) {
+          result.add(Feeling(feeling: token, intensity: item.intensity));
+        }
+      }
+    }
+    return result;
+  }
+
+  List<Need> _normalizeNeeds(List<Need> source) {
+    final seen = <String>{};
+    final result = <Need>[];
+    for (final item in source) {
+      for (final token in _splitTags(item.need)) {
+        if (seen.add(token)) {
+          result.add(Need(need: token, reason: item.reason));
+        }
+      }
+    }
+    return result;
   }
 
   void _handleConfirm() {
@@ -130,10 +174,12 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     );
     if (result != null) {
       setState(() {
-        _feelings = result.map((tag) => Feeling(
-          feeling: tag,
-          intensity: IntensityLevel.medium,
-        )).toList();
+        _feelings = _normalizeFeelings(result
+            .map((tag) => Feeling(
+                  feeling: tag,
+                  intensity: IntensityLevel.medium,
+                ))
+            .toList());
       });
     }
   }
@@ -149,12 +195,10 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     );
     if (result != null && result.isNotEmpty) {
       setState(() {
-        // 用顿号或逗号分隔
-        final needsList = result.split(RegExp(r'[、,，]')).map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-        _needs = needsList.map((need) => Need(
-          need: need,
-          reason: '',
-        )).toList();
+        final parsedNeeds = _splitTags(result)
+            .map((need) => Need(need: need, reason: ''))
+            .toList();
+        _needs = _normalizeNeeds(parsedNeeds);
       });
     }
   }
@@ -313,7 +357,8 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
 
     // 格式化日期时间
     final now = DateTime.now();
-    final dateStr = '${now.month}月${now.day}日·${now.hour < 12 ? "上午" : "下午"}${now.hour > 12 ? now.hour - 12 : now.hour}:${now.minute.toString().padLeft(2, '0')}';
+    final dateStr =
+        '${now.month}月${now.day}日·${now.hour < 12 ? "上午" : "下午"}${now.hour > 12 ? now.hour - 12 : now.hour}:${now.minute.toString().padLeft(2, '0')}';
 
     return Container(
       height: size.height * 0.95,
@@ -331,7 +376,8 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back_ios, size: 20, color: Color(0xFF2C2C2C)),
+                  icon: const Icon(Icons.arrow_back_ios,
+                      size: 20, color: Color(0xFF2C2C2C)),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
                 Text(
@@ -352,14 +398,16 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                           context: context,
                           record: widget.record!,
                         ),
-                        icon: const Icon(Icons.share_outlined, size: 22, color: Color(0xFFC4A57B)),
+                        icon: const Icon(Icons.share_outlined,
+                            size: 22, color: Color(0xFFC4A57B)),
                         tooltip: '分享',
                       ),
                       const SizedBox(width: 4),
                     ],
                     IconButton(
                       onPressed: _handleDelete,
-                      icon: const Icon(Icons.delete_outline, size: 22, color: Color(0xFFFF3B30)),
+                      icon: const Icon(Icons.delete_outline,
+                          size: 22, color: Color(0xFFFF3B30)),
                       tooltip: '删除',
                     ),
                   ],
@@ -399,7 +447,8 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                   // 洞察标签
                   Row(
                     children: [
-                      const Icon(Icons.auto_awesome, size: 16, color: Color(0xFFC4A57B)),
+                      const Icon(Icons.auto_awesome,
+                          size: 16, color: Color(0xFFC4A57B)),
                       const SizedBox(width: 6),
                       const Text(
                         '洞察',
@@ -444,25 +493,28 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                     content: Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: _feelings.map((f) => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: const Color(0xFFE0D5C5),
-                            width: 1,
-                          ),
-                        ),
-                        child: Text(
-                          f.feeling,
-                          style: const TextStyle(
-                            color: Color(0xFF5D4E3C),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      )).toList(),
+                      children: _feelings
+                          .map((f) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.transparent,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: const Color(0xFFE0D5C5),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  f.feeling,
+                                  style: const TextStyle(
+                                    color: Color(0xFF5D4E3C),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ))
+                          .toList(),
                     ),
                     onEdit: _editFeelings,
                   ),
@@ -758,7 +810,8 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                   runSpacing: 8,
                   children: _selectedTags.map((tag) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: widget.iconBgColor,
                         borderRadius: BorderRadius.circular(16),
@@ -815,12 +868,17 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                         return GestureDetector(
                           onTap: () => _toggleTag(tag),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
-                              color: isSelected ? widget.iconBgColor : Colors.white,
+                              color: isSelected
+                                  ? widget.iconBgColor
+                                  : Colors.white,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: isSelected ? widget.iconColor : const Color(0xFFE0E0E0),
+                                color: isSelected
+                                    ? widget.iconColor
+                                    : const Color(0xFFE0E0E0),
                                 width: 1,
                               ),
                             ),
@@ -828,8 +886,12 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                               tag,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: isSelected ? widget.iconColor : const Color(0xFF4A4A4A),
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                color: isSelected
+                                    ? widget.iconColor
+                                    : const Color(0xFF4A4A4A),
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
                               ),
                             ),
                           ),
@@ -887,7 +949,8 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                       ),
                       decoration: InputDecoration(
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
                         hintText: '输入并添加...',
                         hintStyle: TextStyle(
                           color: Colors.grey[400],
@@ -979,7 +1042,7 @@ class _TagEditDialogState extends State<_TagEditDialog> {
 /// NVC弹窗动作枚举
 enum NVCModalAction {
   confirm, // 确认保存
-  delete,  // 删除记录
+  delete, // 删除记录
 }
 
 /// NVC弹窗返回结果

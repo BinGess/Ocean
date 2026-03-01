@@ -11,14 +11,14 @@ abstract class RecordEvent extends Equatable {
 
 /// 创建快速笔记
 class RecordCreateQuickNote extends RecordEvent {
-  final String audioPath;
+  final String? audioPath;
   final ProcessingMode mode;
   final List<String>? selectedMoods;
   final String? transcription;
   final NVCAnalysis? nvcAnalysis;
 
   const RecordCreateQuickNote({
-    required this.audioPath,
+    this.audioPath,
     required this.mode,
     this.selectedMoods,
     this.transcription,
@@ -26,7 +26,8 @@ class RecordCreateQuickNote extends RecordEvent {
   });
 
   @override
-  List<Object?> get props => [audioPath, mode, selectedMoods, transcription, nvcAnalysis];
+  List<Object?> get props =>
+      [audioPath, mode, selectedMoods, transcription, nvcAnalysis];
 }
 
 /// 分析 NVC
