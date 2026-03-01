@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import '../../../domain/entities/nvc_analysis.dart';
+import '../../domain/entities/nvc_analysis.dart';
+import '../../domain/entities/record.dart';
 import 'delete_confirmation_dialog.dart';
+import '../screens/share/share_poster_screen.dart';
 
 class NVCConfirmationModal extends StatefulWidget {
   final NVCAnalysis initialAnalysis;
   final String transcription;
   final Function(NVCAnalysis) onConfirm;
   final VoidCallback? onRevert;
+  final Record? record; // 可选的完整记录，用于分享
 
   const NVCConfirmationModal({
     super.key,
@@ -14,6 +17,7 @@ class NVCConfirmationModal extends StatefulWidget {
     required this.transcription,
     required this.onConfirm,
     this.onRevert,
+    this.record,
   });
 
   @override
@@ -24,6 +28,7 @@ class NVCConfirmationModal extends StatefulWidget {
     required NVCAnalysis initialAnalysis,
     required String transcription,
     VoidCallback? onRevert,
+    Record? record,
   }) {
     return showModalBottomSheet<NVCModalResult>(
       context: context,
@@ -36,6 +41,7 @@ class NVCConfirmationModal extends StatefulWidget {
           NVCModalResult(action: NVCModalAction.confirm, analysis: analysis),
         ),
         onRevert: onRevert,
+        record: record,
       ),
     );
   }
@@ -51,11 +57,11 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
   void initState() {
     super.initState();
     _observation = _stripSquareBrackets(widget.initialAnalysis.observation);
-    _feelings = List.from(widget.initialAnalysis.feelings);
-    _needs = List.from(widget.initialAnalysis.needs);
-    _insight = widget.initialAnalysis.insight ??
-               widget.initialAnalysis.request ??
-               '尝试在双方情绪平稳时，以"我"开头表达感受，而非指责。';
+    _feelings = _normalizeFeelings(widget.initialAnalysis.feelings);
+    _needs = _normalizeNeeds(widget.initialAnalysis.needs);
+    _insight = widget.initialAnalysis.request ??
+        widget.initialAnalysis.insight ??
+        '尝试在双方情绪平稳时，以"我"开头表达感受，而非指责。';
   }
 
   String _stripSquareBrackets(String value) {
@@ -66,12 +72,56 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     return text;
   }
 
+  List<String> _splitTags(String raw) {
+    final cleaned = raw
+        .trim()
+        .replaceAll(RegExp(r'^[\[\(\{（【\s]+|[\]\)\}）】\s]+$'), '')
+        .replaceAll('“', '')
+        .replaceAll('”', '')
+        .replaceAll('"', '');
+
+    if (cleaned.isEmpty) return [];
+
+    return cleaned
+        .split(RegExp(r'[，,、；;|/\\\n]+'))
+        .map((e) => e.trim())
+        .map((e) => e.replaceFirst(RegExp(r'^\d+\s*[.、\-)\]]\s*'), ''))
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+
+  List<Feeling> _normalizeFeelings(List<Feeling> source) {
+    final seen = <String>{};
+    final result = <Feeling>[];
+    for (final item in source) {
+      for (final token in _splitTags(item.feeling)) {
+        if (seen.add(token)) {
+          result.add(Feeling(feeling: token, intensity: item.intensity));
+        }
+      }
+    }
+    return result;
+  }
+
+  List<Need> _normalizeNeeds(List<Need> source) {
+    final seen = <String>{};
+    final result = <Need>[];
+    for (final item in source) {
+      for (final token in _splitTags(item.need)) {
+        if (seen.add(token)) {
+          result.add(Need(need: token, reason: item.reason));
+        }
+      }
+    }
+    return result;
+  }
+
   void _handleConfirm() {
     final updatedAnalysis = widget.initialAnalysis.copyWith(
       observation: _observation,
       feelings: _feelings,
       needs: _needs,
-      insight: _insight,
+      request: _insight,
       analyzedAt: DateTime.now(),
     );
     widget.onConfirm(updatedAnalysis);
@@ -91,8 +141,8 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     final result = await _showEditDialog(
       title: '编辑事实观察',
       initialValue: _observation,
-      iconColor: const Color(0xFF007AFF),
-      iconBgColor: const Color(0xFFE8F4FD),
+      iconColor: const Color(0xFF4CAF50),
+      iconBgColor: const Color(0xFFE8F5E9),
       icon: Icons.remove_red_eye_outlined,
     );
     if (result != null) {
@@ -104,8 +154,8 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     final result = await _showEditDialog(
       title: '编辑行动 Tips',
       initialValue: _insight,
-      iconColor: const Color(0xFFAF52DE),
-      iconBgColor: const Color(0xFFF3EBFF),
+      iconColor: const Color(0xFFFFB300),
+      iconBgColor: const Color(0xFFFFF8E1),
       icon: Icons.lightbulb_outline,
     );
     if (result != null) {
@@ -124,10 +174,12 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     );
     if (result != null) {
       setState(() {
-        _feelings = result.map((tag) => Feeling(
-          feeling: tag,
-          intensity: IntensityLevel.medium,
-        )).toList();
+        _feelings = _normalizeFeelings(result
+            .map((tag) => Feeling(
+                  feeling: tag,
+                  intensity: IntensityLevel.medium,
+                ))
+            .toList());
       });
     }
   }
@@ -143,12 +195,10 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     );
     if (result != null && result.isNotEmpty) {
       setState(() {
-        // 用顿号或逗号分隔
-        final needsList = result.split(RegExp(r'[、,，]')).map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-        _needs = needsList.map((need) => Need(
-          need: need,
-          reason: '',
-        )).toList();
+        final parsedNeeds = _splitTags(result)
+            .map((need) => Need(need: need, reason: ''))
+            .toList();
+        _needs = _normalizeNeeds(parsedNeeds);
       });
     }
   }
@@ -255,7 +305,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                     child: TextButton(
                       onPressed: () => Navigator.pop(context, controller.text),
                       style: TextButton.styleFrom(
-                        backgroundColor: const Color(0xFF007AFF),
+                        backgroundColor: const Color(0xFFC4A57B),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -307,7 +357,8 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
 
     // 格式化日期时间
     final now = DateTime.now();
-    final dateStr = '${now.month}月${now.day}日·${now.hour < 12 ? "上午" : "下午"}${now.hour > 12 ? now.hour - 12 : now.hour}:${now.minute.toString().padLeft(2, '0')}';
+    final dateStr =
+        '${now.month}月${now.day}日·${now.hour < 12 ? "上午" : "下午"}${now.hour > 12 ? now.hour - 12 : now.hour}:${now.minute.toString().padLeft(2, '0')}';
 
     return Container(
       height: size.height * 0.95,
@@ -325,7 +376,8 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back_ios, size: 20, color: Color(0xFF2C2C2C)),
+                  icon: const Icon(Icons.arrow_back_ios,
+                      size: 20, color: Color(0xFF2C2C2C)),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
                 Text(
@@ -336,16 +388,29 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                TextButton(
-                  onPressed: _handleDelete,
-                  child: const Text(
-                    '删除',
-                    style: TextStyle(
-                      color: Color(0xFFFF3B30),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 分享按钮（删除左侧，始终显示以保持入口统一）
+                    if (widget.record != null) ...[
+                      IconButton(
+                        onPressed: () => SharePosterScreen.show(
+                          context: context,
+                          record: widget.record!,
+                        ),
+                        icon: const Icon(Icons.share_outlined,
+                            size: 22, color: Color(0xFFC4A57B)),
+                        tooltip: '分享',
+                      ),
+                      const SizedBox(width: 4),
+                    ],
+                    IconButton(
+                      onPressed: _handleDelete,
+                      icon: const Icon(Icons.delete_outline,
+                          size: 22, color: Color(0xFFFF3B30)),
+                      tooltip: '删除',
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -364,7 +429,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFF9E6), // 浅黄色背景
+                      color: const Color(0xFFF7F0E8), // 米色背景
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -382,14 +447,15 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                   // 洞察标签
                   Row(
                     children: [
-                      Icon(Icons.auto_awesome_outlined, size: 16, color: Colors.grey[400]),
+                      const Icon(Icons.auto_awesome,
+                          size: 16, color: Color(0xFFC4A57B)),
                       const SizedBox(width: 6),
-                      Text(
+                      const Text(
                         '洞察',
                         style: TextStyle(
-                          color: Colors.grey[500],
+                          color: Color(0xFFC4A57B),
                           fontSize: 13,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -397,12 +463,12 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
 
                   const SizedBox(height: 12),
 
-                  // 1. 事实观察（带蓝色边框）
+                  // 1. 事实观察
                   _buildNVCCard(
                     context: context,
                     icon: Icons.remove_red_eye_outlined,
-                    iconColor: const Color(0xFF007AFF),
-                    iconBgColor: const Color(0xFFE8F4FD),
+                    iconColor: const Color(0xFF4CAF50),
+                    iconBgColor: const Color(0xFFE8F5E9),
                     title: '事实观察',
                     content: Text(
                       _observation,
@@ -413,7 +479,6 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                       ),
                     ),
                     onEdit: _editObservation,
-                    highlighted: true,
                   ),
 
                   const SizedBox(height: 12),
@@ -428,21 +493,28 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                     content: Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: _feelings.map((f) => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFF4E6), // 浅黄色
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          f.feeling,
-                          style: const TextStyle(
-                            color: Color(0xFFCC7A00),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      )).toList(),
+                      children: _feelings
+                          .map((f) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.transparent,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: const Color(0xFFE0D5C5),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  f.feeling,
+                                  style: const TextStyle(
+                                    color: Color(0xFF5D4E3C),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ))
+                          .toList(),
                     ),
                     onEdit: _editFeelings,
                   ),
@@ -473,9 +545,9 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                   _buildNVCCard(
                     context: context,
                     icon: Icons.lightbulb_outline,
-                    iconColor: const Color(0xFFAF52DE),
-                    iconBgColor: const Color(0xFFF3EBFF),
-                    title: '行动Tips',
+                    iconColor: const Color(0xFFFFB300),
+                    iconBgColor: const Color(0xFFFFF8E1),
+                    title: '行动 Tips',
                     content: Text(
                       _insight,
                       style: const TextStyle(
@@ -513,7 +585,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                 child: TextButton(
                   onPressed: _handleConfirm,
                   style: TextButton.styleFrom(
-                    backgroundColor: const Color(0xFF5A9FD4),
+                    backgroundColor: const Color(0xFFC4A57B),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -544,25 +616,19 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     required String title,
     required Widget content,
     required VoidCallback onEdit,
-    bool highlighted = false,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: highlighted
-            ? Border.all(color: const Color(0xFF007AFF), width: 2)
-            : null,
-        boxShadow: highlighted
-            ? [
-                BoxShadow(
-                  color: const Color(0xFF007AFF).withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -744,7 +810,8 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                   runSpacing: 8,
                   children: _selectedTags.map((tag) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: widget.iconBgColor,
                         borderRadius: BorderRadius.circular(16),
@@ -801,12 +868,17 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                         return GestureDetector(
                           onTap: () => _toggleTag(tag),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
-                              color: isSelected ? widget.iconBgColor : Colors.white,
+                              color: isSelected
+                                  ? widget.iconBgColor
+                                  : Colors.white,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: isSelected ? widget.iconColor : const Color(0xFFE0E0E0),
+                                color: isSelected
+                                    ? widget.iconColor
+                                    : const Color(0xFFE0E0E0),
                                 width: 1,
                               ),
                             ),
@@ -814,8 +886,12 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                               tag,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: isSelected ? widget.iconColor : const Color(0xFF4A4A4A),
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                color: isSelected
+                                    ? widget.iconColor
+                                    : const Color(0xFF4A4A4A),
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
                               ),
                             ),
                           ),
@@ -873,7 +949,8 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                       ),
                       decoration: InputDecoration(
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
                         hintText: '输入并添加...',
                         hintStyle: TextStyle(
                           color: Colors.grey[400],
@@ -937,7 +1014,7 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                   child: TextButton(
                     onPressed: () => Navigator.pop(context, _selectedTags),
                     style: TextButton.styleFrom(
-                      backgroundColor: const Color(0xFF007AFF),
+                      backgroundColor: const Color(0xFFC4A57B),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -965,7 +1042,7 @@ class _TagEditDialogState extends State<_TagEditDialog> {
 /// NVC弹窗动作枚举
 enum NVCModalAction {
   confirm, // 确认保存
-  delete,  // 删除记录
+  delete, // 删除记录
 }
 
 /// NVC弹窗返回结果

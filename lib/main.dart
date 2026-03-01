@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/theme/app_theme.dart';
 import 'core/di/injection.dart';
+import 'core/services/app_lock_service.dart';
 import 'presentation/bloc/audio/audio_bloc.dart';
 import 'presentation/bloc/audio/audio_event.dart';
 import 'presentation/bloc/record/record_bloc.dart';
@@ -15,6 +16,8 @@ import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/records/records_screen.dart';
 import 'presentation/screens/insights/insights_screen.dart';
 import 'presentation/screens/splash/splash_screen.dart';
+import 'presentation/screens/app_lock/lock_screen.dart';
+import 'presentation/widgets/app_lock/privacy_blur_overlay.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,8 +46,7 @@ class MindFlowApp extends StatelessWidget {
       providers: [
         // 全局 BLoC 提供者
         BlocProvider(
-          create: (context) => getIt<AudioBloc>()
-            ..add(const AudioCheckPermission()),
+          create: (context) => getIt<AudioBloc>(),
         ),
         BlocProvider(
           create: (context) => getIt<RecordBloc>(),
@@ -65,7 +67,7 @@ class MindFlowApp extends StatelessWidget {
   }
 }
 
-/// 应用入口点 - 管理开屏页到主导航的切换
+/// 应用入口点 - 管理开屏页到主导航的切换，以及应用锁
 class AppEntryPoint extends StatefulWidget {
   const AppEntryPoint({super.key});
 
@@ -73,14 +75,112 @@ class AppEntryPoint extends StatefulWidget {
   State<AppEntryPoint> createState() => _AppEntryPointState();
 }
 
-class _AppEntryPointState extends State<AppEntryPoint> {
+class _AppEntryPointState extends State<AppEntryPoint>
+    with WidgetsBindingObserver {
   bool _showSplash = true;
+  bool _showLockScreen = false;
+  bool _showPrivacyBlur = false;
+  bool _isCheckingLock = false;
+
+  final _appLockService = getIt<AppLockService>();
 
   @override
   void initState() {
     super.initState();
-    // 开屏期间预先请求权限和预热资源
-    _requestPermissionsAndWarmUp();
+    WidgetsBinding.instance.addObserver(this);
+    // 注：不再在 initState 中请求权限，而是在 splash 结束后按顺序请求
+    // 延迟检查锁屏，确保 widget 树已完成构建
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _checkLockOnStart();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        // App 进入后台或失去焦点
+        _onAppBackground();
+        break;
+      case AppLifecycleState.resumed:
+        // App 恢复到前台
+        _onAppForeground();
+        break;
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        break;
+    }
+  }
+
+  Future<void> _checkLockOnStart() async {
+    if (_isCheckingLock) return;
+    _isCheckingLock = true;
+
+    try {
+      final shouldLock = await _appLockService.shouldShowLockScreen();
+      if (shouldLock && mounted) {
+        setState(() {
+          _showLockScreen = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('AppEntryPoint: 检查锁屏失败: $e');
+    } finally {
+      _isCheckingLock = false;
+    }
+  }
+
+  void _onAppBackground() async {
+    try {
+      _appLockService.onAppBackground();
+      // 显示隐私遮罩
+      final isEnabled = await _appLockService.isEnabled;
+      if (isEnabled && mounted) {
+        setState(() {
+          _showPrivacyBlur = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('AppEntryPoint: 处理后台切换失败: $e');
+    }
+  }
+
+  void _onAppForeground() async {
+    // 隐藏隐私遮罩
+    if (mounted) {
+      setState(() {
+        _showPrivacyBlur = false;
+      });
+    }
+
+    try {
+      // 检查是否需要显示锁屏
+      final shouldLock = await _appLockService.shouldShowLockScreen();
+      if (shouldLock && mounted) {
+        setState(() {
+          _showLockScreen = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('AppEntryPoint: 检查前台锁屏失败: $e');
+    }
+  }
+
+  void _onUnlocked() {
+    setState(() {
+      _showLockScreen = false;
+    });
   }
 
   /// 请求权限并预热资源
@@ -100,38 +200,63 @@ class _AppEntryPointState extends State<AppEntryPoint> {
 
       // 预热录音资源
       audioBloc.add(const AudioWarmUp());
+
+      // 麦克风权限请求后再触发网络权限弹窗（延迟足够时间让用户处理音频权限）
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        _triggerNetworkPermission();
+      });
     });
   }
 
   /// 触发网络权限
   /// iOS 首次发起网络请求时会弹出"是否允许使用无线数据"对话框
   void _triggerNetworkPermission() {
-    // 使用 Dio 发起一个简单的 GET 请求触发 iOS 网络权限弹窗
+    // 向 ASR 服务器域名发起请求，确保与后续 WebSocket 连接使用同一域名
+    // 这样 iOS 只会弹出一次网络权限对话框
     final dio = Dio(BaseOptions(
       connectTimeout: const Duration(seconds: 5),
       receiveTimeout: const Duration(seconds: 5),
     ));
 
-    // 不等待结果，仅触发网络请求
-    dio.get('https://www.apple.com/library/test/success.html').then((_) {
+    // 使用 ASR 服务的域名（与 WebSocket 连接同域名）
+    dio.get('https://openspeech.bytedance.com').then((_) {
       dio.close();
     }).catchError((_) {
       dio.close();
     });
   }
 
-  void _onSplashComplete() {
+  void _onSplashComplete() async {
     setState(() {
       _showSplash = false;
     });
+
+    // Splash 结束后，直接请求麦克风权限和预热
+    if (mounted) {
+      _requestPermissionsAndWarmUp();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    // 开屏页
     if (_showSplash) {
       return SplashScreen(onComplete: _onSplashComplete);
     }
-    return const MainNavigation();
+
+    // 主内容 + 锁屏层 + 隐私遮罩层
+    return Stack(
+      children: [
+        // 主导航
+        const MainNavigation(),
+
+        // 锁屏界面
+        if (_showLockScreen) LockScreen(onUnlocked: _onUnlocked),
+
+        // 隐私遮罩（后台防窥）
+        if (_showPrivacyBlur && !_showLockScreen) const PrivacyBlurOverlay(),
+      ],
+    );
   }
 }
 
@@ -174,18 +299,24 @@ class _MainNavigationState extends State<MainNavigation> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFFF7F4F0),
+          border: const Border(
+            top: BorderSide(
+              color: Color(0xFFE9E1D7),
+              width: 0.7,
+            ),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
+              color: const Color(0xFF6E5A45).withValues(alpha: 0.02),
+              blurRadius: 6,
+              offset: const Offset(0, -1),
             ),
           ],
         ),
         child: SafeArea(
           child: SizedBox(
-            height: 72,  // 增加高度以提供更大的点击区域
+            height: 72, // 增加高度以提供更大的点击区域
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -228,7 +359,7 @@ class _MainNavigationState extends State<MainNavigation> {
     required String label,
   }) {
     final isActive = _currentIndex == index;
-    final color = isActive ? const Color(0xFFC4A57B) : const Color(0xFFB8B8B8);
+    final color = isActive ? const Color(0xFFAD8558) : const Color(0xFFA19180);
 
     return GestureDetector(
       onTap: () {
@@ -247,14 +378,14 @@ class _MainNavigationState extends State<MainNavigation> {
           children: [
             Icon(
               isActive ? activeIcon : icon,
-              size: 26,  // 稍微增大图标
+              size: 26, // 稍微增大图标
               color: color,
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                fontSize: 12,  // 稍微增大字体
+                fontSize: 12, // 稍微增大字体
                 color: color,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
               ),

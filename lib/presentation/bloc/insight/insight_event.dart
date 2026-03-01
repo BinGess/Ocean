@@ -11,7 +11,13 @@ abstract class InsightEvent extends Equatable {
 
 /// 生成当前周洞察（强制刷新，不检查缓存）
 class InsightGenerateCurrentWeek extends InsightEvent {
-  const InsightGenerateCurrentWeek();
+  /// 为 true 时，生成期间保留当前内容，仅更新右上角刷新态
+  final bool preserveCurrentContent;
+
+  const InsightGenerateCurrentWeek({this.preserveCurrentContent = false});
+
+  @override
+  List<Object?> get props => [preserveCurrentContent];
 }
 
 /// 加载当前周洞察（优先使用缓存）

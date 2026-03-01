@@ -1,5 +1,6 @@
 /// 依赖注入配置
 /// 使用 get_it 进行依赖管理
+library;
 
 import 'package:get_it/get_it.dart';
 import '../../domain/repositories/audio_repository.dart';
@@ -16,12 +17,18 @@ import '../../data/repositories/audio_repository_impl.dart';
 import '../../data/repositories/record_repository_impl.dart';
 import '../../data/repositories/ai_repository_impl.dart';
 import '../../data/repositories/insight_repository_impl.dart';
+import '../../data/repositories/quotes_repository.dart';
 import '../../data/datasources/local/hive_database.dart';
 import '../../data/datasources/remote/doubao_datasource.dart';
 import '../network/doubao_asr_client.dart';
 import '../network/doubao_llm_client.dart';
 import '../network/coze_ai_service.dart';
 import '../constants/app_constants.dart';
+import '../services/app_lock_service.dart';
+import '../services/ai_auth_service.dart';
+import '../services/home_background_theme_service.dart';
+import '../services/quote_preloader.dart';
+import '../services/quote_update_manager.dart';
 import '../../presentation/bloc/audio/audio_bloc.dart';
 import '../../presentation/bloc/record/record_bloc.dart';
 import '../../presentation/bloc/insight/insight_bloc.dart';
@@ -50,12 +57,33 @@ Future<void> configureDependencies() async {
     () => CozeAIService(),
   );
 
+  // ===== Services =====
+
+  // 应用锁服务
+  final appLockService = AppLockService();
+  await appLockService.init();
+  getIt.registerSingleton<AppLockService>(appLockService);
+
+  // AI授权服务
+  final aiAuthService = AIAuthService();
+  await aiAuthService.init();
+  getIt.registerSingleton<AIAuthService>(aiAuthService);
+
   // ===== Data Sources =====
 
   // Hive 数据库
   final hiveDatabase = HiveDatabase();
   await hiveDatabase.init();
   getIt.registerSingleton<HiveDatabase>(hiveDatabase);
+
+  // 首页背景主题服务（A/B 方案切换）
+  final homeBackgroundThemeService = HomeBackgroundThemeService(
+    hiveDatabase: hiveDatabase,
+  );
+  await homeBackgroundThemeService.init();
+  getIt.registerSingleton<HomeBackgroundThemeService>(
+    homeBackgroundThemeService,
+  );
 
   // 豆包远程数据源
   getIt.registerLazySingleton<DoubaoDataSource>(
@@ -91,6 +119,28 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<InsightRepository>(
     () => InsightRepositoryImpl(
       database: getIt<HiveDatabase>(),
+    ),
+  );
+
+  // 文案仓储
+  getIt.registerLazySingleton<QuotesRepository>(
+    () => QuotesRepository(
+      hiveDatabase: getIt<HiveDatabase>(),
+    ),
+  );
+
+  // 文案预加载器（离线模式支持）
+  getIt.registerLazySingleton<QuotePreloader>(
+    () => QuotePreloader(
+      quotesRepository: getIt<QuotesRepository>(),
+    ),
+  );
+
+  // 文案更新管理器（版本控制和定期更新）
+  getIt.registerLazySingleton<QuoteUpdateManager>(
+    () => QuoteUpdateManager(
+      quotesRepository: getIt<QuotesRepository>(),
+      hiveDatabase: getIt<HiveDatabase>(),
     ),
   );
 
@@ -160,6 +210,7 @@ Future<void> configureDependencies() async {
       updateRecordUseCase: getIt<UpdateRecordUseCase>(),
       recordRepository: getIt<RecordRepository>(),
       aiRepository: getIt<AIRepository>(),
+      aiAuthService: getIt<AIAuthService>(),
     ),
   );
 
@@ -170,6 +221,7 @@ Future<void> configureDependencies() async {
       generateInsightReportUseCase: getIt<GenerateInsightReportUseCase>(),
       getWeeklyInsightsUseCase: getIt<GetWeeklyInsightsUseCase>(),
       insightRepository: getIt<InsightRepository>(),
+      aiAuthService: getIt<AIAuthService>(),
     ),
   );
 }
@@ -178,6 +230,11 @@ Future<void> configureDependencies() async {
 Future<void> cleanupDependencies() async {
   // 清理 BLoC
   // 注意：BLoC 由 Flutter 的 BlocProvider 管理生命周期
+
+  // 清理服务
+  getIt<AppLockService>().dispose();
+  getIt<AIAuthService>().dispose();
+  getIt<HomeBackgroundThemeService>().dispose();
 
   // 清理网络客户端
   getIt<DoubaoLLMClient>().dispose();

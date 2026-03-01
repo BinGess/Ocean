@@ -1,11 +1,10 @@
 /// 豆包 LLM (大语言模型) 客户端
 /// 用于 NVC 分析和周洞察生成
+library;
 
 import 'dart:convert';
 import 'package:dio/dio.dart';
-import '../constants/app_constants.dart';
 import '../../domain/entities/record.dart';
-import '../../domain/entities/weekly_insight.dart';
 
 /// LLM 响应
 class LLMResponse {

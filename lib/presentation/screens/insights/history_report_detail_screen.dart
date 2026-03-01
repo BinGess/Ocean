@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../domain/entities/insight_report.dart';
+import '../share/share_insight_screen.dart';
 
 class HistoryReportDetailScreen extends StatelessWidget {
   final InsightReport report;
@@ -33,6 +34,34 @@ class HistoryReportDetailScreen extends StatelessWidget {
           ),
         ),
         centerTitle: true,
+        actions: [
+          // 分享按钮
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => ShareInsightScreen.show(
+                context: context,
+                report: report,
+              ),
+              borderRadius: BorderRadius.circular(8),
+              splashColor: const Color(0xFFC4A57B).withValues(alpha: 0.18),
+              highlightColor: const Color(0xFFC4A57B).withValues(alpha: 0.12),
+              child: Container(
+                margin: const EdgeInsets.only(right: 16),
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5EBE0),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.share_outlined,
+                  size: 18,
+                  color: Color(0xFFC4A57B),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       body: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -245,18 +274,11 @@ class HistoryReportDetailScreen extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFF8E7),
-            Color(0xFFFFF5E0),
-          ],
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFC4A57B).withOpacity(0.15),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -271,7 +293,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: const Color(0xFFFFF8E7),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -325,10 +347,10 @@ class HistoryReportDetailScreen extends StatelessWidget {
       final value = tagMap[key] ?? '{$key}';
       spans.add(TextSpan(
         text: value,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 15,
           height: 1.8,
-          color: key == 'trigger' ? const Color(0xFFE07B3E) : const Color(0xFF8B5CF6),
+          color: Color(0xFFC4A57B),
           fontWeight: FontWeight.w600,
         ),
       ));
@@ -357,7 +379,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F4F8),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -376,13 +398,13 @@ class HistoryReportDetailScreen extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: const Color(0xFFFFF8E7),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.lightbulb_outline,
                   size: 18,
-                  color: Color(0xFF4A90A4),
+                  color: Color(0xFFC4A57B),
                 ),
               ),
               const SizedBox(width: 12),
@@ -408,8 +430,14 @@ class HistoryReportDetailScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFFFDFC),
         borderRadius: BorderRadius.circular(12),
+        border: const Border(
+          left: BorderSide(
+            color: Color(0xFFC4A57B),
+            width: 2,
+          ),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

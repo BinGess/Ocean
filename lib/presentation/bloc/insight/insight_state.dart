@@ -11,6 +11,7 @@ enum InsightStatus {
   generating, // 生成中
   success, // 成功
   error, // 错误
+  needsAIAuth, // 需要AI授权
 }
 
 class InsightState extends Equatable {

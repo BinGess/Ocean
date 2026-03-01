@@ -1,5 +1,6 @@
 /// 记录数据模型（Hive）
 /// 用于本地存储的 Record 模型
+library;
 
 import 'package:hive/hive.dart';
 import '../../domain/entities/record.dart';

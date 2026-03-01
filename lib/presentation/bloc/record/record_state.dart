@@ -12,6 +12,7 @@ enum RecordStatus {
   analyzed, // 分析完成（等待确认）
   success, // 成功
   error, // 错误
+  needsAIAuth, // 需要AI授权
 }
 
 class RecordState extends Equatable {

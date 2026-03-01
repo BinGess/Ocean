@@ -49,8 +49,8 @@ class DeleteConfirmationDialog extends StatelessWidget {
             Container(
               width: 64,
               height: 64,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFEBEE),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFFEBEE),
                 shape: BoxShape.circle,
               ),
               child: const Icon(

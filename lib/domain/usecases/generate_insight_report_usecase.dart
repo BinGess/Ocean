@@ -21,8 +21,12 @@ class GenerateInsightReportParams {
   /// 为当前周创建参数
   factory GenerateInsightReportParams.forCurrentWeek() {
     final now = DateTime.now();
-    final weekStart = now.subtract(Duration(days: now.weekday - 1));
-    final weekEnd = weekStart.add(const Duration(days: 6));
+    // 计算本周一的日期，并重置时间为 00:00:00
+    final weekStartRaw = now.subtract(Duration(days: now.weekday - 1));
+    final weekStart = DateTime(weekStartRaw.year, weekStartRaw.month, weekStartRaw.day, 0, 0, 0);
+    // 计算本周日的日期，并设置时间为 23:59:59
+    final weekEndRaw = weekStart.add(const Duration(days: 6));
+    final weekEnd = DateTime(weekEndRaw.year, weekEndRaw.month, weekEndRaw.day, 23, 59, 59);
 
     final startStr =
         '${weekStart.year}-${weekStart.month.toString().padLeft(2, '0')}-${weekStart.day.toString().padLeft(2, '0')}';

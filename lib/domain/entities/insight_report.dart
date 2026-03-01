@@ -2,6 +2,8 @@
 
 /// 洞察报告实体
 /// 对应 Coze AI 智能体返回的洞察报告格式
+library;
+
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
@@ -125,6 +127,7 @@ class InsightRequestRecord with _$InsightRequestRecord {
   factory InsightRequestRecord.fromJson(Map<String, dynamic> json) =>
       _$InsightRequestRecordFromJson(json);
 
+  @override
   Map<String, dynamic> toJson() => {
     'record_time': recordTime,
     'content': content,

@@ -7,6 +7,7 @@ import '../../../domain/usecases/generate_weekly_insight_usecase.dart';
 import '../../../domain/usecases/generate_insight_report_usecase.dart';
 import '../../../domain/usecases/get_weekly_insights_usecase.dart';
 import '../../../domain/repositories/insight_repository.dart';
+import '../../../core/services/ai_auth_service.dart';
 import 'insight_event.dart';
 import 'insight_state.dart';
 
@@ -15,12 +16,14 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
   final GenerateInsightReportUseCase generateInsightReportUseCase;
   final GetWeeklyInsightsUseCase getWeeklyInsightsUseCase;
   final InsightRepository insightRepository;
+  final AIAuthService aiAuthService;
 
   InsightBloc({
     required this.generateWeeklyInsightUseCase,
     required this.generateInsightReportUseCase,
     required this.getWeeklyInsightsUseCase,
     required this.insightRepository,
+    required this.aiAuthService,
   }) : super(InsightState.initial()) {
     // 注册事件处理器
     on<InsightGenerateCurrentWeek>(_onGenerateCurrentWeek);
@@ -63,28 +66,36 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
       return;
     }
 
-    // 检查本地持久化缓存
+    // 检查本地持久化缓存（同一周的缓存整周有效，同一次安装内不重复请求）
     try {
       final cached = await insightRepository.getCachedInsightReport(currentWeekRange);
       if (cached != null) {
-        final now = DateTime.now();
-        if (now.difference(cached.cachedAt) < InsightState.cacheValidDuration) {
-          debugPrint('💾 InsightBloc: 使用本地缓存洞察报告 (${cached.cachedAt})');
-          emit(state.copyWith(
-            status: InsightStatus.success,
-            currentReport: cached.report,
-            lastFetchTime: cached.cachedAt,
-            currentWeekRange: currentWeekRange,
-            progressMessage: null,
-          ));
-          return;
-        }
+        debugPrint('💾 InsightBloc: 使用本地缓存洞察报告 (${cached.cachedAt}, 本周有效)');
+        emit(state.copyWith(
+          status: InsightStatus.success,
+          currentReport: cached.report,
+          lastFetchTime: cached.cachedAt,
+          currentWeekRange: currentWeekRange,
+          progressMessage: null,
+        ));
+        return;
       }
     } catch (_) {
       // 缓存读取失败不影响主流程
     }
 
-    debugPrint('🔄 InsightBloc: 缓存无效或过期，重新生成洞察');
+    // 检查AI授权状态 - 未授权时显示友好引导（不自动弹窗）
+    final isAuthorized = await aiAuthService.isAuthorized;
+    if (!isAuthorized) {
+      debugPrint('InsightBloc: 无缓存且未授权AI，显示授权引导');
+      emit(state.copyWith(
+        status: InsightStatus.needsAIAuth,
+        clearReport: true,
+      ));
+      return; // 显示引导页面，等待用户手动操作
+    }
+
+    debugPrint('🔄 InsightBloc: 无本地缓存，重新生成洞察');
     // 缓存无效，触发生成
     add(const InsightGenerateCurrentWeek());
   }
@@ -94,12 +105,24 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     InsightGenerateCurrentWeek event,
     Emitter<InsightState> emit,
   ) async {
+    // 1. 检查AI授权状态
+    final isAuthorized = await aiAuthService.isAuthorized;
+    if (!isAuthorized) {
+      debugPrint('InsightBloc: 需要AI授权');
+      emit(state.copyWith(
+        status: InsightStatus.needsAIAuth,
+        clearReport: !event.preserveCurrentContent,
+      ));
+      return; // 显示引导页面，等待用户授权
+    }
+
+    // 2. 已授权，继续生成逻辑
     final currentWeekRange = _getCurrentWeekRange();
 
     emit(state.copyWith(
       status: InsightStatus.generating,
       progressMessage: '正在分析本周记录...',
-      clearReport: true,
+      clearReport: !event.preserveCurrentContent,
     ));
 
     try {

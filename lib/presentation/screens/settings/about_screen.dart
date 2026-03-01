@@ -57,9 +57,9 @@ class AboutScreen extends StatelessWidget {
             height: 64,
           ),
           const SizedBox(height: 12),
-          Text(
+          const Text(
             AppConstants.appName,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
               color: Color(0xFF2C2C2C),
@@ -74,9 +74,9 @@ class AboutScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Text(
+          const Text(
             '版本号 ${AppConstants.appVersion}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               color: Color(0xFFB0B0B0),
             ),

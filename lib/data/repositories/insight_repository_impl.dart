@@ -1,5 +1,6 @@
 /// 洞察仓储实现
 /// 使用 Hive 进行本地存储
+library;
 
 import 'dart:convert';
 import '../../domain/entities/weekly_insight.dart';

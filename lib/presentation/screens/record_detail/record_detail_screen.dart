@@ -1,5 +1,6 @@
 /// 记录详情页面
 /// 用于查看和编辑单条记录，支持添加标签和触发NVC分析
+library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -10,6 +11,11 @@ import '../../bloc/record/record_state.dart';
 import '../../widgets/nvc_confirmation_modal.dart';
 import '../../widgets/nvc_error_dialog.dart';
 import '../../widgets/delete_confirmation_dialog.dart';
+import '../../widgets/ai_auth_dialog.dart';
+import '../../../core/di/injection.dart';
+import '../../../core/services/ai_auth_service.dart';
+import '../share/share_poster_screen.dart';
+import '../settings/settings_screen.dart';
 
 class RecordDetailScreen extends StatefulWidget {
   final Record record;
@@ -30,9 +36,28 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedMoods = widget.record.moods != null
-        ? List<String>.from(widget.record.moods!)
-        : [];
+    _selectedMoods = _normalizeMoodTags(widget.record.moods ?? const []);
+  }
+
+  List<String> _normalizeMoodTags(List<String> source) {
+    final seen = <String>{};
+    final result = <String>[];
+
+    for (final value in source) {
+      final parts = value
+          .split(RegExp(r'[，,、；;|/\\\n]+'))
+          .map((e) => e.trim())
+          .map((e) => e.replaceFirst(RegExp(r'^\d+\s*[.、\-)\]]\s*'), ''))
+          .where((e) => e.isNotEmpty);
+
+      for (final part in parts) {
+        if (seen.add(part)) {
+          result.add(part);
+        }
+      }
+    }
+
+    return result;
   }
 
   /// 格式化日期时间
@@ -52,7 +77,21 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
       builder: (context) => _TagEditDialog(
         title: '编辑我的感受',
         initialTags: _selectedMoods,
-        suggestions: ['焦虑', '开心', '平静', '愤怒', '悲伤', '好奇', '思考', '感激', '疲惫', '兴奋', '不适', '愧疚', '无奈'],
+        suggestions: const [
+          '焦虑',
+          '开心',
+          '平静',
+          '愤怒',
+          '悲伤',
+          '好奇',
+          '思考',
+          '感激',
+          '疲惫',
+          '兴奋',
+          '不适',
+          '愧疚',
+          '无奈'
+        ],
         iconColor: const Color(0xFFFF9500),
         iconBgColor: const Color(0xFFFFF4E6),
         icon: Icons.favorite,
@@ -61,7 +100,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
 
     if (result != null) {
       setState(() {
-        _selectedMoods = result;
+        _selectedMoods = _normalizeMoodTags(result);
       });
       // TODO: 保存到数据库
     }
@@ -86,13 +125,17 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
 
     // 发送NVC分析请求
     context.read<RecordBloc>().add(
-      RecordAnalyzeNVC(widget.record.transcription),
-    );
+          RecordAnalyzeNVC(widget.record.transcription),
+        );
   }
 
   /// 保存并关闭
   void _saveAndClose() {
-    // TODO: 保存更新的moods到数据库
+    final updatedRecord = widget.record.copyWith(
+      moods: _selectedMoods,
+      updatedAt: DateTime.now(),
+    );
+    context.read<RecordBloc>().add(RecordUpdate(record: updatedRecord));
     Navigator.of(context).pop();
   }
 
@@ -102,8 +145,8 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
     if (confirmed == true) {
       // 删除记录
       context.read<RecordBloc>().add(
-        RecordDelete(id: widget.record.id),
-      );
+            RecordDelete(id: widget.record.id),
+          );
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('记录已删除')),
       );
@@ -111,11 +154,73 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
     }
   }
 
+  /// 处理AI授权请求
+  Future<void> _handleAIAuthRequest(
+      BuildContext context, RecordState state) async {
+    final result = await AIAuthDialog.show(context: context);
+
+    if (result == true) {
+      // 用户同意授权
+      await getIt<AIAuthService>().grant();
+
+      // 重新触发NVC分析
+      if (state.transcription != null && state.transcription!.isNotEmpty) {
+        context.read<RecordBloc>().add(
+              RecordAnalyzeNVC(state.transcription!),
+            );
+        setState(() {
+          _isAnalyzing = true;
+        });
+      }
+    } else {
+      // 用户拒绝授权
+      _showAuthDeniedGuidance(context);
+    }
+  }
+
+  /// 显示拒绝授权引导
+  void _showAuthDeniedGuidance(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.info_outline, color: Color(0xFFFFB74D)),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text('AI功能需要授权才能使用，您可在设置中开启'),
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: '去设置',
+          textColor: const Color(0xFFC4A57B),
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<RecordBloc, RecordState>(
       listener: (context, state) {
-        if (state.status == RecordStatus.analyzed && _isAnalyzing) {
+        // 处理需要AI授权的情况
+        if (state.status == RecordStatus.needsAIAuth && _isAnalyzing) {
+          setState(() {
+            _isAnalyzing = false;
+          });
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (ModalRoute.of(context)?.isCurrent ?? false) {
+              _handleAIAuthRequest(context, state);
+            }
+          });
+        } else if (state.status == RecordStatus.analyzed && _isAnalyzing) {
           setState(() {
             _isAnalyzing = false;
           });
@@ -126,18 +231,31 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
               context: context,
               initialAnalysis: state.nvcAnalysis!,
               transcription: widget.record.transcription,
+              record: widget.record,
               onRevert: () {
                 // 还原为仅记录
               },
             ).then((result) {
               if (result?.action == NVCModalAction.confirm) {
-                // TODO: 保存NVC分析结果到记录
+                final analysis = result?.analysis;
+                if (analysis != null) {
+                  final updatedRecord = widget.record.copyWith(
+                    nvc: analysis,
+                    processingMode: ProcessingMode.withNVC,
+                    moods: analysis.feelings.map((f) => f.feeling).toList(),
+                    needs: analysis.needs.map((n) => n.need).toList(),
+                    updatedAt: DateTime.now(),
+                  );
+                  context.read<RecordBloc>().add(
+                        RecordUpdate(record: updatedRecord),
+                      );
+                }
                 Navigator.of(context).pop(); // 关闭详情页
               } else if (result?.action == NVCModalAction.delete) {
                 // 用户选择了删除，删除这条记录
                 context.read<RecordBloc>().add(
-                  RecordDelete(id: widget.record.id),
-                );
+                      RecordDelete(id: widget.record.id),
+                    );
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('记录已删除')),
                 );
@@ -169,7 +287,8 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
           elevation: 0,
           surfaceTintColor: Colors.transparent,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, size: 20, color: Color(0xFF2C2C2C)),
+            icon: const Icon(Icons.arrow_back_ios,
+                size: 20, color: Color(0xFF2C2C2C)),
             onPressed: () => Navigator.of(context).pop(),
           ),
           title: Text(
@@ -182,16 +301,23 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
           ),
           centerTitle: true,
           actions: [
-            TextButton(
-              onPressed: _deleteRecord,
-              child: const Text(
-                '删除',
-                style: TextStyle(
-                  color: Color(0xFFFF3B30),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+            // 分享按钮（使用 IconButton 保证在 AppBar 中始终可见）
+            IconButton(
+              onPressed: () => SharePosterScreen.show(
+                context: context,
+                record: widget.record,
               ),
+              icon: const Icon(Icons.share_outlined,
+                  size: 22, color: Color(0xFFC4A57B)),
+              tooltip: '分享',
+            ),
+            const SizedBox(width: 4),
+            // 删除按钮（使用 IconButton 避免与分享按钮争抢空间导致被挤出）
+            IconButton(
+              onPressed: _deleteRecord,
+              icon: const Icon(Icons.delete_outline,
+                  size: 22, color: Color(0xFFFF3B30)),
+              tooltip: '删除',
             ),
           ],
         ),
@@ -214,7 +340,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
               child: TextButton(
                 onPressed: _saveAndClose,
                 style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFF5A9FD4),
+                  backgroundColor: const Color(0xFFC4A57B),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -234,6 +360,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
+          physics: const BouncingScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -242,7 +369,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF9E6), // 浅黄色背景
+                  color: const Color(0xFFF7F0E8), // 米色背景
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -256,6 +383,25 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
               ),
 
               const SizedBox(height: 16),
+
+              // 洞察标签
+              Row(
+                children: [
+                  const Icon(Icons.auto_awesome,
+                      size: 16, color: Color(0xFFC4A57B)),
+                  const SizedBox(width: 6),
+                  const Text(
+                    '洞察',
+                    style: TextStyle(
+                      color: Color(0xFFC4A57B),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
 
               // 感受标签卡片
               Container(
@@ -344,16 +490,21 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                                   runSpacing: 8,
                                   children: _selectedMoods.map((mood) {
                                     return Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 6),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFFF4E6),
+                                        color: Colors.transparent,
                                         borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(
+                                          color: const Color(0xFFE0D5C5),
+                                          width: 1,
+                                        ),
                                       ),
                                       child: Text(
                                         mood,
                                         style: const TextStyle(
                                           fontSize: 13,
-                                          color: Color(0xFFCC7A00),
+                                          color: Color(0xFF5D4E3C),
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -393,7 +544,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                         const Text(
                           'NVC分析',
                           style: TextStyle(
-                            fontSize: 17,
+                            fontSize: 15,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF2C2C2C),
                           ),
@@ -579,7 +730,8 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                   runSpacing: 8,
                   children: _selectedTags.map((tag) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: widget.iconBgColor,
                         borderRadius: BorderRadius.circular(16),
@@ -636,12 +788,17 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                         return GestureDetector(
                           onTap: () => _toggleTag(tag),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
-                              color: isSelected ? widget.iconBgColor : Colors.white,
+                              color: isSelected
+                                  ? widget.iconBgColor
+                                  : Colors.white,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: isSelected ? widget.iconColor : const Color(0xFFE0E0E0),
+                                color: isSelected
+                                    ? widget.iconColor
+                                    : const Color(0xFFE0E0E0),
                                 width: 1,
                               ),
                             ),
@@ -649,8 +806,12 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                               tag,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: isSelected ? widget.iconColor : const Color(0xFF4A4A4A),
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                color: isSelected
+                                    ? widget.iconColor
+                                    : const Color(0xFF4A4A4A),
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
                               ),
                             ),
                           ),
@@ -708,7 +869,8 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                       ),
                       decoration: InputDecoration(
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
                         hintText: '输入并添加...',
                         hintStyle: TextStyle(
                           color: Colors.grey[400],
@@ -772,7 +934,7 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                   child: TextButton(
                     onPressed: () => Navigator.pop(context, _selectedTags),
                     style: TextButton.styleFrom(
-                      backgroundColor: const Color(0xFF007AFF),
+                      backgroundColor: const Color(0xFFC4A57B),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),

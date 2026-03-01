@@ -70,19 +70,19 @@ void main() {
       // Send 1 second of silence (16000Hz * 2 bytes * 1s = 32000 bytes)
       // Sending in chunks
       print('Sending silent audio...');
-      final chunkSize = 6400; // 200ms
+      const chunkSize = 6400; // 200ms
       final silence = Uint8List(chunkSize); 
       
       for (int i = 0; i < 5; i++) {
         await client.sendAudio(silence);
-        await Future.delayed(Duration(milliseconds: 200));
+        await Future.delayed(const Duration(milliseconds: 200));
       }
 
       await client.finishAudio();
       print('Finished sending audio.');
 
       // Wait for response or timeout
-      await completer.future.timeout(Duration(seconds: 10), onTimeout: () {
+      await completer.future.timeout(const Duration(seconds: 10), onTimeout: () {
         if (!hasError) {
           print('Timeout waiting for response. This might be normal if silence yielded no result.');
           // Consider success if no error occurred during connection and sending

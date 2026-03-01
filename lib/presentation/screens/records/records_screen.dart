@@ -1,15 +1,61 @@
 /// 碎片记录页面
-/// 显示所有快速记录，按日期分组
+/// 显示所有快速记录，按日期分组，时间轴样式
+library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../domain/entities/record.dart';
+import '../../../core/di/injection.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_typography.dart';
+import '../../../data/datasources/local/hive_database.dart';
 import '../../bloc/record/record_bloc.dart';
 import '../../bloc/record/record_state.dart';
 import '../../bloc/record/record_event.dart';
 import '../../widgets/nvc_confirmation_modal.dart';
+import '../../widgets/daily_mood_picker.dart';
 import '../record_detail/record_detail_screen.dart';
+
+// ============================================================
+// Design Tokens - 统一的设计规范
+// ============================================================
+
+/// 字体大小 - 4级层次
+class _FontSize {
+  static const double display = 24.0; // 页面标题
+  static const double title = 16.0; // 区块标题
+  static const double body = 15.0; // 正文内容
+  static const double caption = 13.0; // 辅助说明
+  static const double label = 12.0; // 标签文字
+}
+
+/// 间距 - 基于 4px 网格
+class _Spacing {
+  static const double xs = 4.0;
+  static const double sm = 8.0;
+  static const double md = 12.0;
+  static const double lg = 16.0;
+  static const double xl = 20.0;
+  static const double xxl = 24.0;
+  static const double xxxl = 32.0;
+}
+
+/// 颜色 - 统一色板
+class _Colors {
+  static const Color background = Color(0xFFFAF6F1);
+  static const Color surface = Colors.white;
+  static const Color primary = Color(0xFFC4A57B);
+  static const Color textPrimary = Color(0xFF2C2C2C);
+  static const Color textSecondary = Color(0xFF5D4E3C);
+  static const Color textMuted = Color(0xFF8B7D6B);
+  static const Color textHint = Color(0xFFAAAAAA);
+  static const Color border = Color(0xFFE0D5C5);
+  static const Color divider = Color(0xFFE8E0D5);
+  static const Color cardBg = Color(0xFFF7F0E8);
+}
+
+// ============================================================
 
 class RecordsScreen extends StatefulWidget {
   final VoidCallback? onNavigateToHome;
@@ -24,47 +70,81 @@ class RecordsScreen extends StatefulWidget {
 }
 
 class _RecordsScreenState extends State<RecordsScreen> {
+  final HiveDatabase _database = getIt<HiveDatabase>();
+  final Map<String, String> _dailyMoods = {};
+
   @override
   void initState() {
     super.initState();
     _loadRecords();
+    _loadDailyMoods();
   }
 
   void _loadRecords() {
     context.read<RecordBloc>().add(const RecordLoadList());
   }
 
-  /// 处理记录点击事件
+  void _loadDailyMoods() {
+    final now = DateTime.now();
+    for (int i = 0; i < 30; i++) {
+      final date = now.subtract(Duration(days: i));
+      final key = getDailyMoodKey(date);
+      final imagePath = _database.settingsBox.get(key) as String?;
+      if (imagePath != null) {
+        _dailyMoods[key] = imagePath;
+      }
+    }
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _handleMoodTap(DateTime date) async {
+    final key = getDailyMoodKey(date);
+    final currentImagePath = _dailyMoods[key];
+
+    final selectedMood = await DailyMoodPicker.show(
+      context: context,
+      currentImagePath: currentImagePath,
+    );
+
+    if (selectedMood != null) {
+      await _database.settingsBox.put(key, selectedMood.imagePath);
+      setState(() {
+        _dailyMoods[key] = selectedMood.imagePath;
+      });
+    }
+  }
+
+  String _getDailyMoodImagePath(DateTime date) {
+    final key = getDailyMoodKey(date);
+    return _dailyMoods[key] ?? defaultMood.imagePath;
+  }
+
   void _handleRecordTap(Record record) async {
-    // 如果是NVC模式的记录，显示NVC确认弹窗
     if (record.nvc != null) {
       final result = await NVCConfirmationModal.show(
         context: context,
         initialAnalysis: record.nvc!,
         transcription: record.transcription,
-        onRevert: () {
-          // TODO: 还原为仅记录模式
-        },
+        onRevert: () {},
+        record: record,
       );
-      // 如果是删除操作，删除记录
+
+      if (!mounted) return;
+
       if (result?.action == NVCModalAction.delete) {
-        context.read<RecordBloc>().add(
-          RecordDelete(id: record.id),
-        );
+        context.read<RecordBloc>().add(RecordDelete(id: record.id));
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('记录已删除')),
         );
       }
-      // 弹窗关闭后刷新列表
       _loadRecords();
     } else {
-      // 否则打开记录详情页面
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => RecordDetailScreen(record: record),
         ),
       );
-      // 详情页关闭后刷新列表
+      if (!mounted) return;
       _loadRecords();
     }
   }
@@ -72,330 +152,70 @@ class _RecordsScreenState extends State<RecordsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        title: const Text(
-          '每日记录',
-          style: TextStyle(
-            color: Color(0xFF2C2C2C),
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: AppColors.warmPageBackgroundGradient,
+            stops: [0.0, 0.62, 1.0],
           ),
         ),
-        actions: const [],
-      ),
-      body: BlocBuilder<RecordBloc, RecordState>(
-        builder: (context, state) {
-          if (state.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC4A57B)),
-              ),
-            );
-          }
-
-          if (state.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    state.errorMessage ?? '加载失败',
-                    style: const TextStyle(
-                      color: Color(0xFF8B7D6B),
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: _loadRecords,
-                    style: TextButton.styleFrom(
-                      backgroundColor: const Color(0xFFE8DED0),
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    child: const Text(
-                      '重试',
-                      style: TextStyle(
-                        color: Color(0xFF5D4E3C),
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          // 按日期分组记录
-          final groupedRecords = _groupRecordsByDate(state.records);
-          // 无记录时仅显示当天卡片；有记录时只展示有记录的日期，避免空白多天列表
-          final dateRange = state.isEmpty ? _getTodayOnly() : _getDatesWithRecords(groupedRecords);
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              _loadRecords();
-            },
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              itemCount: dateRange.length,
-              itemBuilder: (context, index) {
-                final date = dateRange[index];
-                final records = groupedRecords[date] ?? [];
-
-                return _buildDateCard(context, date, records);
-              },
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  /// 获取最近7天的日期
-  List<DateTime> _getLast7Days() {
-    final now = DateTime.now();
-    return List.generate(7, (index) {
-      final date = now.subtract(Duration(days: index));
-      return DateTime(date.year, date.month, date.day);
-    });
-  }
-
-  /// 仅返回当天日期
-  List<DateTime> _getTodayOnly() {
-    final now = DateTime.now();
-    return [DateTime(now.year, now.month, now.day)];
-  }
-
-  /// 仅返回有记录的日期（按时间倒序）
-  List<DateTime> _getDatesWithRecords(Map<DateTime, List<Record>> groupedRecords) {
-    final dates = groupedRecords.keys.toList();
-    dates.sort((a, b) => b.compareTo(a));
-    return dates;
-  }
-
-  /// 按日期分组记录
-  Map<DateTime, List<Record>> _groupRecordsByDate(List<Record> records) {
-    final grouped = <DateTime, List<Record>>{};
-
-    for (final record in records) {
-      final date = DateTime(
-        record.createdAt.year,
-        record.createdAt.month,
-        record.createdAt.day,
-      );
-
-      if (!grouped.containsKey(date)) {
-        grouped[date] = [];
-      }
-      grouped[date]!.add(record);
-    }
-
-    // 按创建时间排序每天的记录
-    grouped.forEach((key, value) {
-      value.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    });
-
-    return grouped;
-  }
-
-  /// 构建日期卡片
-  Widget _buildDateCard(BuildContext context, DateTime date, List<Record> records) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 日期标题栏
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _formatDateTitle(date),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF2C2C2C),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _getDateLabel(date),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[500],
-                      ),
-                    ),
-                  ],
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.more_horiz,
-                    color: Colors.grey[400],
-                    size: 24,
-                  ),
-                  onPressed: () {
-                    // TODO: 显示更多选项
-                  },
-                ),
-              ],
-            ),
-          ),
-
-          // 记录列表或空状态
-          if (records.isEmpty)
-            _buildEmptyDateContent(context)
-          else
-            ...records.asMap().entries.map((entry) {
-              final index = entry.key;
-              final record = entry.value;
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (index > 0)
-                    Divider(
-                      color: Colors.grey[100],
-                      height: 1,
-                      indent: 20,
-                      endIndent: 20,
-                    ),
-                  _buildRecordItem(context, record),
-                ],
-              );
-            }),
-
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-
-  /// 构建空状态内容
-  Widget _buildEmptyDateContent(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      child: Center(
-        child: TextButton(
-          onPressed: widget.onNavigateToHome,
-          style: TextButton.styleFrom(
-            backgroundColor: const Color(0xFFF8F6F3),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: BorderSide(
-                color: Colors.grey[200]!,
-                width: 1,
-              ),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.edit_outlined,
-                size: 18,
-                color: Colors.grey[500],
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '暂无内容，写写',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// 构建单条记录
-  Widget _buildRecordItem(BuildContext context, Record record) {
-    final hasNVC = record.nvc != null;
-    final hasMoods = record.moods != null && record.moods!.isNotEmpty;
-
-    return GestureDetector(
-      onTap: () => _handleRecordTap(record),
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            // 时间
-            Text(
-              _formatTime(record.createdAt),
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey[500],
-              ),
-            ),
+            SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 顶部标题
+                  _buildHeader(),
 
-            const SizedBox(height: 12),
+                  // 记录列表
+                  Expanded(
+                    child: BlocBuilder<RecordBloc, RecordState>(
+                      builder: (context, state) {
+                        if (state.isLoading) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  _Colors.primary),
+                            ),
+                          );
+                        }
 
-            // NVC标签（如果有）
-            if (hasNVC && record.nvc!.feelings.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: record.nvc!.feelings.map((feeling) {
-                    return _buildEmotionTag(
-                      feeling.feeling,
-                      _getEmotionColor(feeling.feeling),
-                    );
-                  }).toList(),
-                ),
-              )
-            else if (hasMoods)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: record.moods!.map((mood) {
-                    return _buildEmotionTag(
-                      mood,
-                      _getEmotionColor(mood),
-                    );
-                  }).toList(),
-                ),
-              ),
+                        if (state.hasError) {
+                          return _buildErrorState(state.errorMessage);
+                        }
 
-            // 记录内容
-            Text(
-              record.transcription,
-              style: const TextStyle(
-                fontSize: 15,
-                color: Color(0xFF4A4A4A),
-                height: 1.6,
+                        final groupedRecords = _groupRecordsByDate(state.records);
+                        final dateRange = state.isEmpty
+                            ? _getTodayOnly()
+                            : _getDatesWithRecords(groupedRecords);
+
+                        return RefreshIndicator(
+                          onRefresh: () async => _loadRecords(),
+                          color: _Colors.primary,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(
+                              _Spacing.xl,
+                              _Spacing.sm,
+                              _Spacing.xl,
+                              _Spacing.xxl,
+                            ),
+                            itemCount: dateRange.length,
+                            itemBuilder: (context, index) {
+                              final date = dateRange[index];
+                              final records = groupedRecords[date] ?? [];
+                              return _buildDaySection(date, records);
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -403,32 +223,46 @@ class _RecordsScreenState extends State<RecordsScreen> {
     );
   }
 
-  /// 构建情绪标签
-  Widget _buildEmotionTag(String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+  /// 顶部标题栏
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        _Spacing.xl,
+        _Spacing.lg,
+        _Spacing.xl,
+        _Spacing.sm,
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
+          const Text(
+            '每日记录',
+            style: TextStyle(
+              color: _Colors.textPrimary,
+              fontSize: _FontSize.display,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.5,
+              height: 1.2,
             ),
           ),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 13,
-              color: color,
-              fontWeight: FontWeight.w500,
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: _Colors.surface,
+              borderRadius: BorderRadius.circular(_Spacing.md),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.calendar_today_outlined,
+              size: 18,
+              color: _Colors.textMuted,
             ),
           ),
         ],
@@ -436,125 +270,375 @@ class _RecordsScreenState extends State<RecordsScreen> {
     );
   }
 
-  /// 获取情绪对应的颜色
-  Color _getEmotionColor(String emotion) {
-    // 积极/快乐类 - 橙色
-    if (emotion.contains('愉悦') ||
-        emotion.contains('开心') ||
-        emotion.contains('兴奋') ||
-        emotion.contains('喜悦') ||
-        emotion.contains('快乐') ||
-        emotion.contains('满足')) {
-      return const Color(0xFFFF9500);
-    }
-    // 焦虑/担忧类 - 蓝色
-    else if (emotion.contains('焦虑') ||
-        emotion.contains('担心') ||
-        emotion.contains('紧张') ||
-        emotion.contains('害怕') ||
-        emotion.contains('不安')) {
-      return const Color(0xFF007AFF);
-    }
-    // 平静/放松类 - 绿色
-    else if (emotion.contains('平静') ||
-        emotion.contains('放松') ||
-        emotion.contains('安宁') ||
-        emotion.contains('舒适') ||
-        emotion.contains('宁静')) {
-      return const Color(0xFF34C759);
-    }
-    // 愤怒/烦躁类 - 红色
-    else if (emotion.contains('愤怒') ||
-        emotion.contains('生气') ||
-        emotion.contains('烦躁') ||
-        emotion.contains('恼火') ||
-        emotion.contains('不满')) {
-      return const Color(0xFFFF3B30);
-    }
-    // 悲伤/失落类 - 紫色
-    else if (emotion.contains('悲伤') ||
-        emotion.contains('难过') ||
-        emotion.contains('失落') ||
-        emotion.contains('沮丧') ||
-        emotion.contains('伤心')) {
-      return const Color(0xFFAF52DE);
-    }
-    // 好奇/探索类 - 青色
-    else if (emotion.contains('好奇') ||
-        emotion.contains('探索') ||
-        emotion.contains('求知') ||
-        emotion.contains('疑惑')) {
-      return const Color(0xFF5AC8FA);
-    }
-    // 思考/专注类 - 靛蓝色
-    else if (emotion.contains('思考') ||
-        emotion.contains('专注') ||
-        emotion.contains('沉思') ||
-        emotion.contains('冥想')) {
-      return const Color(0xFF5856D6);
-    }
-    // 关注/在意类 - 黄色
-    else if (emotion.contains('关注') ||
-        emotion.contains('在意') ||
-        emotion.contains('重视') ||
-        emotion.contains('关心')) {
-      return const Color(0xFFFFCC00);
-    }
-    // 感激/感动类 - 粉色
-    else if (emotion.contains('感激') ||
-        emotion.contains('感动') ||
-        emotion.contains('感恩') ||
-        emotion.contains('温暖')) {
-      return const Color(0xFFFF2D55);
-    }
-    // 疲惫/困倦类 - 棕色
-    else if (emotion.contains('疲惫') ||
-        emotion.contains('困倦') ||
-        emotion.contains('劳累') ||
-        emotion.contains('疲劳')) {
-      return const Color(0xFFA2845E);
-    }
-    // 其他未匹配的情绪 - 使用一致的随机颜色
-    else {
-      return _getConsistentColorForText(emotion);
-    }
+  Widget _buildErrorState(String? errorMessage) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF0E6),
+              borderRadius: BorderRadius.circular(_Spacing.xl),
+            ),
+            child: const Icon(
+              Icons.cloud_off_outlined,
+              size: 28,
+              color: _Colors.primary,
+            ),
+          ),
+          const SizedBox(height: _Spacing.lg),
+          Text(
+            errorMessage ?? '加载失败',
+            style: const TextStyle(
+              color: _Colors.textMuted,
+              fontSize: _FontSize.body,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: _Spacing.xl),
+          GestureDetector(
+            onTap: _loadRecords,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: _Spacing.xxl,
+                vertical: _Spacing.md,
+              ),
+              decoration: BoxDecoration(
+                color: _Colors.primary,
+                borderRadius: BorderRadius.circular(_Spacing.xxl),
+              ),
+              child: Text(
+                '重试',
+                style: AppTypography.actionLabel.copyWith(
+                  color: Colors.white,
+                  fontSize: _FontSize.body,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
-  /// 为文本生成一致的颜色（基于字符串哈希）
-  Color _getConsistentColorForText(String text) {
-    // 预定义的柔和色值池
-    const colorPalette = [
-      Color(0xFF8E8E93), // 灰色
-      Color(0xFF32ADE6), // 浅蓝
-      Color(0xFF34C759), // 浅绿
-      Color(0xFFFF9500), // 橙色
-      Color(0xFFAF52DE), // 紫色
-      Color(0xFF5AC8FA), // 青色
-      Color(0xFFFFCC00), // 黄色
-      Color(0xFFFF6B6B), // 浅红
-      Color(0xFF4ECDC4), // 蒂芙尼蓝
-      Color(0xFF95E1D3), // 薄荷绿
-    ];
+  /// 构建每天的记录区块
+  Widget _buildDaySection(DateTime date, List<Record> records) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: _Spacing.xl),
 
-    // 基于文本内容计算哈希值
-    int hash = 0;
-    for (int i = 0; i < text.length; i++) {
-      hash = text.codeUnitAt(i) + ((hash << 5) - hash);
-    }
-    hash = hash.abs();
+        // 日期标题行
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // 日期指示条
+            Container(
+              width: 3,
+              height: 16,
+              decoration: BoxDecoration(
+                color: _Colors.primary,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: _Spacing.sm),
+            Text(
+              _formatDateTitle(date),
+              style: const TextStyle(
+                fontSize: _FontSize.title,
+                fontWeight: FontWeight.w600,
+                color: _Colors.textPrimary,
+                letterSpacing: -0.2,
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(width: _Spacing.sm),
+            Text(
+              _getDateLabel(date),
+              style: const TextStyle(
+                fontSize: _FontSize.caption,
+                color: _Colors.textHint,
+                height: 1.3,
+              ),
+            ),
+          ],
+        ),
 
-    // 使用哈希值选择颜色
-    return colorPalette[hash % colorPalette.length];
+        const SizedBox(height: _Spacing.lg),
+
+        // 每日心情概览
+        if (records.isNotEmpty) _buildDailyMoodCard(date, records),
+
+        // 记录列表（时间轴样式）
+        if (records.isEmpty)
+          _buildEmptyState()
+        else
+          ...records.asMap().entries.map((entry) {
+            final index = entry.key;
+            final record = entry.value;
+            final isLast = index == records.length - 1;
+            return _buildTimelineItem(record, isLast);
+          }),
+      ],
+    );
   }
 
-  /// 格式化日期标题
+  /// 每日心情卡片
+  Widget _buildDailyMoodCard(DateTime date, List<Record> records) {
+    final mood = _getDailyMood(date);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(_Spacing.md),
+      margin: const EdgeInsets.only(bottom: _Spacing.lg),
+      decoration: BoxDecoration(
+        color: _Colors.cardBg,
+        borderRadius: BorderRadius.circular(_Spacing.md),
+      ),
+      child: Row(
+        children: [
+          // 心情图标（可点击）
+          GestureDetector(
+            onTap: () => _handleMoodTap(date),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: _Colors.surface,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: MoodIconByPath(
+                  imagePath: _getDailyMoodImagePath(date),
+                  size: 22,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: _Spacing.md),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _handleMoodTap(date),
+              behavior: HitTestBehavior.opaque,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    mood.label,
+                    style: const TextStyle(
+                      fontSize: _FontSize.caption,
+                      fontWeight: FontWeight.w600,
+                      color: _Colors.textSecondary,
+                      height: 1.3,
+                    ),
+                  ),
+                  const SizedBox(height: _Spacing.xs),
+                  Text(
+                    '共 ${records.length} 条记录 · 点击修改心情',
+                    style: const TextStyle(
+                      fontSize: _FontSize.label,
+                      color: _Colors.textHint,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建时间轴样式的单条记录
+  Widget _buildTimelineItem(Record record, bool isLast) {
+    final moodTags = _normalizeMoodTags(record.moods);
+    final hasMoods = moodTags.isNotEmpty;
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 左侧时间轴
+          SizedBox(
+            width: 48,
+            child: Column(
+              children: [
+                // 时间
+                Text(
+                  _formatTime(record.createdAt),
+                  style: const TextStyle(
+                    fontSize: _FontSize.caption,
+                    fontWeight: FontWeight.w500,
+                    color: _Colors.textHint,
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: _Spacing.sm),
+                // 圆点
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: _Colors.primary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                // 连接线
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 1,
+                      margin: const EdgeInsets.symmetric(vertical: _Spacing.sm),
+                      color: _Colors.divider,
+                    ),
+                  )
+                else
+                  const SizedBox(height: _Spacing.lg),
+              ],
+            ),
+          ),
+
+          const SizedBox(width: _Spacing.md),
+
+          // 右侧卡片
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _handleRecordTap(record),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: _Spacing.lg),
+                padding: const EdgeInsets.all(_Spacing.md),
+                decoration: BoxDecoration(
+                  color: _Colors.surface,
+                  borderRadius: BorderRadius.circular(_Spacing.lg),
+                  border: Border.all(color: _Colors.border, width: 0.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 转写内容
+                    if (record.transcription.isNotEmpty)
+                      Text(
+                        record.transcription,
+                        style: const TextStyle(
+                          fontSize: _FontSize.body,
+                          color: _Colors.textPrimary,
+                          height: 1.6,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
+                    // 心情标签
+                    if (hasMoods) ...[
+                      const SizedBox(height: _Spacing.sm),
+                      Wrap(
+                        spacing: _Spacing.xs,
+                        runSpacing: _Spacing.xs,
+                        children: moodTags.map((mood) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: _Spacing.sm,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _Colors.background,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: _Colors.border,
+                                width: 0.5,
+                              ),
+                            ),
+                            child: Text(
+                              mood,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: _Colors.textSecondary,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.only(top: _Spacing.xxxl),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(
+              Icons.edit_note,
+              size: 48,
+              color: _Colors.textHint.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: _Spacing.md),
+            Text(
+              '暂无记录',
+              style: TextStyle(
+                fontSize: _FontSize.body,
+                color: _Colors.textHint.withValues(alpha: 0.5),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Map<DateTime, List<Record>> _groupRecordsByDate(List<Record> records) {
+    final grouped = <DateTime, List<Record>>{};
+    for (var record in records) {
+      final date = DateTime(
+        record.createdAt.year,
+        record.createdAt.month,
+        record.createdAt.day,
+      );
+      if (!grouped.containsKey(date)) {
+        grouped[date] = [];
+      }
+      grouped[date]!.add(record);
+    }
+    return grouped;
+  }
+
+  List<DateTime> _getDatesWithRecords(Map<DateTime, List<Record>> grouped) {
+    final dates = grouped.keys.toList()..sort((a, b) => b.compareTo(a)); // 降序排列
+    return dates;
+  }
+
+  List<DateTime> _getTodayOnly() {
+    final now = DateTime.now();
+    return [DateTime(now.year, now.month, now.day)];
+  }
+
   String _formatDateTitle(DateTime date) {
-    final weekDays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
-    return '${date.month}月${date.day}日 ${weekDays[date.weekday - 1]}';
-  }
-
-  /// 获取日期标签（今天/昨天）
-  String _getDateLabel(DateTime date) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
@@ -563,12 +647,46 @@ class _RecordsScreenState extends State<RecordsScreen> {
       return '今天';
     } else if (date == yesterday) {
       return '昨天';
+    } else {
+      return DateFormat('M月d日').format(date);
     }
-    return '';
   }
 
-  /// 格式化时间
-  String _formatTime(DateTime dateTime) {
-    return DateFormat('HH:mm').format(dateTime);
+  String _getDateLabel(DateTime date) {
+    final weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    return weekDays[date.weekday - 1];
+  }
+
+  String _formatTime(DateTime time) {
+    return DateFormat('HH:mm').format(time);
+  }
+
+  DailyMood _getDailyMood(DateTime date) {
+    final imagePath = _getDailyMoodImagePath(date);
+    return getMoodByImagePath(imagePath) ?? defaultMood;
+  }
+
+  /// 统一清洗标签：
+  /// - 去掉空白项
+  /// - 将 "懊恼，沮丧，焦虑" 这类合并字符串拆成多个标签
+  /// - 去重并保持原顺序
+  List<String> _normalizeMoodTags(List<String>? moods) {
+    if (moods == null || moods.isEmpty) return const [];
+
+    final tags = <String>[];
+    final seen = <String>{};
+    final splitPattern = RegExp(r'[，,、；;|/\\\n]+');
+
+    for (final item in moods) {
+      for (final token in item.split(splitPattern)) {
+        final tag = token.trim();
+        if (tag.isEmpty) continue;
+        if (seen.add(tag)) {
+          tags.add(tag);
+        }
+      }
+    }
+
+    return tags;
   }
 }

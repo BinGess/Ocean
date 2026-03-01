@@ -9,14 +9,14 @@ import '../repositories/ai_repository.dart';
 import 'base_usecase.dart';
 
 class CreateQuickNoteParams {
-  final String audioPath;
+  final String? audioPath;
   final ProcessingMode mode;
   final List<String>? selectedMoods;
   final String? transcription;
   final NVCAnalysis? nvcAnalysis;
 
   CreateQuickNoteParams({
-    required this.audioPath,
+    this.audioPath,
     required this.mode,
     this.selectedMoods,
     this.transcription,
@@ -35,14 +35,26 @@ class CreateQuickNoteUseCase extends UseCase<Record, CreateQuickNoteParams> {
 
   @override
   Future<Record> call(CreateQuickNoteParams params) async {
-    // 1. 语音转文字（如果未提供）
-    final transcription = params.transcription ?? 
-        await aiRepository.transcribeAudioFile(params.audioPath);
+    // 1. 获取最终文本（优先使用显式文本，其次尝试音频转写）
+    final transcription = params.transcription?.trim().isNotEmpty == true
+        ? params.transcription!.trim()
+        : (params.audioPath != null
+            ? await aiRepository.transcribeAudioFile(params.audioPath!)
+            : null);
 
-    // 2. 计算音频时长（可以从文件元数据获取，这里简化处理）
-    final audioFile = File(params.audioPath);
-    final audioBytes = await audioFile.readAsBytes();
-    final duration = audioBytes.length / (16000 * 2); // 假设 16kHz 16bit
+    if (transcription == null || transcription.isEmpty) {
+      throw Exception('缺少可保存的文本内容');
+    }
+
+    // 2. 计算音频时长（仅有音频时）
+    double? duration;
+    if (params.audioPath != null) {
+      final audioFile = File(params.audioPath!);
+      if (await audioFile.exists()) {
+        final audioBytes = await audioFile.readAsBytes();
+        duration = audioBytes.length / (16000 * 2); // 假设 16kHz 16bit
+      }
+    }
 
     // 3. 根据处理模式进行不同处理
     List<String>? moods;
