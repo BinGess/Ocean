@@ -6,9 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../domain/entities/record.dart';
+import '../../../domain/entities/daily_summary.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/services/daily_summary_service.dart';
 import '../../../data/datasources/local/hive_database.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../bloc/record/record_bloc.dart';
@@ -72,7 +74,10 @@ class RecordsScreen extends StatefulWidget {
 
 class _RecordsScreenState extends State<RecordsScreen> {
   final HiveDatabase _database = getIt<HiveDatabase>();
+  final DailySummaryService _dailySummaryService = getIt<DailySummaryService>();
   final Map<String, String> _dailyMoods = {};
+  final Map<String, DailySummary> _dailySummaries = {};
+  final Set<String> _generatingSummaries = {};
 
   @override
   void initState() {
@@ -98,6 +103,60 @@ class _RecordsScreenState extends State<RecordsScreen> {
     if (mounted) setState(() {});
   }
 
+  /// 加载日总结并在需要时触发生成
+  void _loadDailySummaries(Map<DateTime, List<Record>> groupedRecords) {
+    for (final entry in groupedRecords.entries) {
+      final date = entry.key;
+      final records = entry.value;
+      final summaryKey = getDailySummaryKey(date);
+
+      // 加载已缓存的日总结
+      final existingSummary = _dailySummaryService.getDailySummary(date);
+      if (existingSummary != null) {
+        _dailySummaries[summaryKey] = existingSummary;
+      }
+
+      // 检查是否需要生成/重新生成
+      if (_dailySummaryService.needsRegeneration(date, records.length) &&
+          !_generatingSummaries.contains(summaryKey)) {
+        _generateDailySummary(date, records);
+      }
+    }
+  }
+
+  /// 异步生成日总结
+  void _generateDailySummary(DateTime date, List<Record> records) {
+    final summaryKey = getDailySummaryKey(date);
+    _generatingSummaries.add(summaryKey);
+
+    _dailySummaryService.generateDailySummaryDebounced(
+      date,
+      records,
+      onComplete: (summary) {
+        if (mounted && summary != null) {
+          setState(() {
+            _dailySummaries[summaryKey] = summary;
+            _generatingSummaries.remove(summaryKey);
+          });
+        } else {
+          _generatingSummaries.remove(summaryKey);
+        }
+      },
+    );
+  }
+
+  /// 获取日期的日总结
+  DailySummary? _getDailySummary(DateTime date) {
+    final summaryKey = getDailySummaryKey(date);
+    return _dailySummaries[summaryKey];
+  }
+
+  /// 检查是否正在生成日总结
+  bool _isGeneratingSummary(DateTime date) {
+    final summaryKey = getDailySummaryKey(date);
+    return _generatingSummaries.contains(summaryKey);
+  }
+
   Future<void> _handleMoodTap(DateTime date) async {
     final key = getDailyMoodKey(date);
     final currentImagePath = _dailyMoods[key];
@@ -109,6 +168,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
     if (selectedMood != null) {
       await _database.settingsBox.put(key, selectedMood.imagePath);
+      // 标记用户已手动设置心情，防止 AI 覆盖
+      await _dailySummaryService.markUserOverridden(date);
       setState(() {
         _dailyMoods[key] = selectedMood.imagePath;
       });
@@ -194,6 +255,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
                         final dateRange = state.isEmpty
                             ? _getTodayOnly()
                             : _getDatesWithRecords(groupedRecords);
+
+                        // 加载日总结
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _loadDailySummaries(groupedRecords);
+                        });
 
                         return RefreshIndicator(
                           onRefresh: () async => _loadRecords(),
@@ -394,6 +460,24 @@ class _RecordsScreenState extends State<RecordsScreen> {
   Widget _buildDailyMoodCard(DateTime date, List<Record> records) {
     final mood = _getDailyMood(date);
     final l10n = AppLocalizations.of(context)!;
+    final dailySummary = _getDailySummary(date);
+    final isGenerating = _isGeneratingSummary(date);
+    final moodKey = getDailyMoodKey(date);
+    final hasUserSelectedMood = _dailyMoods.containsKey(moodKey);
+
+    // 如果用户没有手动选择心情，且有 AI 推荐，使用 AI 推荐的心情
+    String displayMoodImagePath;
+    String displayMoodLabel;
+    bool isAIRecommendation = false;
+
+    if (!hasUserSelectedMood && dailySummary != null && !dailySummary.userOverridden) {
+      displayMoodImagePath = dailySummary.recommendedMoodImagePath;
+      displayMoodLabel = dailySummary.moodWord;
+      isAIRecommendation = true;
+    } else {
+      displayMoodImagePath = _getDailyMoodImagePath(date);
+      displayMoodLabel = mood.label;
+    }
 
     return Container(
       width: double.infinity,
@@ -403,63 +487,131 @@ class _RecordsScreenState extends State<RecordsScreen> {
         color: _Colors.cardBg,
         borderRadius: BorderRadius.circular(_Spacing.md),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 心情图标（可点击）
-          GestureDetector(
-            onTap: () => _handleMoodTap(date),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: _Colors.surface,
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
+          Row(
+            children: [
+              // 心情图标（可点击）
+              GestureDetector(
+                onTap: () => _handleMoodTap(date),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: _Colors.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Center(
-                child: MoodIconByPath(
-                  imagePath: _getDailyMoodImagePath(date),
-                  size: 22,
+                  child: Center(
+                    child: MoodIconByPath(
+                      imagePath: displayMoodImagePath,
+                      size: 22,
+                    ),
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(width: _Spacing.md),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _handleMoodTap(date),
+                  behavior: HitTestBehavior.opaque,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            displayMoodLabel,
+                            style: const TextStyle(
+                              fontSize: _FontSize.caption,
+                              fontWeight: FontWeight.w600,
+                              color: _Colors.textSecondary,
+                              height: 1.3,
+                            ),
+                          ),
+                          // AI 推荐标识
+                          if (isAIRecommendation) ...[
+                            const SizedBox(width: _Spacing.xs),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _Colors.primary.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'AI',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w600,
+                                  color: _Colors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                          // 正在生成中指示
+                          if (isGenerating) ...[
+                            const SizedBox(width: _Spacing.xs),
+                            SizedBox(
+                              width: 10,
+                              height: 10,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 1.5,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  _Colors.primary.withValues(alpha: 0.6),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: _Spacing.xs),
+                      Text(
+                        l10n.recordsCount(records.length),
+                        style: const TextStyle(
+                          fontSize: _FontSize.label,
+                          color: _Colors.textHint,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: _Spacing.md),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => _handleMoodTap(date),
-              behavior: HitTestBehavior.opaque,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    mood.label,
-                    style: const TextStyle(
-                      fontSize: _FontSize.caption,
-                      fontWeight: FontWeight.w600,
-                      color: _Colors.textSecondary,
-                      height: 1.3,
-                    ),
-                  ),
-                  const SizedBox(height: _Spacing.xs),
-                  Text(
-                    l10n.recordsCount(records.length),
-                    style: const TextStyle(
-                      fontSize: _FontSize.label,
-                      color: _Colors.textHint,
-                      height: 1.3,
-                    ),
-                  ),
-                ],
+          // AI 生成的一句话总结
+          if (dailySummary != null && dailySummary.oneSentence.isNotEmpty) ...[
+            const SizedBox(height: _Spacing.sm),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(_Spacing.sm),
+              decoration: BoxDecoration(
+                color: _Colors.surface.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(_Spacing.sm),
+              ),
+              child: Text(
+                dailySummary.oneSentence,
+                style: const TextStyle(
+                  fontSize: _FontSize.label,
+                  color: _Colors.textSecondary,
+                  height: 1.4,
+                  fontStyle: FontStyle.italic,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
