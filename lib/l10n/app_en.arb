@@ -1,0 +1,82 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "MindFlow",
+  "navRecords": "Records",
+  "navHome": "Record",
+  "navInsights": "Insights",
+
+  "settings": "Settings",
+  "securityAndPrivacy": "Security & Privacy",
+  "appLock": "App Lock",
+  "appLockSubtitle": "Protect privacy with password or biometrics",
+  "aiServiceAuth": "AI Service Authorization",
+  "aiServiceAuthSubtitle": "Allow using AI to analyze your journal",
+  "dataManagement": "Data Management",
+  "export": "Export",
+  "exportSubtitle": "Export all records or insights",
+  "other": "Other",
+  "about": "About",
+  "aboutSubtitle": "App info and privacy policy",
+  "language": "Language",
+  "languageSubtitle": "Switch app display language",
+  "languageChinese": "Chinese",
+  "languageEnglish": "English",
+  "languageSystem": "System Default",
+
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "close": "Close",
+
+  "disableAIService": "Disable AI Service",
+  "disableAIServiceConfirm": "After disabling, NVC emotion analysis and weekly insights will be unavailable. Continue?",
+
+  "dailyRecords": "Daily Records",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "monday": "Mon",
+  "tuesday": "Tue",
+  "wednesday": "Wed",
+  "thursday": "Thu",
+  "friday": "Fri",
+  "saturday": "Sat",
+  "sunday": "Sun",
+
+  "loadFailed": "Load failed",
+  "retry": "Retry",
+  "noRecords": "No records yet",
+  "recordDeleted": "Record deleted",
+  "recordsCount": "{count} records · Tap to change mood",
+
+  "enableSmartInsights": "Enable Smart Insights",
+  "enableSmartInsightsDesc": "After authorizing AI service, we will analyze\nyour weekly emotion records and generate\npersonalized insight reports",
+  "enableNow": "Enable Now",
+  "learnMore": "Learn More",
+
+  "generatingInsight": "Generating insights...",
+  "noEnoughContent": "Not enough content to generate insights this week",
+  "autoGenerateAfterMore": "Will auto-generate after more records",
+  "regenerate": "Regenerate",
+  "refreshFailed": "Refresh failed, please try again later",
+  "aiAuthExpired": "AI authorization expired, please re-enable in settings",
+  "aiNeedsAuthSnackbar": "AI features require authorization. Enable in settings",
+  "goToSettings": "Settings",
+  "viewHistoryReports": "View History",
+
+  "emotionOverview": "Emotion Overview",
+  "highFrequencySituations": "Frequent Situations",
+  "potentialNeeds": "Potential Needs",
+  "actionSuggestions": "Suggestions",
+
+  "justNow": "Just now",
+  "minutesAgo": "{count} min ago",
+  "hoursAgo": "{count} hours ago",
+
+  "holdToRecord": "Hold to speak",
+  "recording": "Recording...",
+  "releaseToSend": "Release to send",
+  "recordingTooShort": "Recording too short",
+  "microphonePermissionDenied": "Microphone permission required",
+
+  "selectLanguage": "Select Language"
+}

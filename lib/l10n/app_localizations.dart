@@ -1,0 +1,285 @@
+import 'package:flutter/material.dart';
+
+/// 应用本地化类
+/// 提供中英文翻译支持
+class AppLocalizations {
+  final Locale locale;
+
+  AppLocalizations(this.locale);
+
+  static AppLocalizations? of(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations);
+  }
+
+  static const LocalizationsDelegate<AppLocalizations> delegate =
+      _AppLocalizationsDelegate();
+
+  static const List<Locale> supportedLocales = [
+    Locale('zh'),
+    Locale('en'),
+  ];
+
+  // 翻译映射表
+  static final Map<String, Map<String, String>> _localizedValues = {
+    'zh': {
+      'appTitle': 'MindFlow',
+      'navRecords': '记录',
+      'navHome': '瞬记',
+      'navInsights': '洞察',
+      'settings': '设置',
+      'securityAndPrivacy': '安全与隐私',
+      'appLock': '应用锁',
+      'appLockSubtitle': '使用密码或生物识别保护隐私',
+      'aiServiceAuth': 'AI服务授权',
+      'aiServiceAuthSubtitle': '允许使用火山引擎豆包大模型分析日记',
+      'dataManagement': '数据管理',
+      'export': '导出',
+      'exportSubtitle': '导出所有记录或洞察信息',
+      'other': '其他',
+      'about': '关于',
+      'aboutSubtitle': '应用信息与隐私协议',
+      'language': '语言',
+      'languageSubtitle': '切换应用显示语言',
+      'languageChinese': '中文',
+      'languageEnglish': 'English',
+      'languageSystem': '跟随系统',
+      'cancel': '取消',
+      'confirm': '确定',
+      'close': '关闭',
+      'disableAIService': '关闭AI服务',
+      'disableAIServiceConfirm': '关闭后将无法使用NVC情绪分析和周洞察功能，是否继续？',
+      'dailyRecords': '每日记录',
+      'today': '今天',
+      'yesterday': '昨天',
+      'monday': '周一',
+      'tuesday': '周二',
+      'wednesday': '周三',
+      'thursday': '周四',
+      'friday': '周五',
+      'saturday': '周六',
+      'sunday': '周日',
+      'loadFailed': '加载失败',
+      'retry': '重试',
+      'noRecords': '暂无记录',
+      'recordDeleted': '记录已删除',
+      'enableSmartInsights': '开启智能洞察',
+      'enableSmartInsightsDesc': '授权AI服务后，将为您分析本周情绪记录\n生成专属的情绪洞察报告',
+      'enableNow': '立即开启',
+      'learnMore': '了解更多',
+      'generatingInsight': '正在生成洞察...',
+      'noEnoughContent': '本周没有足够的内容生成洞察',
+      'autoGenerateAfterMore': '记录更多内容后将自动生成',
+      'regenerate': '重新生成',
+      'refreshFailed': '刷新失败，请稍后重试',
+      'aiAuthExpired': 'AI授权已失效，请在设置中重新开启',
+      'aiNeedsAuthSnackbar': 'AI功能需要授权才能使用，您可在设置中开启',
+      'goToSettings': '去设置',
+      'viewHistoryReports': '查看历史报告',
+      'emotionOverview': '情绪概览',
+      'highFrequencySituations': '高频情境',
+      'potentialNeeds': '潜在需求',
+      'actionSuggestions': '行动建议',
+      'justNow': '刚刚更新',
+      'holdToRecord': '长按说话',
+      'recording': '录音中...',
+      'releaseToSend': '松开发送',
+      'recordingTooShort': '录音时间太短',
+      'microphonePermissionDenied': '需要麦克风权限',
+      'selectLanguage': '选择语言',
+    },
+    'en': {
+      'appTitle': 'MindFlow',
+      'navRecords': 'Records',
+      'navHome': 'Record',
+      'navInsights': 'Insights',
+      'settings': 'Settings',
+      'securityAndPrivacy': 'Security & Privacy',
+      'appLock': 'App Lock',
+      'appLockSubtitle': 'Protect privacy with password or biometrics',
+      'aiServiceAuth': 'AI Service Authorization',
+      'aiServiceAuthSubtitle': 'Allow using AI to analyze your journal',
+      'dataManagement': 'Data Management',
+      'export': 'Export',
+      'exportSubtitle': 'Export all records or insights',
+      'other': 'Other',
+      'about': 'About',
+      'aboutSubtitle': 'App info and privacy policy',
+      'language': 'Language',
+      'languageSubtitle': 'Switch app display language',
+      'languageChinese': 'Chinese',
+      'languageEnglish': 'English',
+      'languageSystem': 'System Default',
+      'cancel': 'Cancel',
+      'confirm': 'Confirm',
+      'close': 'Close',
+      'disableAIService': 'Disable AI Service',
+      'disableAIServiceConfirm':
+          'After disabling, NVC emotion analysis and weekly insights will be unavailable. Continue?',
+      'dailyRecords': 'Daily Records',
+      'today': 'Today',
+      'yesterday': 'Yesterday',
+      'monday': 'Mon',
+      'tuesday': 'Tue',
+      'wednesday': 'Wed',
+      'thursday': 'Thu',
+      'friday': 'Fri',
+      'saturday': 'Sat',
+      'sunday': 'Sun',
+      'loadFailed': 'Load failed',
+      'retry': 'Retry',
+      'noRecords': 'No records yet',
+      'recordDeleted': 'Record deleted',
+      'enableSmartInsights': 'Enable Smart Insights',
+      'enableSmartInsightsDesc':
+          'After authorizing AI service, we will analyze\nyour weekly emotion records and generate\npersonalized insight reports',
+      'enableNow': 'Enable Now',
+      'learnMore': 'Learn More',
+      'generatingInsight': 'Generating insights...',
+      'noEnoughContent': 'Not enough content to generate insights this week',
+      'autoGenerateAfterMore': 'Will auto-generate after more records',
+      'regenerate': 'Regenerate',
+      'refreshFailed': 'Refresh failed, please try again later',
+      'aiAuthExpired': 'AI authorization expired, please re-enable in settings',
+      'aiNeedsAuthSnackbar': 'AI features require authorization. Enable in settings',
+      'goToSettings': 'Settings',
+      'viewHistoryReports': 'View History',
+      'emotionOverview': 'Emotion Overview',
+      'highFrequencySituations': 'Frequent Situations',
+      'potentialNeeds': 'Potential Needs',
+      'actionSuggestions': 'Suggestions',
+      'justNow': 'Just now',
+      'holdToRecord': 'Hold to speak',
+      'recording': 'Recording...',
+      'releaseToSend': 'Release to send',
+      'recordingTooShort': 'Recording too short',
+      'microphonePermissionDenied': 'Microphone permission required',
+      'selectLanguage': 'Select Language',
+    },
+  };
+
+  String _translate(String key) {
+    return _localizedValues[locale.languageCode]?[key] ??
+        _localizedValues['zh']![key] ??
+        key;
+  }
+
+  // Getters for all translations
+  String get appTitle => _translate('appTitle');
+  String get navRecords => _translate('navRecords');
+  String get navHome => _translate('navHome');
+  String get navInsights => _translate('navInsights');
+  String get settings => _translate('settings');
+  String get securityAndPrivacy => _translate('securityAndPrivacy');
+  String get appLock => _translate('appLock');
+  String get appLockSubtitle => _translate('appLockSubtitle');
+  String get aiServiceAuth => _translate('aiServiceAuth');
+  String get aiServiceAuthSubtitle => _translate('aiServiceAuthSubtitle');
+  String get dataManagement => _translate('dataManagement');
+  String get export => _translate('export');
+  String get exportSubtitle => _translate('exportSubtitle');
+  String get other => _translate('other');
+  String get about => _translate('about');
+  String get aboutSubtitle => _translate('aboutSubtitle');
+  String get language => _translate('language');
+  String get languageSubtitle => _translate('languageSubtitle');
+  String get languageChinese => _translate('languageChinese');
+  String get languageEnglish => _translate('languageEnglish');
+  String get languageSystem => _translate('languageSystem');
+  String get cancel => _translate('cancel');
+  String get confirm => _translate('confirm');
+  String get close => _translate('close');
+  String get disableAIService => _translate('disableAIService');
+  String get disableAIServiceConfirm => _translate('disableAIServiceConfirm');
+  String get dailyRecords => _translate('dailyRecords');
+  String get today => _translate('today');
+  String get yesterday => _translate('yesterday');
+  String get monday => _translate('monday');
+  String get tuesday => _translate('tuesday');
+  String get wednesday => _translate('wednesday');
+  String get thursday => _translate('thursday');
+  String get friday => _translate('friday');
+  String get saturday => _translate('saturday');
+  String get sunday => _translate('sunday');
+  String get loadFailed => _translate('loadFailed');
+  String get retry => _translate('retry');
+  String get noRecords => _translate('noRecords');
+  String get recordDeleted => _translate('recordDeleted');
+  String get enableSmartInsights => _translate('enableSmartInsights');
+  String get enableSmartInsightsDesc => _translate('enableSmartInsightsDesc');
+  String get enableNow => _translate('enableNow');
+  String get learnMore => _translate('learnMore');
+  String get generatingInsight => _translate('generatingInsight');
+  String get noEnoughContent => _translate('noEnoughContent');
+  String get autoGenerateAfterMore => _translate('autoGenerateAfterMore');
+  String get regenerate => _translate('regenerate');
+  String get refreshFailed => _translate('refreshFailed');
+  String get aiAuthExpired => _translate('aiAuthExpired');
+  String get aiNeedsAuthSnackbar => _translate('aiNeedsAuthSnackbar');
+  String get goToSettings => _translate('goToSettings');
+  String get viewHistoryReports => _translate('viewHistoryReports');
+  String get emotionOverview => _translate('emotionOverview');
+  String get highFrequencySituations => _translate('highFrequencySituations');
+  String get potentialNeeds => _translate('potentialNeeds');
+  String get actionSuggestions => _translate('actionSuggestions');
+  String get justNow => _translate('justNow');
+  String get holdToRecord => _translate('holdToRecord');
+  String get recording => _translate('recording');
+  String get releaseToSend => _translate('releaseToSend');
+  String get recordingTooShort => _translate('recordingTooShort');
+  String get microphonePermissionDenied => _translate('microphonePermissionDenied');
+  String get selectLanguage => _translate('selectLanguage');
+
+  // Methods with parameters
+  String recordsCount(int count) {
+    if (locale.languageCode == 'en') {
+      return '$count records · Tap to change mood';
+    }
+    return '共 $count 条记录 · 点击修改心情';
+  }
+
+  String minutesAgo(int count) {
+    if (locale.languageCode == 'en') {
+      return '$count min ago';
+    }
+    return '$count分钟前';
+  }
+
+  String hoursAgo(int count) {
+    if (locale.languageCode == 'en') {
+      return '$count hours ago';
+    }
+    return '$count小时前';
+  }
+
+  // 获取星期几的名称
+  String getWeekday(int weekday) {
+    final weekdays = [
+      monday,
+      tuesday,
+      wednesday,
+      thursday,
+      friday,
+      saturday,
+      sunday,
+    ];
+    return weekdays[weekday - 1];
+  }
+}
+
+class _AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
+  const _AppLocalizationsDelegate();
+
+  @override
+  bool isSupported(Locale locale) {
+    return ['zh', 'en'].contains(locale.languageCode);
+  }
+
+  @override
+  Future<AppLocalizations> load(Locale locale) async {
+    return AppLocalizations(locale);
+  }
+
+  @override
+  bool shouldReload(_AppLocalizationsDelegate old) => false;
+}

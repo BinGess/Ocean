@@ -32,6 +32,8 @@ import '../services/quote_update_manager.dart';
 import '../../presentation/bloc/audio/audio_bloc.dart';
 import '../../presentation/bloc/record/record_bloc.dart';
 import '../../presentation/bloc/insight/insight_bloc.dart';
+import '../../presentation/bloc/locale/locale_bloc.dart';
+import '../services/locale_service.dart';
 
 final getIt = GetIt.instance;
 
@@ -69,6 +71,9 @@ Future<void> configureDependencies() async {
   await aiAuthService.init();
   getIt.registerSingleton<AIAuthService>(aiAuthService);
 
+  // 语言服务（需要在 HiveDatabase 之后初始化，这里先注册工厂）
+  // 实际初始化在 HiveDatabase 之后
+
   // ===== Data Sources =====
 
   // Hive 数据库
@@ -83,6 +88,11 @@ Future<void> configureDependencies() async {
   await homeBackgroundThemeService.init();
   getIt.registerSingleton<HomeBackgroundThemeService>(
     homeBackgroundThemeService,
+  );
+
+  // 语言服务
+  getIt.registerLazySingleton<LocaleService>(
+    () => LocaleService(getIt<HiveDatabase>()),
   );
 
   // 豆包远程数据源
@@ -223,6 +233,11 @@ Future<void> configureDependencies() async {
       insightRepository: getIt<InsightRepository>(),
       aiAuthService: getIt<AIAuthService>(),
     ),
+  );
+
+  // 语言 BLoC
+  getIt.registerFactory<LocaleBloc>(
+    () => LocaleBloc(getIt<LocaleService>()),
   );
 }
 

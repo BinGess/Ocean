@@ -10,6 +10,7 @@ import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/datasources/local/hive_database.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../bloc/record/record_bloc.dart';
 import '../../bloc/record/record_state.dart';
 import '../../bloc/record/record_event.dart';
@@ -133,8 +134,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
       if (result?.action == NVCModalAction.delete) {
         context.read<RecordBloc>().add(RecordDelete(id: record.id));
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('记录已删除')),
+          SnackBar(content: Text(l10n.recordDeleted)),
         );
       }
       _loadRecords();
@@ -225,6 +227,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   /// 顶部标题栏
   Widget _buildHeader() {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         _Spacing.xl,
@@ -235,9 +238,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
-            '每日记录',
-            style: TextStyle(
+          Text(
+            l10n.dailyRecords,
+            style: const TextStyle(
               color: _Colors.textPrimary,
               fontSize: _FontSize.display,
               fontWeight: FontWeight.w600,
@@ -271,6 +274,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
   }
 
   Widget _buildErrorState(String? errorMessage) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -290,7 +294,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
           ),
           const SizedBox(height: _Spacing.lg),
           Text(
-            errorMessage ?? '加载失败',
+            errorMessage ?? l10n.loadFailed,
             style: const TextStyle(
               color: _Colors.textMuted,
               fontSize: _FontSize.body,
@@ -310,7 +314,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 borderRadius: BorderRadius.circular(_Spacing.xxl),
               ),
               child: Text(
-                '重试',
+                l10n.retry,
                 style: AppTypography.actionLabel.copyWith(
                   color: Colors.white,
                   fontSize: _FontSize.body,
@@ -389,6 +393,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
   /// 每日心情卡片
   Widget _buildDailyMoodCard(DateTime date, List<Record> records) {
     final mood = _getDailyMood(date);
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       width: double.infinity,
@@ -444,7 +449,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   ),
                   const SizedBox(height: _Spacing.xs),
                   Text(
-                    '共 ${records.length} 条记录 · 点击修改心情',
+                    l10n.recordsCount(records.length),
                     style: const TextStyle(
                       fontSize: _FontSize.label,
                       color: _Colors.textHint,
@@ -588,6 +593,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
   }
 
   Widget _buildEmptyState() {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.only(top: _Spacing.xxxl),
       child: Center(
@@ -600,7 +606,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
             ),
             const SizedBox(height: _Spacing.md),
             Text(
-              '暂无记录',
+              l10n.noRecords,
               style: TextStyle(
                 fontSize: _FontSize.body,
                 color: _Colors.textHint.withValues(alpha: 0.5),
@@ -642,19 +648,20 @@ class _RecordsScreenState extends State<RecordsScreen> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
+    final l10n = AppLocalizations.of(context)!;
 
     if (date == today) {
-      return '今天';
+      return l10n.today;
     } else if (date == yesterday) {
-      return '昨天';
+      return l10n.yesterday;
     } else {
-      return DateFormat('M月d日').format(date);
+      return DateFormat('M/d').format(date);
     }
   }
 
   String _getDateLabel(DateTime date) {
-    final weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-    return weekDays[date.weekday - 1];
+    final l10n = AppLocalizations.of(context)!;
+    return l10n.getWeekday(date.weekday);
   }
 
   String _formatTime(DateTime time) {
