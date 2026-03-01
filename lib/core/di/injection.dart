@@ -7,7 +7,6 @@ import '../../domain/repositories/audio_repository.dart';
 import '../../domain/repositories/record_repository.dart';
 import '../../domain/repositories/ai_repository.dart';
 import '../../domain/repositories/insight_repository.dart';
-import '../../domain/services/quote_service.dart';
 import '../../domain/usecases/create_quick_note_usecase.dart';
 import '../../domain/usecases/get_records_usecase.dart';
 import '../../domain/usecases/update_record_usecase.dart';
@@ -27,6 +26,7 @@ import '../network/coze_ai_service.dart';
 import '../constants/app_constants.dart';
 import '../services/app_lock_service.dart';
 import '../services/ai_auth_service.dart';
+import '../services/home_background_theme_service.dart';
 import '../services/quote_preloader.dart';
 import '../services/quote_update_manager.dart';
 import '../../presentation/bloc/audio/audio_bloc.dart';
@@ -75,6 +75,15 @@ Future<void> configureDependencies() async {
   final hiveDatabase = HiveDatabase();
   await hiveDatabase.init();
   getIt.registerSingleton<HiveDatabase>(hiveDatabase);
+
+  // 首页背景主题服务（A/B 方案切换）
+  final homeBackgroundThemeService = HomeBackgroundThemeService(
+    hiveDatabase: hiveDatabase,
+  );
+  await homeBackgroundThemeService.init();
+  getIt.registerSingleton<HomeBackgroundThemeService>(
+    homeBackgroundThemeService,
+  );
 
   // 豆包远程数据源
   getIt.registerLazySingleton<DoubaoDataSource>(
@@ -225,6 +234,7 @@ Future<void> cleanupDependencies() async {
   // 清理服务
   getIt<AppLockService>().dispose();
   getIt<AIAuthService>().dispose();
+  getIt<HomeBackgroundThemeService>().dispose();
 
   // 清理网络客户端
   getIt<DoubaoLLMClient>().dispose();
