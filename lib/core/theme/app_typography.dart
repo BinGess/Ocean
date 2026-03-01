@@ -43,6 +43,11 @@ class AppColors {
   // 背景色阶
   static const Color bgPrimary = Color(0xFFFAF6F1);         // 主背景（暖米色）
   static const Color bgCard = Colors.white;                  // 卡片背景
+  static const List<Color> warmPageBackgroundGradient = <Color>[
+    Color(0xFFFFFCF8),
+    Color(0xFFFDFBF6),
+    Color(0xFFFCF8F1),
+  ];
   static const Color bgCardSecondary = Color(0xFFF7F0E8);   // 次级卡片背景
   static const Color bgInput = Color(0xFFF5F5F5);           // 输入框背景
 

@@ -8,7 +8,6 @@ import 'package:intl/intl.dart';
 import '../../../domain/entities/record.dart';
 import '../../../domain/entities/daily_summary.dart';
 import '../../../core/di/injection.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/services/daily_summary_service.dart';
 import '../../../data/datasources/local/hive_database.dart';

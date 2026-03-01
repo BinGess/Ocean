@@ -22,7 +22,6 @@ import 'emotion_input_screen.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
 import '../../../core/services/quote_preloader.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/services/home_background_theme_service.dart';
 import '../../../core/theme/app_typography.dart';
 
@@ -500,13 +499,8 @@ class _HomeScreenState extends State<HomeScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-<<<<<<< HEAD
-            colors: AppColors.homeBackgroundGradient,
-            stops: [0.0, 0.62, 1.0],
-=======
             colors: _backgroundPalette.gradientColors,
             stops: _backgroundPalette.gradientStops,
->>>>>>> c1d3d28 (Update from local workspace: version bump and UI adjustments)
           ),
         ),
         child: Stack(
@@ -558,22 +552,11 @@ class _HomeScreenState extends State<HomeScreen>
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-<<<<<<< HEAD
-                        AppColors.pageWarmVeil.withValues(alpha: 0.0),
-<<<<<<< HEAD
-                        AppColors.pageWarmVeil.withValues(alpha: 0.38),
-                        AppColors.pageWarmVeil.withValues(alpha: 0.60),
-=======
-                        AppColors.pageWarmVeil.withValues(alpha: 0.62),
-                        AppColors.pageWarmVeil,
-=======
                         _backgroundPalette.bottomFogColor.withValues(alpha: 0),
                         _backgroundPalette.bottomFogColor.withValues(
                           alpha: _backgroundPalette.bottomFogMiddleAlpha,
                         ),
                         _backgroundPalette.bottomFogColor,
->>>>>>> c1d3d28 (Update from local workspace: version bump and UI adjustments)
->>>>>>> f6c6c74fd3b1f9faa8428821a32ac923759621c0
                       ],
                       stops: const [0.0, 0.56, 1.0],
                     ),
@@ -1115,9 +1098,6 @@ class _HomeScreenState extends State<HomeScreen>
   }
 }
 
-<<<<<<< HEAD
-/// 背景纹理：多组不规则同心纹（低对比、分布全页）
-=======
 class _HomeBackgroundPalette {
   final List<Color> gradientColors;
   final List<double> gradientStops;
@@ -1176,7 +1156,6 @@ class _HomeBackgroundPalette {
 }
 
 /// 背景纹理：顶部同心圆 + 轻颗粒
->>>>>>> f6c6c74fd3b1f9faa8428821a32ac923759621c0
 class _SoftUITexturePainter extends CustomPainter {
   final Color ringColor;
   final Color overlayColor;
@@ -1190,7 +1169,6 @@ class _SoftUITexturePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final shortSide = math.min(size.width, size.height);
 
-<<<<<<< HEAD
     // 多个分散的纹理组：半径经过人工控制，避免组与组交叉
     final clusters = <_RingCluster>[
       const _RingCluster(
@@ -1249,12 +1227,6 @@ class _SoftUITexturePainter extends CustomPainter {
         phase: 3.42,
       ),
     ];
-=======
-    final ringPaint = Paint()
-      ..color = ringColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.15;
->>>>>>> f6c6c74fd3b1f9faa8428821a32ac923759621c0
 
     for (final cluster in clusters) {
       final center =
@@ -1303,12 +1275,8 @@ class _SoftUITexturePainter extends CustomPainter {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-<<<<<<< HEAD
-          const Color(0xFFC7D8E8).withValues(alpha: 0.028),
-          const Color(0xFFD2DFEC).withValues(alpha: 0.006),
-=======
-          overlayColor,
->>>>>>> f6c6c74fd3b1f9faa8428821a32ac923759621c0
+          overlayColor.withValues(alpha: 0.028),
+          overlayColor.withValues(alpha: 0.006),
           Colors.transparent,
         ],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));

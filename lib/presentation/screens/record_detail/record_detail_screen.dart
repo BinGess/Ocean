@@ -6,8 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/entities/record.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
 import '../../bloc/record/record_bloc.dart';
 import '../../bloc/record/record_event.dart';
 import '../../bloc/record/record_state.dart';
