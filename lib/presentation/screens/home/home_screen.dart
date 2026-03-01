@@ -23,6 +23,7 @@ import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
 import '../../../core/services/quote_preloader.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/services/home_background_theme_service.dart';
 import '../../../core/theme/app_typography.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -44,6 +45,9 @@ class _HomeScreenState extends State<HomeScreen>
   bool _isQuoteSwitching = false;
   bool _isQuoteFadingOut = true;
   late AnimationController _quoteTransitionController;
+  late final HomeBackgroundThemeService _homeBackgroundThemeService;
+  StreamSubscription<HomeBackgroundScheme>? _homeBackgroundSubscription;
+  late _HomeBackgroundPalette _backgroundPalette;
 
   // 按钮脉冲动画控制器
   late AnimationController _pulseController;
@@ -56,6 +60,18 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
+    _homeBackgroundThemeService = getIt<HomeBackgroundThemeService>();
+    _backgroundPalette = _HomeBackgroundPalette.fromScheme(
+      _homeBackgroundThemeService.currentScheme,
+    );
+    _homeBackgroundSubscription =
+        _homeBackgroundThemeService.schemeStream.listen((scheme) {
+      if (!mounted) return;
+      setState(() {
+        _backgroundPalette = _HomeBackgroundPalette.fromScheme(scheme);
+      });
+    });
+
     // 注：不在此处加载记录列表，避免与 RecordsScreen 冲突
     // RecordsScreen 会加载完整的记录列表
     // 如果在此处使用 limit:5 加载，会覆盖 RecordsScreen 的完整列表
@@ -462,6 +478,7 @@ class _HomeScreenState extends State<HomeScreen>
     _pulseController.dispose();
     _quoteTransitionController.dispose();
     _quoteAutoSwitchTimer?.cancel();
+    _homeBackgroundSubscription?.cancel();
     super.dispose();
   }
 
@@ -479,12 +496,17 @@ class _HomeScreenState extends State<HomeScreen>
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
+<<<<<<< HEAD
             colors: AppColors.homeBackgroundGradient,
             stops: [0.0, 0.62, 1.0],
+=======
+            colors: _backgroundPalette.gradientColors,
+            stops: _backgroundPalette.gradientStops,
+>>>>>>> c1d3d28 (Update from local workspace: version bump and UI adjustments)
           ),
         ),
         child: Stack(
@@ -514,7 +536,12 @@ class _HomeScreenState extends State<HomeScreen>
             Positioned.fill(
               child: IgnorePointer(
                 child: CustomPaint(
-                  painter: _SoftUITexturePainter(),
+                  painter: _SoftUITexturePainter(
+                    ringColor: _backgroundPalette.ringColor
+                        .withValues(alpha: _backgroundPalette.ringAlpha),
+                    overlayColor: _backgroundPalette.overlayColor
+                        .withValues(alpha: _backgroundPalette.overlayAlpha),
+                  ),
                   size: Size.infinite,
                 ),
               ),
@@ -531,9 +558,22 @@ class _HomeScreenState extends State<HomeScreen>
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
+<<<<<<< HEAD
                         AppColors.pageWarmVeil.withValues(alpha: 0.0),
+<<<<<<< HEAD
                         AppColors.pageWarmVeil.withValues(alpha: 0.38),
                         AppColors.pageWarmVeil.withValues(alpha: 0.60),
+=======
+                        AppColors.pageWarmVeil.withValues(alpha: 0.62),
+                        AppColors.pageWarmVeil,
+=======
+                        _backgroundPalette.bottomFogColor.withValues(alpha: 0),
+                        _backgroundPalette.bottomFogColor.withValues(
+                          alpha: _backgroundPalette.bottomFogMiddleAlpha,
+                        ),
+                        _backgroundPalette.bottomFogColor,
+>>>>>>> c1d3d28 (Update from local workspace: version bump and UI adjustments)
+>>>>>>> f6c6c74fd3b1f9faa8428821a32ac923759621c0
                       ],
                       stops: const [0.0, 0.56, 1.0],
                     ),
@@ -1075,12 +1115,82 @@ class _HomeScreenState extends State<HomeScreen>
   }
 }
 
+<<<<<<< HEAD
 /// 背景纹理：多组不规则同心纹（低对比、分布全页）
+=======
+class _HomeBackgroundPalette {
+  final List<Color> gradientColors;
+  final List<double> gradientStops;
+  final Color bottomFogColor;
+  final double bottomFogMiddleAlpha;
+  final Color ringColor;
+  final double ringAlpha;
+  final Color overlayColor;
+  final double overlayAlpha;
+
+  const _HomeBackgroundPalette({
+    required this.gradientColors,
+    required this.gradientStops,
+    required this.bottomFogColor,
+    required this.bottomFogMiddleAlpha,
+    required this.ringColor,
+    required this.ringAlpha,
+    required this.overlayColor,
+    required this.overlayAlpha,
+  });
+
+  factory _HomeBackgroundPalette.fromScheme(HomeBackgroundScheme scheme) {
+    switch (scheme) {
+      case HomeBackgroundScheme.warmApricotA:
+        return const _HomeBackgroundPalette(
+          gradientColors: [
+            Color(0xFFFFF7ED),
+            Color(0xFFFDECD8),
+            Color(0xFFFAF3EA),
+          ],
+          gradientStops: [0.0, 0.62, 1.0],
+          bottomFogColor: Color(0xFFFFE7D1),
+          bottomFogMiddleAlpha: 0.64,
+          ringColor: Color(0xFFF3C8A7),
+          ringAlpha: 0.20,
+          overlayColor: Color(0xFFF3C8A7),
+          overlayAlpha: 0.05,
+        );
+      case HomeBackgroundScheme.coolBlendB:
+        return const _HomeBackgroundPalette(
+          gradientColors: [
+            Color(0xFFEFF6FF),
+            Color(0xFFF4F8FB),
+            Color(0xFFFFF7ED),
+          ],
+          gradientStops: [0.0, 0.62, 1.0],
+          bottomFogColor: Color(0xFFF6EBDD),
+          bottomFogMiddleAlpha: 0.62,
+          ringColor: Color(0xFFB8CCE1),
+          ringAlpha: 0.24,
+          overlayColor: Color(0xFFC9D9E8),
+          overlayAlpha: 0.06,
+        );
+    }
+  }
+}
+
+/// 背景纹理：顶部同心圆 + 轻颗粒
+>>>>>>> f6c6c74fd3b1f9faa8428821a32ac923759621c0
 class _SoftUITexturePainter extends CustomPainter {
+  final Color ringColor;
+  final Color overlayColor;
+
+  _SoftUITexturePainter({
+    required this.ringColor,
+    required this.overlayColor,
+  });
+
   @override
   void paint(Canvas canvas, Size size) {
     final shortSide = math.min(size.width, size.height);
 
+<<<<<<< HEAD
     // 多个分散的纹理组：半径经过人工控制，避免组与组交叉
     final clusters = <_RingCluster>[
       const _RingCluster(
@@ -1139,6 +1249,12 @@ class _SoftUITexturePainter extends CustomPainter {
         phase: 3.42,
       ),
     ];
+=======
+    final ringPaint = Paint()
+      ..color = ringColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.15;
+>>>>>>> f6c6c74fd3b1f9faa8428821a32ac923759621c0
 
     for (final cluster in clusters) {
       final center =
@@ -1187,8 +1303,12 @@ class _SoftUITexturePainter extends CustomPainter {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
+<<<<<<< HEAD
           const Color(0xFFC7D8E8).withValues(alpha: 0.028),
           const Color(0xFFD2DFEC).withValues(alpha: 0.006),
+=======
+          overlayColor,
+>>>>>>> f6c6c74fd3b1f9faa8428821a32ac923759621c0
           Colors.transparent,
         ],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
@@ -1233,7 +1353,10 @@ class _SoftUITexturePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _SoftUITexturePainter oldDelegate) {
+    return oldDelegate.ringColor != ringColor ||
+        oldDelegate.overlayColor != overlayColor;
+  }
 }
 
 class _RingCluster {
