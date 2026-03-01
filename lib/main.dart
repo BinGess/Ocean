@@ -5,13 +5,16 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/theme/app_theme.dart';
 import 'core/di/injection.dart';
 import 'core/services/app_lock_service.dart';
+import 'l10n/app_localizations.dart';
 import 'presentation/bloc/audio/audio_bloc.dart';
 import 'presentation/bloc/audio/audio_event.dart';
 import 'presentation/bloc/record/record_bloc.dart';
 import 'presentation/bloc/insight/insight_bloc.dart';
+import 'presentation/bloc/locale/locale_bloc.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/records/records_screen.dart';
 import 'presentation/screens/insights/insights_screen.dart';
@@ -54,14 +57,30 @@ class MindFlowApp extends StatelessWidget {
         BlocProvider(
           create: (context) => getIt<InsightBloc>(),
         ),
+        BlocProvider(
+          create: (context) => getIt<LocaleBloc>()..add(const LocaleLoad()),
+        ),
       ],
-      child: MaterialApp(
-        title: 'MindFlow',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.light, // 后续可以从设置中读取
-        home: const AppEntryPoint(),
+      child: BlocBuilder<LocaleBloc, LocaleState>(
+        builder: (context, localeState) {
+          return MaterialApp(
+            title: 'MindFlow',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: ThemeMode.light, // 后续可以从设置中读取
+            // 本地化配置
+            locale: localeState.effectiveLocale,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: const AppEntryPoint(),
+          );
+        },
       ),
     );
   }
@@ -314,34 +333,39 @@ class _MainNavigationState extends State<MainNavigation> {
         child: SafeArea(
           child: SizedBox(
             height: 72, // 增加高度以提供更大的点击区域
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Expanded(
-                  child: _buildNavItem(
-                    index: 0,
-                    icon: Icons.folder_outlined,
-                    activeIcon: Icons.folder,
-                    label: '记录',
-                  ),
-                ),
-                Expanded(
-                  child: _buildNavItem(
-                    index: 1,
-                    icon: Icons.circle_outlined,
-                    activeIcon: Icons.circle,
-                    label: '瞬记',
-                  ),
-                ),
-                Expanded(
-                  child: _buildNavItem(
-                    index: 2,
-                    icon: Icons.auto_awesome_outlined,
-                    activeIcon: Icons.auto_awesome,
-                    label: '洞察',
-                  ),
-                ),
-              ],
+            child: Builder(
+              builder: (context) {
+                final l10n = AppLocalizations.of(context)!;
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Expanded(
+                      child: _buildNavItem(
+                        index: 0,
+                        icon: Icons.folder_outlined,
+                        activeIcon: Icons.folder,
+                        label: l10n.navRecords,
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildNavItem(
+                        index: 1,
+                        icon: Icons.circle_outlined,
+                        activeIcon: Icons.circle,
+                        label: l10n.navHome,
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildNavItem(
+                        index: 2,
+                        icon: Icons.auto_awesome_outlined,
+                        activeIcon: Icons.auto_awesome,
+                        label: l10n.navInsights,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ),

@@ -5,6 +5,9 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/entities/record.dart';
+import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../bloc/record/record_bloc.dart';
 import '../../bloc/record/record_event.dart';
 import '../../bloc/record/record_state.dart';
@@ -281,23 +284,18 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F5F5),
+        backgroundColor: AppColors.bgPrimary,
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.bgCard,
           elevation: 0,
           surfaceTintColor: Colors.transparent,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios,
-                size: 20, color: Color(0xFF2C2C2C)),
+            icon: const Icon(Icons.arrow_back_ios, size: 20, color: AppColors.textPrimary),
             onPressed: () => Navigator.of(context).pop(),
           ),
           title: Text(
             _formatDateTime(widget.record.createdAt),
-            style: const TextStyle(
-              color: Color(0xFF8B8B8B),
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
+            style: AppTypography.appBarTitle,
           ),
           centerTitle: true,
           actions: [
@@ -322,9 +320,9 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
           ],
         ),
         bottomNavigationBar: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            color: const Color(0xFFF5F5F5),
+            color: AppColors.bgPrimary,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
@@ -340,26 +338,22 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
               child: TextButton(
                 onPressed: _saveAndClose,
                 style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFFC4A57B),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: AppColors.accent,
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
                   ),
                 ),
                 child: const Text(
                   '完成',
-                  style: TextStyle(
-                    fontSize: 17,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: AppTypography.buttonLarge,
                 ),
               ),
             ),
           ),
         ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           physics: const BouncingScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -367,48 +361,42 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
               // 转写文本区域
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppSpacing.lg),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF7F0E8), // 米色背景
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppColors.bgCardSecondary,
+                  borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
                 ),
                 child: Text(
                   widget.record.transcription,
-                  style: const TextStyle(
-                    color: Color(0xFF4A4A4A),
-                    fontSize: 15,
-                    height: 1.6,
-                  ),
+                  style: AppTypography.detailBody,
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
 
               // 洞察标签
               Row(
                 children: [
-                  const Icon(Icons.auto_awesome,
-                      size: 16, color: Color(0xFFC4A57B)),
+                  const Icon(Icons.auto_awesome, size: 16, color: AppColors.accent),
                   const SizedBox(width: 6),
-                  const Text(
+                  Text(
                     '洞察',
-                    style: TextStyle(
-                      color: Color(0xFFC4A57B),
-                      fontSize: 13,
+                    style: AppTypography.modalCaption.copyWith(
+                      color: AppColors.accent,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
 
               // 感受标签卡片
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppSpacing.lg),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppColors.bgCard,
+                  borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.03),
@@ -437,29 +425,27 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             '我现在的感受',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF2C2C2C),
+                            style: AppTypography.detailTitle.copyWith(
+                              color: AppColors.textPrimary,
                             ),
                           ),
                         ),
                         // 编辑按钮放在标题右侧
                         GestureDetector(
                           onTap: _editMoodTags,
-                          child: Icon(
+                          child: const Icon(
                             Icons.edit_outlined,
                             size: 18,
-                            color: Colors.grey[400],
+                            color: AppColors.textSubtle,
                           ),
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
 
                     // "也许..."提示 + 标签
                     Row(
@@ -469,25 +455,23 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                           padding: const EdgeInsets.only(top: 2),
                           child: Text(
                             '也许...',
-                            style: TextStyle(
-                              color: Colors.grey[400],
-                              fontSize: 13,
+                            style: AppTypography.tagLabel.copyWith(
+                              color: AppColors.textSubtle,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: AppSpacing.sm),
                         Expanded(
                           child: _selectedMoods.isEmpty
                               ? Text(
                                   '点击编辑添加感受',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[400],
+                                  style: AppTypography.bodySecondary.copyWith(
+                                    color: AppColors.textSubtle,
                                   ),
                                 )
                               : Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
+                                  spacing: AppSpacing.sm,
+                                  runSpacing: AppSpacing.sm,
                                   children: _selectedMoods.map((mood) {
                                     return Container(
                                       padding: const EdgeInsets.symmetric(
@@ -496,17 +480,13 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                                         color: Colors.transparent,
                                         borderRadius: BorderRadius.circular(16),
                                         border: Border.all(
-                                          color: const Color(0xFFE0D5C5),
+                                          color: AppColors.border,
                                           width: 1,
                                         ),
                                       ),
                                       child: Text(
                                         mood,
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          color: Color(0xFF5D4E3C),
-                                          fontWeight: FontWeight.w500,
-                                        ),
+                                        style: AppTypography.tagLabel,
                                       ),
                                     );
                                   }).toList(),
@@ -518,14 +498,14 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
 
               // NVC分析卡片
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppSpacing.lg),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppColors.bgCard,
+                  borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.03),
@@ -541,48 +521,45 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'NVC分析',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF2C2C2C),
+                          style: AppTypography.detailTitle.copyWith(
+                            color: AppColors.textPrimary,
                           ),
                         ),
-                        Icon(
+                        const Icon(
                           Icons.more_horiz,
-                          color: Colors.grey[400],
+                          color: AppColors.textSubtle,
                           size: 20,
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
 
                     // NVC分析按钮
                     GestureDetector(
                       onTap: _isAnalyzing ? null : _triggerNVCAnalysis,
                       child: Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(AppSpacing.lg),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF8F8F8),
-                          borderRadius: BorderRadius.circular(12),
+                          color: AppColors.bgCardSecondary,
+                          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
                         ),
                         child: Row(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.edit_outlined,
                               size: 18,
-                              color: Colors.grey[500],
+                              color: AppColors.textTertiary,
                             ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 _isAnalyzing ? '正在分析中...' : '让AI来分析你的情况',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
+                                style: AppTypography.bodySecondary.copyWith(
+                                  color: AppColors.textTertiary,
                                 ),
                               ),
                             ),
@@ -593,7 +570,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                    Color(0xFFC4A57B),
+                                    AppColors.accent,
                                   ),
                                 ),
                               ),
@@ -676,14 +653,14 @@ class _TagEditDialogState extends State<_TagEditDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadiusLg),
       ),
       child: Container(
         constraints: const BoxConstraints(maxHeight: 600),
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(20),
+          color: AppColors.bgPrimary,
+          borderRadius: BorderRadius.circular(AppSpacing.cardRadiusLg),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -700,34 +677,30 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                   ),
                   child: Icon(widget.icon, size: 18, color: widget.iconColor),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Text(
                     widget.title,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF2C2C2C),
-                    ),
+                    style: AppTypography.detailTitle,
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.xl),
 
             // 已选标签
             if (_selectedTags.isNotEmpty) ...[
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppColors.bgCard,
+                  borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
                 ),
                 child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
                   children: _selectedTags.map((tag) {
                     return Container(
                       padding: const EdgeInsets.symmetric(
@@ -741,10 +714,8 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                         children: [
                           Text(
                             tag,
-                            style: TextStyle(
-                              fontSize: 13,
+                            style: AppTypography.tagLabel.copyWith(
                               color: widget.iconColor,
-                              fontWeight: FontWeight.w500,
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -762,7 +733,7 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                   }).toList(),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
             ],
 
             // 建议标签
@@ -773,16 +744,14 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                   children: [
                     Text(
                       '建议标签',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
+                      style: AppTypography.modalCaption.copyWith(
+                        color: AppColors.textTertiary,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.sm,
                       children: widget.suggestions.map((tag) {
                         final isSelected = _selectedTags.contains(tag);
                         return GestureDetector(
@@ -791,27 +760,18 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
-                              color: isSelected
-                                  ? widget.iconBgColor
-                                  : Colors.white,
+                              color: isSelected ? widget.iconBgColor : AppColors.bgCard,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: isSelected
-                                    ? widget.iconColor
-                                    : const Color(0xFFE0E0E0),
+                                color: isSelected ? widget.iconColor : AppColors.border,
                                 width: 1,
                               ),
                             ),
                             child: Text(
                               tag,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isSelected
-                                    ? widget.iconColor
-                                    : const Color(0xFF4A4A4A),
-                                fontWeight: isSelected
-                                    ? FontWeight.w600
-                                    : FontWeight.w500,
+                              style: AppTypography.tagLabel.copyWith(
+                                color: isSelected ? widget.iconColor : AppColors.textSecondary,
+                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                               ),
                             ),
                           ),
@@ -823,30 +783,28 @@ class _TagEditDialogState extends State<_TagEditDialog> {
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
 
             // 自定义输入标题
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 '自定义标签',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
+                style: AppTypography.modalCaption.copyWith(
+                  color: AppColors.textTertiary,
                 ),
               ),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
 
             // 自定义输入框
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.bgCard,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: const Color(0xFFE8E8E8),
+                  color: AppColors.borderLight,
                   width: 1,
                 ),
                 boxShadow: [
@@ -862,20 +820,14 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                   Expanded(
                     child: TextField(
                       controller: _customTagController,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        color: Color(0xFF4A4A4A),
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: AppTypography.buttonMedium,
                       decoration: InputDecoration(
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 12),
                         hintText: '输入并添加...',
-                        hintStyle: TextStyle(
-                          color: Colors.grey[400],
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
+                        hintStyle: AppTypography.bodySecondary.copyWith(
+                          color: AppColors.textSubtle,
                         ),
                       ),
                       onSubmitted: (_) => _addCustomTag(),
@@ -885,12 +837,12 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                     margin: const EdgeInsets.only(right: 8),
                     child: Material(
                       color: widget.iconBgColor,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
                       child: InkWell(
                         onTap: _addCustomTag,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
                         child: Container(
-                          padding: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(AppSpacing.sm),
                           child: Icon(
                             Icons.add,
                             color: widget.iconColor,
@@ -904,7 +856,7 @@ class _TagEditDialogState extends State<_TagEditDialog> {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.xl),
 
             // 按钮
             Row(
@@ -913,37 +865,34 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                   child: TextButton(
                     onPressed: () => Navigator.pop(context),
                     style: TextButton.styleFrom(
-                      backgroundColor: Colors.white,
+                      backgroundColor: AppColors.bgCard,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
                       ),
                     ),
                     child: Text(
                       '取消',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.grey[700],
-                        fontWeight: FontWeight.w500,
+                      style: AppTypography.buttonMedium.copyWith(
+                        color: AppColors.textTertiary,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: TextButton(
                     onPressed: () => Navigator.pop(context, _selectedTags),
                     style: TextButton.styleFrom(
-                      backgroundColor: const Color(0xFFC4A57B),
+                      backgroundColor: AppColors.accent,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       '完成',
-                      style: TextStyle(
-                        fontSize: 15,
+                      style: AppTypography.buttonMedium.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),

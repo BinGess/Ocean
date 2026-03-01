@@ -13,6 +13,7 @@ import 'package:dio/dio.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/entities/nvc_analysis.dart';
 import '../../domain/entities/insight_report.dart';
+import '../../domain/entities/daily_summary.dart';
 import '../constants/app_constants.dart';
 
 class CozeAIService {
@@ -782,6 +783,215 @@ class CozeAIService {
       analyzedAt: DateTime.now(),
     );
   }
+
+  /// 生成日总结
+  ///
+  /// 分析当天的所有记录，生成情绪关键词、一句话概括和分数
+  ///
+  /// [records] 当天的记录列表，格式为 [{record_time, content}, ...]
+  /// [date] 日期
+  /// 返回 DailySummary 对象
+  Future<DailySummary> generateDailySummary(
+    List<DailySummaryRecord> records,
+    DateTime date,
+  ) async {
+    // 检查配置
+    if (!EnvConfig.isDailySummaryConfigured) {
+      throw CozeAPIException(
+        '日总结智能体配置未完成',
+        code: 'CONFIG_ERROR',
+      );
+    }
+
+    // 检查记录数量（至少需要 2 条）
+    if (records.length < 2) {
+      throw CozeAPIException(
+        '记录数量不足，至少需要 2 条记录才能生成日总结',
+        code: 'INSUFFICIENT_RECORDS',
+      );
+    }
+
+    print('📅 CozeAI: 开始生成日总结，记录数: ${records.length}');
+
+    try {
+      // 构建输入数据
+      final inputData = records
+          .map((r) => {
+                'record_time': r.recordTime,
+                'content': r.content,
+              })
+          .toList();
+
+      final inputText = jsonEncode(inputData);
+
+      // 调用 API
+      final responseText = await _callDailySummaryAPI(inputText);
+
+      print('✅ CozeAI: 收到日总结响应，长度: ${responseText.length}');
+      print('📝 CozeAI: 日总结原始响应:\n$responseText');
+
+      // 解析响应
+      final summary = _parseDailySummaryResponse(responseText, date, records.length);
+
+      print('✅ CozeAI: 日总结生成完成');
+      print('📊 CozeAI: 情绪关键词: ${summary.moodWord}');
+      print('📊 CozeAI: 一句话概括: ${summary.oneSentence}');
+      print('📊 CozeAI: 分数: ${summary.score}');
+
+      return summary;
+    } on DioException catch (e) {
+      throw CozeAPIException.fromDioError(e);
+    } catch (e) {
+      if (e is CozeAPIException) rethrow;
+      throw CozeAPIException(
+        '日总结生成失败: $e',
+        code: 'DAILY_SUMMARY_ERROR',
+        originalError: e,
+      );
+    }
+  }
+
+  /// 调用日总结 API（SSE流式响应）
+  Future<String> _callDailySummaryAPI(String inputText) async {
+    // 创建单独的 Dio 实例
+    final dailySummaryDio = Dio();
+    final baseUrl = EnvConfig.cozeDailySummaryBaseUrl;
+    dailySummaryDio.options.baseUrl = baseUrl;
+    dailySummaryDio.options.connectTimeout = AppConstants.cozeApiTimeout;
+    dailySummaryDio.options.receiveTimeout = const Duration(seconds: 60);
+    dailySummaryDio.options.headers = {
+      'Authorization': 'Bearer ${EnvConfig.cozeDailySummaryApiToken}',
+      'Content-Type': 'application/json',
+    };
+
+    // 生成唯一的 session_id
+    final sessionId = _uuid.v4().replaceAll('-', '');
+
+    print('🔄 CozeAI: 发送日总结请求');
+    print('   Base URL: $baseUrl');
+    print('   Session ID: $sessionId');
+
+    final projectIdStr = EnvConfig.cozeDailySummaryProjectId;
+    final projectId = int.tryParse(projectIdStr);
+
+    if (projectId == null || projectId <= 0) {
+      throw CozeAPIException(
+        '日总结智能体 Project ID 配置无效: $projectIdStr',
+        code: 'CONFIG_ERROR',
+      );
+    }
+
+    try {
+      final response = await dailySummaryDio.post(
+        '/stream_run',
+        data: {
+          'content': {
+            'query': {
+              'prompt': [
+                {
+                  'type': 'text',
+                  'content': {'text': inputText},
+                },
+              ],
+            },
+          },
+          'type': 'query',
+          'session_id': sessionId,
+          'project_id': projectId,
+        },
+        options: Options(responseType: ResponseType.stream),
+      );
+
+      if (response.statusCode == 200 && response.data is ResponseBody) {
+        final streamText = await utf8.decoder.bind(response.data.stream).join();
+        print('📥 CozeAI: 收到日总结流式响应，长度: ${streamText.length}');
+
+        final answer = _extractAnswerFromSSE(streamText);
+        return answer.isNotEmpty ? answer : streamText;
+      }
+
+      throw CozeAPIException(
+        '日总结API响应无效: HTTP ${response.statusCode}',
+        code: 'INVALID_RESPONSE',
+      );
+    } on DioException catch (e) {
+      print('❌ CozeAI: 日总结API请求失败');
+      print('   Status: ${e.response?.statusCode}');
+      print('   Message: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// 解析日总结响应
+  DailySummary _parseDailySummaryResponse(
+    String responseText,
+    DateTime date,
+    int recordCount,
+  ) {
+    try {
+      // 尝试从响应中提取 JSON
+      final jsonText = _extractJsonFromText(responseText);
+      print('🔍 CozeAI: 提取的日总结JSON:\n$jsonText');
+
+      final jsonData = jsonDecode(jsonText) as Map<String, dynamic>;
+
+      // 解析字段
+      final moodWord = jsonData['mood_word']?.toString() ?? '平静';
+      final oneSentence = jsonData['one_sentence']?.toString() ?? '今日无特别记录';
+
+      // 解析分数，确保在 0-10 范围内
+      int score = 5;
+      if (jsonData['score'] != null) {
+        if (jsonData['score'] is int) {
+          score = jsonData['score'] as int;
+        } else if (jsonData['score'] is double) {
+          score = (jsonData['score'] as double).round();
+        } else {
+          score = int.tryParse(jsonData['score'].toString()) ?? 5;
+        }
+        // 确保分数在有效范围内
+        score = score.clamp(0, 10);
+      }
+
+      return DailySummary(
+        date: DateTime(date.year, date.month, date.day),
+        moodWord: moodWord,
+        oneSentence: oneSentence,
+        score: score,
+        recordCount: recordCount,
+        generatedAt: DateTime.now(),
+      );
+    } catch (e) {
+      print('⚠️ CozeAI: 日总结JSON解析失败: $e');
+      print('⚠️ CozeAI: 原始响应: $responseText');
+
+      // 如果解析失败，返回默认值
+      if (responseText.contains('error') || responseText.length < 20) {
+        throw CozeAPIException(
+          'AI服务暂时不可用，请稍后重试',
+          code: 'SERVICE_ERROR',
+          originalError: e,
+        );
+      }
+
+      throw CozeAPIException(
+        '日总结响应格式异常，无法解析',
+        code: 'PARSE_ERROR',
+        originalError: e,
+      );
+    }
+  }
+}
+
+/// 日总结请求记录
+class DailySummaryRecord {
+  final String recordTime;
+  final String content;
+
+  const DailySummaryRecord({
+    required this.recordTime,
+    required this.content,
+  });
 }
 
 /// Coze API 异常

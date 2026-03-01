@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../domain/entities/insight_report.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../bloc/insight/insight_bloc.dart';
 import '../../bloc/insight/insight_state.dart';
 import '../../bloc/insight/insight_event.dart';
@@ -78,20 +79,21 @@ class _InsightsScreenState extends State<InsightsScreen>
 
   /// 显示拒绝授权引导
   void _showAuthDeniedGuidance(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
             const Icon(Icons.info_outline, color: Color(0xFFFFB74D)),
             const SizedBox(width: 8),
-            const Expanded(
-              child: Text('AI功能需要授权才能使用，您可在设置中开启'),
+            Expanded(
+              child: Text(l10n.aiNeedsAuthSnackbar),
             ),
           ],
         ),
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
-          label: '去设置',
+          label: l10n.goToSettings,
           textColor: const Color(0xFFC4A57B),
           onPressed: () {
             Navigator.of(context).push(
@@ -138,35 +140,38 @@ class _InsightsScreenState extends State<InsightsScreen>
 
             if (state.status == InsightStatus.error &&
                 state.currentReport != null) {
+              final l10n = AppLocalizations.of(context)!;
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.errorMessage ?? '刷新失败，请稍后重试')),
+                SnackBar(content: Text(state.errorMessage ?? l10n.refreshFailed)),
               );
             }
 
             if (state.status == InsightStatus.needsAIAuth &&
                 state.currentReport != null) {
+              final l10n = AppLocalizations.of(context)!;
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('AI授权已失效，请在设置中重新开启')),
+                SnackBar(content: Text(l10n.aiAuthExpired)),
               );
             }
             // 注：needsAIAuth 状态不再自动弹窗，而是通过UI引导用户手动触发
           },
           child: BlocBuilder<InsightBloc, InsightState>(
             builder: (context, state) {
+              final l10n = AppLocalizations.of(context)!;
               // 无内容且需要AI授权时显示友好引导
               if (state.status == InsightStatus.needsAIAuth &&
                   state.currentReport == null) {
-                return _buildAIAuthPromptState();
+                return _buildAIAuthPromptState(l10n);
               }
 
               if ((state.status == InsightStatus.loading ||
                       state.status == InsightStatus.generating) &&
                   state.currentReport == null) {
-                return _buildLoadingState(state.progressMessage);
+                return _buildLoadingState(state.progressMessage, l10n);
               }
 
               if (state.currentReport == null) {
-                return _buildEmptyState(state.errorMessage);
+                return _buildEmptyState(state.errorMessage, l10n);
               }
 
               return RefreshIndicator(
@@ -174,7 +179,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                 color: const Color(0xFFC4A57B),
                 backgroundColor: Colors.white,
                 child: _buildInsightContent(
-                    context, state.currentReport!, state.lastFetchTime),
+                    context, state.currentReport!, state.lastFetchTime, l10n),
               );
             },
           ),
@@ -184,7 +189,7 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// AI授权引导状态
-  Widget _buildAIAuthPromptState() {
+  Widget _buildAIAuthPromptState(AppLocalizations l10n) {
     return SafeArea(
       child: Center(
         child: Padding(
@@ -207,15 +212,14 @@ class _InsightsScreenState extends State<InsightsScreen>
               ),
               const SizedBox(height: 24),
               Text(
-                '开启智能洞察',
-                style: AppTypography.sectionTitle.copyWith(
-                  fontSize: 20,
-                  color: const Color(0xFF5D4E3C),
+                l10n.enableSmartInsights,
+                style: AppTypography.modalTitle.copyWith(
+                  color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 12),
               Text(
-                '授权AI服务后，将为您分析本周情绪记录\n生成专属的情绪洞察报告',
+                l10n.enableSmartInsightsDesc,
                 textAlign: TextAlign.center,
                 style: AppTypography.bodySecondary.copyWith(
                   color: const Color(0xFFB8ADA0),
@@ -239,11 +243,8 @@ class _InsightsScreenState extends State<InsightsScreen>
                     ],
                   ),
                   child: Text(
-                    '立即开启',
-                    style: AppTypography.actionLabel.copyWith(
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
+                    l10n.enableNow,
+                    style: AppTypography.modalButtonPrimary,
                   ),
                 ),
               ),
@@ -255,10 +256,9 @@ class _InsightsScreenState extends State<InsightsScreen>
                   );
                 },
                 child: Text(
-                  '了解更多',
-                  style: AppTypography.sectionSubtle.copyWith(
-                    color: const Color(0xFF8B7D6B),
-                    fontSize: 13,
+                  l10n.learnMore,
+                  style: AppTypography.modalCaption.copyWith(
+                    color: AppColors.textTertiary,
                   ),
                 ),
               ),
@@ -270,7 +270,7 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// 加载状态
-  Widget _buildLoadingState(String? message) {
+  Widget _buildLoadingState(String? message, AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -285,7 +285,7 @@ class _InsightsScreenState extends State<InsightsScreen>
           ),
           const SizedBox(height: 24),
           Text(
-            message ?? '正在生成洞察...',
+            message ?? l10n.generatingInsight,
             style: AppTypography.bodyPrimary.copyWith(
               color: const Color(0xFF8B7D6B),
             ),
@@ -296,7 +296,7 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// 空状态
-  Widget _buildEmptyState(String? errorMessage) {
+  Widget _buildEmptyState(String? errorMessage, AppLocalizations l10n) {
     return SafeArea(
       child: Center(
         child: Padding(
@@ -319,15 +319,14 @@ class _InsightsScreenState extends State<InsightsScreen>
               ),
               const SizedBox(height: 24),
               Text(
-                '本周没有足够的内容生成洞察',
-                style: AppTypography.sectionTitle.copyWith(
-                  fontSize: 17,
-                  color: const Color(0xFF5D4E3C),
+                l10n.noEnoughContent,
+                style: AppTypography.detailTitle.copyWith(
+                  color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 12),
               Text(
-                '记录更多内容后将自动生成',
+                l10n.autoGenerateAfterMore,
                 textAlign: TextAlign.center,
                 style: AppTypography.bodySecondary.copyWith(
                   color: const Color(0xFFB8ADA0),
@@ -349,7 +348,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                   ),
                 ),
                 child: Text(
-                  '重新生成',
+                  l10n.regenerate,
                   style: AppTypography.actionLabel.copyWith(
                     color: const Color(0xFF5D4E3C),
                     fontWeight: FontWeight.w500,
@@ -365,7 +364,7 @@ class _InsightsScreenState extends State<InsightsScreen>
 
   /// 洞察内容
   Widget _buildInsightContent(
-      BuildContext context, InsightReport report, DateTime? lastFetchTime) {
+      BuildContext context, InsightReport report, DateTime? lastFetchTime, AppLocalizations l10n) {
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
@@ -482,7 +481,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                         child: Text(
-                          '查看历史报告',
+                          l10n.viewHistoryReports,
                           style: AppTypography.sectionSubtle.copyWith(
                             color: const Color(0xFF8B7D6B),
                           ),
@@ -498,24 +497,24 @@ class _InsightsScreenState extends State<InsightsScreen>
 
         // 情绪概览
         SliverToBoxAdapter(
-          child: _buildEmotionOverviewCard(report.emotionOverview),
+          child: _buildEmotionOverviewCard(report.emotionOverview, l10n),
         ),
 
         // 高频情境
         if (report.highFrequencyEmotions.isNotEmpty)
           SliverToBoxAdapter(
-            child: _buildHighFrequencySection(report.highFrequencyEmotions),
+            child: _buildHighFrequencySection(report.highFrequencyEmotions, l10n),
           ),
 
         // 潜在需求
         SliverToBoxAdapter(
-          child: _buildPatternHypothesisCard(report.patternHypothesis),
+          child: _buildPatternHypothesisCard(report.patternHypothesis, l10n),
         ),
 
         // 行动建议
         if (report.actionSuggestions.isNotEmpty)
           SliverToBoxAdapter(
-            child: _buildActionSuggestionsSection(report.actionSuggestions),
+            child: _buildActionSuggestionsSection(report.actionSuggestions, l10n),
           ),
 
         // 底部间距
@@ -527,7 +526,7 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// 情绪概览卡片
-  Widget _buildEmotionOverviewCard(EmotionOverview overview) {
+  Widget _buildEmotionOverviewCard(EmotionOverview overview, AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
@@ -562,7 +561,7 @@ class _InsightsScreenState extends State<InsightsScreen>
               ),
               const SizedBox(width: 12),
               Text(
-                '情绪概览',
+                l10n.emotionOverview,
                 style: AppTypography.sectionTitle.copyWith(
                   color: const Color(0xFF5D4E3C),
                 ),
@@ -583,7 +582,7 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// 高频情境列表
-  Widget _buildHighFrequencySection(List<HighFrequencyEmotion> emotions) {
+  Widget _buildHighFrequencySection(List<HighFrequencyEmotion> emotions, AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
@@ -618,7 +617,7 @@ class _InsightsScreenState extends State<InsightsScreen>
               ),
               const SizedBox(width: 12),
               Text(
-                '高频情境',
+                l10n.highFrequencySituations,
                 style: AppTypography.sectionTitle.copyWith(
                   color: const Color(0xFF5D4E3C),
                 ),
@@ -673,7 +672,7 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// 潜在需求卡片
-  Widget _buildPatternHypothesisCard(PatternHypothesis pattern) {
+  Widget _buildPatternHypothesisCard(PatternHypothesis pattern, AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
@@ -708,7 +707,7 @@ class _InsightsScreenState extends State<InsightsScreen>
               ),
               const SizedBox(width: 12),
               Text(
-                '潜在需求',
+                l10n.potentialNeeds,
                 style: AppTypography.sectionTitle.copyWith(
                   color: const Color(0xFF5D4E3C),
                 ),
@@ -779,7 +778,7 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// 行动建议
-  Widget _buildActionSuggestionsSection(List<ActionSuggestion> suggestions) {
+  Widget _buildActionSuggestionsSection(List<ActionSuggestion> suggestions, AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
@@ -814,7 +813,7 @@ class _InsightsScreenState extends State<InsightsScreen>
               ),
               const SizedBox(width: 12),
               Text(
-                '行动建议',
+                l10n.actionSuggestions,
                 style: AppTypography.sectionTitle.copyWith(
                   color: const Color(0xFF5D4E3C),
                 ),
@@ -848,9 +847,9 @@ class _InsightsScreenState extends State<InsightsScreen>
         children: [
           Text(
             suggestion.title,
-            style: AppTypography.sectionTitle.copyWith(
-              fontSize: 15,
-              color: const Color(0xFF5D4E3C),
+            style: AppTypography.bodyPrimary.copyWith(
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
@@ -884,16 +883,16 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// 格式化最后更新时间
-  String _formatLastFetchTime(DateTime time) {
+  String _formatLastFetchTime(DateTime time, AppLocalizations l10n) {
     final now = DateTime.now();
     final diff = now.difference(time);
 
     if (diff.inMinutes < 1) {
-      return '刚刚更新';
+      return l10n.justNow;
     } else if (diff.inMinutes < 60) {
-      return '${diff.inMinutes}分钟前';
+      return l10n.minutesAgo(diff.inMinutes);
     } else if (diff.inHours < 24) {
-      return '${diff.inHours}小时前';
+      return l10n.hoursAgo(diff.inHours);
     } else {
       return DateFormat('M/d HH:mm').format(time);
     }
