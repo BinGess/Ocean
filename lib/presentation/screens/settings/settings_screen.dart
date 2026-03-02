@@ -11,6 +11,7 @@ import '../../bloc/locale/locale_bloc.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
 import '../../../core/services/home_background_theme_service.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -78,32 +79,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.backgroundAlt,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios,
-              size: 20, color: Color(0xFF2C2C2C)),
+              size: 20, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           l10n.settings,
-          style: const TextStyle(
-            color: Color(0xFF2C2C2C),
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
+          style: AppTypography.modalTitle,
         ),
         centerTitle: true,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
           // 安全与隐私分组
           _buildSectionHeader(l10n.securityAndPrivacy),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           _buildNavItem(
             title: l10n.appLock,
             subtitle: l10n.appLockSubtitle,
@@ -115,7 +112,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               );
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
           _buildSwitchItem(
             title: l10n.aiServiceAuth,
             subtitle: l10n.aiServiceAuthSubtitle,
@@ -123,11 +120,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: _aiAuthEnabled,
             onChanged: (value) => _handleAIAuthToggle(value),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
 
           // 显示与外观分组
           _buildSectionHeader('显示与外观'),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           _buildSwitchItem(
             title: '首页暖米杏背景',
             subtitle: '开启 A 暖米杏；关闭 B 蓝杏融合',
@@ -135,11 +132,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: _useWarmApricotBackground,
             onChanged: (value) => _handleHomeBackgroundToggle(value),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
 
           // 数据管理分组
           _buildSectionHeader(l10n.dataManagement),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           _buildNavItem(
             title: l10n.export,
             subtitle: l10n.exportSubtitle,
@@ -150,13 +147,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               );
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
 
           // 其他分组
           _buildSectionHeader(l10n.other),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           _buildLanguageItem(context, l10n),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
           _buildNavItem(
             title: l10n.about,
             subtitle: l10n.aboutSubtitle,
@@ -187,15 +184,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         return InkWell(
           onTap: () => _showLanguageSelector(context, l10n),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -207,36 +204,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8F6F3),
-                    borderRadius: BorderRadius.circular(12),
+                    color: AppColors.surfaceSecondary,
+                    borderRadius: BorderRadius.circular(AppSpacing.md),
                   ),
-                  child: const Icon(Icons.language, color: Color(0xFF8B7D6B)),
+                  child:
+                      const Icon(Icons.language, color: AppColors.textTertiary),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         l10n.language,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF2C2C2C),
-                        ),
+                        style: AppTypography.sectionTitle
+                            .copyWith(color: AppColors.textPrimary),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         currentLanguage,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF8B8B8B),
-                        ),
+                        style: AppTypography.sectionSubtle,
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: Color(0xFFB0B0B0)),
+                const Icon(Icons.chevron_right, color: AppColors.textSubtle),
               ],
             ),
           ),
@@ -267,7 +259,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Text(l10n.languageSystem),
                   if (currentState.isFollowingSystem) ...[
                     const SizedBox(width: 8),
-                    const Icon(Icons.check, color: Color(0xFFC4A57B), size: 20),
+                    const Icon(Icons.check, color: AppColors.primary, size: 20),
                   ],
                 ],
               ),
@@ -284,7 +276,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   if (!currentState.isFollowingSystem &&
                       currentState.effectiveLocale.languageCode == 'zh') ...[
                     const SizedBox(width: 8),
-                    const Icon(Icons.check, color: Color(0xFFC4A57B), size: 20),
+                    const Icon(Icons.check, color: AppColors.primary, size: 20),
                   ],
                 ],
               ),
@@ -301,7 +293,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   if (!currentState.isFollowingSystem &&
                       currentState.effectiveLocale.languageCode == 'en') ...[
                     const SizedBox(width: 8),
-                    const Icon(Icons.check, color: Color(0xFFC4A57B), size: 20),
+                    const Icon(Icons.check, color: AppColors.primary, size: 20),
                   ],
                 ],
               ),
@@ -318,13 +310,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4),
+      padding: const EdgeInsets.only(left: AppSpacing.xs),
       child: Text(
         title,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF8B7D6B),
+        style: AppTypography.actionLabel.copyWith(
+          color: AppColors.textTertiary,
         ),
       ),
     );
@@ -338,12 +328,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -358,36 +348,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFF8F6F3),
-                borderRadius: BorderRadius.circular(12),
+                color: AppColors.surfaceSecondary,
+                borderRadius: BorderRadius.circular(AppSpacing.md),
               ),
-              child: Icon(icon, color: const Color(0xFF8B7D6B)),
+              child: Icon(icon, color: AppColors.textTertiary),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF2C2C2C),
-                    ),
+                    style: AppTypography.sectionTitle
+                        .copyWith(color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF8B8B8B),
-                    ),
+                    style: AppTypography.sectionSubtle,
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Color(0xFFB0B0B0)),
+            const Icon(Icons.chevron_right, color: AppColors.textSubtle),
           ],
         ),
       ),
@@ -402,10 +386,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required ValueChanged<bool> onChanged,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -420,38 +404,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: const Color(0xFFF8F6F3),
-              borderRadius: BorderRadius.circular(12),
+              color: AppColors.surfaceSecondary,
+              borderRadius: BorderRadius.circular(AppSpacing.md),
             ),
-            child: Icon(icon, color: const Color(0xFF8B7D6B)),
+            child: Icon(icon, color: AppColors.textTertiary),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF2C2C2C),
-                  ),
+                  style: AppTypography.sectionTitle
+                      .copyWith(color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF8B8B8B),
-                  ),
+                  style: AppTypography.sectionSubtle,
                 ),
               ],
             ),
           ),
           CupertinoSwitch(
             value: value,
-            activeTrackColor: const Color(0xFFC4A57B),
+            activeTrackColor: AppColors.primary,
             onChanged: onChanged,
           ),
         ],

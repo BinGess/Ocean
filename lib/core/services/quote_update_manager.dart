@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'dart:async';
 import '../../data/repositories/quotes_repository.dart';
-import '../../domain/entities/quote.dart';
 import '../../data/datasources/local/hive_database.dart';
 
 /// 语录更新管理器 - 支持定期更新和版本控制

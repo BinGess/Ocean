@@ -183,11 +183,11 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
   void _showAuthDeniedGuidance(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
+        content: const Row(
           children: [
-            const Icon(Icons.info_outline, color: Color(0xFFFFB74D)),
-            const SizedBox(width: 8),
-            const Expanded(
+            Icon(Icons.info_outline, color: Color(0xFFFFB74D)),
+            SizedBox(width: 8),
+            Expanded(
               child: Text('AI功能需要授权才能使用，您可在设置中开启'),
             ),
           ],

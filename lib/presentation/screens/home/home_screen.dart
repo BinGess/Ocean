@@ -170,7 +170,7 @@ class _HomeScreenState extends State<HomeScreen>
         const SnackBar(
           content: Row(
             children: [
-              Icon(Icons.info_outline, color: Color(0xFFFFB74D), size: 20),
+              Icon(Icons.info_outline, color: AppColors.warning, size: 20),
               SizedBox(width: 8),
               Text('内容太短，请重试'),
             ],
@@ -270,7 +270,7 @@ class _HomeScreenState extends State<HomeScreen>
       SnackBar(
         content: const Row(
           children: [
-            Icon(Icons.info_outline, color: Color(0xFFFFB74D)),
+            Icon(Icons.info_outline, color: AppColors.warning),
             SizedBox(width: 8),
             Expanded(
               child: Text('AI功能需要授权才能使用，您可在设置中开启'),
@@ -280,7 +280,7 @@ class _HomeScreenState extends State<HomeScreen>
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
           label: '去设置',
-          textColor: const Color(0xFFC4A57B),
+          textColor: AppColors.primary,
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -317,7 +317,7 @@ class _HomeScreenState extends State<HomeScreen>
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     valueColor:
-                        AlwaysStoppedAnimation<Color>(Color(0xFFFAF6F1)),
+                        AlwaysStoppedAnimation<Color>(AppColors.background),
                   ),
                 ),
                 SizedBox(width: 10),
@@ -351,7 +351,7 @@ class _HomeScreenState extends State<HomeScreen>
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor:
-                          AlwaysStoppedAnimation<Color>(Color(0xFFFAF6F1)),
+                          AlwaysStoppedAnimation<Color>(AppColors.background),
                     ),
                   ),
                   SizedBox(width: 10),
@@ -383,7 +383,7 @@ class _HomeScreenState extends State<HomeScreen>
               content: Row(
                 children: [
                   Icon(Icons.hourglass_empty,
-                      color: Color(0xFFFFB74D), size: 20),
+                      color: AppColors.warning, size: 20),
                   SizedBox(width: 8),
                   Text('转写未完成，请稍后...'),
                 ],
@@ -430,7 +430,7 @@ class _HomeScreenState extends State<HomeScreen>
             const SnackBar(
               content: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Color(0xFFFFB74D), size: 20),
+                  Icon(Icons.info_outline, color: AppColors.warning, size: 20),
                   SizedBox(width: 8),
                   Flexible(child: Text('暂无转写文本，已自动转为仅记录')),
                 ],
@@ -581,7 +581,7 @@ class _HomeScreenState extends State<HomeScreen>
                       content: Row(
                         children: [
                           const Icon(Icons.error_outline,
-                              color: Color(0xFFEF5350), size: 20),
+                              color: AppColors.error, size: 20),
                           const SizedBox(width: 8),
                           Flexible(child: Text(audioState.errorMessage!)),
                         ],
@@ -636,7 +636,7 @@ class _HomeScreenState extends State<HomeScreen>
                                         strokeWidth: 2,
                                         valueColor:
                                             AlwaysStoppedAnimation<Color>(
-                                                Color(0xFFFAF6F1)),
+                                                AppColors.background),
                                       ),
                                     ),
                                     SizedBox(width: 10),
@@ -662,7 +662,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 content: Row(
                                   children: [
                                     Icon(Icons.cancel_outlined,
-                                        color: Color(0xFFB0B0B0), size: 20),
+                                        color: AppColors.textSubtle, size: 20),
                                     SizedBox(width: 8),
                                     Text('已取消保存'),
                                   ],
@@ -738,7 +738,7 @@ class _HomeScreenState extends State<HomeScreen>
                         content: Row(
                           children: [
                             Icon(Icons.check_circle,
-                                color: Color(0xFF4CAF50), size: 20),
+                                color: AppColors.success, size: 20),
                             SizedBox(width: 8),
                             Text('记录已保存'),
                           ],
@@ -786,7 +786,12 @@ class _HomeScreenState extends State<HomeScreen>
   /// 顶部信息栏
   Widget _buildHeader(BuildContext context, String greeting) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.pageHorizontal,
+        AppSpacing.xxl,
+        AppSpacing.pageHorizontal,
+        0,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -794,11 +799,11 @@ class _HomeScreenState extends State<HomeScreen>
             child: Text(
               greeting,
               style: AppTypography.homeGreeting.copyWith(
-                fontSize: 34,
+                fontSize: 32,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF353F49),
-                height: 1.05,
-                letterSpacing: -0.45,
+                color: AppColors.textPrimary,
+                height: 1.08,
+                letterSpacing: -0.3,
                 fontFamily: AppTypography.sansFamily,
                 fontFamilyFallback: const ['PingFang SC', 'Roboto'],
               ),
@@ -816,17 +821,17 @@ class _HomeScreenState extends State<HomeScreen>
               width: 43,
               height: 43,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.68),
+                color: AppColors.surface.withValues(alpha: 0.72),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: const Color(0xFF9CBBD0).withValues(alpha: 0.88),
+                  color: AppColors.accentBlue.withValues(alpha: 0.65),
                   width: 1.0,
                 ),
               ),
-              child: const Center(
+              child: Center(
                 child: Icon(
                   Icons.person_outline_rounded,
-                  color: Color(0xFF7190A5),
+                  color: AppColors.accentBlue.withValues(alpha: 0.95),
                   size: 21,
                 ),
               ),
@@ -843,7 +848,8 @@ class _HomeScreenState extends State<HomeScreen>
     const labels = ['一', '二', '三', '四', '五', '六', '日'];
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding:
+          const EdgeInsets.symmetric(horizontal: AppSpacing.pageHorizontal),
       child: Row(
         children: List.generate(7, (index) {
           final date = baseDate.add(Duration(days: index));
@@ -854,11 +860,10 @@ class _HomeScreenState extends State<HomeScreen>
               children: [
                 Text(
                   labels[index],
-                  style: TextStyle(
+                  style: AppTypography.sectionSubtle.copyWith(
                     fontSize: 12,
-                    color: isToday
-                        ? const Color(0xFF6B9FC2)
-                        : const Color(0xFF8397A7),
+                    color:
+                        isToday ? AppColors.accentBlue : AppColors.textTertiary,
                     fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),
@@ -869,8 +874,7 @@ class _HomeScreenState extends State<HomeScreen>
                   height: 33,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color:
-                        isToday ? const Color(0xFF63A2C9) : Colors.transparent,
+                    color: isToday ? AppColors.accentBlue : Colors.transparent,
                     shape: BoxShape.circle,
                   ),
                   child: Text(
@@ -879,7 +883,7 @@ class _HomeScreenState extends State<HomeScreen>
                       fontSize: 32 / 2,
                       color: isToday
                           ? Colors.white
-                          : const Color(0xFF6D8497).withValues(alpha: 0.95),
+                          : AppColors.textSecondary.withValues(alpha: 0.86),
                       fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
                     ),
                   ),
@@ -898,13 +902,18 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildRecordSection(BuildContext context, AudioState audioState) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.pageHorizontal,
+        0,
+        AppSpacing.pageHorizontal,
+        0,
+      ),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(29),
+          borderRadius: BorderRadius.circular(AppSpacing.cardRadiusLg + 8),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF5FAED8).withValues(alpha: 0.22),
+              color: AppColors.accentBlue.withValues(alpha: 0.18),
               blurRadius: 16,
               spreadRadius: 0.8,
               offset: const Offset(0, 1),
@@ -921,15 +930,15 @@ class _HomeScreenState extends State<HomeScreen>
           height: 57,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.74),
-            borderRadius: BorderRadius.circular(28),
+            color: AppColors.surface.withValues(alpha: 0.76),
+            borderRadius: BorderRadius.circular(AppSpacing.cardRadiusLg + 8),
             border: Border.all(
-              color: const Color(0xFF5FAED8).withValues(alpha: 0.98),
+              color: AppColors.accentBlue.withValues(alpha: 0.82),
               width: 1.55,
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF7FA5BF).withValues(alpha: 0.03),
+                color: AppColors.accentBlue.withValues(alpha: 0.06),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -947,9 +956,9 @@ class _HomeScreenState extends State<HomeScreen>
                       '记录下此刻的情绪',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTypography.transcriptionStatus.copyWith(
-                        fontSize: 29 / 2,
-                        color: const Color(0xFFC1CBD3),
+                      style: AppTypography.bodySecondary.copyWith(
+                        fontSize: 14.5,
+                        color: AppColors.textSubtle,
                         fontWeight: FontWeight.w500,
                         letterSpacing: 0.1,
                       ),
@@ -960,7 +969,7 @@ class _HomeScreenState extends State<HomeScreen>
               Container(
                 width: 1,
                 height: 21,
-                color: const Color(0xFFCBD5DE).withValues(alpha: 0.95),
+                color: AppColors.borderLight.withValues(alpha: 0.95),
               ),
               const SizedBox(width: 12),
               GestureDetector(
@@ -972,7 +981,7 @@ class _HomeScreenState extends State<HomeScreen>
                   child: Icon(
                     Icons.mic_none_rounded,
                     size: 19,
-                    color: Color(0xFF95A8B8),
+                    color: AppColors.textTertiary,
                   ),
                 ),
               ),
@@ -996,7 +1005,12 @@ class _HomeScreenState extends State<HomeScreen>
     final quoteText = rawQuoteText.replaceFirst(RegExp(r'。$'), '');
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.pageHorizontal,
+        0,
+        AppSpacing.pageHorizontal,
+        0,
+      ),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 372),
@@ -1009,14 +1023,14 @@ class _HomeScreenState extends State<HomeScreen>
               child: Container(
                 padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  color: const Color(0xFFF5F7FA).withValues(alpha: 0.38),
+                  borderRadius: BorderRadius.circular(AppSpacing.cardRadiusLg),
+                  color: AppColors.surface.withValues(alpha: 0.46),
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      const Color(0xFFF7F9FC).withValues(alpha: 0.54),
-                      const Color(0xFFF2F5F8).withValues(alpha: 0.44),
+                      AppColors.surface.withValues(alpha: 0.66),
+                      AppColors.surfaceSecondary.withValues(alpha: 0.52),
                     ],
                   ),
                   border: Border.all(
@@ -1025,7 +1039,7 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF7A9CB4).withValues(alpha: 0.025),
+                      color: AppColors.accentBlue.withValues(alpha: 0.06),
                       blurRadius: 14,
                       offset: const Offset(0, 6),
                     ),
@@ -1038,7 +1052,7 @@ class _HomeScreenState extends State<HomeScreen>
                       '今天想对你说：',
                       textAlign: TextAlign.center,
                       style: AppTypography.sectionSubtle.copyWith(
-                        color: const Color(0xFFAFB8C1),
+                        color: AppColors.textSubtle,
                         fontWeight: FontWeight.w500,
                         fontSize: 12,
                         letterSpacing: 0.2,
@@ -1070,11 +1084,10 @@ class _HomeScreenState extends State<HomeScreen>
                                   key: ValueKey(
                                       'quote-$_currentQuoteIndex-$quoteText'),
                                   textAlign: TextAlign.center,
-                                  style:
-                                      AppTypography.transcriptionBody.copyWith(
-                                    fontSize: 38 / 2,
+                                  style: AppTypography.quoteBody.copyWith(
+                                    fontSize: 19,
                                     height: 1.48,
-                                    color: const Color(0xFF2D3A46),
+                                    color: AppColors.textPrimary,
                                     fontWeight: FontWeight.w600,
                                     letterSpacing: 0.1,
                                   ),

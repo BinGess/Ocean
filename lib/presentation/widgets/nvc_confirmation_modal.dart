@@ -445,12 +445,12 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                   const SizedBox(height: 16),
 
                   // 洞察标签
-                  Row(
+                  const Row(
                     children: [
-                      const Icon(Icons.auto_awesome,
+                      Icon(Icons.auto_awesome,
                           size: 16, color: Color(0xFFC4A57B)),
-                      const SizedBox(width: 6),
-                      const Text(
+                      SizedBox(width: 6),
+                      Text(
                         '洞察',
                         style: TextStyle(
                           color: Color(0xFFC4A57B),

@@ -1,5 +1,6 @@
 /// 日总结实体
 /// 由 AI 智能体分析当天记录后生成的情绪总结
+library;
 
 class DailySummary {
   /// 日期（只保留年月日）

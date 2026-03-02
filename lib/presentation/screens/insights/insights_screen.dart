@@ -61,15 +61,15 @@ class _InsightsScreenState extends State<InsightsScreen>
   /// 处理AI授权请求
   Future<void> _handleAIAuthRequest(BuildContext context) async {
     final result = await AIAuthDialog.show(context: context);
+    if (!context.mounted) return;
 
     if (result == true) {
       // 用户同意授权
       await getIt<AIAuthService>().grant();
+      if (!context.mounted) return;
 
       // 重新触发洞察生成
-      if (mounted) {
-        context.read<InsightBloc>().add(const InsightGenerateCurrentWeek());
-      }
+      context.read<InsightBloc>().add(const InsightGenerateCurrentWeek());
     } else {
       // 用户拒绝授权
       _showAuthDeniedGuidance(context);
@@ -83,7 +83,7 @@ class _InsightsScreenState extends State<InsightsScreen>
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.info_outline, color: Color(0xFFFFB74D)),
+            const Icon(Icons.info_outline, color: AppColors.warning),
             const SizedBox(width: 8),
             Expanded(
               child: Text(l10n.aiNeedsAuthSnackbar),
@@ -93,7 +93,7 @@ class _InsightsScreenState extends State<InsightsScreen>
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
           label: l10n.goToSettings,
-          textColor: const Color(0xFFC4A57B),
+          textColor: AppColors.primary,
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -141,7 +141,8 @@ class _InsightsScreenState extends State<InsightsScreen>
                 state.currentReport != null) {
               final l10n = AppLocalizations.of(context)!;
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.errorMessage ?? l10n.refreshFailed)),
+                SnackBar(
+                    content: Text(state.errorMessage ?? l10n.refreshFailed)),
               );
             }
 
@@ -175,7 +176,7 @@ class _InsightsScreenState extends State<InsightsScreen>
 
               return RefreshIndicator(
                 onRefresh: _onRefresh,
-                color: const Color(0xFFC4A57B),
+                color: AppColors.primary,
                 backgroundColor: Colors.white,
                 child: _buildInsightContent(
                     context, state.currentReport!, state.lastFetchTime, l10n),
@@ -192,7 +193,7 @@ class _InsightsScreenState extends State<InsightsScreen>
     return SafeArea(
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(AppSpacing.xxxl),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -200,42 +201,43 @@ class _InsightsScreenState extends State<InsightsScreen>
                 width: 80,
                 height: 80,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFFFF8E7),
+                  color: AppColors.primarySoft,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.psychology_outlined,
                   size: 40,
-                  color: Color(0xFFC4A57B),
+                  color: AppColors.primary,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
               Text(
                 l10n.enableSmartInsights,
                 style: AppTypography.modalTitle.copyWith(
                   color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               Text(
                 l10n.enableSmartInsightsDesc,
                 textAlign: TextAlign.center,
                 style: AppTypography.bodySecondary.copyWith(
-                  color: const Color(0xFFB8ADA0),
+                  color: AppColors.textSubtle,
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppSpacing.xxxl),
               GestureDetector(
                 onTap: () => _handleAIAuthRequest(context),
                 child: Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFC4A57B),
-                    borderRadius: BorderRadius.circular(24),
+                    color: AppColors.primary,
+                    borderRadius:
+                        BorderRadius.circular(AppSpacing.cardRadiusLg),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFC4A57B).withOpacity(0.3),
+                        color: AppColors.primary.withValues(alpha: 0.3),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -247,7 +249,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               TextButton(
                 onPressed: () {
                   Navigator.of(context).push(
@@ -278,15 +280,15 @@ class _InsightsScreenState extends State<InsightsScreen>
             width: 48,
             height: 48,
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC4A57B)),
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
               strokeWidth: 3,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xxl),
           Text(
             message ?? l10n.generatingInsight,
             style: AppTypography.bodyPrimary.copyWith(
-              color: const Color(0xFF8B7D6B),
+              color: AppColors.textTertiary,
             ),
           ),
         ],
@@ -299,7 +301,7 @@ class _InsightsScreenState extends State<InsightsScreen>
     return SafeArea(
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(AppSpacing.xxxl),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -307,31 +309,31 @@ class _InsightsScreenState extends State<InsightsScreen>
                 width: 80,
                 height: 80,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFF5EBE0),
+                  color: AppColors.primarySoft,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.auto_awesome_outlined,
                   size: 40,
-                  color: Color(0xFFD4C4B0),
+                  color: AppColors.textSubtle,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
               Text(
                 l10n.noEnoughContent,
                 style: AppTypography.detailTitle.copyWith(
                   color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               Text(
                 l10n.autoGenerateAfterMore,
                 textAlign: TextAlign.center,
                 style: AppTypography.bodySecondary.copyWith(
-                  color: const Color(0xFFB8ADA0),
+                  color: AppColors.textSubtle,
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppSpacing.xxxl),
               TextButton(
                 onPressed: () {
                   context
@@ -339,17 +341,20 @@ class _InsightsScreenState extends State<InsightsScreen>
                       .add(const InsightGenerateCurrentWeek());
                 },
                 style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFFF5EBE0),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  backgroundColor: AppColors.primarySoft,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xxl,
+                    vertical: AppSpacing.md,
+                  ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius:
+                        BorderRadius.circular(AppSpacing.cardRadiusLg),
                   ),
                 ),
                 child: Text(
                   l10n.regenerate,
                   style: AppTypography.actionLabel.copyWith(
-                    color: const Color(0xFF5D4E3C),
+                    color: AppColors.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -362,8 +367,8 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// 洞察内容
-  Widget _buildInsightContent(
-      BuildContext context, InsightReport report, DateTime? lastFetchTime, AppLocalizations l10n) {
+  Widget _buildInsightContent(BuildContext context, InsightReport report,
+      DateTime? lastFetchTime, AppLocalizations l10n) {
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
@@ -372,7 +377,12 @@ class _InsightsScreenState extends State<InsightsScreen>
           child: SafeArea(
             bottom: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.pageHorizontal,
+                AppSpacing.lg,
+                AppSpacing.pageHorizontal,
+                AppSpacing.sm,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -382,7 +392,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                       Text(
                         _formatWeekRange(report.weekRange),
                         style: AppTypography.pageMeta.copyWith(
-                          color: const Color(0xFFB8ADA0),
+                          color: AppColors.textSubtle,
                         ),
                       ),
                       // 分享、刷新按钮
@@ -396,41 +406,45 @@ class _InsightsScreenState extends State<InsightsScreen>
                                 context: context,
                                 report: report,
                               ),
-                              borderRadius: BorderRadius.circular(8),
-                              splashColor: const Color(0xFFC4A57B)
-                                  .withValues(alpha: 0.18),
-                              highlightColor: const Color(0xFFC4A57B)
-                                  .withValues(alpha: 0.12),
+                              borderRadius:
+                                  BorderRadius.circular(AppSpacing.sm),
+                              splashColor:
+                                  AppColors.primary.withValues(alpha: 0.18),
+                              highlightColor:
+                                  AppColors.primary.withValues(alpha: 0.12),
                               child: Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF5EBE0),
-                                  borderRadius: BorderRadius.circular(8),
+                                  color: AppColors.primarySoft,
+                                  borderRadius:
+                                      BorderRadius.circular(AppSpacing.sm),
                                 ),
                                 child: const Icon(
                                   Icons.share_outlined,
                                   size: 18,
-                                  color: Color(0xFFC4A57B),
+                                  color: AppColors.primary,
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppSpacing.sm),
                           // 刷新按钮
                           Material(
                             color: Colors.transparent,
                             child: InkWell(
                               onTap: _onRefresh,
-                              borderRadius: BorderRadius.circular(8),
-                              splashColor: const Color(0xFFC4A57B)
-                                  .withValues(alpha: 0.18),
-                              highlightColor: const Color(0xFFC4A57B)
-                                  .withValues(alpha: 0.12),
+                              borderRadius:
+                                  BorderRadius.circular(AppSpacing.sm),
+                              splashColor:
+                                  AppColors.primary.withValues(alpha: 0.18),
+                              highlightColor:
+                                  AppColors.primary.withValues(alpha: 0.12),
                               child: Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF5EBE0),
-                                  borderRadius: BorderRadius.circular(8),
+                                  color: AppColors.primarySoft,
+                                  borderRadius:
+                                      BorderRadius.circular(AppSpacing.sm),
                                 ),
                                 child: AnimatedBuilder(
                                   animation: _refreshController,
@@ -444,7 +458,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                                   child: const Icon(
                                     Icons.refresh,
                                     size: 18,
-                                    color: Color(0xFFC4A57B),
+                                    color: AppColors.primary,
                                   ),
                                 ),
                               ),
@@ -454,7 +468,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -462,7 +476,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                         report.reportType,
                         style: AppTypography.pageTitle.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF5D4E3C),
+                          color: AppColors.textSecondary,
                         ),
                       ),
                       TextButton(
@@ -475,14 +489,16 @@ class _InsightsScreenState extends State<InsightsScreen>
                         },
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 6),
+                            horizontal: AppSpacing.sm,
+                            vertical: 6,
+                          ),
                           minimumSize: const Size(0, 0),
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                         child: Text(
                           l10n.viewHistoryReports,
                           style: AppTypography.sectionSubtle.copyWith(
-                            color: const Color(0xFF8B7D6B),
+                            color: AppColors.textTertiary,
                           ),
                         ),
                       ),
@@ -502,7 +518,8 @@ class _InsightsScreenState extends State<InsightsScreen>
         // 高频情境
         if (report.highFrequencyEmotions.isNotEmpty)
           SliverToBoxAdapter(
-            child: _buildHighFrequencySection(report.highFrequencyEmotions, l10n),
+            child:
+                _buildHighFrequencySection(report.highFrequencyEmotions, l10n),
           ),
 
         // 潜在需求
@@ -513,28 +530,35 @@ class _InsightsScreenState extends State<InsightsScreen>
         // 行动建议
         if (report.actionSuggestions.isNotEmpty)
           SliverToBoxAdapter(
-            child: _buildActionSuggestionsSection(report.actionSuggestions, l10n),
+            child:
+                _buildActionSuggestionsSection(report.actionSuggestions, l10n),
           ),
 
         // 底部间距
         const SliverToBoxAdapter(
-          child: SizedBox(height: 32),
+          child: SizedBox(height: AppSpacing.xxxl),
         ),
       ],
     );
   }
 
   /// 情绪概览卡片
-  Widget _buildEmotionOverviewCard(EmotionOverview overview, AppLocalizations l10n) {
+  Widget _buildEmotionOverviewCard(
+      EmotionOverview overview, AppLocalizations l10n) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.fromLTRB(
+        AppSpacing.pageHorizontal,
+        AppSpacing.lg,
+        AppSpacing.pageHorizontal,
+        0,
+      ),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadiusLg),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -549,29 +573,29 @@ class _InsightsScreenState extends State<InsightsScreen>
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8E7),
-                  borderRadius: BorderRadius.circular(8),
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(AppSpacing.sm),
                 ),
                 child: const Icon(
                   Icons.emoji_emotions_outlined,
                   size: 18,
-                  color: Color(0xFFC4A57B),
+                  color: AppColors.primary,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.md),
               Text(
                 l10n.emotionOverview,
                 style: AppTypography.sectionTitle.copyWith(
-                  color: const Color(0xFF5D4E3C),
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           Text(
             overview.summary,
             style: AppTypography.bodyPrimary.copyWith(
-              color: const Color(0xFF5D4E3C),
+              color: AppColors.textSecondary,
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -581,16 +605,22 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// 高频情境列表
-  Widget _buildHighFrequencySection(List<HighFrequencyEmotion> emotions, AppLocalizations l10n) {
+  Widget _buildHighFrequencySection(
+      List<HighFrequencyEmotion> emotions, AppLocalizations l10n) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.fromLTRB(
+        AppSpacing.pageHorizontal,
+        AppSpacing.lg,
+        AppSpacing.pageHorizontal,
+        0,
+      ),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadiusLg),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -605,25 +635,25 @@ class _InsightsScreenState extends State<InsightsScreen>
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8F4EC),
-                  borderRadius: BorderRadius.circular(8),
+                  color: AppColors.sage.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(AppSpacing.sm),
                 ),
                 child: const Icon(
                   Icons.format_quote,
                   size: 18,
-                  color: Color(0xFF6B9080),
+                  color: AppColors.sage,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.md),
               Text(
                 l10n.highFrequencySituations,
                 style: AppTypography.sectionTitle.copyWith(
-                  color: const Color(0xFF5D4E3C),
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           ...emotions.map((emotion) => _buildEmotionItem(emotion)),
         ],
       ),
@@ -633,11 +663,11 @@ class _InsightsScreenState extends State<InsightsScreen>
   /// 单个情境项
   Widget _buildEmotionItem(HighFrequencyEmotion emotion) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAF8F5),
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.surfaceTertiary,
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -645,22 +675,22 @@ class _InsightsScreenState extends State<InsightsScreen>
           Text(
             '"${emotion.content}"',
             style: AppTypography.bodyQuote.copyWith(
-              color: const Color(0xFF5D4E3C),
+              color: AppColors.textSecondary,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
               const Icon(
                 Icons.access_time,
                 size: 14,
-                color: Color(0xFFB8ADA0),
+                color: AppColors.textSubtle,
               ),
               const SizedBox(width: 4),
               Text(
                 emotion.time,
                 style: AppTypography.timeLabel.copyWith(
-                  color: const Color(0xFFB8ADA0),
+                  color: AppColors.textSubtle,
                 ),
               ),
             ],
@@ -671,16 +701,22 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// 潜在需求卡片
-  Widget _buildPatternHypothesisCard(PatternHypothesis pattern, AppLocalizations l10n) {
+  Widget _buildPatternHypothesisCard(
+      PatternHypothesis pattern, AppLocalizations l10n) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.fromLTRB(
+        AppSpacing.pageHorizontal,
+        AppSpacing.lg,
+        AppSpacing.pageHorizontal,
+        0,
+      ),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadiusLg),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -695,25 +731,25 @@ class _InsightsScreenState extends State<InsightsScreen>
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8E7),
-                  borderRadius: BorderRadius.circular(8),
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(AppSpacing.sm),
                 ),
                 child: const Icon(
                   Icons.psychology_outlined,
                   size: 18,
-                  color: Color(0xFFC4A57B),
+                  color: AppColors.primary,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.md),
               Text(
                 l10n.potentialNeeds,
                 style: AppTypography.sectionTitle.copyWith(
-                  color: const Color(0xFF5D4E3C),
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           _buildHighlightedText(pattern),
         ],
       ),
@@ -742,7 +778,7 @@ class _InsightsScreenState extends State<InsightsScreen>
         spans.add(TextSpan(
           text: text.substring(lastEnd, match.start),
           style: AppTypography.bodyPrimary.copyWith(
-            color: const Color(0xFF5D4E3C),
+            color: AppColors.textSecondary,
           ),
         ));
       }
@@ -753,7 +789,7 @@ class _InsightsScreenState extends State<InsightsScreen>
       spans.add(TextSpan(
         text: value,
         style: AppTypography.bodyPrimary.copyWith(
-          color: const Color(0xFFC4A57B),
+          color: AppColors.primary,
           fontWeight: FontWeight.w600,
         ),
       ));
@@ -766,7 +802,7 @@ class _InsightsScreenState extends State<InsightsScreen>
       spans.add(TextSpan(
         text: text.substring(lastEnd),
         style: AppTypography.bodyPrimary.copyWith(
-          color: const Color(0xFF5D4E3C),
+          color: AppColors.textSecondary,
         ),
       ));
     }
@@ -777,16 +813,22 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// 行动建议
-  Widget _buildActionSuggestionsSection(List<ActionSuggestion> suggestions, AppLocalizations l10n) {
+  Widget _buildActionSuggestionsSection(
+      List<ActionSuggestion> suggestions, AppLocalizations l10n) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.fromLTRB(
+        AppSpacing.pageHorizontal,
+        AppSpacing.lg,
+        AppSpacing.pageHorizontal,
+        0,
+      ),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadiusLg),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -801,25 +843,25 @@ class _InsightsScreenState extends State<InsightsScreen>
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8E7),
-                  borderRadius: BorderRadius.circular(8),
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(AppSpacing.sm),
                 ),
                 child: const Icon(
                   Icons.lightbulb_outline,
                   size: 18,
-                  color: Color(0xFFC4A57B),
+                  color: AppColors.primary,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.md),
               Text(
                 l10n.actionSuggestions,
                 style: AppTypography.sectionTitle.copyWith(
-                  color: const Color(0xFF5D4E3C),
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           ...suggestions.map((suggestion) => _buildSuggestionItem(suggestion)),
         ],
       ),
@@ -829,14 +871,14 @@ class _InsightsScreenState extends State<InsightsScreen>
   /// 单个建议项
   Widget _buildSuggestionItem(ActionSuggestion suggestion) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFDFC),
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.surfaceTertiary,
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
         border: const Border(
           left: BorderSide(
-            color: Color(0xFFC4A57B),
+            color: AppColors.primary,
             width: 2,
           ),
         ),
@@ -851,11 +893,11 @@ class _InsightsScreenState extends State<InsightsScreen>
               color: AppColors.textSecondary,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             suggestion.content,
             style: AppTypography.bodySecondary.copyWith(
-              color: const Color(0xFF8B7D6B),
+              color: AppColors.textTertiary,
             ),
           ),
         ],
@@ -879,21 +921,5 @@ class _InsightsScreenState extends State<InsightsScreen>
       }
     }
     return weekRange;
-  }
-
-  /// 格式化最后更新时间
-  String _formatLastFetchTime(DateTime time, AppLocalizations l10n) {
-    final now = DateTime.now();
-    final diff = now.difference(time);
-
-    if (diff.inMinutes < 1) {
-      return l10n.justNow;
-    } else if (diff.inMinutes < 60) {
-      return l10n.minutesAgo(diff.inMinutes);
-    } else if (diff.inHours < 24) {
-      return l10n.hoursAgo(diff.inHours);
-    } else {
-      return DateFormat('M/d HH:mm').format(time);
-    }
   }
 }
