@@ -1,227 +1,253 @@
+// 应用主题配置
+// 定义亮色和暗色主题
+
 import 'package:flutter/material.dart';
-import 'app_typography.dart';
+import 'app_colors.dart';
 
 class AppTheme {
   AppTheme._();
 
+  /// 亮色主题
   static ThemeData get lightTheme {
-    const colorScheme = ColorScheme(
-      brightness: Brightness.light,
-      primary: AppColors.primary,
-      onPrimary: Colors.white,
-      secondary: AppColors.sage,
-      onSecondary: Colors.white,
-      error: AppColors.error,
-      onError: Colors.white,
-      surface: AppColors.surface,
-      onSurface: AppColors.textPrimary,
-    );
-
     return ThemeData(
       useMaterial3: true,
-      colorScheme: colorScheme,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: AppColors.primary,
+        brightness: Brightness.light,
+      ),
       primaryColor: AppColors.primary,
       scaffoldBackgroundColor: AppColors.background,
+
+      // AppBar 主题
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.background,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
-        surfaceTintColor: Colors.transparent,
         centerTitle: true,
-        titleTextStyle: AppTypography.pageTitle,
       ),
+
+      // Card 主题
       cardTheme: CardThemeData(
-        elevation: 0,
+        elevation: 2,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+          borderRadius: BorderRadius.circular(16),
         ),
-        color: AppColors.surface,
-        margin: EdgeInsets.zero,
+        color: Colors.white,
       ),
+
+      // Button 主题
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xxl,
-            vertical: AppSpacing.md,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+            borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: AppTypography.actionLabel.copyWith(color: Colors.white),
-          elevation: 0,
         ),
       ),
+
+      // TextButton 主题
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primary,
-          textStyle: AppTypography.actionLabel,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-          ),
         ),
       ),
+
+      // 输入框主题
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.inputBackground,
+        fillColor: Colors.grey[100],
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-          borderSide: const BorderSide(color: AppColors.borderLight, width: 1),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1),
-        ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.md,
+          horizontal: 16,
+          vertical: 12,
         ),
       ),
+
+      // 文本主题
       textTheme: const TextTheme(
-        displayLarge: AppTypography.homeGreeting,
-        displayMedium: AppTypography.pageTitle,
-        displaySmall: AppTypography.modalTitle,
-        headlineMedium: AppTypography.detailTitle,
-        titleLarge: AppTypography.sectionTitle,
-        bodyLarge: AppTypography.bodyPrimary,
-        bodyMedium: AppTypography.bodySecondary,
-        bodySmall: AppTypography.sectionSubtle,
+        displayLarge: TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimary,
+        ),
+        displayMedium: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimary,
+        ),
+        displaySmall: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimary,
+        ),
+        headlineMedium: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+        titleLarge: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+        bodyLarge: TextStyle(
+          fontSize: 16,
+          color: AppColors.textPrimary,
+        ),
+        bodyMedium: TextStyle(
+          fontSize: 14,
+          color: AppColors.textSecondary,
+        ),
+        bodySmall: TextStyle(
+          fontSize: 12,
+          color: AppColors.textTertiary,
+        ),
       ),
+
+      // 分割线主题
       dividerTheme: const DividerThemeData(
         color: AppColors.border,
         thickness: 1,
       ),
+
+      // SnackBar 主题 - 使用温暖的米色调
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.textSecondary,
-        contentTextStyle: AppTypography.bodySecondary.copyWith(
-          color: AppColors.surface,
+        backgroundColor: const Color(0xFF5D4E3C),  // 深褐色背景
+        contentTextStyle: const TextStyle(
+          color: Color(0xFFFAF6F1),  // 浅米白文字
+          fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+          borderRadius: BorderRadius.circular(12),
         ),
         behavior: SnackBarBehavior.floating,
-        elevation: 2,
-        insetPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.lg,
-        ),
+        elevation: 4,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
     );
   }
 
+  /// 暗色主题
   static ThemeData get darkTheme {
-    const darkSurface = Color(0xFF171717);
-    const darkBackground = Color(0xFF101010);
-    const darkTextPrimary = Color(0xFFEDE8E2);
-    const darkTextSecondary = Color(0xFFD0C5B8);
-
     return ThemeData(
       useMaterial3: true,
-      colorScheme: const ColorScheme(
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: AppColors.primary,
         brightness: Brightness.dark,
-        primary: AppColors.primary,
-        onPrimary: Colors.white,
-        secondary: AppColors.sage,
-        onSecondary: Colors.white,
-        error: AppColors.error,
-        onError: Colors.white,
-        surface: darkSurface,
-        onSurface: darkTextPrimary,
       ),
       primaryColor: AppColors.primary,
-      scaffoldBackgroundColor: darkBackground,
+      scaffoldBackgroundColor: const Color(0xFF121212),
+
       appBarTheme: const AppBarTheme(
-        backgroundColor: darkBackground,
-        foregroundColor: darkTextPrimary,
+        backgroundColor: Color(0xFF1E1E1E),
+        foregroundColor: Colors.white,
         elevation: 0,
-        surfaceTintColor: Colors.transparent,
         centerTitle: true,
       ),
+
       cardTheme: CardThemeData(
-        elevation: 0,
+        elevation: 2,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+          borderRadius: BorderRadius.circular(16),
         ),
-        color: darkSurface,
+        color: const Color(0xFF1E1E1E),
       ),
+
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xxl,
-            vertical: AppSpacing.md,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       ),
+
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primary,
         ),
       ),
+
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFF262626),
+        fillColor: const Color(0xFF2C2C2C),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-          borderSide: const BorderSide(color: Color(0xFF3A3A3A), width: 1),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1),
-        ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.md,
+          horizontal: 16,
+          vertical: 12,
         ),
       ),
-      textTheme: TextTheme(
-        displayLarge:
-            AppTypography.homeGreeting.copyWith(color: darkTextPrimary),
-        displayMedium: AppTypography.pageTitle.copyWith(color: darkTextPrimary),
-        displaySmall: AppTypography.modalTitle.copyWith(color: darkTextPrimary),
-        headlineMedium:
-            AppTypography.detailTitle.copyWith(color: darkTextPrimary),
-        titleLarge: AppTypography.sectionTitle.copyWith(color: darkTextPrimary),
-        bodyLarge: AppTypography.bodyPrimary.copyWith(color: darkTextSecondary),
-        bodyMedium: AppTypography.bodySecondary.copyWith(
-          color: darkTextSecondary.withValues(alpha: 0.9),
+
+      textTheme: const TextTheme(
+        displayLarge: TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
         ),
-        bodySmall:
-            AppTypography.sectionSubtle.copyWith(color: darkTextSecondary),
+        displayMedium: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+        displaySmall: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+        headlineMedium: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
+        titleLarge: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
+        bodyLarge: TextStyle(
+          fontSize: 16,
+          color: Colors.white,
+        ),
+        bodyMedium: TextStyle(
+          fontSize: 14,
+          color: Colors.white70,
+        ),
+        bodySmall: TextStyle(
+          fontSize: 12,
+          color: Colors.white54,
+        ),
       ),
+
       dividerTheme: DividerThemeData(
         color: Colors.white.withValues(alpha: 0.12),
         thickness: 1,
       ),
+
+      // SnackBar 主题
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: const Color(0xFF2F2F2F),
-        contentTextStyle: AppTypography.bodySecondary.copyWith(
+        backgroundColor: const Color(0xFF3D3D3D),
+        contentTextStyle: const TextStyle(
           color: Colors.white,
+          fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+          borderRadius: BorderRadius.circular(12),
         ),
         behavior: SnackBarBehavior.floating,
-        elevation: 2,
-        insetPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.lg,
-        ),
+        elevation: 4,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
     );
   }

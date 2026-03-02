@@ -102,7 +102,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
         content: Row(
           children: [
             Icon(icon ?? Icons.info_outline,
-                color: iconColor ?? AppColors.warning, size: 20),
+                color: iconColor ?? const Color(0xFFFFB74D), size: 20),
             const SizedBox(width: 8),
             Flexible(child: Text(message)),
           ],
@@ -243,7 +243,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
       SnackBar(
         content: const Row(
           children: [
-            Icon(Icons.info_outline, color: AppColors.warning),
+            Icon(Icons.info_outline, color: Color(0xFFFFB74D)),
             SizedBox(width: 8),
             Expanded(
               child: Text('AI功能需要授权才能使用，您可在设置中开启'),
@@ -253,7 +253,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
           label: '去设置',
-          textColor: AppColors.primary,
+          textColor: const Color(0xFFC4A57B),
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -358,7 +358,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
         audioState.errorMessage != _lastAudioError) {
       _lastAudioError = audioState.errorMessage;
       _showHint(audioState.errorMessage!,
-          icon: Icons.error_outline, iconColor: AppColors.error);
+          icon: Icons.error_outline, iconColor: const Color(0xFFEF5350));
     }
   }
 
@@ -417,7 +417,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
       if (_isSubmittingRecord) {
         setState(() => _isSubmittingRecord = false);
         _showHint(recordState.errorMessage ?? '保存失败，请重试',
-            icon: Icons.error_outline, iconColor: AppColors.error);
+            icon: Icons.error_outline, iconColor: const Color(0xFFEF5350));
       }
       return;
     }
@@ -427,7 +427,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
         _isSubmittingRecord) {
       setState(() => _isSubmittingRecord = false);
       _showHint('记录已保存',
-          icon: Icons.check_circle, iconColor: AppColors.success);
+          icon: Icons.check_circle, iconColor: const Color(0xFF4CAF50));
       Navigator.of(context).pop(true);
     }
   }
@@ -448,18 +448,13 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
         ),
       ],
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: const Color(0xFFF3EFE8),
         resizeToAvoidBottomInset: true,
         body: SafeArea(
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.md,
-                  6,
-                  AppSpacing.md,
-                  0,
-                ),
+                padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
                 child: Row(
                   children: [
                     IconButton(
@@ -467,7 +462,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                       icon: const Icon(
                         Icons.arrow_back_ios_new_rounded,
                         size: 20,
-                        color: AppColors.textPrimary,
+                        color: Color(0xFF3F3B37),
                       ),
                     ),
                     Text(
@@ -475,7 +470,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                       style: AppTypography.pageTitle.copyWith(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: const Color(0xFF36312D),
                         letterSpacing: -0.1,
                       ),
                     ),
@@ -484,12 +479,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.xxl,
-                    AppSpacing.xxl,
-                    AppSpacing.xxl,
-                    0,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                   child: Stack(
                     children: [
                       Positioned.fill(
@@ -509,7 +499,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                         expands: true,
                         style: AppTypography.transcriptionBody.copyWith(
                           fontSize: 19,
-                          color: AppColors.textSecondary,
+                          color: const Color(0xFF3E3934),
                           height: 1.58,
                         ),
                         decoration: const InputDecoration(
@@ -518,7 +508,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                           hintText: '尽情书写，让我帮你分析此刻的心情',
                           hintStyle: TextStyle(
                             fontSize: 16,
-                            color: AppColors.textSubtle,
+                            color: Color(0xFFC3BCB3),
                             height: 1.32,
                             fontFamily: AppTypography.sansFamily,
                             fontFamilyFallback: ['PingFang SC', 'Roboto'],
@@ -532,12 +522,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.pageHorizontal,
-                  AppSpacing.sm,
-                  AppSpacing.pageHorizontal,
-                  AppSpacing.md,
-                ),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
                 child: Row(
                   children: [
                     _buildRecordingButton(
@@ -556,12 +541,12 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                             isBusy ? null : () => _onTapComplete(audioState),
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,
-                          backgroundColor: AppColors.surfaceSecondary,
-                          foregroundColor: AppColors.textSecondary,
+                          backgroundColor: const Color(0xFFECE6DE),
+                          foregroundColor: const Color(0xFF5A524A),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(19),
                             side: const BorderSide(
-                              color: AppColors.border,
+                              color: Color(0xFFCFC4B5),
                               width: 0.9,
                             ),
                           ),
@@ -576,7 +561,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                               '完成',
                               style: AppTypography.actionLabel.copyWith(
                                 fontSize: 16,
-                                color: AppColors.textSecondary,
+                                color: const Color(0xFF5A524A),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -594,11 +579,11 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,
                           foregroundColor: Colors.white,
-                          backgroundColor: AppColors.primary,
+                          backgroundColor: const Color(0xFFD49A72),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(19),
                             side: const BorderSide(
-                              color: AppColors.primaryDark,
+                              color: Color(0xFFC8865D),
                               width: 0.9,
                             ),
                           ),
@@ -656,7 +641,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: AppColors.primary
+                        color: const Color(0xFFD9AD79)
                             .withValues(alpha: 0.35 - (pulse * 0.2)),
                         width: 1.2,
                       ),
@@ -667,19 +652,19 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                   height: 36,
                   decoration: BoxDecoration(
                     color: isRecording
-                        ? AppColors.primarySoft
-                        : AppColors.surfaceSecondary,
+                        ? const Color(0xFFE3C89F)
+                        : const Color(0xFFEFE9E0),
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: isRecording
-                          ? AppColors.primaryDark
-                          : AppColors.border,
+                          ? const Color(0xFFD7AB76)
+                          : const Color(0xFFCCC2B5),
                       width: 1.0,
                     ),
                     boxShadow: [
                       if (isRecording)
                         BoxShadow(
-                          color: AppColors.primarySoft
+                          color: const Color(0xFFE2C392)
                               .withValues(alpha: 0.18 + (pulse * 0.18)),
                           blurRadius: 8 + (pulse * 4),
                           offset: const Offset(0, 2),
@@ -689,7 +674,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                   child: Icon(
                     isRecording ? Icons.stop_rounded : Icons.mic_none_rounded,
                     size: 18,
-                    color: AppColors.textTertiary,
+                    color: const Color(0xFF7A6C5F),
                   ),
                 ),
               ],
@@ -722,7 +707,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                   width: 4,
                   height: height,
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.75),
+                    color: const Color(0xFFD39C76).withValues(alpha: 0.75),
                     borderRadius: BorderRadius.circular(3),
                   ),
                 );
@@ -741,11 +726,11 @@ class _GridPaperPainter extends CustomPainter {
     const step = 24.0;
 
     final horizontal = Paint()
-      ..color = AppColors.border.withValues(alpha: 0.12)
+      ..color = const Color(0xFFBFB7AA).withValues(alpha: 0.12)
       ..strokeWidth = 0.8;
 
     final vertical = Paint()
-      ..color = AppColors.border.withValues(alpha: 0.07)
+      ..color = const Color(0xFFBFB7AA).withValues(alpha: 0.07)
       ..strokeWidth = 0.7;
 
     for (double y = step; y < size.height; y += step) {

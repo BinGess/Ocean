@@ -5,6 +5,7 @@ library;
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../models/record_model.dart';
 import '../../models/weekly_insight_model.dart';
+import '../../../domain/entities/quote.dart';
 
 class HiveDatabase {
   // Box 名称常量

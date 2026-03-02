@@ -7,7 +7,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/theme/app_theme.dart';
-import 'core/theme/app_typography.dart';
 import 'core/di/injection.dart';
 import 'core/services/app_lock_service.dart';
 import 'l10n/app_localizations.dart';
@@ -316,16 +315,16 @@ class _MainNavigationState extends State<MainNavigation> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: AppColors.backgroundAlt,
+          color: const Color(0xFFF7F4F0),
           border: const Border(
             top: BorderSide(
-              color: AppColors.borderLight,
+              color: Color(0xFFE9E1D7),
               width: 0.7,
             ),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: const Color(0xFF6E5A45).withValues(alpha: 0.02),
               blurRadius: 6,
               offset: const Offset(0, -1),
             ),
@@ -381,7 +380,7 @@ class _MainNavigationState extends State<MainNavigation> {
     required String label,
   }) {
     final isActive = _currentIndex == index;
-    final color = isActive ? AppColors.primaryDark : AppColors.textTertiary;
+    final color = isActive ? const Color(0xFFAD8558) : const Color(0xFFA19180);
 
     return GestureDetector(
       onTap: () {
@@ -406,10 +405,10 @@ class _MainNavigationState extends State<MainNavigation> {
             const SizedBox(height: 4),
             Text(
               label,
-              style: AppTypography.sectionSubtle.copyWith(
-                fontSize: 12,
+              style: TextStyle(
+                fontSize: 12, // 稍微增大字体
                 color: color,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
           ],
