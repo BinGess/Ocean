@@ -230,6 +230,7 @@ Future<void> configureDependencies() async {
       recordRepository: getIt<RecordRepository>(),
       aiRepository: getIt<AIRepository>(),
       aiAuthService: getIt<AIAuthService>(),
+      dailySummaryService: getIt<DailySummaryService>(),
     ),
   );
 

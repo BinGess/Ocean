@@ -17,6 +17,9 @@ class DailySummaryService {
 
   /// 防抖计时器（按日期隔离，避免不同日期相互取消）
   final Map<String, Timer> _debounceTimers = {};
+  final Map<String, Future<DailySummary?>> _inFlightGenerations = {};
+  final StreamController<DailySummaryUpdate> _summaryUpdatesController =
+      StreamController<DailySummaryUpdate>.broadcast();
 
   /// 最小记录数
   static const int minRecordCount = 2;
@@ -29,6 +32,9 @@ class DailySummaryService {
     required CozeAIService cozeAIService,
   })  : _database = database,
         _cozeAIService = cozeAIService;
+
+  Stream<DailySummaryUpdate> get summaryUpdates =>
+      _summaryUpdatesController.stream;
 
   /// 获取某天的日总结（优先使用缓存）
   ///
@@ -99,6 +105,40 @@ class DailySummaryService {
   Future<DailySummary?> generateDailySummary(
       DateTime date, List<Record> records,
       {bool force = false}) async {
+    final key = getDailySummaryKey(date);
+    final inFlight = _inFlightGenerations[key];
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final future = _generateDailySummaryInternal(
+      date,
+      records,
+      force: force,
+    );
+    _inFlightGenerations[key] = future;
+
+    try {
+      final summary = await future;
+      if (summary != null) {
+        _summaryUpdatesController.add(
+          DailySummaryUpdate(
+            date: DateTime(date.year, date.month, date.day),
+            summary: summary,
+          ),
+        );
+      }
+      return summary;
+    } finally {
+      _inFlightGenerations.remove(key);
+    }
+  }
+
+  Future<DailySummary?> _generateDailySummaryInternal(
+    DateTime date,
+    List<Record> records, {
+    bool force = false,
+  }) async {
     // 检查记录数量
     if (records.length < minRecordCount) {
       debugPrint(
@@ -206,5 +246,18 @@ class DailySummaryService {
       timer.cancel();
     }
     _debounceTimers.clear();
+    _summaryUpdatesController.close();
   }
+}
+
+class DailySummaryUpdate {
+  final DateTime date;
+  final DailySummary summary;
+
+  const DailySummaryUpdate({
+    required this.date,
+    required this.summary,
+  });
+
+  String get key => getDailySummaryKey(date);
 }

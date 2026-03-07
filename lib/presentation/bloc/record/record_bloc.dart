@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
@@ -8,6 +10,7 @@ import '../../../domain/usecases/update_record_usecase.dart';
 import '../../../domain/repositories/record_repository.dart';
 import '../../../domain/repositories/ai_repository.dart';
 import '../../../core/services/ai_auth_service.dart';
+import '../../../core/services/daily_summary_service.dart';
 import 'record_event.dart';
 import 'record_state.dart';
 
@@ -18,6 +21,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
   final RecordRepository recordRepository;
   final AIRepository aiRepository;
   final AIAuthService aiAuthService;
+  final DailySummaryService dailySummaryService;
 
   RecordBloc({
     required this.createQuickNoteUseCase,
@@ -26,6 +30,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     required this.recordRepository,
     required this.aiRepository,
     required this.aiAuthService,
+    required this.dailySummaryService,
   }) : super(RecordState.initial()) {
     // 注册事件处理器
     on<RecordCreateQuickNote>(_onCreateQuickNote);
@@ -165,12 +170,30 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
         records: updatedRecords,
         latestRecord: record,
       ));
+
+      unawaited(_refreshDailySummaryAfterSave(record.createdAt));
     } catch (e) {
       debugPrint('RecordBloc: Create quick note failed: $e');
       emit(state.copyWith(
         status: RecordStatus.error,
         errorMessage: '创建记录失败: $e',
       ));
+    }
+  }
+
+  Future<void> _refreshDailySummaryAfterSave(DateTime date) async {
+    try {
+      final dayRecords = await recordRepository.getRecordsByDate(date);
+      if (!dailySummaryService.needsRegeneration(date, dayRecords.length)) {
+        return;
+      }
+
+      debugPrint(
+        'RecordBloc: Auto refresh daily summary for $date, records: ${dayRecords.length}',
+      );
+      await dailySummaryService.generateDailySummary(date, dayRecords);
+    } catch (e) {
+      debugPrint('RecordBloc: Auto refresh daily summary failed: $e');
     }
   }
 

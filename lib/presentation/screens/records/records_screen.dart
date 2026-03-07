@@ -2,6 +2,8 @@
 /// 显示所有快速记录，按日期分组，时间轴样式
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -78,12 +80,28 @@ class _RecordsScreenState extends State<RecordsScreen> {
   final Map<String, DailySummary> _dailySummaries = {};
   final Set<String> _generatingSummaries = {};
   bool _isRefreshingDailySummary = false;
+  StreamSubscription<DailySummaryUpdate>? _dailySummarySubscription;
 
   @override
   void initState() {
     super.initState();
+    _dailySummarySubscription = _dailySummaryService.summaryUpdates.listen((
+      update,
+    ) {
+      if (!mounted) return;
+      setState(() {
+        _dailySummaries[update.key] = update.summary;
+        _generatingSummaries.remove(update.key);
+      });
+    });
     _loadRecords();
     _loadDailyMoods();
+  }
+
+  @override
+  void dispose() {
+    _dailySummarySubscription?.cancel();
+    super.dispose();
   }
 
   void _loadRecords() {
@@ -135,9 +153,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
       onComplete: (summary) {
         if (!mounted) return;
         setState(() {
-          if (summary != null) {
-            _dailySummaries[summaryKey] = summary;
-          }
           _generatingSummaries.remove(summaryKey);
         });
       },

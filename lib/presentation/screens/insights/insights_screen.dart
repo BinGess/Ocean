@@ -8,6 +8,8 @@ import '../../../l10n/app_localizations.dart';
 import '../../bloc/insight/insight_bloc.dart';
 import '../../bloc/insight/insight_state.dart';
 import '../../bloc/insight/insight_event.dart';
+import '../../bloc/record/record_bloc.dart';
+import '../../bloc/record/record_state.dart';
 import '../../widgets/ai_auth_dialog.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
@@ -27,6 +29,7 @@ class _InsightsScreenState extends State<InsightsScreen>
   late AnimationController _refreshController;
   bool _isRefreshing = false;
   StreamSubscription? _authSubscription;
+  String? _lastHandledRecordId;
 
   @override
   void initState() {
@@ -124,36 +127,62 @@ class _InsightsScreenState extends State<InsightsScreen>
             stops: [0.0, 0.62, 1.0],
           ),
         ),
-        child: BlocListener<InsightBloc, InsightState>(
-          listener: (context, state) {
-            if (_isRefreshing &&
-                (state.status == InsightStatus.success ||
-                    state.status == InsightStatus.error ||
-                    state.status == InsightStatus.needsAIAuth)) {
-              _refreshController.stop();
-              _refreshController.reset();
-              if (mounted) {
-                setState(() => _isRefreshing = false);
-              }
-            }
+        child: MultiBlocListener(
+          listeners: [
+            BlocListener<RecordBloc, RecordState>(
+              listener: (context, state) {
+                final latestRecord = state.latestRecord;
+                if (state.status != RecordStatus.success || latestRecord == null) {
+                  return;
+                }
 
-            if (state.status == InsightStatus.error &&
-                state.currentReport != null) {
-              final l10n = AppLocalizations.of(context)!;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.errorMessage ?? l10n.refreshFailed)),
-              );
-            }
+                if (_lastHandledRecordId == latestRecord.id) {
+                  return;
+                }
+                _lastHandledRecordId = latestRecord.id;
 
-            if (state.status == InsightStatus.needsAIAuth &&
-                state.currentReport != null) {
-              final l10n = AppLocalizations.of(context)!;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(l10n.aiAuthExpired)),
-              );
-            }
-            // 注：needsAIAuth 状态不再自动弹窗，而是通过UI引导用户手动触发
-          },
+                if (_isInCurrentWeek(latestRecord.createdAt)) {
+                  context.read<InsightBloc>().add(
+                        const InsightGenerateCurrentWeek(
+                          preserveCurrentContent: true,
+                        ),
+                      );
+                }
+              },
+            ),
+            BlocListener<InsightBloc, InsightState>(
+              listener: (context, state) {
+                if (_isRefreshing &&
+                    (state.status == InsightStatus.success ||
+                        state.status == InsightStatus.error ||
+                        state.status == InsightStatus.needsAIAuth)) {
+                  _refreshController.stop();
+                  _refreshController.reset();
+                  if (mounted) {
+                    setState(() => _isRefreshing = false);
+                  }
+                }
+
+                if (state.status == InsightStatus.error &&
+                    state.currentReport != null) {
+                  final l10n = AppLocalizations.of(context)!;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text(state.errorMessage ?? l10n.refreshFailed)),
+                  );
+                }
+
+                if (state.status == InsightStatus.needsAIAuth &&
+                    state.currentReport != null) {
+                  final l10n = AppLocalizations.of(context)!;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l10n.aiAuthExpired)),
+                  );
+                }
+                // 注：needsAIAuth 状态不再自动弹窗，而是通过UI引导用户手动触发
+              },
+            ),
+          ],
           child: BlocBuilder<InsightBloc, InsightState>(
             builder: (context, state) {
               final l10n = AppLocalizations.of(context)!;
@@ -185,6 +214,17 @@ class _InsightsScreenState extends State<InsightsScreen>
         ),
       ),
     );
+  }
+
+  bool _isInCurrentWeek(DateTime date) {
+    final now = DateTime.now();
+    final monday = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
+    final sunday = monday.add(const Duration(days: 7));
+    return !date.isBefore(monday) && date.isBefore(sunday);
   }
 
   /// AI授权引导状态
