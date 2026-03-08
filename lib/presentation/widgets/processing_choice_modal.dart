@@ -12,6 +12,7 @@ class ProcessingResult {
 
 class ProcessingChoiceModal extends StatefulWidget {
   final String transcription;
+  final String? transcriptionErrorMessage;
   final Function(ProcessingResult) onSelect;
   final VoidCallback? onCancel;
   final VoidCallback? onNVCInsight;
@@ -19,6 +20,7 @@ class ProcessingChoiceModal extends StatefulWidget {
   const ProcessingChoiceModal({
     super.key,
     required this.transcription,
+    this.transcriptionErrorMessage,
     required this.onSelect,
     this.onCancel,
     this.onNVCInsight,
@@ -64,16 +66,30 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
 
   void _selectMode(ProcessingMode mode) {
     final editedText = _textController.text.trim();
+    final fallbackText = widget.transcription.trim();
+    final hasFallbackText =
+        fallbackText.isNotEmpty && fallbackText != '正在转写中...';
+    if (editedText.isEmpty && !hasFallbackText) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(widget.transcriptionErrorMessage ?? '请先输入内容'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
     widget.onSelect(ProcessingResult(
       mode: mode,
-      transcription: editedText.isNotEmpty ? editedText : widget.transcription,
+      transcription: editedText.isNotEmpty ? editedText : fallbackText,
     ));
   }
 
   @override
   Widget build(BuildContext context) {
-    final isPlaceholder =
-        widget.transcription.isEmpty || widget.transcription == '正在转写中...';
+    final hasTranscriptionError =
+        widget.transcriptionErrorMessage?.trim().isNotEmpty == true;
+    final isPlaceholder = !hasTranscriptionError &&
+        (widget.transcription.isEmpty || widget.transcription == '正在转写中...');
 
     return Padding(
       padding: EdgeInsets.only(
@@ -118,6 +134,40 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
 
             const SizedBox(height: 20),
 
+            if (hasTranscriptionError) ...[
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF1EE),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFFF1C1B7),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      size: 18,
+                      color: Color(0xFFD86C54),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        widget.transcriptionErrorMessage!,
+                        style: AppTypography.modalCaption.copyWith(
+                          color: const Color(0xFFB05A48),
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
             // 转写文本 - 可编辑
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -158,14 +208,16 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
                         color: const Color(0xFF5D4E3C),
                         height: 1.5,
                       ),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
                         filled: false,
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
-                        hintText: '点击编辑转写内容...',
+                        hintText: hasTranscriptionError
+                            ? '转写失败，请手动输入内容...'
+                            : '点击编辑转写内容...',
                         hintStyle: AppTypography.modalBody,
                       ),
                       onChanged: (_) {
@@ -225,22 +277,6 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
             const SizedBox(height: 20),
           ],
         ),
-      ),
-    );
-  }
-
-  static Future<ProcessingResult?> show({
-    required BuildContext context,
-    required String transcription,
-  }) {
-    return showModalBottomSheet<ProcessingResult>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => ProcessingChoiceModal(
-        transcription: transcription,
-        onSelect: (result) => Navigator.of(context).pop(result),
-        onCancel: () => Navigator.of(context).pop(),
       ),
     );
   }

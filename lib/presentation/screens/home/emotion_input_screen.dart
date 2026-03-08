@@ -371,6 +371,14 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
         _waitingOfflineTranscription = false;
         _setTextFromASR(transcribed);
         _tryExecutePendingSubmit();
+      } else if (recordState.hasTranscriptionError) {
+        _waitingOfflineTranscription = false;
+        _pendingSubmitAction = _PendingSubmitAction.none;
+        _showHint(
+          recordState.transcriptionErrorMessage ?? '转写失败，请手动补充内容后再试',
+          icon: Icons.error_outline,
+          iconColor: const Color(0xFFEF5350),
+        );
       }
     }
 
@@ -623,64 +631,72 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
   }) {
     return GestureDetector(
       onTap: isBusy ? null : () => _toggleRecording(audioState),
-      child: AnimatedBuilder(
-        animation: _recordingFxController,
-        builder: (context, child) {
-          final pulse = isRecording
-              ? math.sin(_recordingFxController.value * math.pi * 2).abs()
-              : 0.0;
-          return Transform.scale(
-            scale: 1 + (0.06 * pulse),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                if (isRecording)
-                  Container(
-                    width: 44 + (pulse * 5),
-                    height: 44 + (pulse * 5),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFFD9AD79)
-                            .withValues(alpha: 0.35 - (pulse * 0.2)),
-                        width: 1.2,
+      child: SizedBox(
+        width: 52,
+        height: 52,
+        child: Center(
+          child: AnimatedBuilder(
+            animation: _recordingFxController,
+            builder: (context, child) {
+              final pulse = isRecording
+                  ? math.sin(_recordingFxController.value * math.pi * 2).abs()
+                  : 0.0;
+              return Transform.scale(
+                scale: 1 + (0.06 * pulse),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (isRecording)
+                      Container(
+                        width: 44 + (pulse * 5),
+                        height: 44 + (pulse * 5),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFFD9AD79)
+                                .withValues(alpha: 0.35 - (pulse * 0.2)),
+                            width: 1.2,
+                          ),
+                        ),
+                      ),
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: isRecording
+                            ? const Color(0xFFE3C89F)
+                            : const Color(0xFFEFE9E0),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isRecording
+                              ? const Color(0xFFD7AB76)
+                              : const Color(0xFFCCC2B5),
+                          width: 1.0,
+                        ),
+                        boxShadow: [
+                          if (isRecording)
+                            BoxShadow(
+                              color: const Color(0xFFE2C392)
+                                  .withValues(alpha: 0.18 + (pulse * 0.18)),
+                              blurRadius: 8 + (pulse * 4),
+                              offset: const Offset(0, 2),
+                            ),
+                        ],
+                      ),
+                      child: Icon(
+                        isRecording
+                            ? Icons.stop_rounded
+                            : Icons.mic_none_rounded,
+                        size: 18,
+                        color: const Color(0xFF7A6C5F),
                       ),
                     ),
-                  ),
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: isRecording
-                        ? const Color(0xFFE3C89F)
-                        : const Color(0xFFEFE9E0),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isRecording
-                          ? const Color(0xFFD7AB76)
-                          : const Color(0xFFCCC2B5),
-                      width: 1.0,
-                    ),
-                    boxShadow: [
-                      if (isRecording)
-                        BoxShadow(
-                          color: const Color(0xFFE2C392)
-                              .withValues(alpha: 0.18 + (pulse * 0.18)),
-                          blurRadius: 8 + (pulse * 4),
-                          offset: const Offset(0, 2),
-                        ),
-                    ],
-                  ),
-                  child: Icon(
-                    isRecording ? Icons.stop_rounded : Icons.mic_none_rounded,
-                    size: 18,
-                    color: const Color(0xFF7A6C5F),
-                  ),
+                  ],
                 ),
-              ],
-            ),
-          );
-        },
+              );
+            },
+          ),
+        ),
       ),
     );
   }

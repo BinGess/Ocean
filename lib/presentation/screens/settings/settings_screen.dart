@@ -10,7 +10,6 @@ import '../../widgets/ai_auth_dialog.dart';
 import '../../bloc/locale/locale_bloc.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
-import '../../../core/services/home_background_theme_service.dart';
 import '../../../l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -22,19 +21,14 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _aiAuthEnabled = false;
-  bool _useWarmApricotBackground = false;
   late final AIAuthService _aiAuthService;
-  late final HomeBackgroundThemeService _homeBackgroundThemeService;
   StreamSubscription? _authSubscription;
-  StreamSubscription<HomeBackgroundScheme>? _homeBackgroundSubscription;
 
   @override
   void initState() {
     super.initState();
     _aiAuthService = getIt<AIAuthService>();
-    _homeBackgroundThemeService = getIt<HomeBackgroundThemeService>();
     _loadAIAuthStatus();
-    _loadHomeBackgroundScheme();
 
     // 监听授权状态变化
     _authSubscription = _aiAuthService.authStateStream.listen((enabled) {
@@ -42,22 +36,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         setState(() => _aiAuthEnabled = enabled);
       }
     });
-
-    _homeBackgroundSubscription =
-        _homeBackgroundThemeService.schemeStream.listen((scheme) {
-      if (mounted) {
-        setState(() {
-          _useWarmApricotBackground =
-              scheme == HomeBackgroundScheme.warmApricotA;
-        });
-      }
-    });
   }
 
   @override
   void dispose() {
     _authSubscription?.cancel();
-    _homeBackgroundSubscription?.cancel();
     super.dispose();
   }
 
@@ -66,11 +49,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) {
       setState(() => _aiAuthEnabled = isAuthorized);
     }
-  }
-
-  void _loadHomeBackgroundScheme() {
-    _useWarmApricotBackground = _homeBackgroundThemeService.currentScheme ==
-        HomeBackgroundScheme.warmApricotA;
   }
 
   @override
@@ -122,18 +100,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.psychology_outlined,
             value: _aiAuthEnabled,
             onChanged: (value) => _handleAIAuthToggle(value),
-          ),
-          const SizedBox(height: 16),
-
-          // 显示与外观分组
-          _buildSectionHeader('显示与外观'),
-          const SizedBox(height: 8),
-          _buildSwitchItem(
-            title: '首页暖米杏背景',
-            subtitle: '开启 A 暖米杏；关闭 B 蓝杏融合',
-            icon: Icons.palette_outlined,
-            value: _useWarmApricotBackground,
-            onChanged: (value) => _handleHomeBackgroundToggle(value),
           ),
           const SizedBox(height: 16),
 
@@ -195,7 +161,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -475,13 +441,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         await _aiAuthService.revoke();
         // Stream会自动更新UI
       }
-    }
-  }
-
-  Future<void> _handleHomeBackgroundToggle(bool value) async {
-    await _homeBackgroundThemeService.setWarmApricotEnabled(value);
-    if (mounted) {
-      setState(() => _useWarmApricotBackground = value);
     }
   }
 

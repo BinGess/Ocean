@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -22,7 +23,6 @@ import 'emotion_input_screen.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
 import '../../../core/services/quote_preloader.dart';
-import '../../../core/services/home_background_theme_service.dart';
 import '../../../core/theme/app_typography.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -42,11 +42,15 @@ class _HomeScreenState extends State<HomeScreen>
   int _currentQuoteIndex = 0;
   Timer? _quoteAutoSwitchTimer;
   bool _isQuoteSwitching = false;
-  bool _isQuoteFadingOut = true;
   late AnimationController _quoteTransitionController;
-  late final HomeBackgroundThemeService _homeBackgroundThemeService;
-  StreamSubscription<HomeBackgroundScheme>? _homeBackgroundSubscription;
-  late _HomeBackgroundPalette _backgroundPalette;
+  static const _HomeBackgroundPalette _backgroundPalette =
+      _HomeBackgroundPalette.defaultPalette;
+
+  static const List<String> _fallbackQuoteTexts = [
+    '观察当下，不做评判',
+    '慢慢写，心会跟上来',
+    '把此刻交给这一页',
+  ];
 
   // 按钮脉冲动画控制器
   late AnimationController _pulseController;
@@ -55,22 +59,11 @@ class _HomeScreenState extends State<HomeScreen>
   bool _isShowingErrorDialog = false;
   // 记录上次处理的错误消息，避免重复处理同一个错误
   String? _lastHandledError;
+  String? _lastHandledTranscriptionError;
 
   @override
   void initState() {
     super.initState();
-    _homeBackgroundThemeService = getIt<HomeBackgroundThemeService>();
-    _backgroundPalette = _HomeBackgroundPalette.fromScheme(
-      _homeBackgroundThemeService.currentScheme,
-    );
-    _homeBackgroundSubscription =
-        _homeBackgroundThemeService.schemeStream.listen((scheme) {
-      if (!mounted) return;
-      setState(() {
-        _backgroundPalette = _HomeBackgroundPalette.fromScheme(scheme);
-      });
-    });
-
     // 注：不在此处加载记录列表，避免与 RecordsScreen 冲突
     // RecordsScreen 会加载完整的记录列表
     // 如果在此处使用 limit:5 加载，会覆盖 RecordsScreen 的完整列表
@@ -92,8 +85,22 @@ class _HomeScreenState extends State<HomeScreen>
     );
     _quoteTransitionController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 320),
+      duration: const Duration(milliseconds: 560),
     );
+  }
+
+  void _syncRecordEntryPulse(bool isRecording) {
+    if (isRecording) {
+      if (!_pulseController.isAnimating) {
+        _pulseController.repeat(reverse: true);
+      }
+      return;
+    }
+
+    if (_pulseController.isAnimating) {
+      _pulseController.stop();
+      _pulseController.value = 0;
+    }
   }
 
   /// 加载文案数据（使用QuotePreloader支持离线）
@@ -126,7 +133,6 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _switchToNextQuote() async {
     if (!mounted || _quotes.length <= 1 || _isQuoteSwitching) return;
     _isQuoteSwitching = true;
-    _isQuoteFadingOut = true;
     await _quoteTransitionController.forward(from: 0);
     if (!mounted) {
       _isQuoteSwitching = false;
@@ -135,9 +141,220 @@ class _HomeScreenState extends State<HomeScreen>
     setState(() {
       _currentQuoteIndex = (_currentQuoteIndex + 1) % _quotes.length;
     });
-    _isQuoteFadingOut = false;
-    await _quoteTransitionController.reverse(from: 1);
+    _quoteTransitionController.reset();
     _isQuoteSwitching = false;
+  }
+
+  int _positiveModulo(int value, int length) {
+    if (length == 0) return 0;
+    return ((value % length) + length) % length;
+  }
+
+  String _normalizeQuoteText(String text) {
+    return text.trim().replaceFirst(RegExp(r'[。！？!?]$'), '');
+  }
+
+  String _quoteTextForOffset(int offset) {
+    if (_quotes.isEmpty) {
+      final fallbackIndex = _positiveModulo(
+          _currentQuoteIndex + offset, _fallbackQuoteTexts.length);
+      return _fallbackQuoteTexts[fallbackIndex];
+    }
+
+    final quoteIndex =
+        _positiveModulo(_currentQuoteIndex + offset, _quotes.length);
+    return _normalizeQuoteText(_quotes[quoteIndex].content);
+  }
+
+  double _lyricScrollProgress() {
+    if (!_isQuoteSwitching) return 0.0;
+
+    final raw = _quoteTransitionController.value;
+    if (raw < 0.76) {
+      return ui.lerpDouble(
+        0.0,
+        1.0,
+        Curves.easeInOutCubicEmphasized.transform(raw / 0.76),
+      )!;
+    }
+
+    final settle = (raw - 0.76) / 0.24;
+    return 1.0 + math.sin(settle * math.pi) * (1.0 - settle) * 0.045;
+  }
+
+  Widget _buildLyricQuoteViewport() {
+    const viewportHeight = 180.0;
+    const rowHeight = 60.0;
+    final progress = _lyricScrollProgress();
+
+    return ClipRect(
+      child: SizedBox(
+        height: viewportHeight,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Center(
+                  child: ImageFiltered(
+                    imageFilter: ui.ImageFilter.blur(
+                      sigmaX: 18,
+                      sigmaY: 18,
+                    ),
+                    child: Container(
+                      width: 270,
+                      height: rowHeight + 14,
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          radius: 0.92,
+                          colors: [
+                            Colors.white.withValues(alpha: 0.18),
+                            const Color(0xFFDCE8F2).withValues(alpha: 0.10),
+                            Colors.white.withValues(alpha: 0.0),
+                          ],
+                          stops: const [0.0, 0.55, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Transform.translate(
+              offset: Offset(0, -rowHeight * (1 + progress)),
+              child: Column(
+                children: List.generate(5, (index) {
+                  final relativePosition = (index - 2) - progress;
+                  return _buildLyricQuoteLine(
+                    text: _quoteTextForOffset(index - 2),
+                    relativePosition: relativePosition,
+                    rowHeight: rowHeight,
+                  );
+                }),
+              ),
+            ),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: IgnorePointer(
+                child: Container(
+                  height: 34,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        const Color(0xFFF4F7FA).withValues(alpha: 0.78),
+                        const Color(0xFFF4F7FA).withValues(alpha: 0.0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: IgnorePointer(
+                child: Container(
+                  height: 34,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        const Color(0xFFF1F4F8).withValues(alpha: 0.82),
+                        const Color(0xFFF1F4F8).withValues(alpha: 0.0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLyricQuoteLine({
+    required String text,
+    required double relativePosition,
+    required double rowHeight,
+  }) {
+    if (relativePosition < -1.8 || relativePosition > 1.8) {
+      return SizedBox(height: rowHeight);
+    }
+
+    final distance = relativePosition.abs().clamp(0.0, 1.8);
+    final emphasis = (1.0 - distance).clamp(0.0, 1.0);
+    final easedEmphasis = math
+        .pow(
+          Curves.easeOutCubic.transform(emphasis),
+          0.92,
+        )
+        .toDouble();
+    final opacity = ui.lerpDouble(0.36, 1.0, easedEmphasis)!.clamp(0.0, 1.0);
+    final fontSize = ui.lerpDouble(15.2, 24.0, easedEmphasis)!;
+    final scale = ui.lerpDouble(0.90, 1.02, easedEmphasis)!;
+    final blur = ui.lerpDouble(0.9, 0.0, easedEmphasis)!;
+    final textColor = Color.lerp(
+      const Color(0xFF8B9FB1).withValues(alpha: 0.88),
+      const Color(0xFF1E3140),
+      easedEmphasis,
+    )!;
+    final verticalNudge = ui.lerpDouble(1.6, 0.0, easedEmphasis)!;
+    final shadowBlur = ui.lerpDouble(0.0, 14.0, easedEmphasis)!;
+    final shadowYOffset = ui.lerpDouble(0.0, 6.0, easedEmphasis)!;
+
+    return SizedBox(
+      height: rowHeight,
+      child: Center(
+        child: Transform.translate(
+          offset: Offset(0, verticalNudge),
+          child: Transform.scale(
+            scale: scale,
+            child: Opacity(
+              opacity: opacity,
+              child: ImageFiltered(
+                imageFilter: ui.ImageFilter.blur(
+                  sigmaX: blur,
+                  sigmaY: blur,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    text,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.quoteBody.copyWith(
+                      fontSize: fontSize,
+                      height: 1.18,
+                      color: textColor,
+                      fontWeight: easedEmphasis > 0.72
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      letterSpacing: easedEmphasis > 0.76 ? 0.18 : 0.06,
+                      shadows: easedEmphasis > 0.62
+                          ? [
+                              Shadow(
+                                color: Colors.white.withValues(alpha: 0.40),
+                                blurRadius: shadowBlur,
+                                offset: Offset(0, shadowYOffset),
+                              ),
+                            ]
+                          : null,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   /// 备用权限检查（已禁用，避免重复弹窗）
@@ -156,6 +373,7 @@ class _HomeScreenState extends State<HomeScreen>
     });
     // 清除上次错误记录，允许新的错误被处理
     _lastHandledError = null;
+    _lastHandledTranscriptionError = null;
 
     // 获取AudioState以检查是否有流式转写结果
     final audioState = context.read<AudioBloc>().state;
@@ -201,7 +419,8 @@ class _HomeScreenState extends State<HomeScreen>
           return BlocBuilder<RecordBloc, RecordState>(
             builder: (context, state) {
               return ProcessingChoiceModal(
-                transcription: state.transcription ?? '正在转写中...',
+                transcription: state.transcription ?? '',
+                transcriptionErrorMessage: state.transcriptionErrorMessage,
                 onSelect: (result) => Navigator.of(context).pop(result),
                 onCancel: () => Navigator.of(context).pop(),
               );
@@ -456,6 +675,7 @@ class _HomeScreenState extends State<HomeScreen>
       _completedAudioPath = null;
       _editedTranscription = null;
     });
+    _lastHandledTranscriptionError = null;
   }
 
   Future<void> _openInputScreen({required bool autoStartRecording}) async {
@@ -477,7 +697,6 @@ class _HomeScreenState extends State<HomeScreen>
     _pulseController.dispose();
     _quoteTransitionController.dispose();
     _quoteAutoSwitchTimer?.cancel();
-    _homeBackgroundSubscription?.cancel();
     super.dispose();
   }
 
@@ -566,6 +785,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             BlocListener<AudioBloc, AudioState>(
               listener: (context, audioState) {
+                _syncRecordEntryPulse(audioState.isRecording);
                 final isCurrentRoute =
                     ModalRoute.of(context)?.isCurrent ?? false;
                 if (!isCurrentRoute) return;
@@ -688,6 +908,31 @@ class _HomeScreenState extends State<HomeScreen>
                         _handleAIAuthRequest(context, recordState);
                       }
                     });
+                  }
+
+                  if (recordState.hasTranscriptionError &&
+                      recordState.transcriptionErrorMessage != null &&
+                      _completedAudioPath != null &&
+                      recordState.transcriptionErrorMessage !=
+                          _lastHandledTranscriptionError) {
+                    _lastHandledTranscriptionError =
+                        recordState.transcriptionErrorMessage;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            const Icon(Icons.error_outline,
+                                color: Color(0xFFEF5350), size: 20),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child:
+                                  Text(recordState.transcriptionErrorMessage!),
+                            ),
+                          ],
+                        ),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
                   }
 
                   // 处理NVC分析错误
@@ -963,16 +1208,92 @@ class _HomeScreenState extends State<HomeScreen>
                 color: const Color(0xFFCBD5DE).withValues(alpha: 0.95),
               ),
               const SizedBox(width: 12),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => _openInputScreen(autoStartRecording: true),
-                child: const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: Icon(
-                    Icons.mic_none_rounded,
-                    size: 19,
-                    color: Color(0xFF95A8B8),
+              Semantics(
+                button: true,
+                label: '开始语音记录',
+                hint: '打开语音录制输入',
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _openInputScreen(autoStartRecording: true),
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: AnimatedBuilder(
+                      animation: _pulseController,
+                      builder: (context, _) {
+                        final pulse = _pulseController.value;
+                        final isRecording = audioState.isRecording;
+                        final haloOpacity =
+                            isRecording ? 0.18 - (pulse * 0.08) : 0.0;
+                        final haloSize = 44 + (pulse * 6);
+
+                        return Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            if (isRecording)
+                              Container(
+                                width: haloSize,
+                                height: haloSize,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: const Color(0xFF6FB7DC)
+                                      .withValues(alpha: haloOpacity),
+                                ),
+                              ),
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 220),
+                              curve: Curves.easeOutCubic,
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: isRecording
+                                      ? const [
+                                          Color(0xFFD98B68),
+                                          Color(0xFFC96F4A),
+                                        ]
+                                      : const [
+                                          Color(0xFF79C2E6),
+                                          Color(0xFF4F9DCE),
+                                        ],
+                                ),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.82),
+                                  width: 1.1,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: (isRecording
+                                            ? const Color(0xFFC96F4A)
+                                            : const Color(0xFF5FAED8))
+                                        .withValues(
+                                      alpha: isRecording ? 0.28 : 0.34,
+                                    ),
+                                    blurRadius: isRecording ? 16 : 14,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                  BoxShadow(
+                                    color: Colors.white.withValues(alpha: 0.34),
+                                    blurRadius: 3,
+                                    offset: const Offset(0, -1),
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                isRecording
+                                    ? Icons.stop_rounded
+                                    : Icons.mic_rounded,
+                                size: 20,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -990,11 +1311,6 @@ class _HomeScreenState extends State<HomeScreen>
       );
     }
 
-    final rawQuoteText = _quotes.isEmpty
-        ? '观察当下，不做评判，这就是冥想的开始'
-        : _quotes[_currentQuoteIndex % _quotes.length].content;
-    final quoteText = rawQuoteText.replaceFirst(RegExp(r'。$'), '');
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
       child: Center(
@@ -1002,12 +1318,12 @@ class _HomeScreenState extends State<HomeScreen>
           constraints: const BoxConstraints(maxWidth: 372),
           child: SizedBox(
             width: double.infinity,
-            height: 168,
+            height: 216,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: _switchToNextQuote,
               child: Container(
-                padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+                padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(24),
                   color: const Color(0xFFF5F7FA).withValues(alpha: 0.38),
@@ -1032,60 +1348,13 @@ class _HomeScreenState extends State<HomeScreen>
                   ],
                 ),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      '今天想对你说：',
-                      textAlign: TextAlign.center,
-                      style: AppTypography.sectionSubtle.copyWith(
-                        color: const Color(0xFFAFB8C1),
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    SizedBox(
-                      height: 86,
-                      child: AnimatedBuilder(
-                        animation: _quoteTransitionController,
-                        builder: (context, child) {
-                          final progress = _quoteTransitionController.value;
-                          final opacity = (1 - progress).clamp(0.0, 1.0);
-                          final slideY = _isQuoteFadingOut
-                              ? -(progress * 0.05)
-                              : (progress * 0.05);
-                          final scale = _isQuoteFadingOut
-                              ? 1 + (progress * 0.016)
-                              : 0.984 + ((1 - progress) * 0.016);
-
-                          return Transform.translate(
-                            offset: Offset(0, slideY * 24),
-                            child: Transform.scale(
-                              scale: scale,
-                              child: Opacity(
-                                opacity: opacity,
-                                child: Text(
-                                  quoteText,
-                                  key: ValueKey(
-                                      'quote-$_currentQuoteIndex-$quoteText'),
-                                  textAlign: TextAlign.center,
-                                  style:
-                                      AppTypography.transcriptionBody.copyWith(
-                                    fontSize: 38 / 2,
-                                    height: 1.48,
-                                    color: const Color(0xFF2D3A46),
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.1,
-                                  ),
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                    AnimatedBuilder(
+                      animation: _quoteTransitionController,
+                      builder: (context, child) {
+                        return _buildLyricQuoteViewport();
+                      },
                     ),
                   ],
                 ),
@@ -1119,40 +1388,20 @@ class _HomeBackgroundPalette {
     required this.overlayAlpha,
   });
 
-  factory _HomeBackgroundPalette.fromScheme(HomeBackgroundScheme scheme) {
-    switch (scheme) {
-      case HomeBackgroundScheme.warmApricotA:
-        return const _HomeBackgroundPalette(
-          gradientColors: [
-            Color(0xFFFFF7ED),
-            Color(0xFFFDECD8),
-            Color(0xFFFAF3EA),
-          ],
-          gradientStops: [0.0, 0.62, 1.0],
-          bottomFogColor: Color(0xFFFFE7D1),
-          bottomFogMiddleAlpha: 0.64,
-          ringColor: Color(0xFFF3C8A7),
-          ringAlpha: 0.20,
-          overlayColor: Color(0xFFF3C8A7),
-          overlayAlpha: 0.05,
-        );
-      case HomeBackgroundScheme.coolBlendB:
-        return const _HomeBackgroundPalette(
-          gradientColors: [
-            Color(0xFFEFF6FF),
-            Color(0xFFF4F8FB),
-            Color(0xFFFFF7ED),
-          ],
-          gradientStops: [0.0, 0.62, 1.0],
-          bottomFogColor: Color(0xFFF6EBDD),
-          bottomFogMiddleAlpha: 0.62,
-          ringColor: Color(0xFFB8CCE1),
-          ringAlpha: 0.24,
-          overlayColor: Color(0xFFC9D9E8),
-          overlayAlpha: 0.06,
-        );
-    }
-  }
+  static const defaultPalette = _HomeBackgroundPalette(
+    gradientColors: [
+      Color(0xFFEFF6FF),
+      Color(0xFFF4F8FB),
+      Color(0xFFFFF7ED),
+    ],
+    gradientStops: [0.0, 0.62, 1.0],
+    bottomFogColor: Color(0xFFF6EBDD),
+    bottomFogMiddleAlpha: 0.62,
+    ringColor: Color(0xFFB8CCE1),
+    ringAlpha: 0.24,
+    overlayColor: Color(0xFFC9D9E8),
+    overlayAlpha: 0.06,
+  );
 }
 
 /// 背景纹理：顶部同心圆 + 轻颗粒

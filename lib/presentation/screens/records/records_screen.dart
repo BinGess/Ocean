@@ -142,6 +142,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
     }
   }
 
+  bool _isListLoadError(RecordState state) {
+    final message = state.errorMessage;
+    return state.hasError && message != null && message.startsWith('加载记录失败');
+  }
+
   /// 异步生成日总结
   void _generateDailySummary(DateTime date, List<Record> records) {
     final summaryKey = getDailySummaryKey(date);
@@ -322,7 +327,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                           );
                         }
 
-                        if (state.hasError) {
+                        if (_isListLoadError(state)) {
                           return _buildErrorState(state.errorMessage);
                         }
 

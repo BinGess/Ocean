@@ -26,7 +26,6 @@ import '../network/coze_ai_service.dart';
 import '../constants/app_constants.dart';
 import '../services/app_lock_service.dart';
 import '../services/ai_auth_service.dart';
-import '../services/home_background_theme_service.dart';
 import '../services/quote_preloader.dart';
 import '../services/quote_update_manager.dart';
 import '../services/daily_summary_service.dart';
@@ -81,15 +80,6 @@ Future<void> configureDependencies() async {
   final hiveDatabase = HiveDatabase();
   await hiveDatabase.init();
   getIt.registerSingleton<HiveDatabase>(hiveDatabase);
-
-  // 首页背景主题服务（A/B 方案切换）
-  final homeBackgroundThemeService = HomeBackgroundThemeService(
-    hiveDatabase: hiveDatabase,
-  );
-  await homeBackgroundThemeService.init();
-  getIt.registerSingleton<HomeBackgroundThemeService>(
-    homeBackgroundThemeService,
-  );
 
   // 语言服务
   getIt.registerLazySingleton<LocaleService>(
@@ -259,7 +249,6 @@ Future<void> cleanupDependencies() async {
   // 清理服务
   getIt<AppLockService>().dispose();
   getIt<AIAuthService>().dispose();
-  getIt<HomeBackgroundThemeService>().dispose();
   getIt<DailySummaryService>().dispose();
 
   // 清理网络客户端

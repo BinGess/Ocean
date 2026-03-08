@@ -40,7 +40,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     on<RecordSelect>(_onSelect);
     on<RecordClearSelection>(_onClearSelection);
     on<RecordChangeProcessingMode>(_onChangeProcessingMode);
-    
+
     // 使用 concurrent 转换器，允许转写和分析/创建并行执行
     // 这对于防止长时间运行的转写阻塞其他操作至关重要
     on<RecordTranscribe>(_onTranscribe, transformer: concurrent());
@@ -60,6 +60,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
         status: RecordStatus.needsAIAuth,
         transcription: event.text,
         clearError: true,
+        clearTranscriptionError: true,
       ));
       return; // 等待UI层处理授权
     }
@@ -72,6 +73,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
       status: RecordStatus.analyzing,
       clearNVCAnalysis: true,
       clearError: true,
+      clearTranscriptionError: true,
       transcription: event.text, // 确保 transcription 与分析内容一致
     ));
 
@@ -92,6 +94,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
       emit(state.copyWith(
         status: RecordStatus.error,
         errorMessage: '分析失败: $e',
+        clearTranscriptionError: true,
       ));
     }
   }
@@ -102,27 +105,31 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     Emitter<RecordState> emit,
   ) async {
     debugPrint('RecordBloc: Starting transcription for: ${event.audioPath}');
-    // 仅更新转写文本，不改变 status 为 transcribing，避免触发全屏 Loading
-    // 之前如果已经是 success 或其他状态，这里可能会重置为 success 或 initial，或者保持不变
-    // 这里选择保持不变，只更新 transcription
-    emit(state.copyWith(transcription: '正在转写中...'));
+    // 转写属于局部流程，不再污染全局 error 状态。
+    emit(state.copyWith(
+      transcription: '正在转写中...',
+      clearError: true,
+      clearTranscriptionError: true,
+    ));
 
     try {
-      final transcription = await aiRepository.transcribeAudioFile(event.audioPath);
+      final transcription =
+          await aiRepository.transcribeAudioFile(event.audioPath);
       debugPrint('RecordBloc: Transcription completed: $transcription');
       // 转写成功，只更新 transcription
       emit(state.copyWith(
         transcription: transcription,
+        clearError: true,
+        clearTranscriptionError: true,
       ));
       debugPrint('RecordBloc: State updated with transcription');
     } catch (e) {
       debugPrint('RecordBloc: Transcription failed: $e');
-      // 转写失败，不作为全局错误抛出，只更新 transcription 为失败状态
-      // 清空transcription而不是设置错误信息,避免错误信息被当作转写文本
+      // 转写失败只记录在局部字段中，避免其他页面将其当成全局错误。
       emit(state.copyWith(
-        transcription: null,
-        status: RecordStatus.error,
-        errorMessage: '转写失败，请重试',
+        clearTranscription: true,
+        clearError: true,
+        transcriptionErrorMessage: '转写失败，请重试',
       ));
     }
   }
@@ -133,13 +140,17 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     Emitter<RecordState> emit,
   ) async {
     debugPrint('RecordBloc: Creating quick note...');
-    emit(state.copyWith(status: RecordStatus.creating, clearError: true));
+    emit(state.copyWith(
+      status: RecordStatus.creating,
+      clearError: true,
+      clearTranscriptionError: true,
+    ));
 
     try {
       // 转写阶段
       // 注意：如果已经有 transcription，这里不会触发真正的转写
       // 如果正在转写中，createQuickNoteUseCase 会直接使用传入的 transcription
-      
+
       // 分析阶段（如果需要）
       if (event.mode == ProcessingMode.withNVC) {
         // NVC 分析通常在 _onAnalyzeNVC 中完成，这里只是保存结果
@@ -159,7 +170,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
       ).timeout(const Duration(seconds: 10), onTimeout: () {
         throw Exception('创建记录超时');
       });
-      
+
       debugPrint('RecordBloc: Quick note created: ${record.id}');
 
       // 将新记录添加到列表开头
@@ -169,6 +180,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
         status: RecordStatus.success,
         records: updatedRecords,
         latestRecord: record,
+        clearTranscriptionError: true,
       ));
 
       unawaited(_refreshDailySummaryAfterSave(record.createdAt));
@@ -177,6 +189,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
       emit(state.copyWith(
         status: RecordStatus.error,
         errorMessage: '创建记录失败: $e',
+        clearTranscriptionError: true,
       ));
     }
   }
@@ -202,7 +215,11 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     RecordLoadList event,
     Emitter<RecordState> emit,
   ) async {
-    emit(state.copyWith(status: RecordStatus.loading, clearError: true));
+    emit(state.copyWith(
+      status: RecordStatus.loading,
+      clearError: true,
+      clearTranscriptionError: true,
+    ));
 
     try {
       final records = await getRecordsUseCase(
@@ -220,11 +237,13 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
         records: records,
         hasMore: limit != null && records.length >= limit,
         clearLatest: true,
+        clearTranscriptionError: true,
       ));
     } catch (e) {
       emit(state.copyWith(
         status: RecordStatus.error,
         errorMessage: '加载记录失败: $e',
+        clearTranscriptionError: true,
       ));
     }
   }
@@ -250,11 +269,13 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
         selectedRecord: state.selectedRecord?.id == updatedRecord.id
             ? updatedRecord
             : state.selectedRecord,
+        clearTranscriptionError: true,
       ));
     } catch (e) {
       emit(state.copyWith(
         status: RecordStatus.error,
         errorMessage: '更新记录失败: $e',
+        clearTranscriptionError: true,
       ));
     }
   }
@@ -276,11 +297,13 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
         records: updatedRecords,
         clearSelection: state.selectedRecord?.id == event.id,
         clearLatest: true,
+        clearTranscriptionError: true,
       ));
     } catch (e) {
       emit(state.copyWith(
         status: RecordStatus.error,
         errorMessage: '删除记录失败: $e',
+        clearTranscriptionError: true,
       ));
     }
   }
@@ -290,7 +313,10 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     RecordSelect event,
     Emitter<RecordState> emit,
   ) {
-    emit(state.copyWith(selectedRecord: event.record));
+    emit(state.copyWith(
+      selectedRecord: event.record,
+      clearTranscriptionError: true,
+    ));
   }
 
   /// 清除选择
@@ -298,7 +324,10 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     RecordClearSelection event,
     Emitter<RecordState> emit,
   ) {
-    emit(state.copyWith(clearSelection: true));
+    emit(state.copyWith(
+      clearSelection: true,
+      clearTranscriptionError: true,
+    ));
   }
 
   /// 改变处理模式（需要重新分析）
