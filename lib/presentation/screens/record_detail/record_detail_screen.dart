@@ -5,6 +5,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/entities/record.dart';
+import '../../../domain/entities/nvc_analysis.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../bloc/record/record_bloc.dart';
 import '../../bloc/record/record_event.dart';
@@ -32,12 +33,14 @@ class RecordDetailScreen extends StatefulWidget {
 
 class _RecordDetailScreenState extends State<RecordDetailScreen> {
   late List<String> _selectedMoods;
+  late DateTime _selectedDateTime;
   bool _isAnalyzing = false;
 
   @override
   void initState() {
     super.initState();
     _selectedMoods = _normalizeMoodTags(widget.record.moods ?? const []);
+    _selectedDateTime = widget.record.createdAt;
   }
 
   List<String> _normalizeMoodTags(List<String> source) {
@@ -66,9 +69,65 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
     final month = dateTime.month;
     final day = dateTime.day;
     final period = dateTime.hour < 12 ? '上午' : '下午';
-    final hour = dateTime.hour > 12 ? dateTime.hour - 12 : dateTime.hour;
+    final hour24 = dateTime.hour;
+    final hour = hour24 == 0 ? 12 : (hour24 > 12 ? hour24 - 12 : hour24);
     final minute = dateTime.minute.toString().padLeft(2, '0');
     return '$month月$day日·$period$hour:$minute';
+  }
+
+  Record _buildDraftRecord({
+    DateTime? updatedAt,
+    List<String>? moods,
+    List<String>? needs,
+    NVCAnalysis? nvc,
+    ProcessingMode? processingMode,
+  }) {
+    return widget.record.copyWith(
+      createdAt: _selectedDateTime,
+      updatedAt: updatedAt ?? widget.record.updatedAt,
+      moods: moods ?? _selectedMoods,
+      needs: needs ?? widget.record.needs,
+      nvc: nvc ?? widget.record.nvc,
+      processingMode: processingMode ?? widget.record.processingMode,
+    );
+  }
+
+  Future<void> _pickRecordDateTime() async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedDateTime,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now().add(const Duration(days: 3650)),
+      helpText: '选择记录日期',
+      cancelText: '取消',
+      confirmText: '下一步',
+    );
+
+    if (pickedDate == null || !mounted) {
+      return;
+    }
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
+      helpText: '选择记录时间',
+      cancelText: '取消',
+      confirmText: '确定',
+    );
+
+    if (pickedTime == null || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _selectedDateTime = DateTime(
+        pickedDate.year,
+        pickedDate.month,
+        pickedDate.day,
+        pickedTime.hour,
+        pickedTime.minute,
+      );
+    });
   }
 
   /// 打开标签编辑对话框（和NVC一样）
@@ -107,17 +166,6 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
     }
   }
 
-  /// 确认情绪标签
-  void _confirmMoods() {
-    // TODO: 保存更新的moods到数据库
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('感受已确认'),
-        duration: Duration(milliseconds: 800),
-      ),
-    );
-  }
-
   /// 触发NVC分析
   void _triggerNVCAnalysis() {
     setState(() {
@@ -132,8 +180,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
 
   /// 保存并关闭
   void _saveAndClose() {
-    final updatedRecord = widget.record.copyWith(
-      moods: _selectedMoods,
+    final updatedRecord = _buildDraftRecord(
       updatedAt: DateTime.now(),
     );
     context.read<RecordBloc>().add(RecordUpdate(record: updatedRecord));
@@ -143,26 +190,33 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
   /// 删除记录
   void _deleteRecord() async {
     final confirmed = await DeleteConfirmationDialog.show(context: context);
-    if (confirmed == true) {
-      // 删除记录
-      context.read<RecordBloc>().add(
-            RecordDelete(id: widget.record.id),
-          );
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('记录已删除')),
-      );
-      Navigator.of(context).pop(); // 关闭详情页
+    if (!mounted || confirmed != true) {
+      return;
     }
+
+    // 删除记录
+    context.read<RecordBloc>().add(
+          RecordDelete(id: widget.record.id),
+        );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('记录已删除')),
+    );
+    Navigator.of(context).pop(); // 关闭详情页
   }
 
   /// 处理AI授权请求
-  Future<void> _handleAIAuthRequest(
-      BuildContext context, RecordState state) async {
+  Future<void> _handleAIAuthRequest(RecordState state) async {
     final result = await AIAuthDialog.show(context: context);
+    if (!mounted) {
+      return;
+    }
 
     if (result == true) {
       // 用户同意授权
       await getIt<AIAuthService>().grant();
+      if (!mounted) {
+        return;
+      }
 
       // 重新触发NVC分析
       if (state.transcription != null && state.transcription!.isNotEmpty) {
@@ -183,11 +237,11 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
   void _showAuthDeniedGuidance(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
+        content: const Row(
           children: [
-            const Icon(Icons.info_outline, color: Color(0xFFFFB74D)),
-            const SizedBox(width: 8),
-            const Expanded(
+            Icon(Icons.info_outline, color: Color(0xFFFFB74D)),
+            SizedBox(width: 8),
+            Expanded(
               child: Text('AI功能需要授权才能使用，您可在设置中开启'),
             ),
           ],
@@ -206,6 +260,73 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
     );
   }
 
+  Future<void> _handleAnalyzedState(RecordState state) async {
+    if (state.nvcAnalysis == null) {
+      return;
+    }
+
+    final result = await NVCConfirmationModal.show(
+      context: context,
+      initialAnalysis: state.nvcAnalysis!,
+      transcription: widget.record.transcription,
+      record: _buildDraftRecord(),
+      onRevert: () {
+        // 还原为仅记录
+      },
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    if (result?.action == NVCModalAction.confirm) {
+      final analysis = result?.analysis;
+      if (analysis != null) {
+        final selectedDateTime = result?.selectedDateTime;
+        if (selectedDateTime != null) {
+          setState(() {
+            _selectedDateTime = selectedDateTime;
+          });
+        }
+        final updatedRecord = _buildDraftRecord(
+          nvc: analysis,
+          processingMode: ProcessingMode.withNVC,
+          moods: analysis.feelings.map((f) => f.feeling).toList(),
+          needs: analysis.needs.map((n) => n.need).toList(),
+          updatedAt: DateTime.now(),
+        );
+        context.read<RecordBloc>().add(
+              RecordUpdate(record: updatedRecord),
+            );
+      }
+      Navigator.of(context).pop();
+      return;
+    }
+
+    if (result?.action == NVCModalAction.delete) {
+      context.read<RecordBloc>().add(
+            RecordDelete(id: widget.record.id),
+          );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('记录已删除')),
+      );
+      Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _handleAnalyzeErrorState() async {
+    final action = await NVCErrorDialog.show(context: context);
+    if (!mounted) {
+      return;
+    }
+
+    if (action == NVCErrorAction.retry) {
+      _triggerNVCAnalysis();
+    } else if (action == NVCErrorAction.saveText) {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<RecordBloc, RecordState>(
@@ -218,7 +339,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
 
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (ModalRoute.of(context)?.isCurrent ?? false) {
-              _handleAIAuthRequest(context, state);
+              _handleAIAuthRequest(state);
             }
           });
         } else if (state.status == RecordStatus.analyzed && _isAnalyzing) {
@@ -226,59 +347,13 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
             _isAnalyzing = false;
           });
 
-          // 显示NVC确认弹窗
-          if (state.nvcAnalysis != null) {
-            NVCConfirmationModal.show(
-              context: context,
-              initialAnalysis: state.nvcAnalysis!,
-              transcription: widget.record.transcription,
-              record: widget.record,
-              onRevert: () {
-                // 还原为仅记录
-              },
-            ).then((result) {
-              if (result?.action == NVCModalAction.confirm) {
-                final analysis = result?.analysis;
-                if (analysis != null) {
-                  final updatedRecord = widget.record.copyWith(
-                    nvc: analysis,
-                    processingMode: ProcessingMode.withNVC,
-                    moods: analysis.feelings.map((f) => f.feeling).toList(),
-                    needs: analysis.needs.map((n) => n.need).toList(),
-                    updatedAt: DateTime.now(),
-                  );
-                  context.read<RecordBloc>().add(
-                        RecordUpdate(record: updatedRecord),
-                      );
-                }
-                Navigator.of(context).pop(); // 关闭详情页
-              } else if (result?.action == NVCModalAction.delete) {
-                // 用户选择了删除，删除这条记录
-                context.read<RecordBloc>().add(
-                      RecordDelete(id: widget.record.id),
-                    );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('记录已删除')),
-                );
-                Navigator.of(context).pop(); // 关闭详情页
-              }
-            });
-          }
+          _handleAnalyzedState(state);
         } else if (state.status == RecordStatus.error && _isAnalyzing) {
           setState(() {
             _isAnalyzing = false;
           });
 
-          // 显示友好的错误对话框
-          NVCErrorDialog.show(context: context).then((action) {
-            if (action == NVCErrorAction.retry) {
-              // 立即重试NVC分析
-              _triggerNVCAnalysis();
-            } else if (action == NVCErrorAction.saveText) {
-              // 关闭详情页，记录已经保存
-              Navigator.of(context).pop();
-            }
-          });
+          _handleAnalyzeErrorState();
         }
       },
       child: Scaffold(
@@ -288,11 +363,12 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
           elevation: 0,
           surfaceTintColor: Colors.transparent,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, size: 20, color: AppColors.textPrimary),
+            icon: const Icon(Icons.arrow_back_ios,
+                size: 20, color: AppColors.textPrimary),
             onPressed: () => Navigator.of(context).pop(),
           ),
           title: Text(
-            _formatDateTime(widget.record.createdAt),
+            _formatDateTime(_selectedDateTime),
             style: AppTypography.appBarTitle,
           ),
           centerTitle: true,
@@ -301,7 +377,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
             IconButton(
               onPressed: () => SharePosterScreen.show(
                 context: context,
-                record: widget.record,
+                record: _buildDraftRecord(),
               ),
               icon: const Icon(Icons.share_outlined,
                   size: 22, color: Color(0xFFC4A57B)),
@@ -323,7 +399,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
             color: AppColors.bgPrimary,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, -2),
               ),
@@ -356,6 +432,72 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              GestureDetector(
+                onTap: _pickRecordDateTime,
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                    vertical: AppSpacing.md,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.bgCard,
+                    borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                    border: Border.all(
+                      color: AppColors.borderLight,
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF7EFE5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.calendar_month_rounded,
+                          size: 18,
+                          color: Color(0xFFC4A57B),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _formatDateTime(_selectedDateTime),
+                              style: AppTypography.detailTitle.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '点击修改这条记录的日期和时间',
+                              style: AppTypography.bodySecondary.copyWith(
+                                color: AppColors.textSubtle,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.textSubtle,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: AppSpacing.lg),
+
               // 转写文本区域
               Container(
                 width: double.infinity,
@@ -375,7 +517,8 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
               // 洞察标签
               Row(
                 children: [
-                  const Icon(Icons.auto_awesome, size: 16, color: AppColors.accent),
+                  const Icon(Icons.auto_awesome,
+                      size: 16, color: AppColors.accent),
                   const SizedBox(width: 6),
                   Text(
                     '洞察',
@@ -397,7 +540,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                   borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
+                      color: Colors.black.withValues(alpha: 0.03),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -506,7 +649,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                   borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
+                      color: Colors.black.withValues(alpha: 0.03),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -543,7 +686,8 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                         padding: const EdgeInsets.all(AppSpacing.lg),
                         decoration: BoxDecoration(
                           color: AppColors.bgCardSecondary,
-                          borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.cardRadius),
                         ),
                         child: Row(
                           children: [
@@ -758,18 +902,26 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
-                              color: isSelected ? widget.iconBgColor : AppColors.bgCard,
+                              color: isSelected
+                                  ? widget.iconBgColor
+                                  : AppColors.bgCard,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: isSelected ? widget.iconColor : AppColors.border,
+                                color: isSelected
+                                    ? widget.iconColor
+                                    : AppColors.border,
                                 width: 1,
                               ),
                             ),
                             child: Text(
                               tag,
                               style: AppTypography.tagLabel.copyWith(
-                                color: isSelected ? widget.iconColor : AppColors.textSecondary,
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                color: isSelected
+                                    ? widget.iconColor
+                                    : AppColors.textSecondary,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
                               ),
                             ),
                           ),
@@ -807,7 +959,7 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
+                    color: Colors.black.withValues(alpha: 0.02),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -835,10 +987,12 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                     margin: const EdgeInsets.only(right: 8),
                     child: Material(
                       color: widget.iconBgColor,
-                      borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                      borderRadius:
+                          BorderRadius.circular(AppSpacing.cardRadius),
                       child: InkWell(
                         onTap: _addCustomTag,
-                        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.cardRadius),
                         child: Container(
                           padding: const EdgeInsets.all(AppSpacing.sm),
                           child: Icon(
@@ -866,7 +1020,8 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                       backgroundColor: AppColors.bgCard,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.cardRadius),
                       ),
                     ),
                     child: Text(
@@ -885,7 +1040,8 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                       backgroundColor: AppColors.accent,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.cardRadius),
                       ),
                     ),
                     child: Text(

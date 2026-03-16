@@ -10,6 +10,7 @@ import '../../widgets/ai_auth_dialog.dart';
 import '../../bloc/locale/locale_bloc.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
+import '../../../core/services/icloud_sync_service.dart';
 import '../../../l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -21,14 +22,19 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _aiAuthEnabled = false;
+  bool _iCloudSyncEnabled = false;
+  bool _iCloudAvailable = false;
   late final AIAuthService _aiAuthService;
+  late final ICloudSyncService _iCloudSyncService;
   StreamSubscription? _authSubscription;
 
   @override
   void initState() {
     super.initState();
     _aiAuthService = getIt<AIAuthService>();
+    _iCloudSyncService = getIt<ICloudSyncService>();
     _loadAIAuthStatus();
+    _loadICloudStatus();
 
     // 监听授权状态变化
     _authSubscription = _aiAuthService.authStateStream.listen((enabled) {
@@ -48,6 +54,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isAuthorized = await _aiAuthService.isAuthorized;
     if (mounted) {
       setState(() => _aiAuthEnabled = isAuthorized);
+    }
+  }
+
+  Future<void> _loadICloudStatus() async {
+    final enabled = await _iCloudSyncService.isEnabled;
+    final available = await _iCloudSyncService.isAvailable;
+    if (mounted) {
+      setState(() {
+        _iCloudSyncEnabled = enabled;
+        _iCloudAvailable = available;
+      });
     }
   }
 
@@ -115,6 +132,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 MaterialPageRoute(builder: (_) => const ExportScreen()),
               );
             },
+          ),
+          const SizedBox(height: 12),
+          _buildSwitchItem(
+            title: l10n.iCloudSync,
+            subtitle: _iCloudAvailable
+                ? l10n.iCloudSyncSubtitle
+                : l10n.iCloudSyncUnavailable,
+            icon: Icons.cloud_outlined,
+            value: _iCloudSyncEnabled,
+            onChanged: (value) => _handleICloudSyncToggle(value),
           ),
           const SizedBox(height: 16),
 
@@ -441,6 +468,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
         await _aiAuthService.revoke();
         // Stream会自动更新UI
       }
+    }
+  }
+
+  Future<void> _handleICloudSyncToggle(bool value) async {
+    final l10n = AppLocalizations.of(context)!;
+
+    if (value && !_iCloudAvailable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.iCloudSyncUnavailable)),
+      );
+      return;
+    }
+
+    try {
+      await _iCloudSyncService.setEnabled(value);
+      if (!mounted) return;
+      setState(() {
+        _iCloudSyncEnabled = value;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            value ? l10n.iCloudSyncEnabled : l10n.iCloudSyncDisabled,
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _iCloudSyncEnabled = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.iCloudSyncFailed)),
+      );
     }
   }
 

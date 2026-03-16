@@ -7,7 +7,7 @@ import '../screens/share/share_poster_screen.dart';
 class NVCConfirmationModal extends StatefulWidget {
   final NVCAnalysis initialAnalysis;
   final String transcription;
-  final Function(NVCAnalysis) onConfirm;
+  final Function(NVCAnalysis, DateTime) onConfirm;
   final VoidCallback? onRevert;
   final Record? record; // 可选的完整记录，用于分享
 
@@ -37,8 +37,12 @@ class NVCConfirmationModal extends StatefulWidget {
       builder: (context) => NVCConfirmationModal(
         initialAnalysis: initialAnalysis,
         transcription: transcription,
-        onConfirm: (analysis) => Navigator.of(context).pop(
-          NVCModalResult(action: NVCModalAction.confirm, analysis: analysis),
+        onConfirm: (analysis, selectedDateTime) => Navigator.of(context).pop(
+          NVCModalResult(
+            action: NVCModalAction.confirm,
+            analysis: analysis,
+            selectedDateTime: selectedDateTime,
+          ),
         ),
         onRevert: onRevert,
         record: record,
@@ -52,6 +56,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
   late List<Feeling> _feelings;
   late List<Need> _needs;
   late String _insight;
+  late DateTime _selectedDateTime;
 
   @override
   void initState() {
@@ -62,6 +67,8 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     _insight = widget.initialAnalysis.request ??
         widget.initialAnalysis.insight ??
         '尝试在双方情绪平稳时，以"我"开头表达感受，而非指责。';
+    _selectedDateTime =
+        widget.record?.createdAt ?? widget.initialAnalysis.analyzedAt;
   }
 
   String _stripSquareBrackets(String value) {
@@ -124,17 +131,67 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
       request: _insight,
       analyzedAt: DateTime.now(),
     );
-    widget.onConfirm(updatedAnalysis);
+    widget.onConfirm(updatedAnalysis, _selectedDateTime);
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    final month = dateTime.month;
+    final day = dateTime.day;
+    final period = dateTime.hour < 12 ? '上午' : '下午';
+    final hour24 = dateTime.hour;
+    final hour = hour24 == 0 ? 12 : (hour24 > 12 ? hour24 - 12 : hour24);
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    return '$month月$day日·$period$hour:$minute';
+  }
+
+  Future<void> _pickRecordDateTime() async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedDateTime,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now().add(const Duration(days: 3650)),
+      helpText: '选择记录日期',
+      cancelText: '取消',
+      confirmText: '下一步',
+    );
+
+    if (pickedDate == null || !mounted) {
+      return;
+    }
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
+      helpText: '选择记录时间',
+      cancelText: '取消',
+      confirmText: '确定',
+    );
+
+    if (pickedTime == null || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _selectedDateTime = DateTime(
+        pickedDate.year,
+        pickedDate.month,
+        pickedDate.day,
+        pickedTime.hour,
+        pickedTime.minute,
+      );
+    });
   }
 
   void _handleDelete() async {
     // 显示删除确认对话框
     final confirmed = await DeleteConfirmationDialog.show(context: context);
-    if (confirmed == true) {
-      Navigator.of(context).pop(
-        NVCModalResult(action: NVCModalAction.delete),
-      ); // 关闭NVC弹窗，返回删除动作
+    if (!mounted || confirmed != true) {
+      return;
     }
+
+    Navigator.of(context).pop(
+      NVCModalResult(action: NVCModalAction.delete),
+    ); // 关闭NVC弹窗，返回删除动作
   }
 
   void _editObservation() async {
@@ -355,11 +412,6 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
-    // 格式化日期时间
-    final now = DateTime.now();
-    final dateStr =
-        '${now.month}月${now.day}日·${now.hour < 12 ? "上午" : "下午"}${now.hour > 12 ? now.hour - 12 : now.hour}:${now.minute.toString().padLeft(2, '0')}';
-
     return Container(
       height: size.height * 0.95,
       decoration: const BoxDecoration(
@@ -380,12 +432,31 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                       size: 20, color: Color(0xFF2C2C2C)),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
-                Text(
-                  dateStr,
-                  style: const TextStyle(
-                    color: Color(0xFF8B8B8B),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                GestureDetector(
+                  onTap: _pickRecordDateTime,
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _formatDateTime(_selectedDateTime),
+                          style: const TextStyle(
+                            color: Color(0xFF8B8B8B),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        const Icon(
+                          Icons.expand_more_rounded,
+                          size: 18,
+                          color: Color(0xFFB8B8B8),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 Row(
@@ -396,7 +467,9 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                       IconButton(
                         onPressed: () => SharePosterScreen.show(
                           context: context,
-                          record: widget.record!,
+                          record: widget.record!.copyWith(
+                            createdAt: _selectedDateTime,
+                          ),
                         ),
                         icon: const Icon(Icons.share_outlined,
                             size: 22, color: Color(0xFFC4A57B)),
@@ -445,12 +518,12 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                   const SizedBox(height: 16),
 
                   // 洞察标签
-                  Row(
+                  const Row(
                     children: [
-                      const Icon(Icons.auto_awesome,
+                      Icon(Icons.auto_awesome,
                           size: 16, color: Color(0xFFC4A57B)),
-                      const SizedBox(width: 6),
-                      const Text(
+                      SizedBox(width: 6),
+                      Text(
                         '洞察',
                         style: TextStyle(
                           color: Color(0xFFC4A57B),
@@ -572,7 +645,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
               color: const Color(0xFFF5F5F5),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),
@@ -624,7 +697,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -931,7 +1004,7 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
+                    color: Colors.black.withValues(alpha: 0.02),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -1049,9 +1122,11 @@ enum NVCModalAction {
 class NVCModalResult {
   final NVCModalAction action;
   final NVCAnalysis? analysis;
+  final DateTime? selectedDateTime;
 
   NVCModalResult({
     required this.action,
     this.analysis,
+    this.selectedDateTime,
   });
 }

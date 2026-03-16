@@ -65,6 +65,13 @@ class DailySummaryService {
     debugPrint('DailySummaryService: 已保存日总结 (${summary.date})');
   }
 
+  /// 删除某天的日总结缓存
+  Future<void> deleteDailySummary(DateTime date) async {
+    final key = getDailySummaryKey(date);
+    await _database.settingsBox.delete(key);
+    debugPrint('DailySummaryService: 已删除日总结 ($date)');
+  }
+
   /// 检查是否需要重新生成日总结
   ///
   /// [date] 日期

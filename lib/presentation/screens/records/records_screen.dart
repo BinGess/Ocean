@@ -123,22 +123,57 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   /// 加载日总结并在需要时触发生成
   void _loadDailySummaries(Map<DateTime, List<Record>> groupedRecords) {
+    var shouldUpdateState = false;
+    final pendingGenerations = <MapEntry<DateTime, List<Record>>>[];
+    final activeSummaryKeys = <String>{};
+
     for (final entry in groupedRecords.entries) {
       final date = entry.key;
       final records = entry.value;
       final summaryKey = getDailySummaryKey(date);
+      activeSummaryKeys.add(summaryKey);
 
       // 加载已缓存的日总结
       final existingSummary = _dailySummaryService.getDailySummary(date);
-      if (existingSummary != null) {
+      if (existingSummary != null &&
+          _dailySummaries[summaryKey] != existingSummary) {
         _dailySummaries[summaryKey] = existingSummary;
+        shouldUpdateState = true;
       }
 
       // 检查是否需要生成/重新生成
       if (_dailySummaryService.needsRegeneration(date, records.length) &&
           !_generatingSummaries.contains(summaryKey)) {
-        _generateDailySummary(date, records);
+        _generatingSummaries.add(summaryKey);
+        pendingGenerations.add(MapEntry(date, records));
+        shouldUpdateState = true;
       }
+    }
+
+    final staleSummaryKeys = _dailySummaries.keys
+        .where((key) => !activeSummaryKeys.contains(key))
+        .toList(growable: false);
+    if (staleSummaryKeys.isNotEmpty) {
+      for (final key in staleSummaryKeys) {
+        _dailySummaries.remove(key);
+      }
+      shouldUpdateState = true;
+    }
+
+    final staleGeneratingKeys = _generatingSummaries
+        .where((key) => !activeSummaryKeys.contains(key))
+        .toList(growable: false);
+    if (staleGeneratingKeys.isNotEmpty) {
+      _generatingSummaries.removeAll(staleGeneratingKeys);
+      shouldUpdateState = true;
+    }
+
+    if (shouldUpdateState && mounted) {
+      setState(() {});
+    }
+
+    for (final pending in pendingGenerations) {
+      _generateDailySummary(pending.key, pending.value, alreadyMarked: true);
     }
   }
 
@@ -148,9 +183,21 @@ class _RecordsScreenState extends State<RecordsScreen> {
   }
 
   /// 异步生成日总结
-  void _generateDailySummary(DateTime date, List<Record> records) {
+  void _generateDailySummary(
+    DateTime date,
+    List<Record> records, {
+    bool alreadyMarked = false,
+  }) {
     final summaryKey = getDailySummaryKey(date);
-    _generatingSummaries.add(summaryKey);
+    if (!alreadyMarked) {
+      if (mounted) {
+        setState(() {
+          _generatingSummaries.add(summaryKey);
+        });
+      } else {
+        _generatingSummaries.add(summaryKey);
+      }
+    }
 
     _dailySummaryService.generateDailySummaryDebounced(
       date,
@@ -273,7 +320,18 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
       if (!mounted) return;
 
-      if (result?.action == NVCModalAction.delete) {
+      if (result?.action == NVCModalAction.confirm &&
+          result?.analysis != null) {
+        final updatedRecord = record.copyWith(
+          nvc: result!.analysis,
+          processingMode: ProcessingMode.withNVC,
+          moods: result.analysis!.feelings.map((f) => f.feeling).toList(),
+          needs: result.analysis!.needs.map((n) => n.need).toList(),
+          createdAt: result.selectedDateTime ?? record.createdAt,
+          updatedAt: DateTime.now(),
+        );
+        context.read<RecordBloc>().add(RecordUpdate(record: updatedRecord));
+      } else if (result?.action == NVCModalAction.delete) {
         context.read<RecordBloc>().add(RecordDelete(id: record.id));
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(

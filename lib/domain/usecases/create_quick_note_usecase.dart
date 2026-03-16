@@ -14,6 +14,7 @@ class CreateQuickNoteParams {
   final List<String>? selectedMoods;
   final String? transcription;
   final NVCAnalysis? nvcAnalysis;
+  final DateTime? createdAt;
 
   CreateQuickNoteParams({
     this.audioPath,
@@ -21,6 +22,7 @@ class CreateQuickNoteParams {
     this.selectedMoods,
     this.transcription,
     this.nvcAnalysis,
+    this.createdAt,
   });
 }
 
@@ -101,6 +103,7 @@ class CreateQuickNoteUseCase extends UseCase<Record, CreateQuickNoteParams> {
       moods: moods,
       needs: needs,
       nvc: nvc,
+      createdAt: params.createdAt,
     );
   }
 }

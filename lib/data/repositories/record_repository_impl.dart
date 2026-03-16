@@ -22,13 +22,15 @@ class RecordRepositoryImpl implements RecordRepository {
     List<String>? moods,
     List<String>? needs,
     NVCAnalysis? nvc,
+    DateTime? createdAt,
   }) async {
+    final recordTime = createdAt ?? DateTime.now();
     final record = Record(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       type: RecordType.quickNote,
       transcription: transcription,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
+      createdAt: recordTime,
+      updatedAt: recordTime,
       audioUrl: audioUrl,
       duration: duration,
       processingMode: processingMode,
@@ -91,7 +93,8 @@ class RecordRepositoryImpl implements RecordRepository {
   }
 
   @override
-  Future<List<DayAggregation>> getDayAggregations(DateTime start, DateTime end) async {
+  Future<List<DayAggregation>> getDayAggregations(
+      DateTime start, DateTime end) async {
     // TODO: 实现日聚合列表
     return [];
   }
@@ -172,9 +175,8 @@ class RecordRepositoryImpl implements RecordRepository {
   @override
   Future<List<Record>> getRecordsByType(RecordType type) async {
     final typeString = type.toString().split('.').last;
-    final models = database.recordsBox.values
-        .where((m) => m.type == typeString)
-        .toList();
+    final models =
+        database.recordsBox.values.where((m) => m.type == typeString).toList();
     return models.map((m) => m.toEntity()).toList();
   }
 

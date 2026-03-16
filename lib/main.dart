@@ -1,6 +1,8 @@
 // MindFlow 应用入口
 // 情绪觉察日记 App
 
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,6 +11,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/theme/app_theme.dart';
 import 'core/di/injection.dart';
 import 'core/services/app_lock_service.dart';
+import 'core/services/icloud_sync_service.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/bloc/audio/audio_bloc.dart';
 import 'presentation/bloc/audio/audio_event.dart';
@@ -36,6 +39,7 @@ void main() async {
 
   // 初始化依赖注入
   await configureDependencies();
+  await getIt<ICloudSyncService>().initializeOnLaunch();
 
   runApp(const MindFlowApp());
 }
@@ -102,6 +106,7 @@ class _AppEntryPointState extends State<AppEntryPoint>
   bool _isCheckingLock = false;
 
   final _appLockService = getIt<AppLockService>();
+  final _iCloudSyncService = getIt<ICloudSyncService>();
 
   @override
   void initState() {
@@ -162,6 +167,7 @@ class _AppEntryPointState extends State<AppEntryPoint>
 
   void _onAppBackground() async {
     try {
+      unawaited(_iCloudSyncService.syncNow());
       _appLockService.onAppBackground();
       // 显示隐私遮罩
       final isEnabled = await _appLockService.isEnabled;
@@ -184,6 +190,7 @@ class _AppEntryPointState extends State<AppEntryPoint>
     }
 
     try {
+      unawaited(_iCloudSyncService.refreshFromCloudIfNeeded());
       // 检查是否需要显示锁屏
       final shouldLock = await _appLockService.shouldShowLockScreen();
       if (shouldLock && mounted) {

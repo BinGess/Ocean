@@ -182,6 +182,36 @@ class _HomeScreenState extends State<HomeScreen>
     return 1.0 + math.sin(settle * math.pi) * (1.0 - settle) * 0.045;
   }
 
+  double _fitSingleLineQuoteFontSize({
+    required BuildContext context,
+    required String text,
+    required TextStyle style,
+    required double maxWidth,
+    double minFontSize = 18,
+  }) {
+    final baseFontSize = style.fontSize ?? 24;
+    final painter = TextPainter(
+      textDirection: Directionality.of(context),
+      maxLines: 1,
+      ellipsis: '…',
+    );
+
+    for (double fontSize = baseFontSize;
+        fontSize >= minFontSize;
+        fontSize -= 0.5) {
+      painter.text = TextSpan(
+        text: text,
+        style: style.copyWith(fontSize: fontSize),
+      );
+      painter.layout(maxWidth: maxWidth);
+      if (!painter.didExceedMaxLines && painter.width <= maxWidth) {
+        return fontSize;
+      }
+    }
+
+    return minFontSize;
+  }
+
   Widget _buildLyricQuoteViewport() {
     const viewportHeight = 180.0;
     const rowHeight = 60.0;
@@ -296,8 +326,8 @@ class _HomeScreenState extends State<HomeScreen>
         )
         .toDouble();
     final opacity = ui.lerpDouble(0.36, 1.0, easedEmphasis)!.clamp(0.0, 1.0);
-    final fontSize = ui.lerpDouble(15.2, 24.0, easedEmphasis)!;
-    final scale = ui.lerpDouble(0.90, 1.02, easedEmphasis)!;
+    final baseFontSize = ui.lerpDouble(15.2, 24.0, easedEmphasis)!;
+    final scale = ui.lerpDouble(0.92, 1.0, easedEmphasis)!;
     final blur = ui.lerpDouble(0.9, 0.0, easedEmphasis)!;
     final textColor = Color.lerp(
       const Color(0xFF8B9FB1).withValues(alpha: 0.88),
@@ -305,8 +335,8 @@ class _HomeScreenState extends State<HomeScreen>
       easedEmphasis,
     )!;
     final verticalNudge = ui.lerpDouble(1.6, 0.0, easedEmphasis)!;
-    final shadowBlur = ui.lerpDouble(0.0, 14.0, easedEmphasis)!;
-    final shadowYOffset = ui.lerpDouble(0.0, 6.0, easedEmphasis)!;
+    final shadowBlur = ui.lerpDouble(0.0, 6.0, easedEmphasis)!;
+    final shadowYOffset = ui.lerpDouble(0.0, 2.0, easedEmphasis)!;
 
     return SizedBox(
       height: rowHeight,
@@ -317,38 +347,56 @@ class _HomeScreenState extends State<HomeScreen>
             scale: scale,
             child: Opacity(
               opacity: opacity,
-              child: ImageFiltered(
-                imageFilter: ui.ImageFilter.blur(
-                  sigmaX: blur,
-                  sigmaY: blur,
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    text,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.quoteBody.copyWith(
-                      fontSize: fontSize,
-                      height: 1.18,
-                      color: textColor,
-                      fontWeight: easedEmphasis > 0.72
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                      letterSpacing: easedEmphasis > 0.76 ? 0.18 : 0.06,
-                      shadows: easedEmphasis > 0.62
-                          ? [
-                              Shadow(
-                                color: Colors.white.withValues(alpha: 0.40),
-                                blurRadius: shadowBlur,
-                                offset: Offset(0, shadowYOffset),
-                              ),
-                            ]
-                          : null,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final textStyle = AppTypography.quoteBody.copyWith(
+                    fontSize: baseFontSize,
+                    height: 1.0,
+                    color: textColor,
+                    fontWeight: easedEmphasis > 0.72
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                    letterSpacing: 0.0,
+                    shadows: easedEmphasis > 0.62
+                        ? [
+                            Shadow(
+                              color: Colors.white.withValues(alpha: 0.28),
+                              blurRadius: shadowBlur,
+                              offset: Offset(0, shadowYOffset),
+                            ),
+                          ]
+                        : null,
+                  );
+                  final fittedFontSize = _fitSingleLineQuoteFontSize(
+                    context: context,
+                    text: text,
+                    style: textStyle,
+                    maxWidth: constraints.maxWidth - 16,
+                  );
+                  final fittedText = Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      text,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                      style: textStyle.copyWith(fontSize: fittedFontSize),
                     ),
-                  ),
-                ),
+                  );
+
+                  if (blur <= 0.05) {
+                    return fittedText;
+                  }
+
+                  return ImageFiltered(
+                    imageFilter: ui.ImageFilter.blur(
+                      sigmaX: blur,
+                      sigmaY: blur,
+                    ),
+                    child: fittedText,
+                  );
+                },
               ),
             ),
           ),
@@ -872,6 +920,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 mode: ProcessingMode.withNVC,
                                 transcription: transcription,
                                 nvcAnalysis: result!.analysis,
+                                createdAt: result.selectedDateTime,
                               ),
                             );
                             _clearCompletedAudio();

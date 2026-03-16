@@ -166,6 +166,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
           selectedMoods: event.selectedMoods,
           transcription: event.transcription,
           nvcAnalysis: event.nvcAnalysis,
+          createdAt: event.createdAt,
         ),
       ).timeout(const Duration(seconds: 10), onTimeout: () {
         throw Exception('创建记录超时');
@@ -196,18 +197,62 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
 
   Future<void> _refreshDailySummaryAfterSave(DateTime date) async {
     try {
-      final dayRecords = await recordRepository.getRecordsByDate(date);
-      if (!dailySummaryService.needsRegeneration(date, dayRecords.length)) {
-        return;
-      }
-
-      debugPrint(
-        'RecordBloc: Auto refresh daily summary for $date, records: ${dayRecords.length}',
-      );
-      await dailySummaryService.generateDailySummary(date, dayRecords);
+      await _syncDailySummaryForDate(date);
     } catch (e) {
       debugPrint('RecordBloc: Auto refresh daily summary failed: $e');
     }
+  }
+
+  Future<void> _refreshDailySummaryAfterUpdate(
+    Record? previousRecord,
+    Record updatedRecord,
+  ) async {
+    if (previousRecord == null) {
+      return;
+    }
+
+    final affectedDates = <DateTime>{
+      _normalizeDate(previousRecord.createdAt),
+      _normalizeDate(updatedRecord.createdAt),
+    };
+
+    for (final date in affectedDates) {
+      await _syncDailySummaryForDate(date);
+    }
+  }
+
+  Future<void> _refreshDailySummaryAfterDelete(Record? deletedRecord) async {
+    if (deletedRecord == null) {
+      return;
+    }
+
+    await _syncDailySummaryForDate(deletedRecord.createdAt);
+  }
+
+  Future<void> _syncDailySummaryForDate(DateTime date) async {
+    final normalizedDate = _normalizeDate(date);
+    final dayRecords = await recordRepository.getRecordsByDate(normalizedDate);
+
+    if (dayRecords.length < DailySummaryService.minRecordCount) {
+      await dailySummaryService.deleteDailySummary(normalizedDate);
+      return;
+    }
+
+    if (!dailySummaryService.needsRegeneration(
+      normalizedDate,
+      dayRecords.length,
+    )) {
+      return;
+    }
+
+    debugPrint(
+      'RecordBloc: Auto refresh daily summary for $normalizedDate, records: ${dayRecords.length}',
+    );
+    await dailySummaryService.generateDailySummary(normalizedDate, dayRecords);
+  }
+
+  DateTime _normalizeDate(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
   }
 
   /// 加载记录列表
@@ -254,6 +299,8 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     Emitter<RecordState> emit,
   ) async {
     try {
+      final previousRecord =
+          await recordRepository.getRecordById(event.record.id);
       final updatedRecord = await updateRecordUseCase(
         UpdateRecordParams(record: event.record),
       );
@@ -271,6 +318,8 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
             : state.selectedRecord,
         clearTranscriptionError: true,
       ));
+
+      unawaited(_refreshDailySummaryAfterUpdate(previousRecord, updatedRecord));
     } catch (e) {
       emit(state.copyWith(
         status: RecordStatus.error,
@@ -286,6 +335,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     Emitter<RecordState> emit,
   ) async {
     try {
+      final deletedRecord = await recordRepository.getRecordById(event.id);
       await recordRepository.deleteRecord(event.id);
 
       // 从列表中移除
@@ -299,6 +349,8 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
         clearLatest: true,
         clearTranscriptionError: true,
       ));
+
+      unawaited(_refreshDailySummaryAfterDelete(deletedRecord));
     } catch (e) {
       emit(state.copyWith(
         status: RecordStatus.error,

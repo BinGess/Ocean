@@ -35,6 +35,12 @@ class AppLocalizations {
       'dataManagement': '数据管理',
       'export': '导出',
       'exportSubtitle': '导出所有记录或洞察信息',
+      'iCloudSync': 'iCloud 云同步',
+      'iCloudSyncSubtitle': '将记录、每日心情、日总结和每周总结保存到 iCloud',
+      'iCloudSyncUnavailable': '当前设备未开启 iCloud Drive，暂时无法使用',
+      'iCloudSyncEnabled': '已开启 iCloud 云同步',
+      'iCloudSyncDisabled': '已关闭 iCloud 云同步',
+      'iCloudSyncFailed': 'iCloud 云同步设置失败，请稍后重试',
       'other': '其他',
       'about': '关于',
       'aboutSubtitle': '应用信息与隐私协议',
@@ -101,6 +107,14 @@ class AppLocalizations {
       'dataManagement': 'Data Management',
       'export': 'Export',
       'exportSubtitle': 'Export all records or insights',
+      'iCloudSync': 'iCloud Sync',
+      'iCloudSyncSubtitle':
+          'Save records, daily moods, daily summaries and weekly insights to iCloud',
+      'iCloudSyncUnavailable':
+          'iCloud Drive is unavailable on this device right now',
+      'iCloudSyncEnabled': 'iCloud sync enabled',
+      'iCloudSyncDisabled': 'iCloud sync disabled',
+      'iCloudSyncFailed': 'Failed to update iCloud sync settings',
       'other': 'Other',
       'about': 'About',
       'aboutSubtitle': 'App info and privacy policy',
@@ -140,7 +154,8 @@ class AppLocalizations {
       'regenerate': 'Regenerate',
       'refreshFailed': 'Refresh failed, please try again later',
       'aiAuthExpired': 'AI authorization expired, please re-enable in settings',
-      'aiNeedsAuthSnackbar': 'AI features require authorization. Enable in settings',
+      'aiNeedsAuthSnackbar':
+          'AI features require authorization. Enable in settings',
       'goToSettings': 'Settings',
       'viewHistoryReports': 'View History',
       'emotionOverview': 'Emotion Overview',
@@ -177,6 +192,12 @@ class AppLocalizations {
   String get dataManagement => _translate('dataManagement');
   String get export => _translate('export');
   String get exportSubtitle => _translate('exportSubtitle');
+  String get iCloudSync => _translate('iCloudSync');
+  String get iCloudSyncSubtitle => _translate('iCloudSyncSubtitle');
+  String get iCloudSyncUnavailable => _translate('iCloudSyncUnavailable');
+  String get iCloudSyncEnabled => _translate('iCloudSyncEnabled');
+  String get iCloudSyncDisabled => _translate('iCloudSyncDisabled');
+  String get iCloudSyncFailed => _translate('iCloudSyncFailed');
   String get other => _translate('other');
   String get about => _translate('about');
   String get aboutSubtitle => _translate('aboutSubtitle');
@@ -226,7 +247,8 @@ class AppLocalizations {
   String get recording => _translate('recording');
   String get releaseToSend => _translate('releaseToSend');
   String get recordingTooShort => _translate('recordingTooShort');
-  String get microphonePermissionDenied => _translate('microphonePermissionDenied');
+  String get microphonePermissionDenied =>
+      _translate('microphonePermissionDenied');
   String get selectLanguage => _translate('selectLanguage');
 
   // Methods with parameters

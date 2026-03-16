@@ -16,6 +16,7 @@ class RecordCreateQuickNote extends RecordEvent {
   final List<String>? selectedMoods;
   final String? transcription;
   final NVCAnalysis? nvcAnalysis;
+  final DateTime? createdAt;
 
   const RecordCreateQuickNote({
     this.audioPath,
@@ -23,11 +24,12 @@ class RecordCreateQuickNote extends RecordEvent {
     this.selectedMoods,
     this.transcription,
     this.nvcAnalysis,
+    this.createdAt,
   });
 
   @override
   List<Object?> get props =>
-      [audioPath, mode, selectedMoods, transcription, nvcAnalysis];
+      [audioPath, mode, selectedMoods, transcription, nvcAnalysis, createdAt];
 }
 
 /// 分析 NVC

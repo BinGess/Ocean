@@ -40,6 +40,24 @@
   "exportSubtitle": "导出所有记录或洞察信息",
   "@exportSubtitle": {"description": "Export setting subtitle"},
 
+  "iCloudSync": "iCloud 云同步",
+  "@iCloudSync": {"description": "iCloud sync setting title"},
+
+  "iCloudSyncSubtitle": "将记录、每日心情、日总结和每周总结保存到 iCloud",
+  "@iCloudSyncSubtitle": {"description": "iCloud sync subtitle"},
+
+  "iCloudSyncUnavailable": "当前设备未开启 iCloud Drive，暂时无法使用",
+  "@iCloudSyncUnavailable": {"description": "iCloud unavailable message"},
+
+  "iCloudSyncEnabled": "已开启 iCloud 云同步",
+  "@iCloudSyncEnabled": {"description": "iCloud enabled message"},
+
+  "iCloudSyncDisabled": "已关闭 iCloud 云同步",
+  "@iCloudSyncDisabled": {"description": "iCloud disabled message"},
+
+  "iCloudSyncFailed": "iCloud 云同步设置失败，请稍后重试",
+  "@iCloudSyncFailed": {"description": "iCloud failed message"},
+
   "other": "其他",
   "@other": {"description": "Settings section header"},
 

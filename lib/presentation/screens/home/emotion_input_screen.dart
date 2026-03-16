@@ -165,7 +165,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
   void _submitOnlyRecord() {
     final text = _inputText;
     if (text.isEmpty) {
-      _showHint('请输入内容后再完成');
+      _showHint('请输入内容后再保存');
       return;
     }
 
@@ -264,7 +264,10 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
     );
   }
 
-  void _saveWithNVCAnalysis(NVCAnalysis analysis) {
+  void _saveWithNVCAnalysis(
+    NVCAnalysis analysis, {
+    DateTime? createdAt,
+  }) {
     final text = _inputText;
     if (text.isEmpty) {
       _showHint('输入内容为空，无法保存');
@@ -281,6 +284,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
             mode: ProcessingMode.withNVC,
             transcription: text,
             nvcAnalysis: analysis,
+            createdAt: createdAt,
           ),
         );
   }
@@ -402,7 +406,10 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
         if (!mounted || result == null) return;
         if (result.action == NVCModalAction.confirm &&
             result.analysis != null) {
-          _saveWithNVCAnalysis(result.analysis!);
+          _saveWithNVCAnalysis(
+            result.analysis!,
+            createdAt: result.selectedDateTime,
+          );
         }
       });
       return;
@@ -566,7 +573,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                                 size: 17),
                             const SizedBox(width: 1),
                             Text(
-                              '完成',
+                              '保存',
                               style: AppTypography.actionLabel.copyWith(
                                 fontSize: 16,
                                 color: const Color(0xFF5A524A),

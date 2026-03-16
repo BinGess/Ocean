@@ -15,6 +15,7 @@ abstract class RecordRepository {
     List<String>? moods,
     List<String>? needs,
     NVCAnalysis? nvc,
+    DateTime? createdAt,
   });
 
   /// 创建日记
