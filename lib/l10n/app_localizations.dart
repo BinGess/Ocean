@@ -117,6 +117,7 @@ class AppLocalizations {
       'exportNoData': '所选范围内没有可导出的数据',
       'exportFailed': '导出失败，请稍后再试',
       'exportShareText': '瞬记 · 数据导出',
+      'exportContentPreview': '内容预览',
     },
     'en': {
       'appTitle': 'MindFlow',
@@ -219,6 +220,7 @@ class AppLocalizations {
       'exportNoData': 'No data in the selected range',
       'exportFailed': 'Export failed, please try again',
       'exportShareText': 'MindFlow · Data Export',
+      'exportContentPreview': 'Content Preview',
     },
   };
 
@@ -326,6 +328,7 @@ class AppLocalizations {
   String get exportNoData => _translate('exportNoData');
   String get exportFailed => _translate('exportFailed');
   String get exportShareText => _translate('exportShareText');
+  String get exportContentPreview => _translate('exportContentPreview');
 
   // Methods with parameters
 

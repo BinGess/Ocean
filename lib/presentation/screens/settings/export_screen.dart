@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -36,7 +35,9 @@ class _ExportScreenState extends State<ExportScreen> {
   DateTime? _customStart;
   DateTime? _customEnd;
 
-  // ─── 数据计数（进入页面时加载）─────────────────
+  // ─── 数据（进入页面时加载）────────────────────
+  List<Record> _allRecords = [];
+  List<InsightReportCache> _allInsights = [];
   int _totalRecords = 0;
   int _totalInsights = 0;
   bool _loadingCounts = true;
@@ -59,6 +60,8 @@ class _ExportScreenState extends State<ExportScreen> {
       final insights = await insightRepo.getAllCachedInsightReports();
       if (mounted) {
         setState(() {
+          _allRecords = records;
+          _allInsights = insights;
           _totalRecords = records.length;
           _totalInsights = insights.length;
           _loadingCounts = false;
@@ -128,6 +131,14 @@ class _ExportScreenState extends State<ExportScreen> {
 
                       // ── 4. 导出预览 ──────────────
                       _buildPreviewCard(l10n),
+                      const SizedBox(height: 20),
+
+                      // ── 5. 内容预览 ──────────────
+                      if (_hasSelection) ...[
+                        _buildSectionHeader(l10n.exportContentPreview),
+                        const SizedBox(height: 8),
+                        _buildContentSample(),
+                      ],
                       const SizedBox(height: 24),
                     ],
                   ),
@@ -604,6 +615,101 @@ class _ExportScreenState extends State<ExportScreen> {
   }
 
   // ═══════════════════════════════════════════════
+  //  5. Content sample preview
+  // ═══════════════════════════════════════════════
+
+  Widget _buildContentSample() {
+    final previewRecords = _includeRecords ? _allRecords.take(5).toList() : <Record>[];
+    final previewInsights =
+        _includeInsights ? _allInsights.take(2).toList() : <InsightReportCache>[];
+
+    if (previewRecords.isEmpty && previewInsights.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final sampleText = ExportFormatter.contentPreview(
+      records: previewRecords,
+      insights: previewInsights,
+      format: _format,
+    );
+
+    return Container(
+      decoration: _cardDecoration(),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 模拟文件标题栏
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF8F6F3),
+              border: Border(
+                bottom: BorderSide(color: Color(0xFFE8E4DF), width: 0.5),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _format == ExportFormat.markdown
+                      ? Icons.article_outlined
+                      : _format == ExportFormat.csv
+                          ? Icons.table_chart_outlined
+                          : Icons.data_object,
+                  size: 15,
+                  color: const Color(0xFF8B7D6B),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'mindflow_export.${ExportFormatter.fileExtension(_format)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF8B7D6B),
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFC4A57B).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    _format.name.toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFC4A57B),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 内容预览区
+          Container(
+            constraints: const BoxConstraints(maxHeight: 220),
+            padding: const EdgeInsets.all(14),
+            child: SingleChildScrollView(
+              child: Text(
+                sampleText,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  height: 1.6,
+                  fontFamily: _format == ExportFormat.json ? 'monospace' : null,
+                  color: const Color(0xFF4A4A4A),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════
   //  Bottom export button
   // ═══════════════════════════════════════════════
 
@@ -682,21 +788,13 @@ class _ExportScreenState extends State<ExportScreen> {
     });
 
     try {
-      // 1. Load selected data
-      List<Record> records = [];
-      List<InsightReportCache> insights = [];
-
-      if (_includeRecords) {
-        final repo = getIt<RecordRepository>();
-        records = await repo.getAllRecords();
-        records = _filterByDate(records);
-      }
-
-      if (_includeInsights) {
-        final repo = getIt<InsightRepository>();
-        insights = await repo.getAllCachedInsightReports();
-        insights = _filterInsightsByDate(insights);
-      }
+      // 1. Use cached data, apply filters
+      List<Record> records = _includeRecords
+          ? _filterByDate(_allRecords)
+          : [];
+      List<InsightReportCache> insights = _includeInsights
+          ? _filterInsightsByDate(_allInsights)
+          : [];
 
       if (records.isEmpty && insights.isEmpty) {
         _showToast(l10n.exportNoData);
