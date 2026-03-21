@@ -90,9 +90,9 @@ Future<void> configureDependencies() async {
   getIt.registerSingleton<ICloudSyncService>(iCloudSyncService);
 
   // Pro 订阅服务
-  getIt.registerSingleton<ProSubscriptionService>(
-    ProSubscriptionService(database: hiveDatabase),
-  );
+  final proSubscriptionService = ProSubscriptionService(database: hiveDatabase);
+  await proSubscriptionService.init();
+  getIt.registerSingleton<ProSubscriptionService>(proSubscriptionService);
 
   // 语言服务
   getIt.registerLazySingleton<LocaleService>(

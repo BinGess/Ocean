@@ -60,6 +60,9 @@ dependencies:
   flutter_secure_storage: ^9.0.0
   local_auth: ^2.2.0
 
+  # 内购
+  in_app_purchase: ^3.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

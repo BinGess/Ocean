@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/pro_subscription_service.dart';
@@ -12,12 +13,35 @@ class ProPurchaseScreen extends StatefulWidget {
 
 class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
   late final ProSubscriptionService _proService;
+  StreamSubscription<bool>? _statusSubscription;
   bool _purchasing = false;
+  bool _restoring = false;
 
   @override
   void initState() {
     super.initState();
     _proService = getIt<ProSubscriptionService>();
+
+    // 监听订阅状态变化（购买/恢复成功后自动更新 UI）
+    _statusSubscription = _proService.statusStream.listen((isPro) {
+      if (!mounted) return;
+      if (isPro) {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.proSubscribeSuccess)),
+        );
+      }
+      setState(() {
+        _purchasing = false;
+        _restoring = false;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _statusSubscription?.cancel();
+    super.dispose();
   }
 
   @override
@@ -50,10 +74,8 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
         child: Column(
           children: [
             const SizedBox(height: 24),
-            // 顶部 Pro 徽章
             _buildProBadge(l10n),
             const SizedBox(height: 32),
-            // 功能列表
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
@@ -75,7 +97,6 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
               ),
             ),
             const SizedBox(height: 40),
-            // 订阅按钮
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: isPro
@@ -83,19 +104,46 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
                   : _buildSubscribeButton(l10n),
             ),
             const SizedBox(height: 16),
-            // 恢复购买
             if (!isPro)
-              TextButton(
-                onPressed: _handleRestore,
+              _restoring
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                              Color(0xFF8B8B8B)),
+                        ),
+                      ),
+                    )
+                  : TextButton(
+                      onPressed: _handleRestore,
+                      child: Text(
+                        l10n.proRestorePurchase,
+                        style: const TextStyle(
+                          color: Color(0xFF8B8B8B),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+            // 订阅说明
+            if (!isPro)
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                 child: Text(
-                  l10n.proRestorePurchase,
+                  l10n.proSubscriptionNote,
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
-                    color: Color(0xFF8B8B8B),
-                    fontSize: 14,
+                    fontSize: 11,
+                    color: Color(0xFFAAAAAA),
+                    height: 1.6,
                   ),
                 ),
               ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -217,7 +265,12 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
     );
   }
 
+  /// 订阅按钮 - 优先使用 App Store 返回的真实价格
   Widget _buildSubscribeButton(AppLocalizations l10n) {
+    final buttonText = _proService.productDetails != null
+        ? '${l10n.proSubscribeNow} — ${_proService.priceString}/${l10n.proPerMonth}'
+        : l10n.proSubscribeButton;
+
     return SizedBox(
       width: double.infinity,
       height: 54,
@@ -241,7 +294,7 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
                 ),
               )
             : Text(
-                l10n.proSubscribeButton,
+                buttonText,
                 style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
@@ -282,41 +335,39 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
 
   Future<void> _handleSubscribe() async {
     setState(() => _purchasing = true);
-    try {
-      // TODO: 接入真实的 StoreKit / Google Play 购买逻辑
-      // 目前模拟购买成功
-      await Future.delayed(const Duration(seconds: 1));
-      await _proService.activate(duration: const Duration(days: 30));
-      if (!mounted) return;
+
+    final success = await _proService.purchase();
+    if (!success && mounted) {
       final l10n = AppLocalizations.of(context)!;
+      final errorMsg = _proService.errorMessage ?? l10n.proSubscribeFailed;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.proSubscribeSuccess)),
+        SnackBar(content: Text(errorMsg)),
       );
-      setState(() {});
-    } catch (_) {
-      if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.proSubscribeFailed)),
-      );
-    } finally {
-      if (mounted) setState(() => _purchasing = false);
+      setState(() => _purchasing = false);
     }
+    // 购买成功的 UI 更新由 statusStream 监听处理
   }
 
   Future<void> _handleRestore() async {
-    final restored = await _proService.restorePurchase();
+    setState(() => _restoring = true);
+
+    await _proService.restorePurchases();
+
+    // 等待一小段时间让 purchaseStream 处理恢复结果
+    await Future.delayed(const Duration(seconds: 2));
+
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
-    if (restored) {
+
+    if (_proService.isPro) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.proAlreadySubscribed)),
       );
-      setState(() {});
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.proRestoreNone)),
       );
     }
+    setState(() => _restoring = false);
   }
 }
