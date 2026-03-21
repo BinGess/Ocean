@@ -92,6 +92,31 @@ class AppLocalizations {
       'recordingTooShort': '录音时间太短',
       'microphonePermissionDenied': '需要麦克风权限',
       'selectLanguage': '选择语言',
+      // Export screen
+      'exportSelectContent': '选择导出内容',
+      'exportSelectFormat': '选择导出格式',
+      'exportDateRange': '日期范围',
+      'exportRecords': '记录',
+      'exportInsights': '洞察报告',
+      'exportFormatMarkdownDesc': '适合阅读',
+      'exportFormatCsvDesc': '表格格式',
+      'exportFormatJsonDesc': '数据备份',
+      'exportRange7Days': '最近7天',
+      'exportRange30Days': '最近30天',
+      'exportRange3Months': '近3个月',
+      'exportRangeAll': '全部',
+      'exportCustomRange': '自定义范围',
+      'exportPreview': '导出预览',
+      'exportPreviewContent': '内容',
+      'exportPreviewFormat': '格式',
+      'exportPreviewRange': '范围',
+      'exportPreviewFile': '文件',
+      'exportNoSelection': '未选择任何内容',
+      'exportButton': '导出文件',
+      'exportSuccess': '导出成功',
+      'exportNoData': '所选范围内没有可导出的数据',
+      'exportFailed': '导出失败，请稍后再试',
+      'exportShareText': '瞬记 · 数据导出',
     },
     'en': {
       'appTitle': 'MindFlow',
@@ -169,6 +194,31 @@ class AppLocalizations {
       'recordingTooShort': 'Recording too short',
       'microphonePermissionDenied': 'Microphone permission required',
       'selectLanguage': 'Select Language',
+      // Export screen
+      'exportSelectContent': 'Select Content',
+      'exportSelectFormat': 'Export Format',
+      'exportDateRange': 'Date Range',
+      'exportRecords': 'Records',
+      'exportInsights': 'Insight Reports',
+      'exportFormatMarkdownDesc': 'Readable',
+      'exportFormatCsvDesc': 'Spreadsheet',
+      'exportFormatJsonDesc': 'Data backup',
+      'exportRange7Days': '7 days',
+      'exportRange30Days': '30 days',
+      'exportRange3Months': '3 months',
+      'exportRangeAll': 'All',
+      'exportCustomRange': 'Custom range',
+      'exportPreview': 'Export Preview',
+      'exportPreviewContent': 'Content',
+      'exportPreviewFormat': 'Format',
+      'exportPreviewRange': 'Range',
+      'exportPreviewFile': 'File',
+      'exportNoSelection': 'Nothing selected',
+      'exportButton': 'Export',
+      'exportSuccess': 'Export Successful',
+      'exportNoData': 'No data in the selected range',
+      'exportFailed': 'Export failed, please try again',
+      'exportShareText': 'MindFlow · Data Export',
     },
   };
 
@@ -251,7 +301,72 @@ class AppLocalizations {
       _translate('microphonePermissionDenied');
   String get selectLanguage => _translate('selectLanguage');
 
+  // Export screen
+  String get exportSelectContent => _translate('exportSelectContent');
+  String get exportSelectFormat => _translate('exportSelectFormat');
+  String get exportDateRange => _translate('exportDateRange');
+  String get exportRecords => _translate('exportRecords');
+  String get exportInsights => _translate('exportInsights');
+  String get exportFormatMarkdownDesc => _translate('exportFormatMarkdownDesc');
+  String get exportFormatCsvDesc => _translate('exportFormatCsvDesc');
+  String get exportFormatJsonDesc => _translate('exportFormatJsonDesc');
+  String get exportRange7Days => _translate('exportRange7Days');
+  String get exportRange30Days => _translate('exportRange30Days');
+  String get exportRange3Months => _translate('exportRange3Months');
+  String get exportRangeAll => _translate('exportRangeAll');
+  String get exportCustomRange => _translate('exportCustomRange');
+  String get exportPreview => _translate('exportPreview');
+  String get exportPreviewContent => _translate('exportPreviewContent');
+  String get exportPreviewFormat => _translate('exportPreviewFormat');
+  String get exportPreviewRange => _translate('exportPreviewRange');
+  String get exportPreviewFile => _translate('exportPreviewFile');
+  String get exportNoSelection => _translate('exportNoSelection');
+  String get exportButton => _translate('exportButton');
+  String get exportSuccess => _translate('exportSuccess');
+  String get exportNoData => _translate('exportNoData');
+  String get exportFailed => _translate('exportFailed');
+  String get exportShareText => _translate('exportShareText');
+
   // Methods with parameters
+
+  String exportRecordsCount(int count) {
+    if (locale.languageCode == 'en') return '$count records';
+    return '共 $count 条记录';
+  }
+
+  String exportInsightsCount(int count) {
+    if (locale.languageCode == 'en') return '$count reports';
+    return '共 $count 份报告';
+  }
+
+  String exportPreviewRecords(int count) {
+    if (locale.languageCode == 'en') return '$count records';
+    return '$count 条记录';
+  }
+
+  String exportPreviewInsights(int count) {
+    if (locale.languageCode == 'en') return '$count insights';
+    return '$count 份洞察';
+  }
+
+  String exportDone(int records, int insights) {
+    if (locale.languageCode == 'en') {
+      final parts = <String>[];
+      if (records > 0) parts.add('$records records');
+      if (insights > 0) parts.add('$insights insights');
+      return 'Exported ${parts.join(' and ')}';
+    }
+    final parts = <String>[];
+    if (records > 0) parts.add('$records 条记录');
+    if (insights > 0) parts.add('$insights 份洞察');
+    return '已导出 ${parts.join(' + ')}';
+  }
+
+  String exportSavedLocal(String path) {
+    if (locale.languageCode == 'en') return 'Saved to: $path';
+    return '已保存到本地：$path';
+  }
+
   String recordsCount(int count) {
     if (locale.languageCode == 'en') {
       return '$count records · Tap to change mood';
