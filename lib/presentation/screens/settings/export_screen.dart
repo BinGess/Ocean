@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -22,7 +21,8 @@ class ExportScreen extends StatefulWidget {
 /// 日期范围预设
 enum _DateRange { week, month, threeMonths, all, custom }
 
-class _ExportScreenState extends State<ExportScreen> {
+class _ExportScreenState extends State<ExportScreen>
+    with TickerProviderStateMixin {
   // ─── 数据选择 ──────────────────────────────────
   bool _includeRecords = true;
   bool _includeInsights = true;
@@ -44,12 +44,37 @@ class _ExportScreenState extends State<ExportScreen> {
 
   // ─── 导出状态 ──────────────────────────────────
   bool _exporting = false;
-  bool _exportSuccess = false;
+  double _exportProgress = 0.0;
+  // ─── 动画控制器 ────────────────────────────────
+  late final AnimationController _successController;
+  late final Animation<double> _successScale;
+  late final AnimationController _progressController;
 
   @override
   void initState() {
     super.initState();
     _loadCounts();
+
+    _successController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _successScale = CurvedAnimation(
+      parent: _successController,
+      curve: Curves.elasticOut,
+    );
+
+    _progressController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+  }
+
+  @override
+  void dispose() {
+    _successController.dispose();
+    _progressController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadCounts() async {
@@ -99,55 +124,142 @@ class _ExportScreenState extends State<ExportScreen> {
         ),
         centerTitle: true,
       ),
-      body: _loadingCounts
-          ? const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC4A57B)),
-              ),
-            )
-          : Column(
-              children: [
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      // ── 1. 选择导出内容 ───────────
-                      _buildSectionHeader(l10n.exportSelectContent),
-                      const SizedBox(height: 8),
-                      _buildDataCard(),
-                      const SizedBox(height: 20),
+      body: _loadingCounts ? _buildLoadingState() : _buildContent(l10n),
+    );
+  }
 
-                      // ── 2. 选择导出格式 ───────────
-                      _buildSectionHeader(l10n.exportSelectFormat),
-                      const SizedBox(height: 8),
-                      _buildFormatSelector(),
-                      const SizedBox(height: 20),
+  // ═══════════════════════════════════════════════
+  //  Loading state
+  // ═══════════════════════════════════════════════
 
-                      // ── 3. 日期范围 ──────────────
-                      _buildSectionHeader(l10n.exportDateRange),
-                      const SizedBox(height: 8),
-                      _buildDateRangeSelector(l10n),
-                      const SizedBox(height: 20),
-
-                      // ── 4. 导出预览 ──────────────
-                      _buildPreviewCard(l10n),
-                      const SizedBox(height: 20),
-
-                      // ── 5. 内容预览 ──────────────
-                      if (_hasSelection) ...[
-                        _buildSectionHeader(l10n.exportContentPreview),
-                        const SizedBox(height: 8),
-                        _buildContentSample(),
-                      ],
-                      const SizedBox(height: 24),
-                    ],
-                  ),
-                ),
-
-                // ── 底部导出按钮 ──────────────────
-                _buildExportButton(l10n),
-              ],
+  Widget _buildLoadingState() {
+    final l10n = AppLocalizations.of(context)!;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(
+            width: 36,
+            height: 36,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC4A57B)),
             ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            l10n.exportLoadingData,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF8B8B8B),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════
+  //  Main content
+  // ═══════════════════════════════════════════════
+
+  Widget _buildContent(AppLocalizations l10n) {
+    // 无数据时的空状态
+    if (_totalRecords == 0 && _totalInsights == 0) {
+      return _buildEmptyState(l10n);
+    }
+
+    return Column(
+      children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              // ── 1. 选择导出内容 ───────────
+              _buildSectionHeader(l10n.exportSelectContent),
+              const SizedBox(height: 8),
+              _buildDataCard(),
+              const SizedBox(height: 20),
+
+              // ── 2. 选择导出格式 ───────────
+              _buildSectionHeader(l10n.exportSelectFormat),
+              const SizedBox(height: 8),
+              _buildFormatSelector(),
+              const SizedBox(height: 20),
+
+              // ── 3. 日期范围 ──────────────
+              _buildSectionHeader(l10n.exportDateRange),
+              const SizedBox(height: 8),
+              _buildDateRangeSelector(l10n),
+              const SizedBox(height: 20),
+
+              // ── 4. 导出预览 ──────────────
+              _buildPreviewCard(l10n),
+              const SizedBox(height: 20),
+
+              // ── 5. 内容预览 ──────────────
+              if (_hasSelection) ...[
+                _buildSectionHeader(l10n.exportContentPreview),
+                const SizedBox(height: 8),
+                _buildContentSample(),
+              ],
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+
+        // ── 底部导出按钮 ──────────────────
+        _buildExportButton(l10n),
+      ],
+    );
+  }
+
+  // ═══════════════════════════════════════════════
+  //  Empty state
+  // ═══════════════════════════════════════════════
+
+  Widget _buildEmptyState(AppLocalizations l10n) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F6F3),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Icon(
+                Icons.inbox_outlined,
+                size: 40,
+                color: Color(0xFFCCC5B9),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              l10n.exportEmptyTitle,
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF2C2C2C),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.exportEmptySubtitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF8B8B8B),
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -320,7 +432,8 @@ class _ExportScreenState extends State<ExportScreen> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: selected ? const Color(0xFFC4A57B) : const Color(0xFFF8F6F3),
+            color:
+                selected ? const Color(0xFFC4A57B) : const Color(0xFFF8F6F3),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: selected
@@ -389,7 +502,8 @@ class _ExportScreenState extends State<ExportScreen> {
               const SizedBox(width: 8),
               _buildRangeChip(_DateRange.month, l10n.exportRange30Days),
               const SizedBox(width: 8),
-              _buildRangeChip(_DateRange.threeMonths, l10n.exportRange3Months),
+              _buildRangeChip(
+                  _DateRange.threeMonths, l10n.exportRange3Months),
               const SizedBox(width: 8),
               _buildRangeChip(_DateRange.all, l10n.exportRangeAll),
             ],
@@ -410,7 +524,8 @@ class _ExportScreenState extends State<ExportScreen> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: selected ? const Color(0xFFC4A57B) : const Color(0xFFF8F6F3),
+            color:
+                selected ? const Color(0xFFC4A57B) : const Color(0xFFF8F6F3),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: selected
@@ -441,7 +556,8 @@ class _ExportScreenState extends State<ExportScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         decoration: BoxDecoration(
-          color: isCustom ? const Color(0xFFC4A57B) : const Color(0xFFF8F6F3),
+          color:
+              isCustom ? const Color(0xFFC4A57B) : const Color(0xFFF8F6F3),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isCustom
@@ -619,9 +735,11 @@ class _ExportScreenState extends State<ExportScreen> {
   // ═══════════════════════════════════════════════
 
   Widget _buildContentSample() {
-    final previewRecords = _includeRecords ? _allRecords.take(5).toList() : <Record>[];
-    final previewInsights =
-        _includeInsights ? _allInsights.take(2).toList() : <InsightReportCache>[];
+    final previewRecords =
+        _includeRecords ? _allRecords.take(5).toList() : <Record>[];
+    final previewInsights = _includeInsights
+        ? _allInsights.take(2).toList()
+        : <InsightReportCache>[];
 
     if (previewRecords.isEmpty && previewInsights.isEmpty) {
       return const SizedBox.shrink();
@@ -641,7 +759,8 @@ class _ExportScreenState extends State<ExportScreen> {
         children: [
           // 模拟文件标题栏
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: const BoxDecoration(
               color: Color(0xFFF8F6F3),
               border: Border(
@@ -698,7 +817,8 @@ class _ExportScreenState extends State<ExportScreen> {
                 style: TextStyle(
                   fontSize: 11.5,
                   height: 1.6,
-                  fontFamily: _format == ExportFormat.json ? 'monospace' : null,
+                  fontFamily:
+                      _format == ExportFormat.json ? 'monospace' : null,
                   color: const Color(0xFF4A4A4A),
                 ),
               ),
@@ -710,7 +830,7 @@ class _ExportScreenState extends State<ExportScreen> {
   }
 
   // ═══════════════════════════════════════════════
-  //  Bottom export button
+  //  Bottom export button (with progress & animation)
   // ═══════════════════════════════════════════════
 
   Widget _buildExportButton(AppLocalizations l10n) {
@@ -727,117 +847,338 @@ class _ExportScreenState extends State<ExportScreen> {
         child: SizedBox(
           width: double.infinity,
           height: 52,
-          child: ElevatedButton(
-            onPressed: _hasSelection && !_exporting ? _doExport : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFC4A57B),
-              disabledBackgroundColor: const Color(0xFFE0D8CD),
-              foregroundColor: Colors.white,
-              disabledForegroundColor: Colors.white.withValues(alpha: 0.6),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            child: _exporting
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          child: _exporting
+              ? _buildProgressButton(l10n)
+              : ElevatedButton(
+                  onPressed: _hasSelection ? _doExport : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFC4A57B),
+                    disabledBackgroundColor: const Color(0xFFE0D8CD),
+                    foregroundColor: Colors.white,
+                    disabledForegroundColor:
+                        Colors.white.withValues(alpha: 0.6),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  )
-                : _exportSuccess
-                    ? Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.check_circle_outline, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            l10n.exportSuccess,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      )
-                    : Text(
-                        l10n.exportButton,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-          ),
+                  ),
+                  child: Text(
+                    l10n.exportButton,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
         ),
       ),
     );
   }
 
+  /// 带进度条的导出按钮
+  Widget _buildProgressButton(AppLocalizations l10n) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFFC4A57B),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          // 进度条背景
+          AnimatedBuilder(
+            animation: _progressController,
+            builder: (context, child) {
+              return FractionallySizedBox(
+                widthFactor: _exportProgress,
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  color: const Color(0xFFB8955F),
+                ),
+              );
+            },
+          ),
+          // 文字
+          Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  l10n.exportExporting((_exportProgress * 100).toInt()),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ═══════════════════════════════════════════════
-  //  Export logic
+  //  Export completion bottom sheet
+  // ═══════════════════════════════════════════════
+
+  void _showExportCompleteSheet({
+    required AppLocalizations l10n,
+    required File file,
+    required int recordCount,
+    required int insightCount,
+  }) {
+    _successController.forward(from: 0);
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 28),
+
+                // 成功动画图标
+                ScaleTransition(
+                  scale: _successScale,
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check_rounded,
+                      size: 36,
+                      color: Color(0xFF4CAF50),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // 标题
+                Text(
+                  l10n.exportSuccess,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF2C2C2C),
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // 摘要
+                Text(
+                  l10n.exportDone(recordCount, insightCount),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF8B8B8B),
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // 文件信息
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8F6F3),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _format == ExportFormat.markdown
+                            ? Icons.article_outlined
+                            : _format == ExportFormat.csv
+                                ? Icons.table_chart_outlined
+                                : Icons.data_object,
+                        size: 18,
+                        color: const Color(0xFF8B7D6B),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          file.path.split('/').last,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF5C5C5C),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        _fileSizeString(file),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF8B8B8B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // 操作按钮行
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    children: [
+                      // 分享按钮
+                      Expanded(
+                        child: SizedBox(
+                          height: 48,
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              _tryShareFile(context, file,
+                                  text: l10n.exportShareText);
+                            },
+                            icon: const Icon(Icons.share_outlined, size: 18),
+                            label: Text(l10n.exportActionShare),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFFC4A57B),
+                              side: const BorderSide(
+                                  color: Color(0xFFC4A57B), width: 1.5),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // 完成按钮
+                      Expanded(
+                        child: SizedBox(
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFC4A57B),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: Text(
+                              l10n.exportActionDone,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ═══════════════════════════════════════════════
+  //  Export logic (with progress updates)
   // ═══════════════════════════════════════════════
 
   Future<void> _doExport() async {
     final l10n = AppLocalizations.of(context)!;
     setState(() {
       _exporting = true;
-      _exportSuccess = false;
+      _exportProgress = 0.0;
     });
 
     try {
-      // 1. Use cached data, apply filters
-      List<Record> records = _includeRecords
-          ? _filterByDate(_allRecords)
-          : [];
-      List<InsightReportCache> insights = _includeInsights
-          ? _filterInsightsByDate(_allInsights)
-          : [];
+      // Step 1: Filter data (10%)
+      _updateProgress(0.1);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      List<Record> records =
+          _includeRecords ? _filterByDate(_allRecords) : [];
+      List<InsightReportCache> insights =
+          _includeInsights ? _filterInsightsByDate(_allInsights) : [];
 
       if (records.isEmpty && insights.isEmpty) {
         _showToast(l10n.exportNoData);
         return;
       }
 
-      // 2. Format
+      // Step 2: Format data (40%)
+      _updateProgress(0.4);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
       final content = ExportFormatter.combinedExport(
         records: records,
         insights: insights,
         format: _format,
       );
 
-      // 3. Write file
+      // Step 3: Write file (70%)
+      _updateProgress(0.7);
       final ext = ExportFormatter.fileExtension(_format);
       final file = await _writeFile(
         content: content,
         extension: ext,
       );
 
-      // 4. Share
+      // Step 4: Done (100%)
+      _updateProgress(1.0);
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+
       if (!mounted) return;
-      final shared = await _tryShareFile(context, file, text: l10n.exportShareText);
 
-      if (mounted) {
-        setState(() => _exportSuccess = true);
-        final recordCount = records.length;
-        final insightCount = insights.length;
-        _showToast(shared
-            ? l10n.exportDone(recordCount, insightCount)
-            : l10n.exportSavedLocal(file.path));
+      setState(() => _exporting = false);
 
-        // Reset success indicator after 2 seconds
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) setState(() => _exportSuccess = false);
-        });
-      }
+      // Show completion bottom sheet
+      _showExportCompleteSheet(
+        l10n: l10n,
+        file: file,
+        recordCount: records.length,
+        insightCount: insights.length,
+      );
     } catch (e) {
       debugPrint('Export failed: $e');
-      if (mounted) _showToast(l10n.exportFailed);
-    } finally {
-      if (mounted) setState(() => _exporting = false);
+      if (mounted) {
+        setState(() => _exporting = false);
+        _showToast(l10n.exportFailed);
+      }
     }
+  }
+
+  void _updateProgress(double value) {
+    if (!mounted) return;
+    setState(() {
+      _exportProgress = value;
+    });
+    _progressController.forward();
   }
 
   List<Record> _filterByDate(List<Record> records) {
@@ -886,8 +1227,8 @@ class _ExportScreenState extends State<ExportScreen> {
         if (_customStart != null && _customEnd != null) {
           return DateTimeRange(
             start: _customStart!,
-            end: DateTime(
-                _customEnd!.year, _customEnd!.month, _customEnd!.day, 23, 59, 59),
+            end: DateTime(_customEnd!.year, _customEnd!.month,
+                _customEnd!.day, 23, 59, 59),
           );
         }
         return null;
@@ -903,7 +1244,8 @@ class _ExportScreenState extends State<ExportScreen> {
         .toIso8601String()
         .replaceAll(':', '')
         .replaceAll('.', '');
-    final file = File('${directory.path}/mindflow_export_$timestamp.$extension');
+    final file =
+        File('${directory.path}/mindflow_export_$timestamp.$extension');
     await file.writeAsString(content);
     return file;
   }
@@ -948,13 +1290,25 @@ class _ExportScreenState extends State<ExportScreen> {
     return '${dt.month.toString().padLeft(2, '0')}/${dt.day.toString().padLeft(2, '0')}';
   }
 
+  String _fileSizeString(File file) {
+    try {
+      final bytes = file.lengthSync();
+      if (bytes < 1024) return '$bytes B';
+      if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    } catch (_) {
+      return '';
+    }
+  }
+
   void _showToast(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       ),
     );

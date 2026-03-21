@@ -118,6 +118,11 @@ class AppLocalizations {
       'exportFailed': '导出失败，请稍后再试',
       'exportShareText': '瞬记 · 数据导出',
       'exportContentPreview': '内容预览',
+      'exportLoadingData': '正在加载数据...',
+      'exportEmptyTitle': '暂无可导出的数据',
+      'exportEmptySubtitle': '记录一些内容后，就可以在这里导出了',
+      'exportActionShare': '分享文件',
+      'exportActionDone': '完成',
     },
     'en': {
       'appTitle': 'MindFlow',
@@ -221,6 +226,11 @@ class AppLocalizations {
       'exportFailed': 'Export failed, please try again',
       'exportShareText': 'MindFlow · Data Export',
       'exportContentPreview': 'Content Preview',
+      'exportLoadingData': 'Loading data...',
+      'exportEmptyTitle': 'No data to export',
+      'exportEmptySubtitle': 'Start recording and your data will appear here',
+      'exportActionShare': 'Share',
+      'exportActionDone': 'Done',
     },
   };
 
@@ -329,6 +339,11 @@ class AppLocalizations {
   String get exportFailed => _translate('exportFailed');
   String get exportShareText => _translate('exportShareText');
   String get exportContentPreview => _translate('exportContentPreview');
+  String get exportLoadingData => _translate('exportLoadingData');
+  String get exportEmptyTitle => _translate('exportEmptyTitle');
+  String get exportEmptySubtitle => _translate('exportEmptySubtitle');
+  String get exportActionShare => _translate('exportActionShare');
+  String get exportActionDone => _translate('exportActionDone');
 
   // Methods with parameters
 
@@ -363,6 +378,11 @@ class AppLocalizations {
     if (records > 0) parts.add('$records 条记录');
     if (insights > 0) parts.add('$insights 份洞察');
     return '已导出 ${parts.join(' + ')}';
+  }
+
+  String exportExporting(int percent) {
+    if (locale.languageCode == 'en') return 'Exporting... $percent%';
+    return '导出中... $percent%';
   }
 
   String exportSavedLocal(String path) {
