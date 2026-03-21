@@ -92,6 +92,23 @@ class AppLocalizations {
       'recordingTooShort': '录音时间太短',
       'microphonePermissionDenied': '需要麦克风权限',
       'selectLanguage': '选择语言',
+      // Pro 订阅相关
+      'pro': 'Pro',
+      'proMembership': 'Pro 会员',
+      'proPrice': '¥1/月',
+      'proPurchaseTitle': '升级为 Pro 会员',
+      'proPurchaseSubtitle': '解锁全部高级功能，让记录更完整',
+      'proFeatureExport': '导出所有记录',
+      'proFeatureExportDesc': '将你的情绪记录导出为 JSON 文件，随时备份和迁移数据',
+      'proFeatureICloud': 'iCloud 云同步',
+      'proFeatureICloudDesc': '自动同步到 iCloud，多设备无缝切换，数据永不丢失',
+      'proSubscribeButton': '立即订阅 — ¥1/月',
+      'proRestorePurchase': '恢复购买',
+      'proAlreadySubscribed': '你已经是 Pro 会员',
+      'proSubscribeSuccess': '订阅成功，欢迎成为 Pro 会员！',
+      'proSubscribeFailed': '订阅失败，请稍后重试',
+      'proRequired': '此功能需要 Pro 会员',
+      'proRestoreNone': '未找到可恢复的购买记录',
     },
     'en': {
       'appTitle': 'MindFlow',
@@ -169,6 +186,23 @@ class AppLocalizations {
       'recordingTooShort': 'Recording too short',
       'microphonePermissionDenied': 'Microphone permission required',
       'selectLanguage': 'Select Language',
+      // Pro subscription
+      'pro': 'Pro',
+      'proMembership': 'Pro Membership',
+      'proPrice': '¥1/mo',
+      'proPurchaseTitle': 'Upgrade to Pro',
+      'proPurchaseSubtitle': 'Unlock all premium features for a complete experience',
+      'proFeatureExport': 'Export All Records',
+      'proFeatureExportDesc': 'Export your emotion records as JSON files for backup and migration',
+      'proFeatureICloud': 'iCloud Sync',
+      'proFeatureICloudDesc': 'Auto-sync to iCloud across devices, never lose your data',
+      'proSubscribeButton': 'Subscribe — ¥1/mo',
+      'proRestorePurchase': 'Restore Purchase',
+      'proAlreadySubscribed': 'You are already a Pro member',
+      'proSubscribeSuccess': 'Subscribed successfully! Welcome to Pro!',
+      'proSubscribeFailed': 'Subscription failed, please try again later',
+      'proRequired': 'This feature requires Pro membership',
+      'proRestoreNone': 'No purchase to restore',
     },
   };
 
@@ -250,6 +284,24 @@ class AppLocalizations {
   String get microphonePermissionDenied =>
       _translate('microphonePermissionDenied');
   String get selectLanguage => _translate('selectLanguage');
+
+  // Pro 订阅相关
+  String get pro => _translate('pro');
+  String get proMembership => _translate('proMembership');
+  String get proPrice => _translate('proPrice');
+  String get proPurchaseTitle => _translate('proPurchaseTitle');
+  String get proPurchaseSubtitle => _translate('proPurchaseSubtitle');
+  String get proFeatureExport => _translate('proFeatureExport');
+  String get proFeatureExportDesc => _translate('proFeatureExportDesc');
+  String get proFeatureICloud => _translate('proFeatureICloud');
+  String get proFeatureICloudDesc => _translate('proFeatureICloudDesc');
+  String get proSubscribeButton => _translate('proSubscribeButton');
+  String get proRestorePurchase => _translate('proRestorePurchase');
+  String get proAlreadySubscribed => _translate('proAlreadySubscribed');
+  String get proSubscribeSuccess => _translate('proSubscribeSuccess');
+  String get proSubscribeFailed => _translate('proSubscribeFailed');
+  String get proRequired => _translate('proRequired');
+  String get proRestoreNone => _translate('proRestoreNone');
 
   // Methods with parameters
   String recordsCount(int count) {

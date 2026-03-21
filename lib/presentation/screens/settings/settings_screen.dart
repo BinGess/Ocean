@@ -6,11 +6,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'about_screen.dart';
 import 'export_screen.dart';
 import '../app_lock/app_lock_settings_screen.dart';
+import '../pro/pro_purchase_screen.dart';
 import '../../widgets/ai_auth_dialog.dart';
 import '../../bloc/locale/locale_bloc.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
 import '../../../core/services/icloud_sync_service.dart';
+import '../../../core/services/pro_subscription_service.dart';
 import '../../../l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -127,10 +129,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: l10n.export,
             subtitle: l10n.exportSubtitle,
             icon: Icons.upload_file,
+            trailing: _buildProBadge(),
             onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ExportScreen()),
-              );
+              if (getIt<ProSubscriptionService>().isPro) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ExportScreen()),
+                );
+              } else {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (_) => const ProPurchaseScreen()),
+                );
+              }
             },
           ),
           const SizedBox(height: 12),
@@ -142,6 +152,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.cloud_outlined,
             value: _iCloudSyncEnabled,
             onChanged: (value) => _handleICloudSyncToggle(value),
+            proRequired: true,
           ),
           const SizedBox(height: 16),
 
@@ -323,11 +334,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildProBadge() {
+    if (getIt<ProSubscriptionService>().isPro) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      margin: const EdgeInsets.only(right: 6),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFD4B896), Color(0xFFC4A57B)],
+        ),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: const Text(
+        'Pro',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
   Widget _buildNavItem({
     required String title,
     required String subtitle,
     required IconData icon,
     required VoidCallback onTap,
+    Widget? trailing,
   }) {
     return InkWell(
       onTap: onTap,
@@ -380,6 +416,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
+            if (trailing != null) trailing,
             const Icon(Icons.chevron_right, color: Color(0xFFB0B0B0)),
           ],
         ),
@@ -393,61 +430,78 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required IconData icon,
     required bool value,
     required ValueChanged<bool> onChanged,
+    bool proRequired = false,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8F6F3),
-              borderRadius: BorderRadius.circular(12),
+    final needsPro = proRequired && !getIt<ProSubscriptionService>().isPro;
+
+    return GestureDetector(
+      onTap: needsPro
+          ? () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const ProPurchaseScreen()),
+              );
+            }
+          : null,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
-            child: Icon(icon, color: const Color(0xFF8B7D6B)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF2C2C2C),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF8B8B8B),
-                  ),
-                ),
-              ],
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F6F3),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: const Color(0xFF8B7D6B)),
             ),
-          ),
-          CupertinoSwitch(
-            value: value,
-            activeTrackColor: const Color(0xFFC4A57B),
-            onChanged: onChanged,
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2C2C2C),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF8B8B8B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (needsPro) _buildProBadge(),
+            if (needsPro)
+              const Icon(Icons.chevron_right, color: Color(0xFFB0B0B0))
+            else
+              CupertinoSwitch(
+                value: value,
+                activeTrackColor: const Color(0xFFC4A57B),
+                onChanged: onChanged,
+              ),
+          ],
+        ),
       ),
     );
   }
