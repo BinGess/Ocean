@@ -238,6 +238,123 @@
   "microphonePermissionDenied": "需要麦克风权限",
   "@microphonePermissionDenied": {"description": "Microphone permission denied"},
 
+  "recordButtonTapToRecord": "点击录音",
+  "@recordButtonTapToRecord": {"description": "Tap to record hint"},
+
+  "recordButtonHoldSemantics": "长按开始录音",
+  "@recordButtonHoldSemantics": {"description": "Record button semantics label for hold mode"},
+
+  "recordButtonHoldHint": "双击并长按开始录音",
+  "@recordButtonHoldHint": {"description": "Record button semantics hint for hold mode"},
+
+  "recordButtonTapSemantics": "点击开始录音",
+  "@recordButtonTapSemantics": {"description": "Record button semantics label for tap mode"},
+
+  "recordButtonTapHint": "双击开始或停止录音",
+  "@recordButtonTapHint": {"description": "Record button semantics hint for tap mode"},
+
+  "saveFailedRetry": "保存失败，请重试",
+  "@saveFailedRetry": {"description": "Save failed message"},
+
+  "emotionInputTitle": "描述下你此刻的心情？",
+  "@emotionInputTitle": {"description": "Emotion input screen title"},
+
+  "emotionInputHint": "尽情书写，让我帮你分析此刻的心情",
+  "@emotionInputHint": {"description": "Emotion input hint"},
+
+  "emotionInputSave": "仅文字保存",
+  "@emotionInputSave": {"description": "Emotion input save action"},
+
+  "emotionInputAnalyze": "NVC分析",
+  "@emotionInputAnalyze": {"description": "Emotion input analyze action"},
+
+  "emotionGrantPermissionFirst": "请先授予录音权限",
+  "@emotionGrantPermissionFirst": {"description": "Prompt to grant microphone permission"},
+
+  "emotionEnterContentBeforeSave": "请输入内容后再保存",
+  "@emotionEnterContentBeforeSave": {"description": "Prompt to enter content before save"},
+
+  "emotionEnterContentBeforeAnalyze": "请输入内容后再分析",
+  "@emotionEnterContentBeforeAnalyze": {"description": "Prompt to enter content before analyze"},
+
+  "emotionEmptyInputCannotContinue": "输入内容为空，无法继续分析",
+  "@emotionEmptyInputCannotContinue": {"description": "Empty input prompt before continue"},
+
+  "emotionEmptyInputCannotSave": "输入内容为空，无法保存",
+  "@emotionEmptyInputCannotSave": {"description": "Empty input prompt before save"},
+
+  "emotionFinishingRecording": "正在结束录音...",
+  "@emotionFinishingRecording": {"description": "Finishing recording hint"},
+
+  "emotionTranscriptionManualFallback": "转写失败，请手动补充内容后再试",
+  "@emotionTranscriptionManualFallback": {"description": "Transcription fallback hint"},
+
+  "homeGreetingMorning": "早上好",
+  "@homeGreetingMorning": {"description": "Home greeting in the morning"},
+
+  "homeGreetingAfternoon": "下午好",
+  "@homeGreetingAfternoon": {"description": "Home greeting in the afternoon"},
+
+  "homeGreetingEvening": "晚上好",
+  "@homeGreetingEvening": {"description": "Home greeting in the evening"},
+
+  "homeContentTooShortRetry": "内容太短，请重试",
+  "@homeContentTooShortRetry": {"description": "Home short content hint"},
+
+  "homeSavingRecord": "正在保存记录...",
+  "@homeSavingRecord": {"description": "Home saving record hint"},
+
+  "homeSaveCancelled": "已取消保存",
+  "@homeSaveCancelled": {"description": "Home save canceled hint"},
+
+  "homeRecordSaved": "记录已保存",
+  "@homeRecordSaved": {"description": "Home record saved hint"},
+
+  "homeTranscriptionPending": "转写未完成，请稍后...",
+  "@homeTranscriptionPending": {"description": "Home transcription pending hint"},
+
+  "homeNoTranscriptionFallback": "暂无转写文本，已自动转为仅记录",
+  "@homeNoTranscriptionFallback": {"description": "Home fallback when no transcription is available"},
+
+  "homeRecordPrompt": "记录下此刻的情绪",
+  "@homeRecordPrompt": {"description": "Home record entry prompt"},
+
+  "homeStartVoiceRecord": "开始语音记录",
+  "@homeStartVoiceRecord": {"description": "Home voice record semantics label"},
+
+  "homeOpenVoiceInputHint": "打开语音录制输入",
+  "@homeOpenVoiceInputHint": {"description": "Home voice input semantics hint"},
+
+  "moodPickerTitle": "今天心情如何？",
+  "@moodPickerTitle": {"description": "Daily mood picker title"},
+
+  "moodPickerSubtitle": "选择一个表情来记录今天的心情",
+  "@moodPickerSubtitle": {"description": "Daily mood picker subtitle"},
+
+  "moodHappy": "开心",
+  "@moodHappy": {"description": "Happy mood label"},
+
+  "moodCalm": "平静",
+  "@moodCalm": {"description": "Calm mood label"},
+
+  "moodLoved": "幸福",
+  "@moodLoved": {"description": "Loved mood label"},
+
+  "moodSad": "低落",
+  "@moodSad": {"description": "Sad mood label"},
+
+  "moodAnnoyed": "烦躁",
+  "@moodAnnoyed": {"description": "Annoyed mood label"},
+
+  "moodAnxious": "焦虑",
+  "@moodAnxious": {"description": "Anxious mood label"},
+
+  "moodTired": "疲惫",
+  "@moodTired": {"description": "Tired mood label"},
+
+  "moodConfused": "困惑",
+  "@moodConfused": {"description": "Confused mood label"},
+
   "selectLanguage": "选择语言",
   "@selectLanguage": {"description": "Select language dialog title"}
 }

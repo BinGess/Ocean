@@ -20,14 +20,17 @@ import '../../bloc/record/record_event.dart';
 import '../../widgets/nvc_confirmation_modal.dart';
 import '../../widgets/daily_mood_picker.dart';
 import '../record_detail/record_detail_screen.dart';
-import '../../../core/theme/app_colors.dart';
 
 class RecordsScreen extends StatefulWidget {
   final VoidCallback? onNavigateToHome;
+  final HiveDatabase? database;
+  final DailySummaryService? dailySummaryService;
 
   const RecordsScreen({
     super.key,
     this.onNavigateToHome,
+    this.database,
+    this.dailySummaryService,
   });
 
   @override
@@ -35,17 +38,21 @@ class RecordsScreen extends StatefulWidget {
 }
 
 class _RecordsScreenState extends State<RecordsScreen> {
-  final HiveDatabase _database = getIt<HiveDatabase>();
-  final DailySummaryService _dailySummaryService = getIt<DailySummaryService>();
+  late final HiveDatabase _database;
+  late final DailySummaryService _dailySummaryService;
   final Map<String, String> _dailyMoods = {};
   final Map<String, DailySummary> _dailySummaries = {};
   final Set<String> _generatingSummaries = {};
   bool _isRefreshingDailySummary = false;
   StreamSubscription<DailySummaryUpdate>? _dailySummarySubscription;
+  String? _lastDailySummarySyncSignature;
 
   @override
   void initState() {
     super.initState();
+    _database = widget.database ?? getIt<HiveDatabase>();
+    _dailySummaryService =
+        widget.dailySummaryService ?? getIt<DailySummaryService>();
     _dailySummarySubscription = _dailySummaryService.summaryUpdates.listen((
       update,
     ) {
@@ -136,6 +143,16 @@ class _RecordsScreenState extends State<RecordsScreen> {
     for (final pending in pendingGenerations) {
       _generateDailySummary(pending.key, pending.value, alreadyMarked: true);
     }
+  }
+
+  void _syncDailySummariesIfNeeded(List<Record> records) {
+    final groupedRecords = _groupRecordsByDate(records);
+    final nextSignature = buildDailySummarySyncSignature(groupedRecords);
+    if (_lastDailySummarySyncSignature == nextSignature) {
+      return;
+    }
+    _lastDailySummarySyncSignature = nextSignature;
+    _loadDailySummaries(groupedRecords);
   }
 
   bool _isListLoadError(RecordState state) {
@@ -335,7 +352,16 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
                   // 记录列表
                   Expanded(
-                    child: BlocBuilder<RecordBloc, RecordState>(
+                    child: BlocConsumer<RecordBloc, RecordState>(
+                      listenWhen: (previous, current) =>
+                          previous.records != current.records ||
+                          previous.status != current.status,
+                      listener: (context, state) {
+                        if (state.isLoading || _isListLoadError(state)) {
+                          return;
+                        }
+                        _syncDailySummariesIfNeeded(state.records);
+                      },
                       builder: (context, state) {
                         if (state.isLoading) {
                           return const Center(
@@ -355,11 +381,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
                         final dateRange = state.isEmpty
                             ? _getTodayOnly()
                             : _getDatesWithRecords(groupedRecords);
-
-                        // 加载日总结
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          _loadDailySummaries(groupedRecords);
-                        });
 
                         return RefreshIndicator(
                           onRefresh: () async => _loadRecords(),
@@ -406,12 +427,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
         children: [
           Text(
             l10n.dailyRecords,
-            style: const TextStyle(
+            style: AppTypography.pageTitle.copyWith(
               color: AppColors.textPrimary,
-              fontSize: 24.0,
+              fontSize: 24,
               fontWeight: FontWeight.w600,
-              letterSpacing: -0.5,
-              height: 1.2,
             ),
           ),
           Material(
@@ -485,30 +504,41 @@ class _RecordsScreenState extends State<RecordsScreen> {
           const SizedBox(height: AppSpacing.lg),
           Text(
             errorMessage ?? l10n.loadFailed,
-            style: const TextStyle(
+            textAlign: TextAlign.center,
+            style: AppTypography.bodySecondary.copyWith(
+              fontSize: 15,
               color: AppColors.textTertiary,
-              fontSize: 15.0,
-              height: 1.4,
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
-          GestureDetector(
-            onTap: _loadRecords,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.xxl,
-                vertical: AppSpacing.md,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.accent,
-                borderRadius: BorderRadius.circular(AppSpacing.xxl),
-              ),
-              child: Text(
-                l10n.retry,
-                style: AppTypography.actionLabel.copyWith(
-                  color: Colors.white,
-                  fontSize: 15.0,
-                  fontWeight: FontWeight.w500,
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _loadRecords,
+              borderRadius: BorderRadius.circular(AppSpacing.xxl),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xxl,
+                  vertical: AppSpacing.md,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.accent,
+                  borderRadius: BorderRadius.circular(AppSpacing.xxl),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.accent.withValues(alpha: 0.16),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  l10n.retry,
+                  style: AppTypography.actionLabel.copyWith(
+                    color: Colors.white,
+                    fontSize: 15.0,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -541,21 +571,16 @@ class _RecordsScreenState extends State<RecordsScreen> {
             const SizedBox(width: AppSpacing.sm),
             Text(
               _formatDateTitle(date),
-              style: const TextStyle(
-                fontSize: 16.0,
-                fontWeight: FontWeight.w600,
+              style: AppTypography.sectionTitle.copyWith(
+                fontSize: 16,
                 color: AppColors.textPrimary,
-                letterSpacing: -0.2,
-                height: 1.3,
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
             Text(
               _getDateLabel(date),
-              style: const TextStyle(
-                fontSize: 13.0,
+              style: AppTypography.timeLabel.copyWith(
                 color: AppColors.textMuted,
-                height: 1.3,
               ),
             ),
           ],
@@ -597,7 +622,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
       displayMoodImagePath = dailySummary.recommendedMoodImagePath;
     }
     final displayMood = getMoodByImagePath(displayMoodImagePath) ?? defaultMood;
-    final displayMoodLabel = displayMood.label;
+    final displayMoodLabel = localizedMoodLabel(context, displayMood);
     final aiMoodWord = dailySummary?.moodWord.trim() ?? '';
 
     return Container(
@@ -614,35 +639,39 @@ class _RecordsScreenState extends State<RecordsScreen> {
           Row(
             children: [
               // 心情图标（可点击）
-              GestureDetector(
-                onTap: () => _handleMoodTap(date),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.bgCard,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 4,
-                        offset: const Offset(0, 1),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _handleMoodTap(date),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.bgCard,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: MoodIconByPath(
+                        imagePath: displayMoodImagePath,
+                        size: 22,
                       ),
-                    ],
-                  ),
-                  child: Center(
-                    child: MoodIconByPath(
-                      imagePath: displayMoodImagePath,
-                      size: 22,
                     ),
                   ),
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
-                child: GestureDetector(
+                child: InkWell(
                   onTap: () => _handleMoodTap(date),
-                  behavior: HitTestBehavior.opaque,
+                  borderRadius: BorderRadius.circular(AppSpacing.sm),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -650,11 +679,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
                         children: [
                           Text(
                             displayMoodLabel,
-                            style: const TextStyle(
-                              fontSize: 13.0,
-                              fontWeight: FontWeight.w600,
+                            style: AppTypography.sectionTitle.copyWith(
+                              fontSize: 13,
                               color: AppColors.textSecondary,
-                              height: 1.3,
                             ),
                           ),
                           // AI 返回的情绪关键词标签（放在“心情”右侧）
@@ -672,11 +699,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
                               ),
                               child: Text(
                                 aiMoodWord,
-                                style: const TextStyle(
+                                style: AppTypography.chipLabel.copyWith(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.accent,
-                                  height: 1.2,
                                 ),
                               ),
                             ),
@@ -702,10 +728,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
                           dailySummary.oneSentence.isNotEmpty)
                         Text(
                           dailySummary.oneSentence,
-                          style: const TextStyle(
-                            fontSize: 12.0,
+                          style: AppTypography.sectionSubtle.copyWith(
+                            fontSize: 12,
                             color: AppColors.textMuted,
-                            height: 1.3,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -713,10 +738,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
                       else
                         Text(
                           l10n.recordsCount(records.length),
-                          style: const TextStyle(
-                            fontSize: 12.0,
+                          style: AppTypography.sectionSubtle.copyWith(
+                            fontSize: 12,
                             color: AppColors.textMuted,
-                            height: 1.3,
                           ),
                         ),
                     ],
@@ -747,11 +771,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 // 时间
                 Text(
                   _formatTime(record.createdAt),
-                  style: const TextStyle(
-                    fontSize: 13.0,
-                    fontWeight: FontWeight.w500,
+                  style: AppTypography.timeLabel.copyWith(
                     color: AppColors.textMuted,
-                    height: 1.3,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -769,7 +790,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   Expanded(
                     child: Container(
                       width: 1,
-                      margin: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                      margin:
+                          const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                       color: AppColors.divider,
                     ),
                   )
@@ -783,71 +805,72 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
           // 右侧卡片
           Expanded(
-            child: GestureDetector(
-              onTap: () => _handleRecordTap(record),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: AppSpacing.lg),
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: AppColors.bgCard,
-                  borderRadius: BorderRadius.circular(AppSpacing.lg),
-                  border: Border.all(color: AppColors.border, width: 0.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 转写内容
-                    if (record.transcription.isNotEmpty)
-                      Text(
-                        record.transcription,
-                        style: const TextStyle(
-                          fontSize: 15.0,
-                          color: AppColors.textPrimary,
-                          height: 1.6,
-                        ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-
-                    // 心情标签
-                    if (hasMoods) ...[
-                      const SizedBox(height: AppSpacing.sm),
-                      Wrap(
-                        spacing: AppSpacing.xs,
-                        runSpacing: AppSpacing.xs,
-                        children: moodTags.map((mood) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.sm,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.bgPrimary,
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: AppColors.border,
-                                width: 0.5,
-                              ),
-                            ),
-                            child: Text(
-                              mood,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          );
-                        }).toList(),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _handleRecordTap(record),
+                borderRadius: BorderRadius.circular(AppSpacing.lg),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.bgCard,
+                    borderRadius: BorderRadius.circular(AppSpacing.lg),
+                    border: Border.all(color: AppColors.border, width: 0.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
                     ],
-                  ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (record.transcription.isNotEmpty)
+                        Text(
+                          record.transcription,
+                          style: const TextStyle(
+                            fontSize: 15.0,
+                            color: AppColors.textPrimary,
+                            height: 1.6,
+                          ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      if (hasMoods) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        Wrap(
+                          spacing: AppSpacing.xs,
+                          runSpacing: AppSpacing.xs,
+                          children: moodTags.map((mood) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.sm,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.bgPrimary,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: AppColors.border,
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: Text(
+                                mood,
+                                style: AppTypography.chipLabel.copyWith(
+                                  fontSize: 10,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -900,7 +923,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
   }
 
   List<DateTime> _getDatesWithRecords(Map<DateTime, List<Record>> grouped) {
-    final dates = grouped.keys.toList()..sort((a, b) => b.compareTo(a)); // 降序排列
+    final dates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
     return dates;
   }
 
@@ -956,4 +979,24 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
     return tags;
   }
+}
+
+@visibleForTesting
+String buildDailySummarySyncSignature(
+    Map<DateTime, List<Record>> groupedRecords) {
+  if (groupedRecords.isEmpty) {
+    return 'empty';
+  }
+
+  final sortedDates = groupedRecords.keys.toList()
+    ..sort((a, b) => b.compareTo(a));
+  return sortedDates.map((date) {
+    final records = [...(groupedRecords[date] ?? const <Record>[])];
+    records.sort((a, b) => a.id.compareTo(b.id));
+    final recordSignature = records
+        .map((record) =>
+            '${record.id}:${record.createdAt.millisecondsSinceEpoch}:${record.updatedAt.millisecondsSinceEpoch}')
+        .join(',');
+    return '${date.year}-${date.month}-${date.day}|$recordSignature';
+  }).join(';');
 }

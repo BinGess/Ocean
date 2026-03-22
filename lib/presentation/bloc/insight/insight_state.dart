@@ -3,6 +3,7 @@
 import 'package:equatable/equatable.dart';
 import '../../../domain/entities/weekly_insight.dart';
 import '../../../domain/entities/insight_report.dart';
+import '../../../domain/entities/weekly_analysis.dart';
 
 /// 洞察状态枚举
 enum InsightStatus {
@@ -27,6 +28,9 @@ class InsightState extends Equatable {
   /// 当前洞察报告（新版）
   final InsightReport? currentReport;
 
+  /// 当前周数据分析
+  final WeeklyAnalysis? weeklyAnalysis;
+
   /// 报告获取时间（用于缓存判断）
   final DateTime? lastFetchTime;
 
@@ -44,6 +48,7 @@ class InsightState extends Equatable {
     required this.insights,
     this.currentInsight,
     this.currentReport,
+    this.weeklyAnalysis,
     this.lastFetchTime,
     this.currentWeekRange,
     this.errorMessage,
@@ -57,6 +62,7 @@ class InsightState extends Equatable {
       insights: [],
       currentInsight: null,
       currentReport: null,
+      weeklyAnalysis: null,
       lastFetchTime: null,
       currentWeekRange: null,
       errorMessage: null,
@@ -69,7 +75,9 @@ class InsightState extends Equatable {
 
   /// 检查缓存是否有效
   bool isCacheValid(String weekRange) {
-    if (currentReport == null || lastFetchTime == null || currentWeekRange == null) {
+    if (currentReport == null ||
+        lastFetchTime == null ||
+        currentWeekRange == null) {
       return false;
     }
     // 检查是否是同一周
@@ -87,6 +95,7 @@ class InsightState extends Equatable {
     List<WeeklyInsight>? insights,
     WeeklyInsight? currentInsight,
     InsightReport? currentReport,
+    WeeklyAnalysis? weeklyAnalysis,
     DateTime? lastFetchTime,
     String? currentWeekRange,
     String? errorMessage,
@@ -99,10 +108,12 @@ class InsightState extends Equatable {
       insights: insights ?? this.insights,
       currentInsight:
           clearCurrent ? null : (currentInsight ?? this.currentInsight),
-      currentReport:
-          clearReport ? null : (currentReport ?? this.currentReport),
+      currentReport: clearReport ? null : (currentReport ?? this.currentReport),
+      weeklyAnalysis:
+          clearReport ? null : (weeklyAnalysis ?? this.weeklyAnalysis),
       lastFetchTime: clearReport ? null : (lastFetchTime ?? this.lastFetchTime),
-      currentWeekRange: clearReport ? null : (currentWeekRange ?? this.currentWeekRange),
+      currentWeekRange:
+          clearReport ? null : (currentWeekRange ?? this.currentWeekRange),
       errorMessage: errorMessage,
       progressMessage: progressMessage,
     );
@@ -121,6 +132,7 @@ class InsightState extends Equatable {
         insights,
         currentInsight,
         currentReport,
+        weeklyAnalysis,
         lastFetchTime,
         currentWeekRange,
         errorMessage,

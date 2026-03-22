@@ -4,7 +4,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../domain/entities/record.dart';
 import '../../../domain/entities/quote.dart';
 import '../../bloc/audio/audio_bloc.dart';
@@ -27,6 +26,7 @@ import '../../../core/services/ai_auth_service.dart';
 import '../../../core/services/pro_subscription_service.dart';
 import '../../../core/services/quote_preloader.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../l10n/app_localizations.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -49,12 +49,6 @@ class _HomeScreenState extends State<HomeScreen>
   static const _HomeBackgroundPalette _backgroundPalette =
       _HomeBackgroundPalette.defaultPalette;
 
-  static const List<String> _fallbackQuoteTexts = [
-    '观察当下，不做评判',
-    '慢慢写，心会跟上来',
-    '把此刻交给这一页',
-  ];
-
   // 按钮脉冲动画控制器
   late AnimationController _pulseController;
 
@@ -63,6 +57,23 @@ class _HomeScreenState extends State<HomeScreen>
   // 记录上次处理的错误消息，避免重复处理同一个错误
   String? _lastHandledError;
   String? _lastHandledTranscriptionError;
+
+  AppLocalizations get _l10n => AppLocalizations.of(context)!;
+
+  List<String> get _fallbackQuoteTexts {
+    if (Localizations.localeOf(context).languageCode == 'en') {
+      return const [
+        'Observe the moment without judgment',
+        'Write slowly. Your heart will catch up',
+        'Let this page hold the present',
+      ];
+    }
+    return const [
+      '观察当下，不做评判',
+      '慢慢写，心会跟上来',
+      '把此刻交给这一页',
+    ];
+  }
 
   @override
   void initState() {
@@ -436,15 +447,16 @@ class _HomeScreenState extends State<HomeScreen>
       _completedAudioPath = null;
       HapticFeedback.lightImpact();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Row(
             children: [
-              Icon(Icons.info_outline, color: AppColors.warning, size: 20),
-              SizedBox(width: 8),
-              Text('内容太短，请重试'),
+              const Icon(Icons.info_outline,
+                  color: AppColors.warning, size: 20),
+              const SizedBox(width: 8),
+              Text(_l10n.homeContentTooShortRetry),
             ],
           ),
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
         ),
       );
       return;
@@ -538,18 +550,18 @@ class _HomeScreenState extends State<HomeScreen>
   void _showAuthDeniedGuidance(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Row(
+        content: Row(
           children: [
-            Icon(Icons.info_outline, color: AppColors.warning),
-            SizedBox(width: 8),
+            const Icon(Icons.info_outline, color: AppColors.warning),
+            const SizedBox(width: 8),
             Expanded(
-              child: Text('AI功能需要授权才能使用，您可在设置中开启'),
+              child: Text(_l10n.aiNeedsAuthSnackbar),
             ),
           ],
         ),
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
-          label: '去设置',
+          label: _l10n.goToSettings,
           textColor: AppColors.accent,
           onPressed: () {
             Navigator.of(context).push(
@@ -578,10 +590,10 @@ class _HomeScreenState extends State<HomeScreen>
     switch (mode) {
       case ProcessingMode.onlyRecord:
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Row(
               children: [
-                SizedBox(
+                const SizedBox(
                   width: 18,
                   height: 18,
                   child: CircularProgressIndicator(
@@ -590,11 +602,11 @@ class _HomeScreenState extends State<HomeScreen>
                         AlwaysStoppedAnimation<Color>(AppColors.bgPrimary),
                   ),
                 ),
-                SizedBox(width: 10),
-                Text('正在保存记录...'),
+                const SizedBox(width: 10),
+                Text(_l10n.homeSavingRecord),
               ],
             ),
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
         context.read<RecordBloc>().add(
@@ -612,10 +624,10 @@ class _HomeScreenState extends State<HomeScreen>
         if (moods != null) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Row(
                 children: [
-                  SizedBox(
+                  const SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
@@ -624,11 +636,11 @@ class _HomeScreenState extends State<HomeScreen>
                           AlwaysStoppedAnimation<Color>(AppColors.bgPrimary),
                     ),
                   ),
-                  SizedBox(width: 10),
-                  Text('正在保存记录...'),
+                  const SizedBox(width: 10),
+                  Text(_l10n.homeSavingRecord),
                 ],
               ),
-              duration: Duration(seconds: 2),
+              duration: const Duration(seconds: 2),
             ),
           );
           context.read<RecordBloc>().add(
@@ -649,16 +661,16 @@ class _HomeScreenState extends State<HomeScreen>
             transcription.isEmpty ||
             transcription == '正在转写中...') {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Row(
                 children: [
-                  Icon(Icons.hourglass_empty,
+                  const Icon(Icons.hourglass_empty,
                       color: AppColors.warning, size: 20),
-                  SizedBox(width: 8),
-                  Text('转写未完成，请稍后...'),
+                  const SizedBox(width: 8),
+                  Text(_l10n.homeTranscriptionPending),
                 ],
               ),
-              duration: Duration(seconds: 2),
+              duration: const Duration(seconds: 2),
             ),
           );
           return;
@@ -697,15 +709,16 @@ class _HomeScreenState extends State<HomeScreen>
         } else {
           // 如果没有转写文本，无法分析，降级为直接保存
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Row(
                 children: [
-                  Icon(Icons.info_outline, color: AppColors.warning, size: 20),
-                  SizedBox(width: 8),
-                  Flexible(child: Text('暂无转写文本，已自动转为仅记录')),
+                  const Icon(Icons.info_outline,
+                      color: AppColors.warning, size: 20),
+                  const SizedBox(width: 8),
+                  Flexible(child: Text(_l10n.homeNoTranscriptionFallback)),
                 ],
               ),
-              duration: Duration(seconds: 3),
+              duration: const Duration(seconds: 3),
             ),
           );
           context.read<RecordBloc>().add(
@@ -755,12 +768,12 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     final now = DateTime.now();
 
-    String greeting = '晚上好';
+    String greeting = _l10n.homeGreetingEvening;
     final hour = now.hour;
     if (hour < 12) {
-      greeting = '早上好';
+      greeting = _l10n.homeGreetingMorning;
     } else if (hour < 18) {
-      greeting = '下午好';
+      greeting = _l10n.homeGreetingAfternoon;
     }
 
     return Scaffold(
@@ -897,10 +910,10 @@ class _HomeScreenState extends State<HomeScreen>
                               result?.analysis != null &&
                               _completedAudioPath != null) {
                             messenger.showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Row(
                                   children: [
-                                    SizedBox(
+                                    const SizedBox(
                                       width: 18,
                                       height: 18,
                                       child: CircularProgressIndicator(
@@ -910,11 +923,11 @@ class _HomeScreenState extends State<HomeScreen>
                                                 AppColors.bgPrimary),
                                       ),
                                     ),
-                                    SizedBox(width: 10),
-                                    Text('正在保存记录...'),
+                                    const SizedBox(width: 10),
+                                    Text(_l10n.homeSavingRecord),
                                   ],
                                 ),
-                                duration: Duration(seconds: 2),
+                                duration: const Duration(seconds: 2),
                               ),
                             );
                             recordBloc.add(
@@ -930,16 +943,17 @@ class _HomeScreenState extends State<HomeScreen>
                           } else if (result?.action == NVCModalAction.delete) {
                             // 用户选择了删除，清理音频文件
                             messenger.showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Row(
                                   children: [
-                                    Icon(Icons.cancel_outlined,
-                                        color: Color(0xFFB0B0B0), size: 20),
-                                    SizedBox(width: 8),
-                                    Text('已取消保存'),
+                                    const Icon(Icons.cancel_outlined,
+                                        color: AppColors.textSecondary,
+                                        size: 20),
+                                    const SizedBox(width: 8),
+                                    Text(_l10n.homeSaveCancelled),
                                   ],
                                 ),
-                                duration: Duration(seconds: 2),
+                                duration: const Duration(seconds: 2),
                               ),
                             );
                             _clearCompletedAudio();
@@ -1031,16 +1045,16 @@ class _HomeScreenState extends State<HomeScreen>
                   if (recordState.isSuccess &&
                       recordState.latestRecord != null) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                      SnackBar(
                         content: Row(
                           children: [
-                            Icon(Icons.check_circle,
+                            const Icon(Icons.check_circle,
                                 color: Color(0xFF4CAF50), size: 20),
-                            SizedBox(width: 8),
-                            Text('记录已保存'),
+                            const SizedBox(width: 8),
+                            Text(_l10n.homeRecordSaved),
                           ],
                         ),
-                        duration: Duration(seconds: 2),
+                        duration: const Duration(seconds: 2),
                       ),
                     );
                   }
@@ -1103,77 +1117,86 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           // Pro 按钮
           if (!getIt<ProSubscriptionService>().hasProFeatureAccess)
-            GestureDetector(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const ProPurchaseScreen(),
-                  ),
-                );
-              },
-              child: Container(
-                height: 32,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFD4B896), AppColors.accent],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.accent.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ProPurchaseScreen(),
                     ),
-                  ],
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.workspace_premium,
-                      color: Colors.white,
-                      size: 16,
+                  );
+                },
+                child: Container(
+                  height: 32,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFD4B896), AppColors.accent],
                     ),
-                    SizedBox(width: 4),
-                    Text(
-                      'Pro',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.accent.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.workspace_premium,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Pro',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           const SizedBox(width: 10),
           // 设置按钮
-          GestureDetector(
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const SettingsScreen(),
+          Material(
+            color: Colors.transparent,
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const SettingsScreen(),
+                  ),
+                );
+              },
+              child: Container(
+                width: 43,
+                height: 43,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.68),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.45),
+                    width: 1.0,
+                  ),
                 ),
-              );
-            },
-            child: Container(
-              width: 43,
-              height: 43,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.68),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0xFF9CBBD0).withValues(alpha: 0.88),
-                  width: 1.0,
-                ),
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.person_outline_rounded,
-                  color: Color(0xFF7190A5),
-                  size: 21,
+                child: const Center(
+                  child: Icon(
+                    Icons.person_outline_rounded,
+                    color: AppColors.primary,
+                    size: 21,
+                  ),
                 ),
               ),
             ),
@@ -1186,8 +1209,6 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildWeekStrip(DateTime now) {
     final baseDate = DateTime(now.year, now.month, now.day)
         .subtract(Duration(days: now.weekday - 1));
-    const labels = ['一', '二', '三', '四', '五', '六', '日'];
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
@@ -1199,7 +1220,7 @@ class _HomeScreenState extends State<HomeScreen>
             child: Column(
               children: [
                 Text(
-                  labels[index],
+                  _l10n.getWeekday(index + 1),
                   style: TextStyle(
                     fontSize: 12,
                     color: isToday
@@ -1284,20 +1305,22 @@ class _HomeScreenState extends State<HomeScreen>
           child: Row(
             children: [
               Expanded(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _openInputScreen(autoStartRecording: false),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      '记录下此刻的情绪',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.transcriptionStatus.copyWith(
-                        fontSize: 29 / 2,
-                        color: const Color(0xFFC1CBD3),
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.1,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _openInputScreen(autoStartRecording: false),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        _l10n.homeRecordPrompt,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.transcriptionStatus.copyWith(
+                          fontSize: 29 / 2,
+                          color: AppColors.textSecondary.withValues(alpha: 0.62),
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.1,
+                        ),
                       ),
                     ),
                   ),
@@ -1311,12 +1334,15 @@ class _HomeScreenState extends State<HomeScreen>
               const SizedBox(width: 12),
               Semantics(
                 button: true,
-                label: '开始语音记录',
-                hint: '打开语音录制输入',
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _openInputScreen(autoStartRecording: true),
-                  child: SizedBox(
+                label: _l10n.homeStartVoiceRecord,
+                hint: _l10n.homeOpenVoiceInputHint,
+                child: Material(
+                  color: Colors.transparent,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () => _openInputScreen(autoStartRecording: true),
+                    child: SizedBox(
                     width: 44,
                     height: 44,
                     child: AnimatedBuilder(
@@ -1337,7 +1363,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 height: haloSize,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: const Color(0xFF6FB7DC)
+                                  color: AppColors.primary
                                       .withValues(alpha: haloOpacity),
                                 ),
                               ),
@@ -1357,8 +1383,8 @@ class _HomeScreenState extends State<HomeScreen>
                                           Color(0xFFC96F4A),
                                         ]
                                       : const [
-                                          Color(0xFF79C2E6),
-                                          Color(0xFF4F9DCE),
+                                          AppColors.primary,
+                                          AppColors.primaryDark,
                                         ],
                                 ),
                                 border: Border.all(
@@ -1369,7 +1395,7 @@ class _HomeScreenState extends State<HomeScreen>
                                   BoxShadow(
                                     color: (isRecording
                                             ? const Color(0xFFC96F4A)
-                                            : const Color(0xFF5FAED8))
+                                            : AppColors.primary)
                                         .withValues(
                                       alpha: isRecording ? 0.28 : 0.34,
                                     ),
@@ -1394,6 +1420,7 @@ class _HomeScreenState extends State<HomeScreen>
                           ],
                         );
                       },
+                    ),
                     ),
                   ),
                 ),

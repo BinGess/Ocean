@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'core/di/injection.dart';
 import 'core/services/app_lock_service.dart';
@@ -72,7 +73,7 @@ class MindFlowApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
-            themeMode: ThemeMode.light, // 后续可以从设置中读取
+            themeMode: ThemeMode.system,
             // 本地化配置
             locale: localeState.effectiveLocale,
             supportedLocales: AppLocalizations.supportedLocales,
@@ -322,16 +323,16 @@ class _MainNavigationState extends State<MainNavigation> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFF7F4F0),
+          color: AppColors.bgCard,
           border: const Border(
             top: BorderSide(
-              color: Color(0xFFE9E1D7),
+              color: AppColors.borderLight,
               width: 0.7,
             ),
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF6E5A45).withValues(alpha: 0.02),
+              color: AppColors.textSecondary.withValues(alpha: 0.04),
               blurRadius: 6,
               offset: const Offset(0, -1),
             ),
@@ -387,38 +388,44 @@ class _MainNavigationState extends State<MainNavigation> {
     required String label,
   }) {
     final isActive = _currentIndex == index;
-    final color = isActive ? const Color(0xFFAD8558) : const Color(0xFFA19180);
+    final color = isActive ? AppColors.accent : AppColors.textSecondary;
 
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _currentIndex = index;
-        });
-      },
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        // 使用整个可用区域作为点击目标
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              isActive ? activeIcon : icon,
-              size: 26, // 稍微增大图标
-              color: color,
+    return Semantics(
+      button: true,
+      selected: isActive,
+      label: label,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+          child: Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isActive ? activeIcon : icon,
+                  size: 26,
+                  color: color,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: color,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12, // 稍微增大字体
-                color: color,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

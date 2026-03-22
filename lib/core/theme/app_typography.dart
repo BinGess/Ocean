@@ -17,12 +17,16 @@ class AppSpacing {
 
   /// 页面水平内边距（统一 20px）
   static const double pageHorizontal = 20.0;
+
   /// 页面顶部内边距
   static const double pageTop = 16.0;
+
   /// 卡片内边距
   static const double cardPadding = 16.0;
+
   /// 卡片圆角
   static const double cardRadius = 12.0;
+
   /// 大卡片圆角
   static const double cardRadiusLg = 20.0;
 }
@@ -30,20 +34,22 @@ class AppSpacing {
 class AppTypography {
   AppTypography._();
 
-  static const String serifFamily = 'Noto Serif SC';
-  static const String sansFamily = 'Noto Sans SC';
+  static const String serifFamily = 'Songti SC';
+  static const String sansFamily = 'PingFang SC';
 
   static const List<String> _serifFallback = [
-    'Songti SC',
     'STSong',
     'Source Han Serif SC',
+    'Noto Serif CJK SC',
+    'serif',
     'Times New Roman',
   ];
 
   static const List<String> _sansFallback = [
-    'PingFang SC',
     'Hiragino Sans GB',
     'Microsoft YaHei',
+    'Noto Sans CJK SC',
+    'sans-serif',
     'Roboto',
   ];
 
@@ -77,9 +83,9 @@ class AppTypography {
   );
 
   static const TextStyle quoteAuthor = TextStyle(
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: FontWeight.w600,
-    color: Color(0xFF937A61),
+    color: AppColors.textTertiary,
     letterSpacing: 1.4,
     fontFamily: sansFamily,
     fontFamilyFallback: _sansFallback,
@@ -131,11 +137,11 @@ class AppTypography {
   );
 
   static const TextStyle pageMeta = TextStyle(
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: FontWeight.w500,
     height: 1.35,
     letterSpacing: 0.1,
-    color: Color(0xFFB8ADA0),
+    color: AppColors.textTertiary,
     fontFamily: sansFamily,
     fontFamilyFallback: _sansFallback,
   );
@@ -151,47 +157,47 @@ class AppTypography {
   );
 
   static const TextStyle sectionSubtle = TextStyle(
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: FontWeight.w500,
     height: 1.35,
-    color: Color(0xFFA79A8A),
+    color: AppColors.textTertiary,
     fontFamily: sansFamily,
     fontFamilyFallback: _sansFallback,
   );
 
   static const TextStyle bodyPrimary = TextStyle(
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: FontWeight.w500,
-    height: 1.65,
-    color: Color(0xFF5D4E3C),
+    height: 1.7,
+    color: AppColors.textSecondary,
     fontFamily: sansFamily,
     fontFamilyFallback: _sansFallback,
   );
 
   static const TextStyle bodySecondary = TextStyle(
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: FontWeight.w400,
-    height: 1.6,
-    color: Color(0xFF6F6256),
+    height: 1.68,
+    color: AppColors.textSecondary,
     fontFamily: sansFamily,
     fontFamilyFallback: _sansFallback,
   );
 
   static const TextStyle bodyQuote = TextStyle(
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: FontWeight.w400,
-    height: 1.6,
-    color: Color(0xFF5D4E3C),
+    height: 1.7,
+    color: AppColors.textSecondary,
     fontStyle: FontStyle.italic,
     fontFamily: sansFamily,
     fontFamilyFallback: _sansFallback,
   );
 
   static const TextStyle timeLabel = TextStyle(
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: FontWeight.w500,
     height: 1.25,
-    color: Color(0xFFA89D92),
+    color: AppColors.textTertiary,
     fontFamily: sansFamily,
     fontFamilyFallback: _sansFallback,
   );
@@ -207,11 +213,11 @@ class AppTypography {
   );
 
   static const TextStyle actionLabel = TextStyle(
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: FontWeight.w600,
     height: 1.3,
     letterSpacing: 0.1,
-    color: Color(0xFF5D4E3C),
+    color: AppColors.textSecondary,
     fontFamily: sansFamily,
     fontFamilyFallback: _sansFallback,
   );
@@ -226,16 +232,16 @@ class AppTypography {
   );
 
   static const TextStyle modalBody = TextStyle(
-    fontSize: 15,
-    color: Color(0xFF6D6158),
-    height: 1.6,
+    fontSize: 16,
+    color: AppColors.textSecondary,
+    height: 1.68,
     fontFamily: sansFamily,
     fontFamilyFallback: _sansFallback,
   );
 
   static const TextStyle modalCaption = TextStyle(
-    fontSize: 13,
-    color: Color(0xFFA18F7D),
+    fontSize: 14,
+    color: AppColors.textTertiary,
     fontWeight: FontWeight.w500,
     letterSpacing: 0.2,
     fontFamily: sansFamily,
@@ -282,9 +288,9 @@ class AppTypography {
 
   /// AppBar 标题
   static const TextStyle appBarTitle = TextStyle(
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: FontWeight.w500,
-    color: Color(0xFF8B7D6B),
+    color: AppColors.textTertiary,
     fontFamily: sansFamily,
     fontFamilyFallback: _sansFallback,
   );

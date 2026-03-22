@@ -83,13 +83,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios,
-              size: 20, color: Color(0xFF2C2C2C)),
+              size: 20, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           l10n.settings,
           style: const TextStyle(
-            color: Color(0xFF2C2C2C),
+            color: AppColors.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
@@ -216,7 +216,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: const Color(0xFFF8F6F3),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.language, color: Color(0xFF8B7D6B)),
+                  child: const Icon(Icons.language, color: AppColors.textSecondary),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -228,7 +228,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF2C2C2C),
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -236,13 +236,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         currentLanguage,
                         style: const TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF8B8B8B),
+                          color: AppColors.textSecondary,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: Color(0xFFB0B0B0)),
+                const Icon(Icons.chevron_right, color: AppColors.primary),
               ],
             ),
           ),
@@ -330,7 +330,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         style: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF8B7D6B),
+          color: AppColors.textSecondary,
         ),
       ),
     );
@@ -392,7 +392,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: const Color(0xFFF8F6F3),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: const Color(0xFF8B7D6B)),
+              child: Icon(icon, color: AppColors.textSecondary),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -404,7 +404,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF2C2C2C),
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -412,14 +412,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     subtitle,
                     style: const TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF8B8B8B),
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ],
               ),
             ),
             if (trailing != null) trailing,
-            const Icon(Icons.chevron_right, color: Color(0xFFB0B0B0)),
+            const Icon(Icons.chevron_right, color: AppColors.primary),
           ],
         ),
       ),
@@ -468,7 +468,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: const Color(0xFFF8F6F3),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: const Color(0xFF8B7D6B)),
+              child: Icon(icon, color: AppColors.textSecondary),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -480,7 +480,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF2C2C2C),
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -488,7 +488,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     subtitle,
                     style: const TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF8B8B8B),
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ],
@@ -496,7 +496,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             if (needsPro) _buildProBadge(),
             if (needsPro)
-              const Icon(Icons.chevron_right, color: Color(0xFFB0B0B0))
+              const Icon(Icons.chevron_right, color: AppColors.primary)
             else
               CupertinoSwitch(
                 value: value,

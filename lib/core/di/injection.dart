@@ -12,6 +12,7 @@ import '../../domain/usecases/get_records_usecase.dart';
 import '../../domain/usecases/update_record_usecase.dart';
 import '../../domain/usecases/generate_weekly_insight_usecase.dart';
 import '../../domain/usecases/generate_insight_report_usecase.dart';
+import '../../domain/usecases/build_weekly_analysis_usecase.dart';
 import '../../domain/usecases/get_weekly_insights_usecase.dart';
 import '../../data/repositories/audio_repository_impl.dart';
 import '../../data/repositories/record_repository_impl.dart';
@@ -207,6 +208,12 @@ Future<void> configureDependencies() async {
     ),
   );
 
+  getIt.registerLazySingleton<BuildWeeklyAnalysisUseCase>(
+    () => BuildWeeklyAnalysisUseCase(
+      recordRepository: getIt<RecordRepository>(),
+    ),
+  );
+
   // 获取周洞察列表
   getIt.registerLazySingleton<GetWeeklyInsightsUseCase>(
     () => GetWeeklyInsightsUseCase(
@@ -243,6 +250,7 @@ Future<void> configureDependencies() async {
       generateWeeklyInsightUseCase: getIt<GenerateWeeklyInsightUseCase>(),
       generateInsightReportUseCase: getIt<GenerateInsightReportUseCase>(),
       getWeeklyInsightsUseCase: getIt<GetWeeklyInsightsUseCase>(),
+      buildWeeklyAnalysisUseCase: getIt<BuildWeeklyAnalysisUseCase>(),
       insightRepository: getIt<InsightRepository>(),
       aiAuthService: getIt<AIAuthService>(),
     ),

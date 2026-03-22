@@ -6,6 +6,7 @@ import '../../../core/services/ai_auth_service.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../domain/entities/record.dart';
 import '../../../domain/entities/nvc_analysis.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../bloc/audio/audio_bloc.dart';
 import '../../bloc/audio/audio_event.dart';
 import '../../bloc/audio/audio_state.dart';
@@ -54,6 +55,8 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
   String? _latestAudioPath;
   String? _lastAudioError;
   _PendingSubmitAction _pendingSubmitAction = _PendingSubmitAction.none;
+
+  AppLocalizations get _l10n => AppLocalizations.of(context)!;
 
   @override
   void initState() {
@@ -133,7 +136,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
     if (!audioState.hasPermission) {
       _pendingManualStartAfterPermission = true;
       context.read<AudioBloc>().add(const AudioRequestPermission());
-      _showHint('请先授予录音权限');
+      _showHint(_l10n.emotionGrantPermissionFirst);
       return;
     }
     _pendingManualStartAfterPermission = false;
@@ -165,7 +168,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
   void _submitOnlyRecord() {
     final text = _inputText;
     if (text.isEmpty) {
-      _showHint('请输入内容后再保存');
+      _showHint(_l10n.emotionEnterContentBeforeSave);
       return;
     }
 
@@ -204,7 +207,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
   void _startNVCAnalyze() {
     final text = _inputText;
     if (text.isEmpty) {
-      _showHint('请输入内容后再分析');
+      _showHint(_l10n.emotionEnterContentBeforeAnalyze);
       return;
     }
 
@@ -226,7 +229,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
       final text = _inputText;
       if (text.isEmpty) {
         setState(() => _isAnalyzingNVC = false);
-        _showHint('输入内容为空，无法继续分析');
+        _showHint(_l10n.emotionEmptyInputCannotContinue);
         return;
       }
       _showAnalyzingModal(text);
@@ -241,18 +244,18 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
   void _showAuthDeniedGuidance() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Row(
+        content: Row(
           children: [
-            Icon(Icons.info_outline, color: AppColors.warning),
-            SizedBox(width: 8),
+            const Icon(Icons.info_outline, color: AppColors.warning),
+            const SizedBox(width: 8),
             Expanded(
-              child: Text('AI功能需要授权才能使用，您可在设置中开启'),
+              child: Text(_l10n.aiNeedsAuthSnackbar),
             ),
           ],
         ),
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
-          label: '去设置',
+          label: _l10n.goToSettings,
           textColor: AppColors.accent,
           onPressed: () {
             Navigator.of(context).push(
@@ -270,7 +273,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
   }) {
     final text = _inputText;
     if (text.isEmpty) {
-      _showHint('输入内容为空，无法保存');
+      _showHint(_l10n.emotionEmptyInputCannotSave);
       return;
     }
 
@@ -308,7 +311,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
     if (audioState.isRecording) {
       _pendingSubmitAction = _PendingSubmitAction.saveOnly;
       _stopRecording(audioState);
-      _showHint('正在结束录音...');
+      _showHint(_l10n.emotionFinishingRecording);
       return;
     }
     _submitOnlyRecord();
@@ -319,7 +322,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
     if (audioState.isRecording) {
       _pendingSubmitAction = _PendingSubmitAction.analyzeNvc;
       _stopRecording(audioState);
-      _showHint('正在结束录音...');
+      _showHint(_l10n.emotionFinishingRecording);
       return;
     }
     _startNVCAnalyze();
@@ -379,7 +382,8 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
         _waitingOfflineTranscription = false;
         _pendingSubmitAction = _PendingSubmitAction.none;
         _showHint(
-          recordState.transcriptionErrorMessage ?? '转写失败，请手动补充内容后再试',
+          recordState.transcriptionErrorMessage ??
+              _l10n.emotionTranscriptionManualFallback,
           icon: Icons.error_outline,
           iconColor: const Color(0xFFEF5350),
         );
@@ -431,7 +435,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
       }
       if (_isSubmittingRecord) {
         setState(() => _isSubmittingRecord = false);
-        _showHint(recordState.errorMessage ?? '保存失败，请重试',
+        _showHint(recordState.errorMessage ?? _l10n.saveFailedRetry,
             icon: Icons.error_outline, iconColor: const Color(0xFFEF5350));
       }
       return;
@@ -441,7 +445,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
         recordState.latestRecord != null &&
         _isSubmittingRecord) {
       setState(() => _isSubmittingRecord = false);
-      _showHint('记录已保存',
+      _showHint(_l10n.homeRecordSaved,
           icon: Icons.check_circle, iconColor: const Color(0xFF4CAF50));
       Navigator.of(context).pop(true);
     }
@@ -481,7 +485,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                       ),
                     ),
                     Text(
-                      '描述下你此刻的心情？',
+                      _l10n.emotionInputTitle,
                       style: AppTypography.pageTitle.copyWith(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
@@ -517,11 +521,11 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                           color: const Color(0xFF3E3934),
                           height: 1.58,
                         ),
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           filled: false,
                           fillColor: Colors.transparent,
-                          hintText: '尽情书写，让我帮你分析此刻的心情',
-                          hintStyle: TextStyle(
+                          hintText: _l10n.emotionInputHint,
+                          hintStyle: const TextStyle(
                             fontSize: 16,
                             color: Color(0xFFC3BCB3),
                             height: 1.32,
@@ -538,90 +542,77 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                child: Row(
-                  children: [
-                    _buildRecordingButton(
-                      isBusy: isBusy,
-                      isRecording: isRecording,
-                      audioState: audioState,
-                    ),
-                    const SizedBox(width: 10),
-                    _buildRecordingWaveform(isRecording: isRecording),
-                    const Spacer(),
-                    SizedBox(
-                      width: 88,
-                      height: 36,
-                      child: TextButton(
-                        onPressed:
-                            isBusy ? null : () => _onTapComplete(audioState),
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          backgroundColor: const Color(0xFFECE6DE),
-                          foregroundColor: const Color(0xFF5A524A),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(19),
-                            side: const BorderSide(
-                              color: Color(0xFFCFC4B5),
-                              width: 0.9,
-                            ),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.keyboard_arrow_down_rounded,
-                                size: 17),
-                            const SizedBox(width: 1),
-                            Text(
-                              '保存',
-                              style: AppTypography.actionLabel.copyWith(
-                                fontSize: 16,
-                                color: const Color(0xFF5A524A),
-                                fontWeight: FontWeight.w600,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final textScale = MediaQuery.textScalerOf(context).scale(1);
+                    final isCompact =
+                        constraints.maxWidth < 430 || textScale > 1.1;
+
+                    final saveButton = _buildFooterActionButton(
+                      label: _l10n.emotionInputSave,
+                      icon: Icons.keyboard_arrow_down_rounded,
+                      foregroundColor: const Color(0xFF5A524A),
+                      backgroundColor: const Color(0xFFECE6DE),
+                      borderColor: const Color(0xFFCFC4B5),
+                      onPressed:
+                          isBusy ? null : () => _onTapComplete(audioState),
+                    );
+                    final analyzeButton = _buildFooterActionButton(
+                      label: _l10n.emotionInputAnalyze,
+                      icon: Icons.auto_awesome_outlined,
+                      foregroundColor: Colors.white,
+                      backgroundColor: const Color(0xFFD49A72),
+                      borderColor: const Color(0xFFC8865D),
+                      iconSize: 15,
+                      fontWeight: FontWeight.w700,
+                      onPressed:
+                          isBusy ? null : () => _onTapAnalyze(audioState),
+                    );
+
+                    if (isCompact) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              _buildRecordingButton(
+                                isBusy: isBusy,
+                                isRecording: isRecording,
+                                audioState: audioState,
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    SizedBox(
-                      width: 112,
-                      height: 36,
-                      child: TextButton(
-                        onPressed:
-                            isBusy ? null : () => _onTapAnalyze(audioState),
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          foregroundColor: Colors.white,
-                          backgroundColor: const Color(0xFFD49A72),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(19),
-                            side: const BorderSide(
-                              color: Color(0xFFC8865D),
-                              width: 0.9,
-                            ),
+                              const SizedBox(width: 10),
+                              _buildRecordingWaveform(isRecording: isRecording),
+                              const Spacer(),
+                            ],
                           ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(child: saveButton),
+                              const SizedBox(width: 10),
+                              Expanded(child: analyzeButton),
+                            ],
+                          ),
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      children: [
+                        _buildRecordingButton(
+                          isBusy: isBusy,
+                          isRecording: isRecording,
+                          audioState: audioState,
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.auto_awesome_outlined,
-                                size: 15, color: Colors.white),
-                            const SizedBox(width: 4),
-                            Text(
-                              'NVC分析',
-                              style: AppTypography.actionLabel.copyWith(
-                                fontSize: 16,
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                        const SizedBox(width: 10),
+                        _buildRecordingWaveform(isRecording: isRecording),
+                        const Spacer(),
+                        SizedBox(width: 92, child: saveButton),
+                        const SizedBox(width: 10),
+                        SizedBox(width: 124, child: analyzeButton),
+                      ],
+                    );
+                  },
                 ),
               ),
             ],
@@ -710,7 +701,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
 
   Widget _buildRecordingWaveform({required bool isRecording}) {
     return SizedBox(
-      width: 44,
+      width: 52,
       height: 22,
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 180),
@@ -737,6 +728,54 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
               }),
             );
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooterActionButton({
+    required String label,
+    required IconData icon,
+    required Color foregroundColor,
+    required Color backgroundColor,
+    required Color borderColor,
+    required VoidCallback? onPressed,
+    double iconSize = 17,
+    FontWeight fontWeight = FontWeight.w600,
+  }) {
+    return SizedBox(
+      height: 42,
+      child: TextButton(
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          foregroundColor: foregroundColor,
+          backgroundColor: backgroundColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(21),
+            side: BorderSide(
+              color: borderColor,
+              width: 0.9,
+            ),
+          ),
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: iconSize, color: foregroundColor),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: AppTypography.actionLabel.copyWith(
+                  fontSize: 16,
+                  color: foregroundColor,
+                  fontWeight: fontWeight,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

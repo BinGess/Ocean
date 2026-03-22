@@ -24,9 +24,9 @@ class AppColors {
   // ── 文字色阶 ──────────────────────────────────────────
   static const Color textPrimary = Color(0xFF2C2C2C);
   static const Color textSecondary = Color(0xFF5D4E3C);
-  static const Color textTertiary = Color(0xFF8B7D6B);
-  static const Color textSubtle = Color(0xFFB8ADA0);
-  static const Color textMuted = Color(0xFFAAAAAA);
+  static const Color textTertiary = Color(0xFF74685C);
+  static const Color textSubtle = Color(0xFF6F6256);
+  static const Color textMuted = Color(0xFF7A6C60);
 
   // ── 背景色阶 ──────────────────────────────────────────
   static const Color bgPrimary = Color(0xFFFAF6F1);

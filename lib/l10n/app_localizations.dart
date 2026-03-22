@@ -87,10 +87,49 @@ class AppLocalizations {
       'actionSuggestions': '行动建议',
       'justNow': '刚刚更新',
       'holdToRecord': '长按说话',
+      'recordButtonTapToRecord': '点击录音',
+      'recordButtonHoldSemantics': '长按开始录音',
+      'recordButtonHoldHint': '双击并长按开始录音',
+      'recordButtonTapSemantics': '点击开始录音',
+      'recordButtonTapHint': '双击开始或停止录音',
       'recording': '录音中...',
       'releaseToSend': '松开发送',
       'recordingTooShort': '录音时间太短',
       'microphonePermissionDenied': '需要麦克风权限',
+      'saveFailedRetry': '保存失败，请重试',
+      'emotionInputTitle': '描述下你此刻的心情？',
+      'emotionInputHint': '尽情书写，让我帮你分析此刻的心情',
+      'emotionInputSave': '仅文字保存',
+      'emotionInputAnalyze': 'NVC分析',
+      'emotionGrantPermissionFirst': '请先授予录音权限',
+      'emotionEnterContentBeforeSave': '请输入内容后再保存',
+      'emotionEnterContentBeforeAnalyze': '请输入内容后再分析',
+      'emotionEmptyInputCannotContinue': '输入内容为空，无法继续分析',
+      'emotionEmptyInputCannotSave': '输入内容为空，无法保存',
+      'emotionFinishingRecording': '正在结束录音...',
+      'emotionTranscriptionManualFallback': '转写失败，请手动补充内容后再试',
+      'homeGreetingMorning': '早上好',
+      'homeGreetingAfternoon': '下午好',
+      'homeGreetingEvening': '晚上好',
+      'homeContentTooShortRetry': '内容太短，请重试',
+      'homeSavingRecord': '正在保存记录...',
+      'homeSaveCancelled': '已取消保存',
+      'homeRecordSaved': '记录已保存',
+      'homeTranscriptionPending': '转写未完成，请稍后...',
+      'homeNoTranscriptionFallback': '暂无转写文本，已自动转为仅记录',
+      'homeRecordPrompt': '记录下此刻的情绪',
+      'homeStartVoiceRecord': '开始语音记录',
+      'homeOpenVoiceInputHint': '打开语音录制输入',
+      'moodPickerTitle': '今天心情如何？',
+      'moodPickerSubtitle': '选择一个表情来记录今天的心情',
+      'moodHappy': '开心',
+      'moodCalm': '平静',
+      'moodLoved': '幸福',
+      'moodSad': '低落',
+      'moodAnnoyed': '烦躁',
+      'moodAnxious': '焦虑',
+      'moodTired': '疲惫',
+      'moodConfused': '困惑',
       'selectLanguage': '选择语言',
       // Export screen
       'exportSelectContent': '选择导出内容',
@@ -217,10 +256,51 @@ class AppLocalizations {
       'actionSuggestions': 'Suggestions',
       'justNow': 'Just now',
       'holdToRecord': 'Hold to speak',
+      'recordButtonTapToRecord': 'Tap to record',
+      'recordButtonHoldSemantics': 'Hold to speak',
+      'recordButtonHoldHint': 'Double tap and hold to start recording',
+      'recordButtonTapSemantics': 'Tap to record',
+      'recordButtonTapHint': 'Double tap to start or stop recording',
       'recording': 'Recording...',
       'releaseToSend': 'Release to send',
       'recordingTooShort': 'Recording too short',
       'microphonePermissionDenied': 'Microphone permission required',
+      'saveFailedRetry': 'Save failed, please try again',
+      'emotionInputTitle': 'What are you feeling right now?',
+      'emotionInputHint': 'Write freely and let me help you understand this moment',
+      'emotionInputSave': 'Save Text Only',
+      'emotionInputAnalyze': 'NVC Analyze',
+      'emotionGrantPermissionFirst': 'Please grant microphone permission first',
+      'emotionEnterContentBeforeSave': 'Enter some text before saving',
+      'emotionEnterContentBeforeAnalyze': 'Enter some text before analyzing',
+      'emotionEmptyInputCannotContinue': 'Input is empty, unable to continue',
+      'emotionEmptyInputCannotSave': 'Input is empty, unable to save',
+      'emotionFinishingRecording': 'Finishing recording...',
+      'emotionTranscriptionManualFallback':
+          'Transcription failed. Add your text manually and try again',
+      'homeGreetingMorning': 'Good morning',
+      'homeGreetingAfternoon': 'Good afternoon',
+      'homeGreetingEvening': 'Good evening',
+      'homeContentTooShortRetry': 'Content is too short, please try again',
+      'homeSavingRecord': 'Saving your note...',
+      'homeSaveCancelled': 'Save canceled',
+      'homeRecordSaved': 'Saved',
+      'homeTranscriptionPending': 'Transcription is still in progress...',
+      'homeNoTranscriptionFallback':
+          'No transcript yet. Switched to save-only mode automatically',
+      'homeRecordPrompt': 'Capture how you feel right now',
+      'homeStartVoiceRecord': 'Start voice note',
+      'homeOpenVoiceInputHint': 'Open the voice input composer',
+      'moodPickerTitle': 'How are you feeling today?',
+      'moodPickerSubtitle': 'Choose a mood to capture today',
+      'moodHappy': 'Happy',
+      'moodCalm': 'Calm',
+      'moodLoved': 'Loved',
+      'moodSad': 'Low',
+      'moodAnnoyed': 'Annoyed',
+      'moodAnxious': 'Anxious',
+      'moodTired': 'Tired',
+      'moodConfused': 'Confused',
       'selectLanguage': 'Select Language',
       // Export screen
       'exportSelectContent': 'Select Content',
@@ -351,11 +431,59 @@ class AppLocalizations {
   String get actionSuggestions => _translate('actionSuggestions');
   String get justNow => _translate('justNow');
   String get holdToRecord => _translate('holdToRecord');
+  String get recordButtonTapToRecord => _translate('recordButtonTapToRecord');
+  String get recordButtonHoldSemantics =>
+      _translate('recordButtonHoldSemantics');
+  String get recordButtonHoldHint => _translate('recordButtonHoldHint');
+  String get recordButtonTapSemantics =>
+      _translate('recordButtonTapSemantics');
+  String get recordButtonTapHint => _translate('recordButtonTapHint');
   String get recording => _translate('recording');
   String get releaseToSend => _translate('releaseToSend');
   String get recordingTooShort => _translate('recordingTooShort');
   String get microphonePermissionDenied =>
       _translate('microphonePermissionDenied');
+  String get saveFailedRetry => _translate('saveFailedRetry');
+  String get emotionInputTitle => _translate('emotionInputTitle');
+  String get emotionInputHint => _translate('emotionInputHint');
+  String get emotionInputSave => _translate('emotionInputSave');
+  String get emotionInputAnalyze => _translate('emotionInputAnalyze');
+  String get emotionGrantPermissionFirst =>
+      _translate('emotionGrantPermissionFirst');
+  String get emotionEnterContentBeforeSave =>
+      _translate('emotionEnterContentBeforeSave');
+  String get emotionEnterContentBeforeAnalyze =>
+      _translate('emotionEnterContentBeforeAnalyze');
+  String get emotionEmptyInputCannotContinue =>
+      _translate('emotionEmptyInputCannotContinue');
+  String get emotionEmptyInputCannotSave =>
+      _translate('emotionEmptyInputCannotSave');
+  String get emotionFinishingRecording => _translate('emotionFinishingRecording');
+  String get emotionTranscriptionManualFallback =>
+      _translate('emotionTranscriptionManualFallback');
+  String get homeGreetingMorning => _translate('homeGreetingMorning');
+  String get homeGreetingAfternoon => _translate('homeGreetingAfternoon');
+  String get homeGreetingEvening => _translate('homeGreetingEvening');
+  String get homeContentTooShortRetry => _translate('homeContentTooShortRetry');
+  String get homeSavingRecord => _translate('homeSavingRecord');
+  String get homeSaveCancelled => _translate('homeSaveCancelled');
+  String get homeRecordSaved => _translate('homeRecordSaved');
+  String get homeTranscriptionPending => _translate('homeTranscriptionPending');
+  String get homeNoTranscriptionFallback =>
+      _translate('homeNoTranscriptionFallback');
+  String get homeRecordPrompt => _translate('homeRecordPrompt');
+  String get homeStartVoiceRecord => _translate('homeStartVoiceRecord');
+  String get homeOpenVoiceInputHint => _translate('homeOpenVoiceInputHint');
+  String get moodPickerTitle => _translate('moodPickerTitle');
+  String get moodPickerSubtitle => _translate('moodPickerSubtitle');
+  String get moodHappy => _translate('moodHappy');
+  String get moodCalm => _translate('moodCalm');
+  String get moodLoved => _translate('moodLoved');
+  String get moodSad => _translate('moodSad');
+  String get moodAnnoyed => _translate('moodAnnoyed');
+  String get moodAnxious => _translate('moodAnxious');
+  String get moodTired => _translate('moodTired');
+  String get moodConfused => _translate('moodConfused');
   String get selectLanguage => _translate('selectLanguage');
 
   // Export screen
