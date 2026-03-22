@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
 
 /// 删除确认对话框
 /// 使用糯米色主题，保持与应用整体风格一致
@@ -68,7 +69,7 @@ class DeleteConfirmationDialog extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF2C2C2C),
+                color: AppColors.textPrimary,
               ),
             ),
 

@@ -24,19 +24,19 @@ class _HistoryReportsScreenState extends State<HistoryReportsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF6F1),
+      backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 20, color: Color(0xFF2C2C2C)),
+          icon: const Icon(Icons.arrow_back_ios, size: 20, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
           '历史周报',
           style: TextStyle(
-            color: Color(0xFF2C2C2C),
+            color: AppColors.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
@@ -116,7 +116,7 @@ class _HistoryReportsScreenState extends State<HistoryReportsScreen> {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF2C2C2C),
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),

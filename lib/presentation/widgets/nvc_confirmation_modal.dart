@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
 import '../../domain/entities/nvc_analysis.dart';
 import '../../domain/entities/record.dart';
 import 'delete_confirmation_dialog.dart';
@@ -302,7 +303,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF2C2C2C),
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ),
@@ -362,7 +363,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                     child: TextButton(
                       onPressed: () => Navigator.pop(context, controller.text),
                       style: TextButton.styleFrom(
-                        backgroundColor: const Color(0xFFC4A57B),
+                        backgroundColor: AppColors.accent,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -429,7 +430,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
               children: [
                 IconButton(
                   icon: const Icon(Icons.arrow_back_ios,
-                      size: 20, color: Color(0xFF2C2C2C)),
+                      size: 20, color: AppColors.textPrimary),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
                 GestureDetector(
@@ -574,7 +575,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                                   color: Colors.transparent,
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: const Color(0xFFE0D5C5),
+                                    color: AppColors.border,
                                     width: 1,
                                   ),
                                 ),
@@ -658,7 +659,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                 child: TextButton(
                   onPressed: _handleConfirm,
                   style: TextButton.styleFrom(
-                    backgroundColor: const Color(0xFFC4A57B),
+                    backgroundColor: AppColors.accent,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -725,7 +726,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF2C2C2C),
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ),
@@ -860,7 +861,7 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                     style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF2C2C2C),
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),
@@ -1087,7 +1088,7 @@ class _TagEditDialogState extends State<_TagEditDialog> {
                   child: TextButton(
                     onPressed: () => Navigator.pop(context, _selectedTags),
                     style: TextButton.styleFrom(
-                      backgroundColor: const Color(0xFFC4A57B),
+                      backgroundColor: AppColors.accent,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),

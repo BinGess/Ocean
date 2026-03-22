@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
 
 /// 每日心情数据
 class DailyMood {
@@ -88,7 +89,7 @@ class DailyMoodPicker extends StatelessWidget {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF2C2C2C),
+              color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 8),

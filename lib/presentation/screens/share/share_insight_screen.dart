@@ -6,6 +6,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import '../../../core/theme/app_colors.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:screenshot/screenshot.dart';
 import '../../../domain/entities/insight_report.dart';
@@ -70,14 +71,14 @@ class _ShareInsightScreenState extends State<ShareInsightScreen> {
         leading: IconButton(
           icon: Icon(
             Icons.close,
-            color: _isDarkMode ? Colors.white70 : const Color(0xFF2C2C2C),
+            color: _isDarkMode ? Colors.white70 : const AppColors.textPrimary,
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           '分享洞察',
           style: TextStyle(
-            color: _isDarkMode ? Colors.white : const Color(0xFF2C2C2C),
+            color: _isDarkMode ? Colors.white : const AppColors.textPrimary,
             fontSize: 17,
             fontWeight: FontWeight.w600,
           ),
@@ -387,7 +388,7 @@ class _ShareInsightScreenState extends State<ShareInsightScreen> {
                 Text('图片已准备好'),
               ],
             ),
-            backgroundColor: Color(0xFF5D4E3C),
+            backgroundColor: AppColors.textSecondary,
             duration: Duration(seconds: 2),
           ),
         );

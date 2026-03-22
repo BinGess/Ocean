@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../domain/entities/insight_report.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../l10n/app_localizations.dart';
@@ -261,7 +262,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                 l10n.enableSmartInsightsDesc,
                 textAlign: TextAlign.center,
                 style: AppTypography.bodySecondary.copyWith(
-                  color: const Color(0xFFB8ADA0),
+                  color: AppColors.textSubtle,
                 ),
               ),
               const SizedBox(height: 32),
@@ -326,7 +327,7 @@ class _InsightsScreenState extends State<InsightsScreen>
           Text(
             message ?? l10n.generatingInsight,
             style: AppTypography.bodyPrimary.copyWith(
-              color: const Color(0xFF8B7D6B),
+              color: AppColors.textTertiary,
             ),
           ),
         ],
@@ -368,7 +369,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                 l10n.autoGenerateAfterMore,
                 textAlign: TextAlign.center,
                 style: AppTypography.bodySecondary.copyWith(
-                  color: const Color(0xFFB8ADA0),
+                  color: AppColors.textSubtle,
                 ),
               ),
               const SizedBox(height: 32),
@@ -379,7 +380,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                       .add(const InsightGenerateCurrentWeek());
                 },
                 style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFFF5EBE0),
+                  backgroundColor: AppColors.accentLight,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -389,7 +390,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                 child: Text(
                   l10n.regenerate,
                   style: AppTypography.actionLabel.copyWith(
-                    color: const Color(0xFF5D4E3C),
+                    color: const AppColors.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -422,7 +423,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                       Text(
                         _formatWeekRange(report.weekRange),
                         style: AppTypography.pageMeta.copyWith(
-                          color: const Color(0xFFB8ADA0),
+                          color: AppColors.textSubtle,
                         ),
                       ),
                       // 分享、刷新按钮
@@ -445,7 +446,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                                 width: 36,
                                 height: 36,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF5EBE0),
+                                  color: AppColors.accentLight,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Icon(
@@ -471,7 +472,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                                 width: 36,
                                 height: 36,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF5EBE0),
+                                  color: AppColors.accentLight,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: AnimatedBuilder(
@@ -504,7 +505,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                         report.reportType,
                         style: AppTypography.pageTitle.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF5D4E3C),
+                          color: const AppColors.textSecondary,
                         ),
                       ),
                       TextButton(
@@ -524,7 +525,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                         child: Text(
                           l10n.viewHistoryReports,
                           style: AppTypography.sectionSubtle.copyWith(
-                            color: const Color(0xFF8B7D6B),
+                            color: AppColors.textTertiary,
                           ),
                         ),
                       ),
@@ -591,7 +592,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8E7),
+                  color: AppColors.accentWarm,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -604,7 +605,7 @@ class _InsightsScreenState extends State<InsightsScreen>
               Text(
                 l10n.emotionOverview,
                 style: AppTypography.sectionTitle.copyWith(
-                  color: const Color(0xFF5D4E3C),
+                  color: const AppColors.textSecondary,
                 ),
               ),
             ],
@@ -613,7 +614,7 @@ class _InsightsScreenState extends State<InsightsScreen>
           Text(
             overview.summary,
             style: AppTypography.bodyPrimary.copyWith(
-              color: const Color(0xFF5D4E3C),
+              color: const AppColors.textSecondary,
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -660,7 +661,7 @@ class _InsightsScreenState extends State<InsightsScreen>
               Text(
                 l10n.highFrequencySituations,
                 style: AppTypography.sectionTitle.copyWith(
-                  color: const Color(0xFF5D4E3C),
+                  color: const AppColors.textSecondary,
                 ),
               ),
             ],
@@ -687,7 +688,7 @@ class _InsightsScreenState extends State<InsightsScreen>
           Text(
             '"${emotion.content}"',
             style: AppTypography.bodyQuote.copyWith(
-              color: const Color(0xFF5D4E3C),
+              color: const AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
@@ -702,7 +703,7 @@ class _InsightsScreenState extends State<InsightsScreen>
               Text(
                 emotion.time,
                 style: AppTypography.timeLabel.copyWith(
-                  color: const Color(0xFFB8ADA0),
+                  color: AppColors.textSubtle,
                 ),
               ),
             ],
@@ -737,7 +738,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8E7),
+                  color: AppColors.accentWarm,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -750,7 +751,7 @@ class _InsightsScreenState extends State<InsightsScreen>
               Text(
                 l10n.potentialNeeds,
                 style: AppTypography.sectionTitle.copyWith(
-                  color: const Color(0xFF5D4E3C),
+                  color: const AppColors.textSecondary,
                 ),
               ),
             ],
@@ -784,7 +785,7 @@ class _InsightsScreenState extends State<InsightsScreen>
         spans.add(TextSpan(
           text: text.substring(lastEnd, match.start),
           style: AppTypography.bodyPrimary.copyWith(
-            color: const Color(0xFF5D4E3C),
+            color: const AppColors.textSecondary,
           ),
         ));
       }
@@ -808,7 +809,7 @@ class _InsightsScreenState extends State<InsightsScreen>
       spans.add(TextSpan(
         text: text.substring(lastEnd),
         style: AppTypography.bodyPrimary.copyWith(
-          color: const Color(0xFF5D4E3C),
+          color: const AppColors.textSecondary,
         ),
       ));
     }
@@ -843,7 +844,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8E7),
+                  color: AppColors.accentWarm,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -856,7 +857,7 @@ class _InsightsScreenState extends State<InsightsScreen>
               Text(
                 l10n.actionSuggestions,
                 style: AppTypography.sectionTitle.copyWith(
-                  color: const Color(0xFF5D4E3C),
+                  color: const AppColors.textSecondary,
                 ),
               ),
             ],
@@ -897,7 +898,7 @@ class _InsightsScreenState extends State<InsightsScreen>
           Text(
             suggestion.content,
             style: AppTypography.bodySecondary.copyWith(
-              color: const Color(0xFF8B7D6B),
+              color: AppColors.textTertiary,
             ),
           ),
         ],

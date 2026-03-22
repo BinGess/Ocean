@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../domain/entities/record.dart';
 import '../../../domain/entities/quote.dart';
 import '../../bloc/audio/audio_bloc.dart';
@@ -586,7 +587,7 @@ class _HomeScreenState extends State<HomeScreen>
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     valueColor:
-                        AlwaysStoppedAnimation<Color>(Color(0xFFFAF6F1)),
+                        AlwaysStoppedAnimation<Color>(AppColors.bgPrimary),
                   ),
                 ),
                 SizedBox(width: 10),
@@ -620,7 +621,7 @@ class _HomeScreenState extends State<HomeScreen>
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor:
-                          AlwaysStoppedAnimation<Color>(Color(0xFFFAF6F1)),
+                          AlwaysStoppedAnimation<Color>(AppColors.bgPrimary),
                     ),
                   ),
                   SizedBox(width: 10),
@@ -906,7 +907,7 @@ class _HomeScreenState extends State<HomeScreen>
                                         strokeWidth: 2,
                                         valueColor:
                                             AlwaysStoppedAnimation<Color>(
-                                                Color(0xFFFAF6F1)),
+                                                AppColors.bgPrimary),
                                       ),
                                     ),
                                     SizedBox(width: 10),

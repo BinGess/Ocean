@@ -64,20 +64,20 @@ class _AboutScreenState extends State<AboutScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF6F1),
+      backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios,
-              size: 20, color: Color(0xFF2C2C2C)),
+              size: 20, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
           '关于',
           style: TextStyle(
-            color: Color(0xFF2C2C2C),
+            color: AppColors.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
@@ -122,7 +122,7 @@ class _AboutScreenState extends State<AboutScreen> {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF2C2C2C),
+              color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 6),
@@ -171,7 +171,7 @@ class _AboutScreenState extends State<AboutScreen> {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF2C2C2C),
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 6),

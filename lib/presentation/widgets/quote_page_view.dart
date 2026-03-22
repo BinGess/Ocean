@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:ui' as ui;
+import '../../core/theme/app_colors.dart';
 import '../../domain/entities/quote.dart';
 import 'quote_card.dart';
 
@@ -162,7 +163,7 @@ class _QuotePageViewState extends State<QuotePageView>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: _currentIndex == index
-                ? const Color(0xFFC4A57B)
+                ? AppColors.accent
                 : const Color(0xFFE8DCC8),
           ),
         ),

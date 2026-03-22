@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
 import '../../domain/entities/record.dart';
 import '../../core/theme/app_typography.dart';
 
@@ -205,7 +206,7 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
                       controller: _textController,
                       maxLines: null,
                       style: AppTypography.modalBody.copyWith(
-                        color: const Color(0xFF5D4E3C),
+                        color: const AppColors.textSecondary,
                         height: 1.5,
                       ),
                       decoration: InputDecoration(
@@ -247,7 +248,7 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
                     icon: Icons.lightbulb_outline,
                     title: 'NVC 分析',
                     description: '完整的情绪分析',
-                    iconColor: const Color(0xFFC4A57B),
+                    iconColor: AppColors.accent,
                     backgroundColor: const Color(0xFFFFF0E6),
                     onTap: widget.onNVCInsight ??
                         () {
@@ -343,7 +344,7 @@ class _ProcessingOption extends StatelessWidget {
               Text(
                 title,
                 style: AppTypography.modalButtonSecondary.copyWith(
-                  color: const Color(0xFF2C2C2C),
+                  color: const AppColors.textPrimary,
                 ),
                 textAlign: TextAlign.center,
               ),
