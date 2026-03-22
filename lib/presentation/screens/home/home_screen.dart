@@ -19,9 +19,11 @@ import '../../widgets/nvc_error_dialog.dart';
 import '../../widgets/nvc_analyzing_modal.dart';
 import '../../widgets/ai_auth_dialog.dart';
 import '../settings/settings_screen.dart';
+import '../pro/pro_purchase_screen.dart';
 import 'emotion_input_screen.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
+import '../../../core/services/pro_subscription_service.dart';
 import '../../../core/services/quote_preloader.dart';
 import '../../../core/theme/app_typography.dart';
 
@@ -1098,6 +1100,55 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
           ),
+          // Pro 按钮
+          if (!getIt<ProSubscriptionService>().isPro)
+            GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const ProPurchaseScreen(),
+                  ),
+                );
+              },
+              child: Container(
+                height: 32,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFD4B896), Color(0xFFC4A57B)],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFC4A57B).withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.workspace_premium,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      'Pro',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(width: 10),
+          // 设置按钮
           GestureDetector(
             onTap: () {
               Navigator.of(context).push(

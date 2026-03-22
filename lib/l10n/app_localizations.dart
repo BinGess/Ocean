@@ -123,6 +123,26 @@ class AppLocalizations {
       'exportEmptySubtitle': '记录一些内容后，就可以在这里导出了',
       'exportActionShare': '分享文件',
       'exportActionDone': '完成',
+      // Pro 订阅相关
+      'pro': 'Pro',
+      'proMembership': 'Pro 会员',
+      'proPrice': '¥1/月',
+      'proPurchaseTitle': '升级为 Pro 会员',
+      'proPurchaseSubtitle': '解锁全部高级功能，让记录更完整',
+      'proFeatureExport': '导出所有记录',
+      'proFeatureExportDesc': '将你的情绪记录导出为 JSON 文件，随时备份和迁移数据',
+      'proFeatureICloud': 'iCloud 云同步',
+      'proFeatureICloudDesc': '自动同步到 iCloud，多设备无缝切换，数据永不丢失',
+      'proSubscribeButton': '立即订阅 — ¥1/月',
+      'proRestorePurchase': '恢复购买',
+      'proAlreadySubscribed': '你已经是 Pro 会员',
+      'proSubscribeSuccess': '订阅成功，欢迎成为 Pro 会员！',
+      'proSubscribeFailed': '订阅失败，请稍后重试',
+      'proRequired': '此功能需要 Pro 会员',
+      'proRestoreNone': '未找到可恢复的购买记录',
+      'proSubscribeNow': '立即订阅',
+      'proPerMonth': '月',
+      'proSubscriptionNote': '订阅将通过您的 Apple ID 账户确认购买。\n订阅会自动续订，除非您在当前订阅期结束前至少24小时关闭自动续订。\n您可以在 App Store 账户设置中管理和取消订阅。',
     },
     'en': {
       'appTitle': 'MindFlow',
@@ -231,6 +251,26 @@ class AppLocalizations {
       'exportEmptySubtitle': 'Start recording and your data will appear here',
       'exportActionShare': 'Share',
       'exportActionDone': 'Done',
+      // Pro subscription
+      'pro': 'Pro',
+      'proMembership': 'Pro Membership',
+      'proPrice': '¥1/mo',
+      'proPurchaseTitle': 'Upgrade to Pro',
+      'proPurchaseSubtitle': 'Unlock all premium features for a complete experience',
+      'proFeatureExport': 'Export All Records',
+      'proFeatureExportDesc': 'Export your emotion records as JSON files for backup and migration',
+      'proFeatureICloud': 'iCloud Sync',
+      'proFeatureICloudDesc': 'Auto-sync to iCloud across devices, never lose your data',
+      'proSubscribeButton': 'Subscribe — ¥1/mo',
+      'proRestorePurchase': 'Restore Purchase',
+      'proAlreadySubscribed': 'You are already a Pro member',
+      'proSubscribeSuccess': 'Subscribed successfully! Welcome to Pro!',
+      'proSubscribeFailed': 'Subscription failed, please try again later',
+      'proRequired': 'This feature requires Pro membership',
+      'proRestoreNone': 'No purchase to restore',
+      'proSubscribeNow': 'Subscribe Now',
+      'proPerMonth': 'mo',
+      'proSubscriptionNote': 'Payment will be charged to your Apple ID account upon confirmation.\nSubscription automatically renews unless cancelled at least 24 hours before the end of the current period.\nYou can manage and cancel subscriptions in your App Store account settings.',
     },
   };
 
@@ -344,6 +384,27 @@ class AppLocalizations {
   String get exportEmptySubtitle => _translate('exportEmptySubtitle');
   String get exportActionShare => _translate('exportActionShare');
   String get exportActionDone => _translate('exportActionDone');
+
+  // Pro 订阅相关
+  String get pro => _translate('pro');
+  String get proMembership => _translate('proMembership');
+  String get proPrice => _translate('proPrice');
+  String get proPurchaseTitle => _translate('proPurchaseTitle');
+  String get proPurchaseSubtitle => _translate('proPurchaseSubtitle');
+  String get proFeatureExport => _translate('proFeatureExport');
+  String get proFeatureExportDesc => _translate('proFeatureExportDesc');
+  String get proFeatureICloud => _translate('proFeatureICloud');
+  String get proFeatureICloudDesc => _translate('proFeatureICloudDesc');
+  String get proSubscribeButton => _translate('proSubscribeButton');
+  String get proRestorePurchase => _translate('proRestorePurchase');
+  String get proAlreadySubscribed => _translate('proAlreadySubscribed');
+  String get proSubscribeSuccess => _translate('proSubscribeSuccess');
+  String get proSubscribeFailed => _translate('proSubscribeFailed');
+  String get proRequired => _translate('proRequired');
+  String get proRestoreNone => _translate('proRestoreNone');
+  String get proSubscribeNow => _translate('proSubscribeNow');
+  String get proPerMonth => _translate('proPerMonth');
+  String get proSubscriptionNote => _translate('proSubscriptionNote');
 
   // Methods with parameters
 

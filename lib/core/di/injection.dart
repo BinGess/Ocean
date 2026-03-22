@@ -30,6 +30,7 @@ import '../services/quote_preloader.dart';
 import '../services/quote_update_manager.dart';
 import '../services/daily_summary_service.dart';
 import '../services/icloud_sync_service.dart';
+import '../services/pro_subscription_service.dart';
 import '../../presentation/bloc/audio/audio_bloc.dart';
 import '../../presentation/bloc/record/record_bloc.dart';
 import '../../presentation/bloc/insight/insight_bloc.dart';
@@ -87,6 +88,11 @@ Future<void> configureDependencies() async {
   );
   await iCloudSyncService.init();
   getIt.registerSingleton<ICloudSyncService>(iCloudSyncService);
+
+  // Pro 订阅服务
+  final proSubscriptionService = ProSubscriptionService(database: hiveDatabase);
+  await proSubscriptionService.init();
+  getIt.registerSingleton<ProSubscriptionService>(proSubscriptionService);
 
   // 语言服务
   getIt.registerLazySingleton<LocaleService>(
@@ -258,6 +264,7 @@ Future<void> cleanupDependencies() async {
   getIt<AIAuthService>().dispose();
   getIt<DailySummaryService>().dispose();
   getIt<ICloudSyncService>().dispose();
+  getIt<ProSubscriptionService>().dispose();
 
   // 清理网络客户端
   getIt<DoubaoLLMClient>().dispose();
