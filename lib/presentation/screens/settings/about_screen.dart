@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/pro_subscription_service.dart';
@@ -188,7 +189,7 @@ class _AboutScreenState extends State<AboutScreen> {
                 const SizedBox(width: 12),
                 CupertinoSwitch(
                   value: _debugModeEnabled,
-                  activeTrackColor: const Color(0xFFC4A57B),
+                  activeTrackColor: AppColors.accent,
                   onChanged: _onDebugModeChanged,
                 ),
               ],

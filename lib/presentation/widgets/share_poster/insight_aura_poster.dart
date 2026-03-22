@@ -30,7 +30,7 @@ class InsightAuraPoster extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.accent.withOpacity(0.3),
+            color: colorScheme.accent.withValues(alpha: 0.3),
             blurRadius: 40,
             offset: const Offset(0, 20),
           ),
@@ -94,7 +94,7 @@ class InsightAuraPoster extends StatelessWidget {
           colors: [
             colorScheme.backgroundStart,
             colorScheme.backgroundEnd,
-            colorScheme.backgroundStart.withOpacity(0.9),
+            colorScheme.backgroundStart.withValues(alpha: 0.9),
           ],
           stops: const [0.0, 0.5, 1.0],
         ),
@@ -116,8 +116,8 @@ class InsightAuraPoster extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  colorScheme.accent.withOpacity(0.5),
-                  colorScheme.accent.withOpacity(0.15),
+                  colorScheme.accent.withValues(alpha: 0.5),
+                  colorScheme.accent.withValues(alpha: 0.15),
                   Colors.transparent,
                 ],
               ),
@@ -135,8 +135,8 @@ class InsightAuraPoster extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  colorScheme.backgroundEnd.withOpacity(0.7),
-                  colorScheme.backgroundEnd.withOpacity(0.2),
+                  colorScheme.backgroundEnd.withValues(alpha: 0.7),
+                  colorScheme.backgroundEnd.withValues(alpha: 0.2),
                   Colors.transparent,
                 ],
               ),
@@ -154,7 +154,7 @@ class InsightAuraPoster extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  colorScheme.accent.withOpacity(0.25),
+                  colorScheme.accent.withValues(alpha: 0.25),
                   Colors.transparent,
                 ],
               ),
@@ -194,7 +194,7 @@ class InsightAuraPoster extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: colorScheme.accent.withOpacity(0.2),
+            color: colorScheme.accent.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Text(
@@ -219,10 +219,10 @@ class InsightAuraPoster extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: colorScheme.cardBackground.withOpacity(0.7),
+            color: colorScheme.cardBackground.withValues(alpha: 0.7),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: colorScheme.cardBorder.withOpacity(0.3),
+              color: colorScheme.cardBorder.withValues(alpha: 0.3),
               width: 1,
             ),
           ),
@@ -325,10 +325,10 @@ class InsightAuraPoster extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: colorScheme.accent.withOpacity(0.15),
+            color: colorScheme.accent.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: colorScheme.accent.withOpacity(0.2),
+              color: colorScheme.accent.withValues(alpha: 0.2),
             ),
           ),
           child: Row(
@@ -369,7 +369,7 @@ class InsightAuraPoster extends StatelessWidget {
               width: 24,
               height: 24,
               decoration: BoxDecoration(
-                color: colorScheme.accent.withOpacity(0.2),
+                color: colorScheme.accent.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Center(
@@ -398,7 +398,7 @@ class InsightAuraPoster extends StatelessWidget {
           '看见情绪的纹理',
           style: TextStyle(
             fontSize: 11,
-            color: colorScheme.textSecondary.withOpacity(0.7),
+            color: colorScheme.textSecondary.withValues(alpha: 0.7),
             fontStyle: FontStyle.italic,
           ),
         ),

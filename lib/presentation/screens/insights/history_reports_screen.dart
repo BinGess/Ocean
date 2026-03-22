@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/di/injection.dart';
 import '../../../domain/entities/insight_report_cache.dart';
 import '../../../domain/repositories/insight_repository.dart';
@@ -48,7 +49,7 @@ class _HistoryReportsScreenState extends State<HistoryReportsScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC4A57B)),
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
               ),
             );
           }

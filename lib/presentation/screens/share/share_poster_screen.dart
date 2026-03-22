@@ -147,7 +147,7 @@ class _SharePosterScreenState extends State<SharePosterScreen> {
         color: _isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),

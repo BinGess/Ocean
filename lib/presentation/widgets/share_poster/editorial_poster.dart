@@ -32,7 +32,7 @@ class EditorialPoster extends StatelessWidget {
         borderRadius: BorderRadius.circular(2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
@@ -56,7 +56,7 @@ class EditorialPoster extends StatelessWidget {
                 // 分割线
                 Container(
                   height: 1,
-                  color: colorScheme.textPrimary.withOpacity(0.1),
+                  color: colorScheme.textPrimary.withValues(alpha: 0.1),
                 ),
 
                 const SizedBox(height: 24),
@@ -80,7 +80,7 @@ class EditorialPoster extends StatelessWidget {
     return Positioned.fill(
       child: CustomPaint(
         painter: _GridPainter(
-          color: colorScheme.cardBorder.withOpacity(0.3),
+          color: colorScheme.cardBorder.withValues(alpha: 0.3),
         ),
       ),
     );
@@ -306,7 +306,7 @@ class EditorialPoster extends StatelessWidget {
       children: [
         Container(
           height: 1,
-          color: colorScheme.textPrimary.withOpacity(0.1),
+          color: colorScheme.textPrimary.withValues(alpha: 0.1),
         ),
         const SizedBox(height: 16),
         Row(

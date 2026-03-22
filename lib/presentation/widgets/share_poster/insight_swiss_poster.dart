@@ -27,10 +27,10 @@ class InsightSwissPoster extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDarkMode ? const Color(0xFF0E0E0E) : const Color(0xFFF9F9F7),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: colorScheme.cardBorder.withOpacity(0.6)),
+        border: Border.all(color: colorScheme.cardBorder.withValues(alpha: 0.6)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -67,7 +67,7 @@ class InsightSwissPoster extends StatelessWidget {
             const SizedBox(height: 14),
             Container(
               height: 1,
-              color: colorScheme.textPrimary.withOpacity(0.12),
+              color: colorScheme.textPrimary.withValues(alpha: 0.12),
             ),
             const SizedBox(height: 18),
 

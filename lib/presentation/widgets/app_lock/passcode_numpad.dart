@@ -146,7 +146,7 @@ class _NumpadButtonState extends State<_NumpadButton> {
               ? []
               : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -212,7 +212,7 @@ class _NumpadIconButtonState extends State<_NumpadIconButton> {
         height: 72,
         decoration: BoxDecoration(
           color: _isPressed
-              ? const Color(0xFFE8DED0).withOpacity(0.5)
+              ? const Color(0xFFE8DED0).withValues(alpha: 0.5)
               : Colors.transparent,
           shape: BoxShape.circle,
         ),

@@ -200,7 +200,7 @@ class _RipplePainter extends CustomPainter {
       final opacity = 0.05 + (blur / 15) * 0.1;  // 0.05-0.15
       if (blur > 0.5) {
         final paint = Paint()
-          ..color = Colors.white.withOpacity(opacity)
+          ..color = Colors.white.withValues(alpha: opacity)
           ..imageFilter = ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur);
         canvas.drawRect(
           Rect.fromLTWH(0, 0, size.width, size.height),
@@ -212,7 +212,7 @@ class _RipplePainter extends CustomPainter {
       if (alpha > 0.01) {
         canvas.drawRect(
           Rect.fromLTWH(0, 0, size.width, size.height),
-          Paint()..color = Colors.white.withOpacity(alpha),
+          Paint()..color = Colors.white.withValues(alpha: alpha),
         );
       }
     }

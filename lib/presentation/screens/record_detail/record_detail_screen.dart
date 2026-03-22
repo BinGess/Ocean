@@ -239,7 +239,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
       SnackBar(
         content: const Row(
           children: [
-            Icon(Icons.info_outline, color: Color(0xFFFFB74D)),
+            Icon(Icons.info_outline, color: AppColors.warning),
             SizedBox(width: 8),
             Expanded(
               child: Text('AI功能需要授权才能使用，您可在设置中开启'),
@@ -249,7 +249,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
           label: '去设置',
-          textColor: const Color(0xFFC4A57B),
+          textColor: AppColors.accent,
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -380,7 +380,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                 record: _buildDraftRecord(),
               ),
               icon: const Icon(Icons.share_outlined,
-                  size: 22, color: Color(0xFFC4A57B)),
+                  size: 22, color: AppColors.accent),
               tooltip: '分享',
             ),
             const SizedBox(width: 4),
@@ -461,7 +461,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                         child: const Icon(
                           Icons.calendar_month_rounded,
                           size: 18,
-                          color: Color(0xFFC4A57B),
+                          color: AppColors.accent,
                         ),
                       ),
                       const SizedBox(width: AppSpacing.md),

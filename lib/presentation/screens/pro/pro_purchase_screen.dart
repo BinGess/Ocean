@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/pro_subscription_service.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 
 class ProPurchaseScreen extends StatefulWidget {
@@ -50,9 +51,9 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
     final isPro = _proService.isPro;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.bgCard,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
@@ -84,7 +85,7 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
                     icon: Icons.upload_file,
                     title: l10n.proFeatureExport,
                     description: l10n.proFeatureExportDesc,
-                    color: const Color(0xFFC4A57B),
+                    color: AppColors.accent,
                   ),
                   const SizedBox(height: 16),
                   _buildFeatureCard(
@@ -160,12 +161,12 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFFD4B896), Color(0xFFC4A57B)],
+              colors: [Color(0xFFD4B896), AppColors.accent],
             ),
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFFC4A57B).withValues(alpha: 0.3),
+                color: AppColors.accent.withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -277,7 +278,7 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
       child: ElevatedButton(
         onPressed: _purchasing ? null : _handleSubscribe,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFC4A57B),
+          backgroundColor: AppColors.accent,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -309,23 +310,23 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       decoration: BoxDecoration(
-        color: const Color(0xFFC4A57B).withValues(alpha: 0.12),
+        color: AppColors.accent.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFFC4A57B).withValues(alpha: 0.3),
+          color: AppColors.accent.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.check_circle, color: Color(0xFFC4A57B), size: 22),
+          const Icon(Icons.check_circle, color: AppColors.accent, size: 22),
           const SizedBox(width: 8),
           Text(
             l10n.proAlreadySubscribed,
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Color(0xFFC4A57B),
+              color: AppColors.accent,
             ),
           ),
         ],

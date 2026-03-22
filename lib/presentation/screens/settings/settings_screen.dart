@@ -13,6 +13,7 @@ import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
 import '../../../core/services/icloud_sync_service.dart';
 import '../../../core/services/pro_subscription_service.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -75,9 +76,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF6F1),
+      backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.bgCard,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
@@ -272,7 +273,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Text(l10n.languageSystem),
                   if (currentState.isFollowingSystem) ...[
                     const SizedBox(width: 8),
-                    const Icon(Icons.check, color: Color(0xFFC4A57B), size: 20),
+                    const Icon(Icons.check, color: AppColors.accent, size: 20),
                   ],
                 ],
               ),
@@ -289,7 +290,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   if (!currentState.isFollowingSystem &&
                       currentState.effectiveLocale.languageCode == 'zh') ...[
                     const SizedBox(width: 8),
-                    const Icon(Icons.check, color: Color(0xFFC4A57B), size: 20),
+                    const Icon(Icons.check, color: AppColors.accent, size: 20),
                   ],
                 ],
               ),
@@ -306,7 +307,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   if (!currentState.isFollowingSystem &&
                       currentState.effectiveLocale.languageCode == 'en') ...[
                     const SizedBox(width: 8),
-                    const Icon(Icons.check, color: Color(0xFFC4A57B), size: 20),
+                    const Icon(Icons.check, color: AppColors.accent, size: 20),
                   ],
                 ],
               ),
@@ -344,7 +345,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       margin: const EdgeInsets.only(right: 6),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFFD4B896), Color(0xFFC4A57B)],
+          colors: [Color(0xFFD4B896), AppColors.accent],
         ),
         borderRadius: BorderRadius.circular(10),
       ),
@@ -499,7 +500,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             else
               CupertinoSwitch(
                 value: value,
-                activeTrackColor: const Color(0xFFC4A57B),
+                activeTrackColor: AppColors.accent,
                 onChanged: onChanged,
               ),
           ],

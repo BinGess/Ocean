@@ -31,7 +31,7 @@ class SoulReceiptPoster extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -321,7 +321,7 @@ class SoulReceiptPoster extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: colorScheme.accent.withOpacity(0.1),
+            color: colorScheme.accent.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
@@ -350,7 +350,7 @@ class SoulReceiptPoster extends StatelessWidget {
             children: List.generate(30, (i) => Container(
               width: i % 3 == 0 ? 3 : 2,
               margin: const EdgeInsets.symmetric(horizontal: 1),
-              color: colorScheme.textSecondary.withOpacity(0.3),
+              color: colorScheme.textSecondary.withValues(alpha: 0.3),
             )),
           ),
         ),

@@ -20,46 +20,7 @@ import '../../bloc/record/record_event.dart';
 import '../../widgets/nvc_confirmation_modal.dart';
 import '../../widgets/daily_mood_picker.dart';
 import '../record_detail/record_detail_screen.dart';
-
-// ============================================================
-// Design Tokens - 统一的设计规范
-// ============================================================
-
-/// 字体大小 - 4级层次
-class _FontSize {
-  static const double display = 24.0; // 页面标题
-  static const double title = 16.0; // 区块标题
-  static const double body = 15.0; // 正文内容
-  static const double caption = 13.0; // 辅助说明
-  static const double label = 12.0; // 标签文字
-}
-
-/// 间距 - 基于 4px 网格
-class _Spacing {
-  static const double xs = 4.0;
-  static const double sm = 8.0;
-  static const double md = 12.0;
-  static const double lg = 16.0;
-  static const double xl = 20.0;
-  static const double xxl = 24.0;
-  static const double xxxl = 32.0;
-}
-
-/// 颜色 - 统一色板
-class _Colors {
-  static const Color background = Color(0xFFFAF6F1);
-  static const Color surface = Colors.white;
-  static const Color primary = Color(0xFFC4A57B);
-  static const Color textPrimary = Color(0xFF2C2C2C);
-  static const Color textSecondary = Color(0xFF5D4E3C);
-  static const Color textMuted = Color(0xFF8B7D6B);
-  static const Color textHint = Color(0xFFAAAAAA);
-  static const Color border = Color(0xFFE0D5C5);
-  static const Color divider = Color(0xFFE8E0D5);
-  static const Color cardBg = Color(0xFFF7F0E8);
-}
-
-// ============================================================
+import '../../../core/theme/app_colors.dart';
 
 class RecordsScreen extends StatefulWidget {
   final VoidCallback? onNavigateToHome;
@@ -380,7 +341,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                           return const Center(
                             child: CircularProgressIndicator(
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                  _Colors.primary),
+                                  AppColors.accent),
                             ),
                           );
                         }
@@ -402,13 +363,13 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
                         return RefreshIndicator(
                           onRefresh: () async => _loadRecords(),
-                          color: _Colors.primary,
+                          color: AppColors.accent,
                           child: ListView.builder(
                             padding: const EdgeInsets.fromLTRB(
-                              _Spacing.xl,
-                              _Spacing.sm,
-                              _Spacing.xl,
-                              _Spacing.xxl,
+                              AppSpacing.xl,
+                              AppSpacing.sm,
+                              AppSpacing.xl,
+                              AppSpacing.xxl,
                             ),
                             itemCount: dateRange.length,
                             itemBuilder: (context, index) {
@@ -435,10 +396,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
     final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        _Spacing.xl,
-        _Spacing.lg,
-        _Spacing.xl,
-        _Spacing.sm,
+        AppSpacing.xl,
+        AppSpacing.lg,
+        AppSpacing.xl,
+        AppSpacing.sm,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -446,8 +407,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
           Text(
             l10n.dailyRecords,
             style: const TextStyle(
-              color: _Colors.textPrimary,
-              fontSize: _FontSize.display,
+              color: AppColors.textPrimary,
+              fontSize: 24.0,
               fontWeight: FontWeight.w600,
               letterSpacing: -0.5,
               height: 1.2,
@@ -459,15 +420,15 @@ class _RecordsScreenState extends State<RecordsScreen> {
               onTap: _isRefreshingDailySummary
                   ? null
                   : _forceRefreshLatestDailySummary,
-              borderRadius: BorderRadius.circular(_Spacing.md),
-              splashColor: _Colors.primary.withValues(alpha: 0.18),
-              highlightColor: _Colors.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(AppSpacing.md),
+              splashColor: AppColors.accent.withValues(alpha: 0.18),
+              highlightColor: AppColors.accent.withValues(alpha: 0.10),
               child: Container(
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: _Colors.surface,
-                  borderRadius: BorderRadius.circular(_Spacing.md),
+                  color: AppColors.bgCard,
+                  borderRadius: BorderRadius.circular(AppSpacing.md),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.04),
@@ -484,14 +445,14 @@ class _RecordsScreenState extends State<RecordsScreen> {
                           child: CircularProgressIndicator(
                             strokeWidth: 1.8,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              _Colors.primary.withValues(alpha: 0.85),
+                              AppColors.accent.withValues(alpha: 0.85),
                             ),
                           ),
                         )
                       : const Icon(
                           Icons.refresh_rounded,
                           size: 18,
-                          color: _Colors.primary,
+                          color: AppColors.accent,
                         ),
                 ),
               ),
@@ -513,40 +474,40 @@ class _RecordsScreenState extends State<RecordsScreen> {
             height: 64,
             decoration: BoxDecoration(
               color: const Color(0xFFFFF0E6),
-              borderRadius: BorderRadius.circular(_Spacing.xl),
+              borderRadius: BorderRadius.circular(AppSpacing.xl),
             ),
             child: const Icon(
               Icons.cloud_off_outlined,
               size: 28,
-              color: _Colors.primary,
+              color: AppColors.accent,
             ),
           ),
-          const SizedBox(height: _Spacing.lg),
+          const SizedBox(height: AppSpacing.lg),
           Text(
             errorMessage ?? l10n.loadFailed,
             style: const TextStyle(
-              color: _Colors.textMuted,
-              fontSize: _FontSize.body,
+              color: AppColors.textTertiary,
+              fontSize: 15.0,
               height: 1.4,
             ),
           ),
-          const SizedBox(height: _Spacing.xl),
+          const SizedBox(height: AppSpacing.xl),
           GestureDetector(
             onTap: _loadRecords,
             child: Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: _Spacing.xxl,
-                vertical: _Spacing.md,
+                horizontal: AppSpacing.xxl,
+                vertical: AppSpacing.md,
               ),
               decoration: BoxDecoration(
-                color: _Colors.primary,
-                borderRadius: BorderRadius.circular(_Spacing.xxl),
+                color: AppColors.accent,
+                borderRadius: BorderRadius.circular(AppSpacing.xxl),
               ),
               child: Text(
                 l10n.retry,
                 style: AppTypography.actionLabel.copyWith(
                   color: Colors.white,
-                  fontSize: _FontSize.body,
+                  fontSize: 15.0,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -562,7 +523,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: _Spacing.xl),
+        const SizedBox(height: AppSpacing.xl),
 
         // 日期标题行
         Row(
@@ -573,34 +534,34 @@ class _RecordsScreenState extends State<RecordsScreen> {
               width: 3,
               height: 16,
               decoration: BoxDecoration(
-                color: _Colors.primary,
+                color: AppColors.accent,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(width: _Spacing.sm),
+            const SizedBox(width: AppSpacing.sm),
             Text(
               _formatDateTitle(date),
               style: const TextStyle(
-                fontSize: _FontSize.title,
+                fontSize: 16.0,
                 fontWeight: FontWeight.w600,
-                color: _Colors.textPrimary,
+                color: AppColors.textPrimary,
                 letterSpacing: -0.2,
                 height: 1.3,
               ),
             ),
-            const SizedBox(width: _Spacing.sm),
+            const SizedBox(width: AppSpacing.sm),
             Text(
               _getDateLabel(date),
               style: const TextStyle(
-                fontSize: _FontSize.caption,
-                color: _Colors.textHint,
+                fontSize: 13.0,
+                color: AppColors.textMuted,
                 height: 1.3,
               ),
             ),
           ],
         ),
 
-        const SizedBox(height: _Spacing.lg),
+        const SizedBox(height: AppSpacing.lg),
 
         // 每日心情概览
         if (records.isNotEmpty) _buildDailyMoodCard(date, records),
@@ -641,11 +602,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(_Spacing.md),
-      margin: const EdgeInsets.only(bottom: _Spacing.lg),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      margin: const EdgeInsets.only(bottom: AppSpacing.lg),
       decoration: BoxDecoration(
-        color: _Colors.cardBg,
-        borderRadius: BorderRadius.circular(_Spacing.md),
+        color: AppColors.bgCardSecondary,
+        borderRadius: BorderRadius.circular(AppSpacing.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -659,7 +620,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: _Colors.surface,
+                    color: AppColors.bgCard,
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: [
                       BoxShadow(
@@ -677,7 +638,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   ),
                 ),
               ),
-              const SizedBox(width: _Spacing.md),
+              const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: GestureDetector(
                   onTap: () => _handleMoodTap(date),
@@ -690,23 +651,23 @@ class _RecordsScreenState extends State<RecordsScreen> {
                           Text(
                             displayMoodLabel,
                             style: const TextStyle(
-                              fontSize: _FontSize.caption,
+                              fontSize: 13.0,
                               fontWeight: FontWeight.w600,
-                              color: _Colors.textSecondary,
+                              color: AppColors.textSecondary,
                               height: 1.3,
                             ),
                           ),
                           // AI 返回的情绪关键词标签（放在“心情”右侧）
                           if (dailySummary != null &&
                               aiMoodWord.isNotEmpty) ...[
-                            const SizedBox(width: _Spacing.xs),
+                            const SizedBox(width: AppSpacing.xs),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: _Spacing.sm,
+                                horizontal: AppSpacing.sm,
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: _Colors.primary.withValues(alpha: 0.12),
+                                color: AppColors.accent.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(999),
                               ),
                               child: Text(
@@ -714,7 +675,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                                 style: const TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
-                                  color: _Colors.primary,
+                                  color: AppColors.accent,
                                   height: 1.2,
                                 ),
                               ),
@@ -722,28 +683,28 @@ class _RecordsScreenState extends State<RecordsScreen> {
                           ],
                           // 正在生成中指示
                           if (isGenerating) ...[
-                            const SizedBox(width: _Spacing.xs),
+                            const SizedBox(width: AppSpacing.xs),
                             SizedBox(
                               width: 10,
                               height: 10,
                               child: CircularProgressIndicator(
                                 strokeWidth: 1.5,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  _Colors.primary.withValues(alpha: 0.6),
+                                  AppColors.accent.withValues(alpha: 0.6),
                                 ),
                               ),
                             ),
                           ],
                         ],
                       ),
-                      const SizedBox(height: _Spacing.xs),
+                      const SizedBox(height: AppSpacing.xs),
                       if (dailySummary != null &&
                           dailySummary.oneSentence.isNotEmpty)
                         Text(
                           dailySummary.oneSentence,
                           style: const TextStyle(
-                            fontSize: _FontSize.label,
-                            color: _Colors.textHint,
+                            fontSize: 12.0,
+                            color: AppColors.textMuted,
                             height: 1.3,
                           ),
                           maxLines: 1,
@@ -753,8 +714,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
                         Text(
                           l10n.recordsCount(records.length),
                           style: const TextStyle(
-                            fontSize: _FontSize.label,
-                            color: _Colors.textHint,
+                            fontSize: 12.0,
+                            color: AppColors.textMuted,
                             height: 1.3,
                           ),
                         ),
@@ -787,19 +748,19 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 Text(
                   _formatTime(record.createdAt),
                   style: const TextStyle(
-                    fontSize: _FontSize.caption,
+                    fontSize: 13.0,
                     fontWeight: FontWeight.w500,
-                    color: _Colors.textHint,
+                    color: AppColors.textMuted,
                     height: 1.3,
                   ),
                 ),
-                const SizedBox(height: _Spacing.sm),
+                const SizedBox(height: AppSpacing.sm),
                 // 圆点
                 Container(
                   width: 8,
                   height: 8,
                   decoration: const BoxDecoration(
-                    color: _Colors.primary,
+                    color: AppColors.accent,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -808,29 +769,29 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   Expanded(
                     child: Container(
                       width: 1,
-                      margin: const EdgeInsets.symmetric(vertical: _Spacing.sm),
-                      color: _Colors.divider,
+                      margin: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                      color: AppColors.divider,
                     ),
                   )
                 else
-                  const SizedBox(height: _Spacing.lg),
+                  const SizedBox(height: AppSpacing.lg),
               ],
             ),
           ),
 
-          const SizedBox(width: _Spacing.md),
+          const SizedBox(width: AppSpacing.md),
 
           // 右侧卡片
           Expanded(
             child: GestureDetector(
               onTap: () => _handleRecordTap(record),
               child: Container(
-                margin: const EdgeInsets.only(bottom: _Spacing.lg),
-                padding: const EdgeInsets.all(_Spacing.md),
+                margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: _Colors.surface,
-                  borderRadius: BorderRadius.circular(_Spacing.lg),
-                  border: Border.all(color: _Colors.border, width: 0.5),
+                  color: AppColors.bgCard,
+                  borderRadius: BorderRadius.circular(AppSpacing.lg),
+                  border: Border.all(color: AppColors.border, width: 0.5),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.02),
@@ -847,8 +808,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
                       Text(
                         record.transcription,
                         style: const TextStyle(
-                          fontSize: _FontSize.body,
-                          color: _Colors.textPrimary,
+                          fontSize: 15.0,
+                          color: AppColors.textPrimary,
                           height: 1.6,
                         ),
                         maxLines: 3,
@@ -857,21 +818,21 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
                     // 心情标签
                     if (hasMoods) ...[
-                      const SizedBox(height: _Spacing.sm),
+                      const SizedBox(height: AppSpacing.sm),
                       Wrap(
-                        spacing: _Spacing.xs,
-                        runSpacing: _Spacing.xs,
+                        spacing: AppSpacing.xs,
+                        runSpacing: AppSpacing.xs,
                         children: moodTags.map((mood) {
                           return Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: _Spacing.sm,
+                              horizontal: AppSpacing.sm,
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: _Colors.background,
+                              color: AppColors.bgPrimary,
                               borderRadius: BorderRadius.circular(4),
                               border: Border.all(
-                                color: _Colors.border,
+                                color: AppColors.border,
                                 width: 0.5,
                               ),
                             ),
@@ -879,7 +840,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                               mood,
                               style: const TextStyle(
                                 fontSize: 10,
-                                color: _Colors.textSecondary,
+                                color: AppColors.textSecondary,
                               ),
                             ),
                           );
@@ -899,21 +860,21 @@ class _RecordsScreenState extends State<RecordsScreen> {
   Widget _buildEmptyState() {
     final l10n = AppLocalizations.of(context)!;
     return Padding(
-      padding: const EdgeInsets.only(top: _Spacing.xxxl),
+      padding: const EdgeInsets.only(top: AppSpacing.xxxl),
       child: Center(
         child: Column(
           children: [
             Icon(
               Icons.edit_note,
               size: 48,
-              color: _Colors.textHint.withValues(alpha: 0.3),
+              color: AppColors.textMuted.withValues(alpha: 0.3),
             ),
-            const SizedBox(height: _Spacing.md),
+            const SizedBox(height: AppSpacing.md),
             Text(
               l10n.noRecords,
               style: TextStyle(
-                fontSize: _FontSize.body,
-                color: _Colors.textHint.withValues(alpha: 0.5),
+                fontSize: 15.0,
+                color: AppColors.textMuted.withValues(alpha: 0.5),
               ),
             ),
           ],

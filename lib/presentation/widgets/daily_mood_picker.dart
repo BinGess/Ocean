@@ -122,7 +122,7 @@ class DailyMoodPicker extends StatelessWidget {
                   duration: const Duration(milliseconds: 200),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? mood.color.withOpacity(0.15)
+                        ? mood.color.withValues(alpha: 0.15)
                         : const Color(0xFFF5F5F5),
                     borderRadius: BorderRadius.circular(16),
                     border: isSelected

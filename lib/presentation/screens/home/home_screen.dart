@@ -438,7 +438,7 @@ class _HomeScreenState extends State<HomeScreen>
         const SnackBar(
           content: Row(
             children: [
-              Icon(Icons.info_outline, color: Color(0xFFFFB74D), size: 20),
+              Icon(Icons.info_outline, color: AppColors.warning, size: 20),
               SizedBox(width: 8),
               Text('内容太短，请重试'),
             ],
@@ -539,7 +539,7 @@ class _HomeScreenState extends State<HomeScreen>
       SnackBar(
         content: const Row(
           children: [
-            Icon(Icons.info_outline, color: Color(0xFFFFB74D)),
+            Icon(Icons.info_outline, color: AppColors.warning),
             SizedBox(width: 8),
             Expanded(
               child: Text('AI功能需要授权才能使用，您可在设置中开启'),
@@ -549,7 +549,7 @@ class _HomeScreenState extends State<HomeScreen>
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
           label: '去设置',
-          textColor: const Color(0xFFC4A57B),
+          textColor: AppColors.accent,
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -652,7 +652,7 @@ class _HomeScreenState extends State<HomeScreen>
               content: Row(
                 children: [
                   Icon(Icons.hourglass_empty,
-                      color: Color(0xFFFFB74D), size: 20),
+                      color: AppColors.warning, size: 20),
                   SizedBox(width: 8),
                   Text('转写未完成，请稍后...'),
                 ],
@@ -699,7 +699,7 @@ class _HomeScreenState extends State<HomeScreen>
             const SnackBar(
               content: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Color(0xFFFFB74D), size: 20),
+                  Icon(Icons.info_outline, color: AppColors.warning, size: 20),
                   SizedBox(width: 8),
                   Flexible(child: Text('暂无转写文本，已自动转为仅记录')),
                 ],
@@ -1115,12 +1115,12 @@ class _HomeScreenState extends State<HomeScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFFD4B896), Color(0xFFC4A57B)],
+                    colors: [Color(0xFFD4B896), AppColors.accent],
                   ),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFC4A57B).withValues(alpha: 0.3),
+                      color: AppColors.accent.withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),

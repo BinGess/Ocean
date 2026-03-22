@@ -5,6 +5,7 @@ library;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/services/app_lock_service.dart';
 import '../../../core/di/injection.dart';
 import '../../widgets/app_lock/passcode_numpad.dart';
@@ -289,7 +290,7 @@ class _LockScreenState extends State<LockScreen> {
               child: const Icon(
                 Icons.lock_outline,
                 size: 40,
-                color: Color(0xFFC4A57B),
+                color: AppColors.accent,
               ),
             ),
             const SizedBox(height: 24),

@@ -38,7 +38,7 @@ class PrivacyBlurOverlay extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFC4A57B).withOpacity(0.2),
+                        color: const Color(0xFFC4A57B).withValues(alpha: 0.2),
                         blurRadius: 20,
                         spreadRadius: 5,
                       ),

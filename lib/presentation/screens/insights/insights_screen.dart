@@ -86,7 +86,7 @@ class _InsightsScreenState extends State<InsightsScreen>
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.info_outline, color: Color(0xFFFFB74D)),
+            const Icon(Icons.info_outline, color: AppColors.warning),
             const SizedBox(width: 8),
             Expanded(
               child: Text(l10n.aiNeedsAuthSnackbar),
@@ -96,7 +96,7 @@ class _InsightsScreenState extends State<InsightsScreen>
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
           label: l10n.goToSettings,
-          textColor: const Color(0xFFC4A57B),
+          textColor: AppColors.accent,
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -204,7 +204,7 @@ class _InsightsScreenState extends State<InsightsScreen>
 
               return RefreshIndicator(
                 onRefresh: _onRefresh,
-                color: const Color(0xFFC4A57B),
+                color: AppColors.accent,
                 backgroundColor: Colors.white,
                 child: _buildInsightContent(
                     context, state.currentReport!, state.lastFetchTime, l10n),
@@ -246,7 +246,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                 child: const Icon(
                   Icons.psychology_outlined,
                   size: 40,
-                  color: Color(0xFFC4A57B),
+                  color: AppColors.accent,
                 ),
               ),
               const SizedBox(height: 24),
@@ -271,11 +271,11 @@ class _InsightsScreenState extends State<InsightsScreen>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFC4A57B),
+                    color: AppColors.accent,
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFC4A57B).withValues(alpha: 0.3),
+                        color: AppColors.accent.withValues(alpha: 0.3),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -318,7 +318,7 @@ class _InsightsScreenState extends State<InsightsScreen>
             width: 48,
             height: 48,
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC4A57B)),
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
               strokeWidth: 3,
             ),
           ),
@@ -437,9 +437,9 @@ class _InsightsScreenState extends State<InsightsScreen>
                                 report: report,
                               ),
                               borderRadius: BorderRadius.circular(8),
-                              splashColor: const Color(0xFFC4A57B)
+                              splashColor: AppColors.accent
                                   .withValues(alpha: 0.18),
-                              highlightColor: const Color(0xFFC4A57B)
+                              highlightColor: AppColors.accent
                                   .withValues(alpha: 0.12),
                               child: Container(
                                 width: 36,
@@ -451,7 +451,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                                 child: const Icon(
                                   Icons.share_outlined,
                                   size: 18,
-                                  color: Color(0xFFC4A57B),
+                                  color: AppColors.accent,
                                 ),
                               ),
                             ),
@@ -463,9 +463,9 @@ class _InsightsScreenState extends State<InsightsScreen>
                             child: InkWell(
                               onTap: _onRefresh,
                               borderRadius: BorderRadius.circular(10),
-                              splashColor: const Color(0xFFC4A57B)
+                              splashColor: AppColors.accent
                                   .withValues(alpha: 0.18),
-                              highlightColor: const Color(0xFFC4A57B)
+                              highlightColor: AppColors.accent
                                   .withValues(alpha: 0.12),
                               child: Container(
                                 width: 36,
@@ -486,7 +486,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                                   child: const Icon(
                                     Icons.refresh,
                                     size: 18,
-                                    color: Color(0xFFC4A57B),
+                                    color: AppColors.accent,
                                   ),
                                 ),
                               ),
@@ -597,7 +597,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                 child: const Icon(
                   Icons.emoji_emotions_outlined,
                   size: 18,
-                  color: Color(0xFFC4A57B),
+                  color: AppColors.accent,
                 ),
               ),
               const SizedBox(width: 12),
@@ -743,7 +743,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                 child: const Icon(
                   Icons.psychology_outlined,
                   size: 18,
-                  color: Color(0xFFC4A57B),
+                  color: AppColors.accent,
                 ),
               ),
               const SizedBox(width: 12),
@@ -795,7 +795,7 @@ class _InsightsScreenState extends State<InsightsScreen>
       spans.add(TextSpan(
         text: value,
         style: AppTypography.bodyPrimary.copyWith(
-          color: const Color(0xFFC4A57B),
+          color: AppColors.accent,
           fontWeight: FontWeight.w600,
         ),
       ));
@@ -849,7 +849,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                 child: const Icon(
                   Icons.lightbulb_outline,
                   size: 18,
-                  color: Color(0xFFC4A57B),
+                  color: AppColors.accent,
                 ),
               ),
               const SizedBox(width: 12),
@@ -878,7 +878,7 @@ class _InsightsScreenState extends State<InsightsScreen>
         borderRadius: BorderRadius.circular(12),
         border: const Border(
           left: BorderSide(
-            color: Color(0xFFC4A57B),
+            color: AppColors.accent,
             width: 2,
           ),
         ),

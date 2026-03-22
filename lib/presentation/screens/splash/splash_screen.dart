@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
 
 /// 开屏页面
 /// 展示 Logo 和 Slogan，0.5 秒后自动进入主页
@@ -80,7 +81,7 @@ class _SplashScreenState extends State<SplashScreen>
                       color: Colors.white,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFD9C9B8).withOpacity(0.4),
+                          color: const Color(0xFFD9C9B8).withValues(alpha: 0.4),
                           blurRadius: 20,
                           spreadRadius: 2,
                         ),
@@ -97,7 +98,7 @@ class _SplashScreenState extends State<SplashScreen>
                           return const Icon(
                             Icons.water_drop_outlined,
                             size: 48,
-                            color: Color(0xFFC4A57B),
+                            color: AppColors.accent,
                           );
                         },
                       ),

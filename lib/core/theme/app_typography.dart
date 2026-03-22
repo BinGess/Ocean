@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'app_colors.dart';
+
+export 'app_colors.dart' show AppColors;
 
 /// 全局间距规范 - 基于 4px 网格系统
 class AppSpacing {
@@ -22,45 +25,6 @@ class AppSpacing {
   static const double cardRadius = 12.0;
   /// 大卡片圆角
   static const double cardRadiusLg = 20.0;
-}
-
-/// 全局颜色规范
-class AppColors {
-  AppColors._();
-
-  // 文字色阶
-  static const Color textPrimary = Color(0xFF2C2C2C);      // 最深 - 页面标题
-  static const Color textSecondary = Color(0xFF5D4E3C);     // 次深 - 正文/区块标题
-  static const Color textTertiary = Color(0xFF8B7D6B);      // 中等 - 辅助说明
-  static const Color textSubtle = Color(0xFFB8ADA0);        // 最浅 - 时间/元信息
-  static const Color textMuted = Color(0xFFAAAAAA);         // 灰色 - 占位/禁用
-
-  // 品牌/强调色
-  static const Color accent = Color(0xFFC4A57B);            // 主强调色
-  static const Color accentLight = Color(0xFFF5EBE0);       // 强调色浅底
-  static const Color accentWarm = Color(0xFFFFF8E7);        // 暖黄底色
-
-  // 背景色阶
-  static const Color bgPrimary = Color(0xFFFAF6F1);         // 主背景（暖米色）
-  static const Color bgCard = Colors.white;                  // 卡片背景
-  static const List<Color> warmPageBackgroundGradient = <Color>[
-    Color(0xFFFFFCF8),
-    Color(0xFFFDFBF6),
-    Color(0xFFFCF8F1),
-  ];
-  static const Color bgCardSecondary = Color(0xFFF7F0E8);   // 次级卡片背景
-  static const Color bgInput = Color(0xFFF5F5F5);           // 输入框背景
-
-  // 边框/分割线
-  static const Color border = Color(0xFFE0D5C5);            // 主边框
-  static const Color borderLight = Color(0xFFE8DED0);       // 浅边框
-  static const Color divider = Color(0xFFE8E0D5);           // 分割线
-
-  // 功能色
-  static const Color success = Color(0xFF4CAF50);
-  static const Color warning = Color(0xFFFFB74D);
-  static const Color error = Color(0xFFFF3B30);
-  static const Color info = Color(0xFF2196F3);
 }
 
 class AppTypography {

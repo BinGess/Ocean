@@ -3,6 +3,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/services/app_lock_service.dart';
 import '../../../core/di/injection.dart';
 import 'passcode_setup_screen.dart';
@@ -163,7 +164,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFC4A57B)),
+                    borderSide: const BorderSide(color: AppColors.accent),
                   ),
                 ),
                 onChanged: (value) {
@@ -195,7 +196,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
               child: const Text(
                 '确认',
                 style: TextStyle(
-                  color: Color(0xFFC4A57B),
+                  color: AppColors.accent,
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                 ),
@@ -245,12 +246,12 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFC4A57B).withValues(alpha: 0.2),
+                    color: AppColors.accent.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.shield_outlined,
-                    color: Color(0xFFC4A57B),
+                    color: AppColors.accent,
                     size: 24,
                   ),
                 ),
@@ -370,7 +371,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
             ),
             child: Icon(
               icon,
-              color: const Color(0xFFC4A57B),
+              color: AppColors.accent,
               size: 22,
             ),
           ),
@@ -400,7 +401,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
           Switch.adaptive(
             value: value,
             onChanged: onChanged,
-            activeColor: const Color(0xFFC4A57B),
+            activeColor: AppColors.accent,
           ),
         ],
       ),
@@ -429,7 +430,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
               ),
               child: Icon(
                 icon,
-                color: const Color(0xFFC4A57B),
+                color: AppColors.accent,
                 size: 22,
               ),
             ),
@@ -515,7 +516,7 @@ class _AutoLockDurationPicker extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 16,
                           color: isSelected
-                              ? const Color(0xFFC4A57B)
+                              ? AppColors.accent
                               : const Color(0xFF5D4E3C),
                           fontWeight:
                               isSelected ? FontWeight.w600 : FontWeight.normal,
@@ -525,7 +526,7 @@ class _AutoLockDurationPicker extends StatelessWidget {
                     if (isSelected)
                       const Icon(
                         Icons.check,
-                        color: Color(0xFFC4A57B),
+                        color: AppColors.accent,
                         size: 22,
                       ),
                   ],

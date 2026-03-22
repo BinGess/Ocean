@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import '../../../core/theme/app_colors.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/di/injection.dart';
@@ -149,7 +150,7 @@ class _ExportScreenState extends State<ExportScreen>
             height: 36,
             child: CircularProgressIndicator(
               strokeWidth: 3,
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC4A57B)),
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
             ),
           ),
           const SizedBox(height: 16),
@@ -376,7 +377,7 @@ class _ExportScreenState extends State<ExportScreen>
               child: Checkbox(
                 value: value && enabled,
                 onChanged: enabled ? (v) => onChanged(v ?? false) : null,
-                activeColor: const Color(0xFFC4A57B),
+                activeColor: AppColors.accent,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(4),
                 ),
@@ -439,11 +440,11 @@ class _ExportScreenState extends State<ExportScreen>
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             color:
-                selected ? const Color(0xFFC4A57B) : const Color(0xFFF8F6F3),
+                selected ? AppColors.accent : const Color(0xFFF8F6F3),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: selected
-                  ? const Color(0xFFC4A57B)
+                  ? AppColors.accent
                   : const Color(0xFFE8E4DF),
             ),
           ),
@@ -531,11 +532,11 @@ class _ExportScreenState extends State<ExportScreen>
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color:
-                selected ? const Color(0xFFC4A57B) : const Color(0xFFF8F6F3),
+                selected ? AppColors.accent : const Color(0xFFF8F6F3),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: selected
-                  ? const Color(0xFFC4A57B)
+                  ? AppColors.accent
                   : const Color(0xFFE8E4DF),
             ),
           ),
@@ -563,11 +564,11 @@ class _ExportScreenState extends State<ExportScreen>
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         decoration: BoxDecoration(
           color:
-              isCustom ? const Color(0xFFC4A57B) : const Color(0xFFF8F6F3),
+              isCustom ? AppColors.accent : const Color(0xFFF8F6F3),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isCustom
-                ? const Color(0xFFC4A57B)
+                ? AppColors.accent
                 : const Color(0xFFE8E4DF),
           ),
         ),
@@ -610,7 +611,7 @@ class _ExportScreenState extends State<ExportScreen>
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFFC4A57B),
+              primary: AppColors.accent,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Color(0xFF2C2C2C),
@@ -800,7 +801,7 @@ class _ExportScreenState extends State<ExportScreen>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFC4A57B).withValues(alpha: 0.15),
+                    color: AppColors.accent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -808,7 +809,7 @@ class _ExportScreenState extends State<ExportScreen>
                     style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFFC4A57B),
+                      color: AppColors.accent,
                     ),
                   ),
                 ),
@@ -860,7 +861,7 @@ class _ExportScreenState extends State<ExportScreen>
               : ElevatedButton(
                   onPressed: _hasSelection ? _doExport : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFC4A57B),
+                    backgroundColor: AppColors.accent,
                     disabledBackgroundColor: const Color(0xFFE0D8CD),
                     foregroundColor: Colors.white,
                     disabledForegroundColor:
@@ -888,7 +889,7 @@ class _ExportScreenState extends State<ExportScreen>
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: const Color(0xFFC4A57B),
+        color: AppColors.accent,
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
@@ -1067,9 +1068,9 @@ class _ExportScreenState extends State<ExportScreen>
                             icon: const Icon(Icons.share_outlined, size: 18),
                             label: Text(l10n.exportActionShare),
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFFC4A57B),
+                              foregroundColor: AppColors.accent,
                               side: const BorderSide(
-                                  color: Color(0xFFC4A57B), width: 1.5),
+                                  color: AppColors.accent, width: 1.5),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
@@ -1085,7 +1086,7 @@ class _ExportScreenState extends State<ExportScreen>
                           child: ElevatedButton(
                             onPressed: () => Navigator.pop(ctx),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFC4A57B),
+                              backgroundColor: AppColors.accent,
                               foregroundColor: Colors.white,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
