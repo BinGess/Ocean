@@ -143,6 +143,8 @@ class AppLocalizations {
       'proSubscribeNow': '立即订阅',
       'proPerMonth': '月',
       'proSubscriptionNote': '订阅将通过您的 Apple ID 账户确认购买。\n订阅会自动续订，除非您在当前订阅期结束前至少24小时关闭自动续订。\n您可以在 App Store 账户设置中管理和取消订阅。',
+      'debugMode': 'DEBUG 模式',
+      'debugModeSubtitle': '开启后无需订阅即可使用导出与 iCloud（仅供内部测试）',
     },
     'en': {
       'appTitle': 'MindFlow',
@@ -271,6 +273,9 @@ class AppLocalizations {
       'proSubscribeNow': 'Subscribe Now',
       'proPerMonth': 'mo',
       'proSubscriptionNote': 'Payment will be charged to your Apple ID account upon confirmation.\nSubscription automatically renews unless cancelled at least 24 hours before the end of the current period.\nYou can manage and cancel subscriptions in your App Store account settings.',
+      'debugMode': 'DEBUG mode',
+      'debugModeSubtitle':
+          'When on, Export and iCloud work without subscription (internal testing only)',
     },
   };
 
@@ -405,6 +410,8 @@ class AppLocalizations {
   String get proSubscribeNow => _translate('proSubscribeNow');
   String get proPerMonth => _translate('proPerMonth');
   String get proSubscriptionNote => _translate('proSubscriptionNote');
+  String get debugMode => _translate('debugMode');
+  String get debugModeSubtitle => _translate('debugModeSubtitle');
 
   // Methods with parameters
 

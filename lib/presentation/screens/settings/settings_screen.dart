@@ -131,7 +131,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.upload_file,
             trailing: _buildProBadge(),
             onTap: () {
-              if (getIt<ProSubscriptionService>().isPro) {
+              if (getIt<ProSubscriptionService>().hasProFeatureAccess) {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const ExportScreen()),
                 );
@@ -165,10 +165,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: l10n.about,
             subtitle: l10n.aboutSubtitle,
             icon: Icons.info_outline,
-            onTap: () {
-              Navigator.of(context).push(
+            onTap: () async {
+              await Navigator.of(context).push<void>(
                 MaterialPageRoute(builder: (_) => const AboutScreen()),
               );
+              if (mounted) setState(() {});
             },
           ),
         ],
@@ -335,7 +336,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildProBadge() {
-    if (getIt<ProSubscriptionService>().isPro) {
+    if (getIt<ProSubscriptionService>().hasProFeatureAccess) {
       return const SizedBox.shrink();
     }
     return Container(
@@ -432,7 +433,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required ValueChanged<bool> onChanged,
     bool proRequired = false,
   }) {
-    final needsPro = proRequired && !getIt<ProSubscriptionService>().isPro;
+    final needsPro =
+        proRequired && !getIt<ProSubscriptionService>().hasProFeatureAccess;
 
     return GestureDetector(
       onTap: needsPro

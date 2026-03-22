@@ -1,13 +1,67 @@
+import 'dart:async';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/di/injection.dart';
+import '../../../core/services/pro_subscription_service.dart';
+import '../../../l10n/app_localizations.dart';
 
-class AboutScreen extends StatelessWidget {
+class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
 
   @override
+  State<AboutScreen> createState() => _AboutScreenState();
+}
+
+class _AboutScreenState extends State<AboutScreen> {
+  late final ProSubscriptionService _proService;
+  int _logoTapCount = 0;
+  Timer? _tapResetTimer;
+  late bool _showDebugSection;
+  late bool _debugModeEnabled;
+
+  @override
+  void initState() {
+    super.initState();
+    _proService = getIt<ProSubscriptionService>();
+    _showDebugSection = _proService.debugMenuUnlocked;
+    _debugModeEnabled = _proService.isDebugModeEnabled;
+  }
+
+  @override
+  void dispose() {
+    _tapResetTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onLogoTap() {
+    if (_showDebugSection) return;
+
+    _tapResetTimer?.cancel();
+    _logoTapCount++;
+    if (_logoTapCount >= 3) {
+      _logoTapCount = 0;
+      unawaited(_proService.setDebugMenuUnlocked(true));
+      setState(() => _showDebugSection = true);
+      return;
+    }
+    _tapResetTimer = Timer(const Duration(milliseconds: 1200), () {
+      _logoTapCount = 0;
+    });
+  }
+
+  void _onDebugModeChanged(bool value) {
+    setState(() => _debugModeEnabled = value);
+    unawaited(_proService.setDebugModeEnabled(value));
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAF6F1),
       appBar: AppBar(
@@ -15,7 +69,8 @@ class AboutScreen extends StatelessWidget {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 20, color: Color(0xFF2C2C2C)),
+          icon: const Icon(Icons.arrow_back_ios,
+              size: 20, color: Color(0xFF2C2C2C)),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
@@ -30,12 +85,12 @@ class AboutScreen extends StatelessWidget {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: _buildAboutCard(context),
+        child: _buildAboutCard(context, l10n),
       ),
     );
   }
 
-  Widget _buildAboutCard(BuildContext context) {
+  Widget _buildAboutCard(BuildContext context, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -51,10 +106,14 @@ class AboutScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Image.asset(
-            'assets/images/app_icon.png',
-            width: 64,
-            height: 64,
+          GestureDetector(
+            onTap: _onLogoTap,
+            behavior: HitTestBehavior.opaque,
+            child: Image.asset(
+              'assets/images/app_icon.png',
+              width: 64,
+              height: 64,
+            ),
           ),
           const SizedBox(height: 12),
           const Text(
@@ -95,6 +154,46 @@ class AboutScreen extends StatelessWidget {
             label: '联系邮箱',
             value: 'baibin1989@foxmail.com',
           ),
+          if (_showDebugSection) ...[
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.debugMode,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF2C2C2C),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        l10n.debugModeSubtitle,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF8B8B8B),
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                CupertinoSwitch(
+                  value: _debugModeEnabled,
+                  activeTrackColor: const Color(0xFFC4A57B),
+                  onChanged: _onDebugModeChanged,
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -125,7 +224,9 @@ class AboutScreen extends StatelessWidget {
               value,
               style: TextStyle(
                 fontSize: 14,
-                color: onTap == null ? const Color(0xFF8B8B8B) : const Color(0xFF5A9FD4),
+                color: onTap == null
+                    ? const Color(0xFF8B8B8B)
+                    : const Color(0xFF5A9FD4),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -140,7 +241,8 @@ class AboutScreen extends StatelessWidget {
   }
 
   Future<void> _openPrivacyPolicy(BuildContext context) async {
-    const url = 'https://lucky-geranium-802.notion.site/Shunji-2fe407f7a70180c79746dbc59ad9a19d?pvs=74';
+    const url =
+        'https://lucky-geranium-802.notion.site/Shunji-2fe407f7a70180c79746dbc59ad9a19d?pvs=74';
     final uri = Uri.parse(url);
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!ok) {

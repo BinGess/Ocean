@@ -19,6 +19,11 @@ class ProSubscriptionService {
   static const String _proExpiryKey = 'pro_subscription_expiry';
   static const String _proProductIdKey = 'pro_subscription_product_id';
 
+  /// 关于页连点 Logo 解锁后，才显示 DEBUG 开关（持久化）
+  static const String _debugMenuUnlockedKey = 'debug_menu_unlocked';
+  /// DEBUG 模式：免订阅使用导出与 iCloud（仅内部测试）
+  static const String _debugModeKey = 'app_debug_mode_enabled';
+
   final StreamController<bool> _statusController =
       StreamController<bool>.broadcast();
   StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
@@ -99,7 +104,7 @@ class ProSubscriptionService {
     }
   }
 
-  /// 当前是否为 Pro 用户
+  /// 当前是否为 Pro 用户（仅真实订阅，不含 DEBUG）
   bool get isPro {
     final active = _database.settingsBox.get(_proStatusKey) as bool? ?? false;
     if (!active) return false;
@@ -112,6 +117,25 @@ class ProSubscriptionService {
 
     return DateTime.now().isBefore(expiry);
   }
+
+  /// 关于页已解锁 DEBUG 区域（连点 Logo 3 次）
+  bool get debugMenuUnlocked =>
+      _database.settingsBox.get(_debugMenuUnlockedKey) as bool? ?? false;
+
+  Future<void> setDebugMenuUnlocked(bool value) async {
+    await _database.settingsBox.put(_debugMenuUnlockedKey, value);
+  }
+
+  /// DEBUG 模式开启时，导出与 iCloud 等同 Pro，无需购买
+  bool get isDebugModeEnabled =>
+      _database.settingsBox.get(_debugModeKey) as bool? ?? false;
+
+  Future<void> setDebugModeEnabled(bool value) async {
+    await _database.settingsBox.put(_debugModeKey, value);
+  }
+
+  /// 是否可使用 Pro 限定功能（真实订阅或 DEBUG）
+  bool get hasProFeatureAccess => isPro || isDebugModeEnabled;
 
   /// 发起购买
   Future<bool> purchase() async {

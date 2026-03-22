@@ -1101,7 +1101,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
           // Pro 按钮
-          if (!getIt<ProSubscriptionService>().isPro)
+          if (!getIt<ProSubscriptionService>().hasProFeatureAccess)
             GestureDetector(
               onTap: () {
                 Navigator.of(context).push(
