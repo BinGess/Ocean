@@ -206,7 +206,7 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
                       controller: _textController,
                       maxLines: null,
                       style: AppTypography.modalBody.copyWith(
-                        color: const AppColors.textSecondary,
+                        color: AppColors.textSecondary,
                         height: 1.5,
                       ),
                       decoration: InputDecoration(
@@ -344,7 +344,7 @@ class _ProcessingOption extends StatelessWidget {
               Text(
                 title,
                 style: AppTypography.modalButtonSecondary.copyWith(
-                  color: const AppColors.textPrimary,
+                  color: AppColors.textPrimary,
                 ),
                 textAlign: TextAlign.center,
               ),

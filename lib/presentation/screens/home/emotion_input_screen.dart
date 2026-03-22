@@ -102,7 +102,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
         content: Row(
           children: [
             Icon(icon ?? Icons.info_outline,
-                color: iconColor ?? const AppColors.warning, size: 20),
+                color: iconColor ?? AppColors.warning, size: 20),
             const SizedBox(width: 8),
             Flexible(child: Text(message)),
           ],

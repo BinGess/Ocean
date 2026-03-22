@@ -390,7 +390,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                 child: Text(
                   l10n.regenerate,
                   style: AppTypography.actionLabel.copyWith(
-                    color: const AppColors.textSecondary,
+                    color: AppColors.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -505,7 +505,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                         report.reportType,
                         style: AppTypography.pageTitle.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: const AppColors.textSecondary,
+                          color: AppColors.textSecondary,
                         ),
                       ),
                       TextButton(
@@ -605,7 +605,7 @@ class _InsightsScreenState extends State<InsightsScreen>
               Text(
                 l10n.emotionOverview,
                 style: AppTypography.sectionTitle.copyWith(
-                  color: const AppColors.textSecondary,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -614,7 +614,7 @@ class _InsightsScreenState extends State<InsightsScreen>
           Text(
             overview.summary,
             style: AppTypography.bodyPrimary.copyWith(
-              color: const AppColors.textSecondary,
+              color: AppColors.textSecondary,
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -661,7 +661,7 @@ class _InsightsScreenState extends State<InsightsScreen>
               Text(
                 l10n.highFrequencySituations,
                 style: AppTypography.sectionTitle.copyWith(
-                  color: const AppColors.textSecondary,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -688,7 +688,7 @@ class _InsightsScreenState extends State<InsightsScreen>
           Text(
             '"${emotion.content}"',
             style: AppTypography.bodyQuote.copyWith(
-              color: const AppColors.textSecondary,
+              color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
@@ -751,7 +751,7 @@ class _InsightsScreenState extends State<InsightsScreen>
               Text(
                 l10n.potentialNeeds,
                 style: AppTypography.sectionTitle.copyWith(
-                  color: const AppColors.textSecondary,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -785,7 +785,7 @@ class _InsightsScreenState extends State<InsightsScreen>
         spans.add(TextSpan(
           text: text.substring(lastEnd, match.start),
           style: AppTypography.bodyPrimary.copyWith(
-            color: const AppColors.textSecondary,
+            color: AppColors.textSecondary,
           ),
         ));
       }
@@ -809,7 +809,7 @@ class _InsightsScreenState extends State<InsightsScreen>
       spans.add(TextSpan(
         text: text.substring(lastEnd),
         style: AppTypography.bodyPrimary.copyWith(
-          color: const AppColors.textSecondary,
+          color: AppColors.textSecondary,
         ),
       ));
     }
@@ -857,7 +857,7 @@ class _InsightsScreenState extends State<InsightsScreen>
               Text(
                 l10n.actionSuggestions,
                 style: AppTypography.sectionTitle.copyWith(
-                  color: const AppColors.textSecondary,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],

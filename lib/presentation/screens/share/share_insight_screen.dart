@@ -71,14 +71,14 @@ class _ShareInsightScreenState extends State<ShareInsightScreen> {
         leading: IconButton(
           icon: Icon(
             Icons.close,
-            color: _isDarkMode ? Colors.white70 : const AppColors.textPrimary,
+            color: _isDarkMode ? Colors.white70 : AppColors.textPrimary,
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           '分享洞察',
           style: TextStyle(
-            color: _isDarkMode ? Colors.white : const AppColors.textPrimary,
+            color: _isDarkMode ? Colors.white : AppColors.textPrimary,
             fontSize: 17,
             fontWeight: FontWeight.w600,
           ),

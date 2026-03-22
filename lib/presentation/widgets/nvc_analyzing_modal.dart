@@ -344,7 +344,7 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
                   style: AppTypography.modalBody.copyWith(
                     fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
                     color: isCurrent || isCompleted
-                        ? const AppColors.textPrimary
+                        ? AppColors.textPrimary
                         : const Color(0xFFAAAAAA),
                   ),
                 ),
