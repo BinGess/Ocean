@@ -463,8 +463,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
               splashColor: _Colors.primary.withValues(alpha: 0.18),
               highlightColor: _Colors.primary.withValues(alpha: 0.10),
               child: Container(
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: _Colors.surface,
                   borderRadius: BorderRadius.circular(_Spacing.md),

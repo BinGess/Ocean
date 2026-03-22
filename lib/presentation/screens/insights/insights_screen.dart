@@ -275,7 +275,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFC4A57B).withOpacity(0.3),
+                        color: const Color(0xFFC4A57B).withValues(alpha: 0.3),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -442,10 +442,11 @@ class _InsightsScreenState extends State<InsightsScreen>
                               highlightColor: const Color(0xFFC4A57B)
                                   .withValues(alpha: 0.12),
                               child: Container(
-                                padding: const EdgeInsets.all(6),
+                                width: 36,
+                                height: 36,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFF5EBE0),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Icon(
                                   Icons.share_outlined,
@@ -461,16 +462,17 @@ class _InsightsScreenState extends State<InsightsScreen>
                             color: Colors.transparent,
                             child: InkWell(
                               onTap: _onRefresh,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(10),
                               splashColor: const Color(0xFFC4A57B)
                                   .withValues(alpha: 0.18),
                               highlightColor: const Color(0xFFC4A57B)
                                   .withValues(alpha: 0.12),
                               child: Container(
-                                padding: const EdgeInsets.all(6),
+                                width: 36,
+                                height: 36,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFF5EBE0),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: AnimatedBuilder(
                                   animation: _refreshController,
@@ -574,7 +576,7 @@ class _InsightsScreenState extends State<InsightsScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -630,7 +632,7 @@ class _InsightsScreenState extends State<InsightsScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -720,7 +722,7 @@ class _InsightsScreenState extends State<InsightsScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -826,7 +828,7 @@ class _InsightsScreenState extends State<InsightsScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),

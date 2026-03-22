@@ -73,7 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: const Color(0xFFFAF6F1),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,

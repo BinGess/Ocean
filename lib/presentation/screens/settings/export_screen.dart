@@ -104,7 +104,7 @@ class _ExportScreenState extends State<ExportScreen>
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: const Color(0xFFFAF6F1),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -328,11 +328,11 @@ class _ExportScreenState extends State<ExportScreen>
         child: Row(
           children: [
             Container(
-              width: 36,
-              height: 36,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: const Color(0xFFF8F6F3),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: const Color(0xFF8B7D6B), size: 20),
             ),
@@ -344,7 +344,7 @@ class _ExportScreenState extends State<ExportScreen>
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: enabled
                           ? const Color(0xFF2C2C2C)
@@ -1049,7 +1049,7 @@ class _ExportScreenState extends State<ExportScreen>
                       // 分享按钮
                       Expanded(
                         child: SizedBox(
-                          height: 48,
+                          height: 52,
                           child: OutlinedButton.icon(
                             onPressed: () {
                               Navigator.pop(ctx);
@@ -1073,7 +1073,7 @@ class _ExportScreenState extends State<ExportScreen>
                       // 完成按钮
                       Expanded(
                         child: SizedBox(
-                          height: 48,
+                          height: 52,
                           child: ElevatedButton(
                             onPressed: () => Navigator.pop(ctx),
                             style: ElevatedButton.styleFrom(

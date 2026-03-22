@@ -245,7 +245,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFC4A57B).withOpacity(0.2),
+                    color: const Color(0xFFC4A57B).withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -338,7 +338,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
