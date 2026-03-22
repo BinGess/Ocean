@@ -99,6 +99,12 @@ class _ExportScreenState extends State<ExportScreen>
 
   bool get _hasSelection => _includeRecords || _includeInsights;
 
+  /// 根据当前日期范围过滤后的记录数
+  int get _filteredRecordCount => _filterByDate(_allRecords).length;
+
+  /// 根据当前日期范围过滤后的洞察数
+  int get _filteredInsightCount => _filterInsightsByDate(_allInsights).length;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -703,10 +709,10 @@ class _ExportScreenState extends State<ExportScreen>
   String _previewContentText(AppLocalizations l10n) {
     final parts = <String>[];
     if (_includeRecords && _totalRecords > 0) {
-      parts.add(l10n.exportPreviewRecords(_totalRecords));
+      parts.add(l10n.exportPreviewRecords(_filteredRecordCount));
     }
     if (_includeInsights && _totalInsights > 0) {
-      parts.add(l10n.exportPreviewInsights(_totalInsights));
+      parts.add(l10n.exportPreviewInsights(_filteredInsightCount));
     }
     if (parts.isEmpty) return l10n.exportNoSelection;
     return parts.join(' + ');
@@ -735,10 +741,12 @@ class _ExportScreenState extends State<ExportScreen>
   // ═══════════════════════════════════════════════
 
   Widget _buildContentSample() {
+    final filteredRecords = _filterByDate(_allRecords);
+    final filteredInsights = _filterInsightsByDate(_allInsights);
     final previewRecords =
-        _includeRecords ? _allRecords.take(5).toList() : <Record>[];
+        _includeRecords ? filteredRecords.take(5).toList() : <Record>[];
     final previewInsights = _includeInsights
-        ? _allInsights.take(2).toList()
+        ? filteredInsights.take(2).toList()
         : <InsightReportCache>[];
 
     if (previewRecords.isEmpty && previewInsights.isEmpty) {
