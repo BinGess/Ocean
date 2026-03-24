@@ -611,7 +611,7 @@ class _InsightsScreenState extends State<InsightsScreen>
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -668,7 +668,7 @@ class _InsightsScreenState extends State<InsightsScreen>
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -687,13 +687,13 @@ class _InsightsScreenState extends State<InsightsScreen>
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8F4EC),
+                  color: AppColors.accentWarm,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.format_quote,
                   size: 18,
-                  color: Color(0xFF6B9080),
+                  color: AppColors.accent,
                 ),
               ),
               const SizedBox(width: 12),
@@ -718,7 +718,7 @@ class _InsightsScreenState extends State<InsightsScreen>
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAF8F5),
+        color: AppColors.bgCardSecondary,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -759,7 +759,7 @@ class _InsightsScreenState extends State<InsightsScreen>
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -866,7 +866,7 @@ class _InsightsScreenState extends State<InsightsScreen>
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -916,7 +916,7 @@ class _InsightsScreenState extends State<InsightsScreen>
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFDFC),
+        color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(12),
         border: const Border(
           left: BorderSide(
