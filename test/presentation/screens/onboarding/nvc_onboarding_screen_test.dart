@@ -73,15 +73,16 @@ void main() {
       // pumpAndSettle 不能用于无限动画；pump(0) 后检查静态内容
       await tester.pump();
 
-      expect(find.text('观察'), findsOneWidget);
-      expect(find.text('感受'), findsOneWidget);
-      expect(find.text('需要'), findsOneWidget);
-      expect(find.text('请求'), findsOneWidget);
+      expect(find.text('事实观察'), findsOneWidget);
+      expect(find.text('我现在的感受'), findsOneWidget);
+      expect(find.text('我需要'), findsOneWidget);
+      expect(find.text('行动 Tips'), findsOneWidget);
     });
 
-    testWidgets('页面包含示范原始文案', (tester) async {
+    testWidgets('页面包含示范原始文案（打字机动画完成后）', (tester) async {
       await tester.pumpWidget(_buildTestable(onComplete: () {}));
-      await tester.pump();
+      // 推进时间跳过打字机延迟(300ms)+打字时长(880ms)+余量
+      await tester.pump(const Duration(seconds: 2));
 
       expect(find.text('今天开会被打断，很烦。'), findsOneWidget);
     });

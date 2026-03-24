@@ -20,8 +20,8 @@
 ///     │
 ///   ┌─┴──────────────────┐
 ///   │ 「跳过」按钮         │
-///   │ NVC 四维度依次淡入   │
-///   │ 「感受」tooltip      │
+///   │ 原始记录打字机效果   │
+///   │ NVC 四维度依次滑入   │
 ///   │ CTA 「现在换你来试试」│
 ///   └─────────────────────┘
 ///     │ onComplete(skip=false/true)
@@ -50,12 +50,15 @@ class NVCOnboardingScreen extends StatefulWidget {
 
 class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
     with TickerProviderStateMixin {
-  // 四个 NVC 维度的淡入控制器
-  final List<AnimationController> _fadeControllers = [];
-  final List<Animation<double>> _fadeAnimations = [];
+  // 原始记录打字机
+  static const _entryText = '今天开会被打断，很烦。';
+  late final AnimationController _typingController;
+  late final Animation<int> _typingAnimation;
 
-  // 「感受」tooltip 可见性
-  bool _tooltipVisible = false;
+  // 四个 NVC 维度的滑入+淡入控制器
+  final List<AnimationController> _cardControllers = [];
+  final List<Animation<double>> _fadeAnimations = [];
+  final List<Animation<Offset>> _slideAnimations = [];
 
   // 防止重复完成调用
   bool _completed = false;
@@ -63,77 +66,80 @@ class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
   // 各维度的数据
   static const _demo = _DemoData();
 
-  // 减少动画偏好检测（在 build 后读取 MediaQuery）
+  // 减少动画偏好检测
   bool _reduceMotion = false;
+
+  // 打字机每字间隔 (ms)
+  static const _msPerChar = 80;
+  // 打字开始延迟
+  static const _typingDelayMs = 300;
+  // NVC 卡片开始时间 = 打字延迟 + 打字时长 + 停顿
+  static final _nvcStartMs =
+      _typingDelayMs + _entryText.length * _msPerChar + 400;
+  // 卡片间隔
+  static const _nvcIntervalMs = 800;
 
   @override
   void initState() {
     super.initState();
 
-    // 为四个维度各创建一个 AnimationController
+    // 打字机控制器
+    _typingController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: _entryText.length * _msPerChar),
+    );
+    _typingAnimation = IntTween(begin: 0, end: _entryText.length)
+        .animate(CurvedAnimation(
+      parent: _typingController,
+      curve: Curves.linear,
+    ));
+
+    // 四个 NVC 卡片控制器（滑入+淡入）
     for (int i = 0; i < 4; i++) {
       final controller = AnimationController(
         vsync: this,
-        duration: const Duration(milliseconds: 400),
+        duration: const Duration(milliseconds: 450),
       );
-      _fadeControllers.add(controller);
+      _cardControllers.add(controller);
       _fadeAnimations.add(
         Tween<double>(begin: 0.0, end: 1.0).animate(
           CurvedAnimation(parent: controller, curve: Curves.easeOut),
         ),
       );
+      _slideAnimations.add(
+        Tween<Offset>(begin: const Offset(0, 0.25), end: Offset.zero).animate(
+          CurvedAnimation(parent: controller, curve: Curves.easeOut),
+        ),
+      );
     }
 
-    // 依次播放，间隔 1 秒（第 0 个立即开始）
     _startSequentialAnimations();
   }
 
   void _startSequentialAnimations() {
-    // 延迟 300ms 后开始，确保 widget 树已完成构建并读取 reduceMotion
-    Future.delayed(const Duration(milliseconds: 300), () {
+    Future.delayed(const Duration(milliseconds: _typingDelayMs), () {
       if (!mounted) return;
-      // 读取无障碍设置
       final mediaQuery = MediaQuery.of(context);
       _reduceMotion = mediaQuery.disableAnimations;
 
       if (_reduceMotion) {
         // 无动画：全部立即显示
-        for (final c in _fadeControllers) {
+        _typingController.value = 1.0;
+        for (final c in _cardControllers) {
           c.value = 1.0;
         }
-        // 感受 tooltip 在 500ms 后触发（无动画模式规范）
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            setState(() => _tooltipVisible = true);
-            _scheduleTooltipDismiss();
-          }
-        });
       } else {
-        // 有动画：依次淡入，每隔 1 秒
-        for (int i = 0; i < _fadeControllers.length; i++) {
-          final idx = i;
-          Future.delayed(Duration(milliseconds: i * 1000), () {
+        // 打字机先跑
+        _typingController.forward();
+
+        // NVC 卡片在打字完成后依次出现
+        for (int i = 0; i < _cardControllers.length; i++) {
+          final delay = _nvcStartMs + i * _nvcIntervalMs;
+          Future.delayed(Duration(milliseconds: delay), () {
             if (!mounted) return;
-            _fadeControllers[idx].forward();
-            // 「感受」是第 1 个维度（index 1），动画完成后显示 tooltip
-            if (idx == 1) {
-              _fadeControllers[idx].addStatusListener((status) {
-                if (status == AnimationStatus.completed && mounted) {
-                  setState(() => _tooltipVisible = true);
-                  _scheduleTooltipDismiss();
-                }
-              });
-            }
+            _cardControllers[i].forward();
           });
         }
-      }
-    });
-  }
-
-  void _scheduleTooltipDismiss() {
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted && _tooltipVisible) {
-        setState(() => _tooltipVisible = false);
       }
     });
   }
@@ -142,7 +148,6 @@ class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
     if (_completed) return;
     _completed = true;
 
-    // 写入 flag
     try {
       final db = getIt<HiveDatabase>();
       await db.settingsBox.put('onboarding_completed', true);
@@ -157,7 +162,8 @@ class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
 
   @override
   void dispose() {
-    for (final c in _fadeControllers) {
+    _typingController.dispose();
+    for (final c in _cardControllers) {
       c.dispose();
     }
     super.dispose();
@@ -188,76 +194,58 @@ class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
                     _buildNVCLabel(),
                     const SizedBox(height: 12),
 
-                    // 观察
-                    FadeTransition(
-                      opacity: _fadeAnimations[0],
-                      child: _NVCDemoCard(
+                    // 事实观察
+                    _buildAnimatedCard(
+                      index: 0,
+                      card: const _NVCDemoCard(
                         icon: Icons.visibility_outlined,
-                        iconColor: const Color(0xFF48697A),
-                        iconBgColor: const Color(0xFFE6EEF2),
-                        title: '观察',
-                        subtitle: '发生了什么（客观事实）',
-                        body: _demo.observation,
+                        iconColor: Color(0xFF48697A),
+                        iconBgColor: Color(0xFFE6EEF2),
+                        title: '事实观察',
+                        subtitle: '客观描述发生的事',
+                        body: _DemoData.observationText,
                       ),
                     ),
                     const SizedBox(height: 12),
 
-                    // 感受 + tooltip
-                    FadeTransition(
-                      opacity: _fadeAnimations[1],
-                      child: Column(
-                        children: [
-                          _NVCDemoCard(
-                            icon: Icons.favorite_border,
-                            iconColor: const Color(0xFFB28C7F),
-                            iconBgColor: const Color(0xFFF3E8E5),
-                            title: '感受',
-                            subtitle: '你有什么感受',
-                            body: _demo.feelings,
-                          ),
-                          // 感受揭秘提示 tooltip
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 250),
-                            child: _tooltipVisible
-                                ? _FeelingsTooltip(
-                                    key: const ValueKey('tooltip'),
-                                    onDismiss: () {
-                                      setState(
-                                          () => _tooltipVisible = false);
-                                    },
-                                  )
-                                : const SizedBox.shrink(
-                                    key: ValueKey('no-tooltip')),
-                          ),
-                        ],
+                    // 我现在的感受
+                    _buildAnimatedCard(
+                      index: 1,
+                      card: const _NVCDemoCard(
+                        icon: Icons.favorite_border,
+                        iconColor: Color(0xFFB28C7F),
+                        iconBgColor: Color(0xFFF3E8E5),
+                        title: '我现在的感受',
+                        subtitle: '此刻的情绪状态',
+                        body: _DemoData.feelingsText,
                       ),
                     ),
                     const SizedBox(height: 12),
 
-                    // 需要
-                    FadeTransition(
-                      opacity: _fadeAnimations[2],
-                      child: _NVCDemoCard(
+                    // 我需要
+                    _buildAnimatedCard(
+                      index: 2,
+                      card: const _NVCDemoCard(
                         icon: Icons.eco_outlined,
-                        iconColor: const Color(0xFF8D9D86),
-                        iconBgColor: const Color(0xFFE8F0E5),
-                        title: '需要',
-                        subtitle: '背后未被满足的需要',
-                        body: _demo.needs,
+                        iconColor: Color(0xFF8D9D86),
+                        iconBgColor: Color(0xFFE8F0E5),
+                        title: '我需要',
+                        subtitle: '未被满足的深层需求',
+                        body: _DemoData.needsText,
                       ),
                     ),
                     const SizedBox(height: 12),
 
-                    // 请求
-                    FadeTransition(
-                      opacity: _fadeAnimations[3],
-                      child: _NVCDemoCard(
-                        icon: Icons.chat_bubble_outline,
-                        iconColor: const Color(0xFFC4A57B),
-                        iconBgColor: const Color(0xFFFFF8E7),
-                        title: '请求',
-                        subtitle: '可以做什么来改善',
-                        body: _demo.request,
+                    // 行动 Tips
+                    _buildAnimatedCard(
+                      index: 3,
+                      card: const _NVCDemoCard(
+                        icon: Icons.tips_and_updates_outlined,
+                        iconColor: Color(0xFFC4A57B),
+                        iconBgColor: Color(0xFFFFF8E7),
+                        title: '行动 Tips',
+                        subtitle: '具体可行的下一步',
+                        body: _DemoData.requestText,
                       ),
                     ),
 
@@ -275,13 +263,22 @@ class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
     );
   }
 
+  Widget _buildAnimatedCard({required int index, required Widget card}) {
+    return FadeTransition(
+      opacity: _fadeAnimations[index],
+      child: SlideTransition(
+        position: _slideAnimations[index],
+        child: card,
+      ),
+    );
+  }
+
   Widget _buildTopBar(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // 标题标签
           Container(
             padding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -298,8 +295,6 @@ class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
               ),
             ),
           ),
-
-          // 跳过按钮
           Semantics(
             button: true,
             label: '跳过引导',
@@ -377,14 +372,29 @@ class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
             ],
           ),
           const SizedBox(height: 10),
-          const Text(
-            '今天开会被打断，很烦。',
-            style: TextStyle(
-              fontSize: 17,
-              color: AppColors.textPrimary,
-              height: 1.6,
-              fontWeight: FontWeight.w500,
-            ),
+          AnimatedBuilder(
+            animation: _typingAnimation,
+            builder: (context, _) {
+              final displayed =
+                  _entryText.substring(0, _typingAnimation.value);
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    displayed,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      color: AppColors.textPrimary,
+                      height: 1.6,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  // 光标闪烁
+                  if (_typingAnimation.value < _entryText.length)
+                    _TypingCursor(),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -463,19 +473,62 @@ class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
   }
 }
 
+// ── 打字光标 ──────────────────────────────────────────────────────────────────
+
+class _TypingCursor extends StatefulWidget {
+  @override
+  State<_TypingCursor> createState() => _TypingCursorState();
+}
+
+class _TypingCursorState extends State<_TypingCursor>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _blink;
+
+  @override
+  void initState() {
+    super.initState();
+    _blink = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _blink.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _blink,
+      child: Container(
+        width: 2,
+        height: 18,
+        margin: const EdgeInsets.only(left: 1, bottom: 2),
+        decoration: BoxDecoration(
+          color: AppColors.textPrimary,
+          borderRadius: BorderRadius.circular(1),
+        ),
+      ),
+    );
+  }
+}
+
 // ── 示范内容 ──────────────────────────────────────────────────────────────────
 
 class _DemoData {
   const _DemoData();
 
-  String get observation =>
+  static const observationText =
       '在今天下午的项目会议中，我正在发言时被另一位同事打断，我没有机会说完自己的想法。';
 
-  String get feelings => '烦躁、沮丧、有些委屈';
+  static const feelingsText = '烦躁、沮丧、有些委屈';
 
-  String get needs => '被尊重、被倾听、在表达中感到安全';
+  static const needsText = '被尊重、被倾听、在表达中感到安全';
 
-  String get request =>
+  static const requestText =
       '下次开会时，可以和同事提前约定：发言时尽量等对方说完再发表意见。';
 }
 
@@ -517,7 +570,6 @@ class _NVCDemoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 标题行
           Row(
             children: [
               Container(
@@ -556,7 +608,6 @@ class _NVCDemoCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          // 内容
           Text(
             body,
             style: const TextStyle(
@@ -566,59 +617,6 @@ class _NVCDemoCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ── 感受揭秘 tooltip ──────────────────────────────────────────────────────────
-
-class _FeelingsTooltip extends StatelessWidget {
-  final VoidCallback onDismiss;
-
-  const _FeelingsTooltip({super.key, required this.onDismiss});
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      liveRegion: true,
-      label: '注意：这里只写感受词，不写你让我觉得',
-      child: GestureDetector(
-        onTap: onDismiss,
-        child: Container(
-          margin: const EdgeInsets.only(top: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: const Color(0xFF5C3A31),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.lightbulb_outline,
-                size: 15,
-                color: Colors.white70,
-              ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  '注意：这里只写感受词，不写「你让我觉得…」',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white,
-                    height: 1.4,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                Icons.close,
-                size: 14,
-                color: Colors.white.withValues(alpha: 0.6),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
