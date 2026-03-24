@@ -288,8 +288,8 @@ class _HomeScreenState extends State<HomeScreen>
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        const Color(0xFFF7F1E8).withValues(alpha: 0.82),
-                        const Color(0xFFF7F1E8).withValues(alpha: 0.0),
+                        const Color(0xFFF5EEE4).withValues(alpha: 0.78),
+                        const Color(0xFFF5EEE4).withValues(alpha: 0.0),
                       ],
                     ),
                   ),
@@ -308,8 +308,8 @@ class _HomeScreenState extends State<HomeScreen>
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
                       colors: [
-                        const Color(0xFFF3EBE0).withValues(alpha: 0.86),
-                        const Color(0xFFF3EBE0).withValues(alpha: 0.0),
+                        const Color(0xFFF0E8DC).withValues(alpha: 0.80),
+                        const Color(0xFFF0E8DC).withValues(alpha: 0.0),
                       ],
                     ),
                   ),
@@ -1518,17 +1518,17 @@ class _HomeBackgroundPalette {
 
   static const defaultPalette = _HomeBackgroundPalette(
     gradientColors: [
-      Color(0xFFFEFBF6), // 暖奶白 — 顶部去蓝
-      Color(0xFFF9F1E6), // 暖羊皮 — 中段
-      Color(0xFFFFF0D6), // 暖琥珀米 — 底部
+      Color(0xFFFEFCF9), // 暖奶白 — 顶部
+      Color(0xFFFAF5EE), // 轻暖米 — 中段（比原来浅很多）
+      Color(0xFFF6EFE4), // 淡暖杏 — 底部（替代过饱和琥珀）
     ],
     gradientStops: [0.0, 0.55, 1.0],
-    bottomFogColor: Color(0xFFF6EBDD),
-    bottomFogMiddleAlpha: 0.62,
-    ringColor: Color(0xFFCDAA85), // 暖沙金，替代原蓝调
-    ringAlpha: 0.18,
-    overlayColor: Color(0xFFCDAA85), // 暖沙金，替代原蓝调
-    overlayAlpha: 0.04,
+    bottomFogColor: Color(0xFFF2EAE0),
+    bottomFogMiddleAlpha: 0.50,
+    ringColor: Color(0xFFCDAA85),
+    ringAlpha: 0.14,
+    overlayColor: Color(0xFFCDAA85),
+    overlayAlpha: 0.03,
   );
 }
 
@@ -1554,8 +1554,8 @@ class _SoftUITexturePainter extends CustomPainter {
         maxRadiusFactor: 0.30,
         minRadiusFactor: 0.14,
         rings: 5,
-        color: Color(0xFFB7CBE0),
-        alpha: 0.175,
+        color: Color(0xFFD4C0A8), // 暖沙，替代蓝灰
+        alpha: 0.13,
         irregularity: 0.050,
         phase: 0.35,
       ),
@@ -1565,8 +1565,8 @@ class _SoftUITexturePainter extends CustomPainter {
         maxRadiusFactor: 0.28,
         minRadiusFactor: 0.13,
         rings: 5,
-        color: Color(0xFFC0D2E5),
-        alpha: 0.16,
+        color: Color(0xFFCCB99E), // 暖沙
+        alpha: 0.12,
         irregularity: 0.047,
         phase: 1.12,
       ),
@@ -1576,8 +1576,8 @@ class _SoftUITexturePainter extends CustomPainter {
         maxRadiusFactor: 0.27,
         minRadiusFactor: 0.12,
         rings: 5,
-        color: Color(0xFFB9CEE3),
-        alpha: 0.155,
+        color: Color(0xFFD8C9B2), // 暖沙
+        alpha: 0.11,
         irregularity: 0.048,
         phase: 2.10,
       ),
@@ -1587,8 +1587,8 @@ class _SoftUITexturePainter extends CustomPainter {
         maxRadiusFactor: 0.275,
         minRadiusFactor: 0.125,
         rings: 5,
-        color: Color(0xFFBED3E6),
-        alpha: 0.16,
+        color: Color(0xFFCFC0A6), // 暖沙
+        alpha: 0.12,
         irregularity: 0.049,
         phase: 2.76,
       ),
@@ -1598,8 +1598,8 @@ class _SoftUITexturePainter extends CustomPainter {
         maxRadiusFactor: 0.34,
         minRadiusFactor: 0.16,
         rings: 5,
-        color: Color(0xFFC4D8EA),
-        alpha: 0.15,
+        color: Color(0xFFD2BEA4), // 暖沙
+        alpha: 0.10,
         irregularity: 0.052,
         phase: 3.42,
       ),
