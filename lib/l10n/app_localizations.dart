@@ -386,6 +386,8 @@ class AppLocalizations {
   String get iCloudSyncDisabled => _translate('iCloudSyncDisabled');
   String get iCloudSyncFailed => _translate('iCloudSyncFailed');
   String get other => _translate('other');
+  String get showOnboardingAlways => _translate('showOnboardingAlways');
+  String get showOnboardingAlwaysSubtitle => _translate('showOnboardingAlwaysSubtitle');
   String get about => _translate('about');
   String get aboutSubtitle => _translate('aboutSubtitle');
   String get language => _translate('language');
