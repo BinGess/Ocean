@@ -33,6 +33,8 @@
 
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/datasources/local/hive_database.dart';
@@ -60,6 +62,8 @@ class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
   final List<Animation<double>> _fadeAnimations = [];
   final List<Animation<Offset>> _slideAnimations = [];
 
+  final List<Timer> _timers = [];
+
   // 防止重复完成调用
   bool _completed = false;
 
@@ -84,14 +88,19 @@ class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
     super.initState();
 
     // 打字机控制器
+    final typingTotalMs = _typingDelayMs + _entryText.length * _msPerChar;
     _typingController = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: _entryText.length * _msPerChar),
+      duration: Duration(milliseconds: typingTotalMs),
     );
     _typingAnimation = IntTween(begin: 0, end: _entryText.length)
         .animate(CurvedAnimation(
       parent: _typingController,
-      curve: Curves.linear,
+      curve: Interval(
+        _typingDelayMs / typingTotalMs,
+        1.0,
+        curve: Curves.linear,
+      ),
     ));
 
     // 四个 NVC 卡片控制器（滑入+淡入）
@@ -113,35 +122,26 @@ class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
       );
     }
 
-    _startSequentialAnimations();
+    _reduceMotion = WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations;
+    if (_reduceMotion) {
+      _typingController.value = 1.0;
+      for (final c in _cardControllers) {
+        c.value = 1.0;
+      }
+    } else {
+      _typingController.forward();
+      _startSequentialAnimations();
+    }
   }
 
   void _startSequentialAnimations() {
-    Future.delayed(const Duration(milliseconds: _typingDelayMs), () {
-      if (!mounted) return;
-      final mediaQuery = MediaQuery.of(context);
-      _reduceMotion = mediaQuery.disableAnimations;
-
-      if (_reduceMotion) {
-        // 无动画：全部立即显示
-        _typingController.value = 1.0;
-        for (final c in _cardControllers) {
-          c.value = 1.0;
-        }
-      } else {
-        // 打字机先跑
-        _typingController.forward();
-
-        // NVC 卡片在打字完成后依次出现
-        for (int i = 0; i < _cardControllers.length; i++) {
-          final delay = _nvcStartMs + i * _nvcIntervalMs;
-          Future.delayed(Duration(milliseconds: delay), () {
-            if (!mounted) return;
-            _cardControllers[i].forward();
-          });
-        }
-      }
-    });
+    for (int i = 0; i < _cardControllers.length; i++) {
+      final delay = _nvcStartMs + i * _nvcIntervalMs;
+      _timers.add(Timer(Duration(milliseconds: delay), () {
+        if (!mounted) return;
+        _cardControllers[i].forward();
+      }));
+    }
   }
 
   Future<void> _complete() async {
@@ -162,6 +162,9 @@ class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
 
   @override
   void dispose() {
+    for (final timer in _timers) {
+      timer.cancel();
+    }
     _typingController.dispose();
     for (final c in _cardControllers) {
       c.dispose();
