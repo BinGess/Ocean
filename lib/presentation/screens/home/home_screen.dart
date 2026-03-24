@@ -1450,31 +1450,8 @@ class _HomeScreenState extends State<HomeScreen>
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: _switchToNextQuote,
-              child: Container(
+              child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  color: const Color(0xFFFCF8F3).withValues(alpha: 0.52),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      const Color(0xFFFEFBF6).withValues(alpha: 0.72),
-                      const Color(0xFFF8F0E6).withValues(alpha: 0.56),
-                    ],
-                  ),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.65),
-                    width: 0.8,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFBFA080).withValues(alpha: 0.06),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
