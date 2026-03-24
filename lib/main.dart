@@ -260,7 +260,9 @@ class _AppEntryPointState extends State<AppEntryPoint>
       final db = getIt<HiveDatabase>();
       final completed = db.settingsBox.get('onboarding_completed',
           defaultValue: false);
-      needsOnboarding = completed != true;
+      final alwaysShow = db.settingsBox.get('show_onboarding_always',
+          defaultValue: false);
+      needsOnboarding = completed != true || alwaysShow == true;
     } catch (e) {
       debugPrint('AppEntryPoint: 检查 onboarding flag 失败: $e');
     }

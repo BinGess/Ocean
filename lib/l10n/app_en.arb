@@ -22,6 +22,8 @@
   "iCloudSyncDisabled": "iCloud sync disabled",
   "iCloudSyncFailed": "Failed to update iCloud sync settings",
   "other": "Other",
+  "showOnboardingAlways": "Show Onboarding on Every Launch",
+  "showOnboardingAlwaysSubtitle": "Show the onboarding guide every time you open the app",
   "about": "About",
   "aboutSubtitle": "App info and privacy policy",
   "language": "Language",

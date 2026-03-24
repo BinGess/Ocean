@@ -14,6 +14,7 @@ import '../../../core/services/ai_auth_service.dart';
 import '../../../core/services/icloud_sync_service.dart';
 import '../../../core/services/pro_subscription_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/datasources/local/hive_database.dart';
 import '../../../l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -27,6 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _aiAuthEnabled = false;
   bool _iCloudSyncEnabled = false;
   bool _iCloudAvailable = false;
+  bool _showOnboardingAlways = false;
   late final AIAuthService _aiAuthService;
   late final ICloudSyncService _iCloudSyncService;
   StreamSubscription? _authSubscription;
@@ -38,6 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _iCloudSyncService = getIt<ICloudSyncService>();
     _loadAIAuthStatus();
     _loadICloudStatus();
+    _loadOnboardingAlwaysSetting();
 
     // 监听授权状态变化
     _authSubscription = _aiAuthService.authStateStream.listen((enabled) {
@@ -69,6 +72,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _iCloudAvailable = available;
       });
     }
+  }
+
+  Future<void> _loadOnboardingAlwaysSetting() async {
+    try {
+      final db = getIt<HiveDatabase>();
+      final value = db.settingsBox.get('show_onboarding_always', defaultValue: false);
+      if (mounted) {
+        setState(() => _showOnboardingAlways = value == true);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _handleOnboardingAlwaysToggle(bool value) async {
+    try {
+      final db = getIt<HiveDatabase>();
+      await db.settingsBox.put('show_onboarding_always', value);
+      setState(() => _showOnboardingAlways = value);
+    } catch (_) {}
   }
 
   @override
@@ -160,6 +181,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // 其他分组
           _buildSectionHeader(l10n.other),
           const SizedBox(height: 8),
+          _buildSwitchItem(
+            title: l10n.showOnboardingAlways,
+            subtitle: l10n.showOnboardingAlwaysSubtitle,
+            icon: Icons.waving_hand_outlined,
+            value: _showOnboardingAlways,
+            onChanged: _handleOnboardingAlwaysToggle,
+          ),
+          const SizedBox(height: 12),
           _buildLanguageItem(context, l10n),
           const SizedBox(height: 12),
           _buildNavItem(
