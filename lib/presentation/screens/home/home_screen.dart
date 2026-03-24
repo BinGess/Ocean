@@ -1518,17 +1518,17 @@ class _HomeBackgroundPalette {
 
   static const defaultPalette = _HomeBackgroundPalette(
     gradientColors: [
-      Color(0xFFEFF6FF),
-      Color(0xFFF4F8FB),
-      Color(0xFFFFF7ED),
+      Color(0xFFFEFBF6), // 暖奶白 — 顶部去蓝
+      Color(0xFFF9F1E6), // 暖羊皮 — 中段
+      Color(0xFFFFF0D6), // 暖琥珀米 — 底部
     ],
-    gradientStops: [0.0, 0.62, 1.0],
+    gradientStops: [0.0, 0.55, 1.0],
     bottomFogColor: Color(0xFFF6EBDD),
     bottomFogMiddleAlpha: 0.62,
-    ringColor: Color(0xFFB8CCE1),
-    ringAlpha: 0.24,
-    overlayColor: Color(0xFFC9D9E8),
-    overlayAlpha: 0.06,
+    ringColor: Color(0xFFCDAA85), // 暖沙金，替代原蓝调
+    ringAlpha: 0.18,
+    overlayColor: Color(0xFFCDAA85), // 暖沙金，替代原蓝调
+    overlayAlpha: 0.04,
   );
 }
 
