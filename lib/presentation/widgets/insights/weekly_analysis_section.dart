@@ -120,7 +120,7 @@ class _Card extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -179,7 +179,7 @@ class _MetricTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAF8F5),
+        color: AppColors.bgCardSecondary,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
