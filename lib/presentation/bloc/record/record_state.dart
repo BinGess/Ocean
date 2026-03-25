@@ -37,6 +37,9 @@ class RecordState extends Equatable {
   /// 当前正在转写的文本
   final String? transcription;
 
+  /// 转写阶段的局部错误信息
+  final String? transcriptionErrorMessage;
+
   /// NVC 分析结果
   final NVCAnalysis? nvcAnalysis;
 
@@ -48,6 +51,7 @@ class RecordState extends Equatable {
     this.errorMessage,
     this.hasMore = true,
     this.transcription,
+    this.transcriptionErrorMessage,
     this.nvcAnalysis,
   });
 
@@ -61,6 +65,7 @@ class RecordState extends Equatable {
       errorMessage: null,
       hasMore: true,
       transcription: null,
+      transcriptionErrorMessage: null,
       nvcAnalysis: null,
     );
   }
@@ -77,7 +82,10 @@ class RecordState extends Equatable {
     bool clearLatest = false,
     bool clearNVCAnalysis = false,
     bool clearError = false,
+    bool clearTranscription = false,
+    bool clearTranscriptionError = false,
     String? transcription,
+    String? transcriptionErrorMessage,
     NVCAnalysis? nvcAnalysis,
   }) {
     return RecordState(
@@ -88,7 +96,11 @@ class RecordState extends Equatable {
       latestRecord: clearLatest ? null : (latestRecord ?? this.latestRecord),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       hasMore: hasMore ?? this.hasMore,
-      transcription: transcription ?? this.transcription,
+      transcription:
+          clearTranscription ? null : (transcription ?? this.transcription),
+      transcriptionErrorMessage: clearTranscriptionError
+          ? null
+          : (transcriptionErrorMessage ?? this.transcriptionErrorMessage),
       nvcAnalysis: clearNVCAnalysis ? null : (nvcAnalysis ?? this.nvcAnalysis),
     );
   }
@@ -101,6 +113,7 @@ class RecordState extends Equatable {
   bool get isAnalyzed => status == RecordStatus.analyzed;
   bool get isSuccess => status == RecordStatus.success;
   bool get hasError => status == RecordStatus.error;
+  bool get hasTranscriptionError => transcriptionErrorMessage != null;
   bool get isEmpty => records.isEmpty;
 
   @override
@@ -112,6 +125,7 @@ class RecordState extends Equatable {
         errorMessage,
         hasMore,
         transcription,
+        transcriptionErrorMessage,
         nvcAnalysis,
       ];
 }

@@ -1,14 +1,21 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'about_screen.dart';
 import 'export_screen.dart';
 import '../app_lock/app_lock_settings_screen.dart';
+import '../pro/pro_purchase_screen.dart';
 import '../../widgets/ai_auth_dialog.dart';
+import '../../bloc/locale/locale_bloc.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
-import '../../../core/services/home_background_theme_service.dart';
+import '../../../core/services/icloud_sync_service.dart';
+import '../../../core/services/pro_subscription_service.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../data/datasources/local/hive_database.dart';
+import '../../../l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -19,19 +26,21 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _aiAuthEnabled = false;
-  bool _useWarmApricotBackground = false;
+  bool _iCloudSyncEnabled = false;
+  bool _iCloudAvailable = false;
+  bool _showOnboardingAlways = false;
   late final AIAuthService _aiAuthService;
-  late final HomeBackgroundThemeService _homeBackgroundThemeService;
+  late final ICloudSyncService _iCloudSyncService;
   StreamSubscription? _authSubscription;
-  StreamSubscription<HomeBackgroundScheme>? _homeBackgroundSubscription;
 
   @override
   void initState() {
     super.initState();
     _aiAuthService = getIt<AIAuthService>();
-    _homeBackgroundThemeService = getIt<HomeBackgroundThemeService>();
+    _iCloudSyncService = getIt<ICloudSyncService>();
     _loadAIAuthStatus();
-    _loadHomeBackgroundScheme();
+    _loadICloudStatus();
+    _loadOnboardingAlwaysSetting();
 
     // 监听授权状态变化
     _authSubscription = _aiAuthService.authStateStream.listen((enabled) {
@@ -39,22 +48,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         setState(() => _aiAuthEnabled = enabled);
       }
     });
-
-    _homeBackgroundSubscription =
-        _homeBackgroundThemeService.schemeStream.listen((scheme) {
-      if (mounted) {
-        setState(() {
-          _useWarmApricotBackground =
-              scheme == HomeBackgroundScheme.warmApricotA;
-        });
-      }
-    });
   }
 
   @override
   void dispose() {
     _authSubscription?.cancel();
-    _homeBackgroundSubscription?.cancel();
     super.dispose();
   }
 
@@ -65,28 +63,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _loadHomeBackgroundScheme() {
-    _useWarmApricotBackground = _homeBackgroundThemeService.currentScheme ==
-        HomeBackgroundScheme.warmApricotA;
+  Future<void> _loadICloudStatus() async {
+    final enabled = await _iCloudSyncService.isEnabled;
+    final available = await _iCloudSyncService.isAvailable;
+    if (mounted) {
+      setState(() {
+        _iCloudSyncEnabled = enabled;
+        _iCloudAvailable = available;
+      });
+    }
+  }
+
+  Future<void> _loadOnboardingAlwaysSetting() async {
+    try {
+      final db = getIt<HiveDatabase>();
+      final value = db.settingsBox.get('show_onboarding_always', defaultValue: false);
+      if (mounted) {
+        setState(() => _showOnboardingAlways = value == true);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _handleOnboardingAlwaysToggle(bool value) async {
+    try {
+      final db = getIt<HiveDatabase>();
+      await db.settingsBox.put('show_onboarding_always', value);
+      setState(() => _showOnboardingAlways = value);
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.bgCard,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios,
-              size: 20, color: Color(0xFF2C2C2C)),
+              size: 20, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          '设置',
-          style: TextStyle(
-            color: Color(0xFF2C2C2C),
+        title: Text(
+          l10n.settings,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
@@ -97,11 +121,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           // 安全与隐私分组
-          _buildSectionHeader('安全与隐私'),
+          _buildSectionHeader(l10n.securityAndPrivacy),
           const SizedBox(height: 8),
           _buildNavItem(
-            title: '应用锁',
-            subtitle: '使用密码或生物识别保护隐私',
+            title: l10n.appLock,
+            subtitle: l10n.appLockSubtitle,
             icon: Icons.lock_outline,
             onTap: () {
               Navigator.of(context).push(
@@ -112,56 +136,218 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 12),
           _buildSwitchItem(
-            title: 'AI服务授权',
-            subtitle: '允许使用火山引擎豆包大模型分析日记',
+            title: l10n.aiServiceAuth,
+            subtitle: l10n.aiServiceAuthSubtitle,
             icon: Icons.psychology_outlined,
             value: _aiAuthEnabled,
             onChanged: (value) => _handleAIAuthToggle(value),
           ),
           const SizedBox(height: 16),
 
-          // 显示与外观分组
-          _buildSectionHeader('显示与外观'),
-          const SizedBox(height: 8),
-          _buildSwitchItem(
-            title: '首页暖米杏背景',
-            subtitle: '开启 A 暖米杏；关闭 B 蓝杏融合',
-            icon: Icons.palette_outlined,
-            value: _useWarmApricotBackground,
-            onChanged: (value) => _handleHomeBackgroundToggle(value),
-          ),
-          const SizedBox(height: 16),
-
           // 数据管理分组
-          _buildSectionHeader('数据管理'),
+          _buildSectionHeader(l10n.dataManagement),
           const SizedBox(height: 8),
           _buildNavItem(
-            title: '导出',
-            subtitle: '导出所有记录或洞察信息',
+            title: l10n.export,
+            subtitle: l10n.exportSubtitle,
             icon: Icons.upload_file,
+            trailing: _buildProBadge(),
             onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ExportScreen()),
-              );
+              if (getIt<ProSubscriptionService>().hasProFeatureAccess) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ExportScreen()),
+                );
+              } else {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (_) => const ProPurchaseScreen()),
+                );
+              }
             },
+          ),
+          const SizedBox(height: 12),
+          _buildSwitchItem(
+            title: l10n.iCloudSync,
+            subtitle: _iCloudAvailable
+                ? l10n.iCloudSyncSubtitle
+                : l10n.iCloudSyncUnavailable,
+            icon: Icons.cloud_outlined,
+            value: _iCloudSyncEnabled,
+            onChanged: (value) => _handleICloudSyncToggle(value),
+            proRequired: true,
           ),
           const SizedBox(height: 16),
 
           // 其他分组
-          _buildSectionHeader('其他'),
+          _buildSectionHeader(l10n.other),
           const SizedBox(height: 8),
+          _buildSwitchItem(
+            title: l10n.showOnboardingAlways,
+            subtitle: l10n.showOnboardingAlwaysSubtitle,
+            icon: Icons.waving_hand_outlined,
+            value: _showOnboardingAlways,
+            onChanged: _handleOnboardingAlwaysToggle,
+          ),
+          const SizedBox(height: 12),
+          _buildLanguageItem(context, l10n),
+          const SizedBox(height: 12),
           _buildNavItem(
-            title: '关于',
-            subtitle: '应用信息与隐私协议',
+            title: l10n.about,
+            subtitle: l10n.aboutSubtitle,
             icon: Icons.info_outline,
-            onTap: () {
-              Navigator.of(context).push(
+            onTap: () async {
+              await Navigator.of(context).push<void>(
                 MaterialPageRoute(builder: (_) => const AboutScreen()),
               );
+              if (mounted) setState(() {});
             },
           ),
         ],
       ),
+    );
+  }
+
+  /// 语言设置项
+  Widget _buildLanguageItem(BuildContext context, AppLocalizations l10n) {
+    return BlocBuilder<LocaleBloc, LocaleState>(
+      builder: (context, state) {
+        String currentLanguage;
+        if (state.isFollowingSystem) {
+          currentLanguage = l10n.languageSystem;
+        } else if (state.effectiveLocale.languageCode == 'en') {
+          currentLanguage = l10n.languageEnglish;
+        } else {
+          currentLanguage = l10n.languageChinese;
+        }
+
+        return InkWell(
+          onTap: () => _showLanguageSelector(context, l10n),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8F6F3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.language, color: AppColors.textSecondary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.language,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        currentLanguage,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: AppColors.primary),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// 显示语言选择器
+  void _showLanguageSelector(BuildContext context, AppLocalizations l10n) {
+    final localeBloc = context.read<LocaleBloc>();
+    final currentState = localeBloc.state;
+
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return CupertinoActionSheet(
+          title: Text(l10n.selectLanguage),
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () {
+                localeBloc.add(const LocaleChange(null));
+                Navigator.pop(context);
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(l10n.languageSystem),
+                  if (currentState.isFollowingSystem) ...[
+                    const SizedBox(width: 8),
+                    const Icon(Icons.check, color: AppColors.accent, size: 20),
+                  ],
+                ],
+              ),
+            ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                localeBloc.add(const LocaleChange(Locale('zh')));
+                Navigator.pop(context);
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(l10n.languageChinese),
+                  if (!currentState.isFollowingSystem &&
+                      currentState.effectiveLocale.languageCode == 'zh') ...[
+                    const SizedBox(width: 8),
+                    const Icon(Icons.check, color: AppColors.accent, size: 20),
+                  ],
+                ],
+              ),
+            ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                localeBloc.add(const LocaleChange(Locale('en')));
+                Navigator.pop(context);
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(l10n.languageEnglish),
+                  if (!currentState.isFollowingSystem &&
+                      currentState.effectiveLocale.languageCode == 'en') ...[
+                    const SizedBox(width: 8),
+                    const Icon(Icons.check, color: AppColors.accent, size: 20),
+                  ],
+                ],
+              ),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
+        );
+      },
     );
   }
 
@@ -173,7 +359,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
         style: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF8B7D6B),
+          color: AppColors.textSecondary,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProBadge() {
+    if (getIt<ProSubscriptionService>().hasProFeatureAccess) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      margin: const EdgeInsets.only(right: 6),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFD4B896), AppColors.accent],
+        ),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: const Text(
+        'Pro',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -184,6 +394,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String subtitle,
     required IconData icon,
     required VoidCallback onTap,
+    Widget? trailing,
   }) {
     return InkWell(
       onTap: onTap,
@@ -210,7 +421,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: const Color(0xFFF8F6F3),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: const Color(0xFF8B7D6B)),
+              child: Icon(icon, color: AppColors.textSecondary),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -222,7 +433,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF2C2C2C),
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -230,13 +441,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     subtitle,
                     style: const TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF8B8B8B),
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Color(0xFFB0B0B0)),
+            if (trailing != null) trailing,
+            const Icon(Icons.chevron_right, color: AppColors.primary),
           ],
         ),
       ),
@@ -249,61 +461,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required IconData icon,
     required bool value,
     required ValueChanged<bool> onChanged,
+    bool proRequired = false,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8F6F3),
-              borderRadius: BorderRadius.circular(12),
+    final needsPro =
+        proRequired && !getIt<ProSubscriptionService>().hasProFeatureAccess;
+
+    return GestureDetector(
+      onTap: needsPro
+          ? () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const ProPurchaseScreen()),
+              );
+            }
+          : null,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
-            child: Icon(icon, color: const Color(0xFF8B7D6B)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF2C2C2C),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF8B8B8B),
-                  ),
-                ),
-              ],
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F6F3),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: AppColors.textSecondary),
             ),
-          ),
-          CupertinoSwitch(
-            value: value,
-            activeTrackColor: const Color(0xFFC4A57B),
-            onChanged: onChanged,
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (needsPro) _buildProBadge(),
+            if (needsPro)
+              const Icon(Icons.chevron_right, color: AppColors.primary)
+            else
+              CupertinoSwitch(
+                value: value,
+                activeTrackColor: AppColors.accent,
+                onChanged: onChanged,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -327,29 +557,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _handleHomeBackgroundToggle(bool value) async {
-    await _homeBackgroundThemeService.setWarmApricotEnabled(value);
-    if (mounted) {
-      setState(() => _useWarmApricotBackground = value);
+  Future<void> _handleICloudSyncToggle(bool value) async {
+    final l10n = AppLocalizations.of(context)!;
+
+    if (value && !_iCloudAvailable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.iCloudSyncUnavailable)),
+      );
+      return;
+    }
+
+    try {
+      await _iCloudSyncService.setEnabled(value);
+      if (!mounted) return;
+      setState(() {
+        _iCloudSyncEnabled = value;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            value ? l10n.iCloudSyncEnabled : l10n.iCloudSyncDisabled,
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _iCloudSyncEnabled = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.iCloudSyncFailed)),
+      );
     }
   }
 
   /// 显示撤销授权确认对话框
   Future<bool?> _showRevokeConfirmation() {
+    final l10n = AppLocalizations.of(context)!;
     return showCupertinoDialog<bool>(
       context: context,
       builder: (context) => CupertinoAlertDialog(
-        title: const Text('关闭AI服务'),
-        content: const Text('关闭后将无法使用NVC情绪分析和周洞察功能，是否继续？'),
+        title: Text(l10n.disableAIService),
+        content: Text(l10n.disableAIServiceConfirm),
         actions: [
           CupertinoDialogAction(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           CupertinoDialogAction(
             isDestructiveAction: true,
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('关闭'),
+            child: Text(l10n.close),
           ),
         ],
       ),

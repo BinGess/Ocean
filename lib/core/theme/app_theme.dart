@@ -32,7 +32,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        color: Colors.white,
+        color: AppColors.bgCard,
       ),
 
       // Button 主题
@@ -57,7 +57,7 @@ class AppTheme {
       // 输入框主题
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.grey[100],
+        fillColor: AppColors.bgInput,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
 import '../../domain/entities/quote.dart';
 
 class QuoteCard extends StatefulWidget {
@@ -66,7 +67,7 @@ class _QuoteCardState extends State<QuoteCard>
                     height: 1.8,
                     fontFamily: 'Georgia',  // 衬线字体
                     fontWeight: FontWeight.w400,
-                    color: Color(0xFF5D4E3C),
+                    color: AppColors.textSecondary,
                     letterSpacing: 0.3,  // 优化：微调字距
                   ),
                 ),
@@ -123,7 +124,7 @@ class _QuoteCardState extends State<QuoteCard>
         _categoryLabel(widget.quote.category),
         style: const TextStyle(
           fontSize: 11,
-          color: Color(0xFFC4A57B),
+          color: AppColors.accent,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.5,
         ),

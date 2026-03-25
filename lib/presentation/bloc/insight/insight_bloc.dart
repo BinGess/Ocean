@@ -3,9 +3,11 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../domain/entities/weekly_analysis.dart';
 import '../../../domain/usecases/generate_weekly_insight_usecase.dart';
 import '../../../domain/usecases/generate_insight_report_usecase.dart';
 import '../../../domain/usecases/get_weekly_insights_usecase.dart';
+import '../../../domain/usecases/build_weekly_analysis_usecase.dart';
 import '../../../domain/repositories/insight_repository.dart';
 import '../../../core/services/ai_auth_service.dart';
 import 'insight_event.dart';
@@ -15,6 +17,7 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
   final GenerateWeeklyInsightUseCase generateWeeklyInsightUseCase;
   final GenerateInsightReportUseCase generateInsightReportUseCase;
   final GetWeeklyInsightsUseCase getWeeklyInsightsUseCase;
+  final BuildWeeklyAnalysisUseCase buildWeeklyAnalysisUseCase;
   final InsightRepository insightRepository;
   final AIAuthService aiAuthService;
 
@@ -22,6 +25,7 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     required this.generateWeeklyInsightUseCase,
     required this.generateInsightReportUseCase,
     required this.getWeeklyInsightsUseCase,
+    required this.buildWeeklyAnalysisUseCase,
     required this.insightRepository,
     required this.aiAuthService,
   }) : super(InsightState.initial()) {
@@ -43,8 +47,10 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     final monday = now.subtract(Duration(days: weekday - 1));
     final sunday = monday.add(const Duration(days: 6));
 
-    final startStr = '${monday.year}-${monday.month.toString().padLeft(2, '0')}-${monday.day.toString().padLeft(2, '0')}';
-    final endStr = '${sunday.year}-${sunday.month.toString().padLeft(2, '0')}-${sunday.day.toString().padLeft(2, '0')}';
+    final startStr =
+        '${monday.year}-${monday.month.toString().padLeft(2, '0')}-${monday.day.toString().padLeft(2, '0')}';
+    final endStr =
+        '${sunday.year}-${sunday.month.toString().padLeft(2, '0')}-${sunday.day.toString().padLeft(2, '0')}';
 
     return '$startStr ~ $endStr';
   }
@@ -55,25 +61,31 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     Emitter<InsightState> emit,
   ) async {
     final currentWeekRange = _getCurrentWeekRange();
+    final analysis = await _buildAnalysisForCurrentWeek(currentWeekRange);
 
     // 检查缓存是否有效
     if (state.isCacheValid(currentWeekRange)) {
       debugPrint('📦 InsightBloc: 使用缓存的洞察报告 (${state.lastFetchTime})');
       // 缓存有效，直接返回成功状态（保持现有数据）
       if (state.status != InsightStatus.success) {
-        emit(state.copyWith(status: InsightStatus.success));
+        emit(state.copyWith(
+          status: InsightStatus.success,
+          weeklyAnalysis: analysis,
+        ));
       }
       return;
     }
 
     // 检查本地持久化缓存（同一周的缓存整周有效，同一次安装内不重复请求）
     try {
-      final cached = await insightRepository.getCachedInsightReport(currentWeekRange);
+      final cached =
+          await insightRepository.getCachedInsightReport(currentWeekRange);
       if (cached != null) {
         debugPrint('💾 InsightBloc: 使用本地缓存洞察报告 (${cached.cachedAt}, 本周有效)');
         emit(state.copyWith(
           status: InsightStatus.success,
           currentReport: cached.report,
+          weeklyAnalysis: analysis,
           lastFetchTime: cached.cachedAt,
           currentWeekRange: currentWeekRange,
           progressMessage: null,
@@ -89,8 +101,11 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     if (!isAuthorized) {
       debugPrint('InsightBloc: 无缓存且未授权AI，显示授权引导');
       emit(state.copyWith(
-        status: InsightStatus.needsAIAuth,
-        clearReport: true,
+        status: analysis != null
+            ? InsightStatus.success
+            : InsightStatus.needsAIAuth,
+        weeklyAnalysis: analysis,
+        clearReport: analysis == null,
       ));
       return; // 显示引导页面，等待用户手动操作
     }
@@ -118,10 +133,12 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
 
     // 2. 已授权，继续生成逻辑
     final currentWeekRange = _getCurrentWeekRange();
+    final analysis = await _buildAnalysisForCurrentWeek(currentWeekRange);
 
     emit(state.copyWith(
       status: InsightStatus.generating,
       progressMessage: '正在分析本周记录...',
+      weeklyAnalysis: analysis,
       clearReport: !event.preserveCurrentContent,
     ));
 
@@ -148,6 +165,7 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
       emit(state.copyWith(
         status: InsightStatus.success,
         currentReport: report,
+        weeklyAnalysis: analysis,
         lastFetchTime: DateTime.now(),
         currentWeekRange: currentWeekRange,
         progressMessage: null,
@@ -155,10 +173,26 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     } catch (e) {
       debugPrint('❌ InsightBloc: 洞察生成失败: $e');
       emit(state.copyWith(
-        status: InsightStatus.error,
+        status: analysis != null ? InsightStatus.success : InsightStatus.error,
+        weeklyAnalysis: analysis,
         errorMessage: e.toString(),
         progressMessage: null,
       ));
+    }
+  }
+
+  Future<WeeklyAnalysis?> _buildAnalysisForCurrentWeek(String weekRange) async {
+    try {
+      final params = GenerateInsightReportParams.forCurrentWeek();
+      return await buildWeeklyAnalysisUseCase(
+        BuildWeeklyAnalysisParams(
+          weekRange: weekRange,
+          startDate: params.startDate,
+          endDate: params.endDate,
+        ),
+      );
+    } catch (_) {
+      return null;
     }
   }
 

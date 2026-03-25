@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../domain/entities/insight_report.dart';
 import '../share/share_insight_screen.dart';
 
@@ -44,8 +45,8 @@ class HistoryReportDetailScreen extends StatelessWidget {
                 report: report,
               ),
               borderRadius: BorderRadius.circular(8),
-              splashColor: const Color(0xFFC4A57B).withValues(alpha: 0.18),
-              highlightColor: const Color(0xFFC4A57B).withValues(alpha: 0.12),
+              splashColor: AppColors.accent.withValues(alpha: 0.18),
+              highlightColor: AppColors.accent.withValues(alpha: 0.12),
               child: Container(
                 margin: const EdgeInsets.only(right: 16),
                 padding: const EdgeInsets.all(6),
@@ -56,7 +57,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
                 child: const Icon(
                   Icons.share_outlined,
                   size: 18,
-                  color: Color(0xFFC4A57B),
+                  color: AppColors.accent,
                 ),
               ),
             ),
@@ -126,7 +127,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -147,7 +148,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
                 child: const Icon(
                   Icons.emoji_emotions_outlined,
                   size: 18,
-                  color: Color(0xFFC4A57B),
+                  color: AppColors.accent,
                 ),
               ),
               const SizedBox(width: 12),
@@ -184,7 +185,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -278,7 +279,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -299,7 +300,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
                 child: const Icon(
                   Icons.psychology_outlined,
                   size: 18,
-                  color: Color(0xFFC4A57B),
+                  color: AppColors.accent,
                 ),
               ),
               const SizedBox(width: 12),
@@ -350,7 +351,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
         style: const TextStyle(
           fontSize: 15,
           height: 1.8,
-          color: Color(0xFFC4A57B),
+          color: AppColors.accent,
           fontWeight: FontWeight.w600,
         ),
       ));
@@ -383,7 +384,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -404,7 +405,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
                 child: const Icon(
                   Icons.lightbulb_outline,
                   size: 18,
-                  color: Color(0xFFC4A57B),
+                  color: AppColors.accent,
                 ),
               ),
               const SizedBox(width: 12),
@@ -434,7 +435,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: const Border(
           left: BorderSide(
-            color: Color(0xFFC4A57B),
+            color: AppColors.accent,
             width: 2,
           ),
         ),

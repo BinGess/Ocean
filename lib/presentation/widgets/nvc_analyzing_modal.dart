@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 
 /// NVC分析加载动画弹窗
@@ -202,7 +203,7 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: const Color(0xFFC4A57B).withValues(alpha: 0.3),
+                    color: AppColors.accent.withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
@@ -236,7 +237,7 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
                       width: 6,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFC4A57B).withValues(
+                        color: AppColors.accent.withValues(
                           alpha: opacity.clamp(0.0, 1.0),
                         ),
                         shape: BoxShape.circle,
@@ -260,7 +261,7 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFC4A57B).withValues(alpha: 0.25),
+                      color: AppColors.accent.withValues(alpha: 0.25),
                       blurRadius: 20,
                       spreadRadius: 2,
                     ),
@@ -343,7 +344,7 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
                   style: AppTypography.modalBody.copyWith(
                     fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
                     color: isCurrent || isCompleted
-                        ? const Color(0xFF2C2C2C)
+                        ? AppColors.textPrimary
                         : const Color(0xFFAAAAAA),
                   ),
                 ),
@@ -408,7 +409,7 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
             preview,
             style: AppTypography.modalBody.copyWith(
               fontSize: 14,
-              color: const Color(0xFF5D4E3C),
+              color: AppColors.textSecondary,
               height: 1.5,
             ),
           ),

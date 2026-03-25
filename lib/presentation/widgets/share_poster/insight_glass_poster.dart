@@ -42,7 +42,7 @@ class InsightGlassPoster extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
+            color: Colors.black.withValues(alpha: 0.12),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -58,9 +58,9 @@ class InsightGlassPoster extends StatelessWidget {
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 color: (isDarkMode ? Colors.white : Colors.white)
-                    .withOpacity(isDarkMode ? 0.08 : 0.22),
+                    .withValues(alpha: isDarkMode ? 0.08 : 0.22),
                 border: Border.all(
-                  color: Colors.white.withOpacity(isDarkMode ? 0.12 : 0.35),
+                  color: Colors.white.withValues(alpha: isDarkMode ? 0.12 : 0.35),
                 ),
                 borderRadius: BorderRadius.circular(18),
               ),

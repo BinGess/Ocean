@@ -4,6 +4,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../core/theme/app_colors.dart';
 
 class PasscodeNumpad extends StatelessWidget {
   /// 数字点击回调
@@ -139,14 +140,14 @@ class _NumpadButtonState extends State<_NumpadButton> {
         height: 72,
         decoration: BoxDecoration(
           color: _isPressed
-              ? const Color(0xFFE8DED0)
-              : const Color(0xFFF5EBE0),
+              ? AppColors.borderLight
+              : AppColors.accentLight,
           shape: BoxShape.circle,
           boxShadow: _isPressed
               ? []
               : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -155,12 +156,10 @@ class _NumpadButtonState extends State<_NumpadButton> {
         child: Center(
           child: Text(
             widget.digit,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w500,
-              color: _isPressed
-                  ? const Color(0xFF5D4E3C)
-                  : const Color(0xFF5D4E3C),
+              color: AppColors.textSecondary,
             ),
           ),
         ),
@@ -212,7 +211,7 @@ class _NumpadIconButtonState extends State<_NumpadIconButton> {
         height: 72,
         decoration: BoxDecoration(
           color: _isPressed
-              ? const Color(0xFFE8DED0).withOpacity(0.5)
+              ? AppColors.borderLight.withValues(alpha: 0.5)
               : Colors.transparent,
           shape: BoxShape.circle,
         ),
@@ -221,8 +220,8 @@ class _NumpadIconButtonState extends State<_NumpadIconButton> {
             widget.icon,
             size: 28,
             color: _isPressed
-                ? const Color(0xFF5D4E3C)
-                : const Color(0xFF8B7D6B),
+                ? AppColors.textSecondary
+                : AppColors.textTertiary,
           ),
         ),
       ),

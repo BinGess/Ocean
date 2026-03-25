@@ -5,7 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class AppConstants {
   // 应用信息
   static const String appName = '瞬记';
-  static const String appVersion = '1.0.0';
+  static const String appVersion = '1.0.2';
 
   // 豆包语音识别 API 配置
   // 官方文档: https://www.volcengine.com/docs/6561/1354869
@@ -86,6 +86,16 @@ class EnvConfig {
   static String get cozeInsightProjectId =>
       dotenv.get('COZE_INSIGHT_PROJECT_ID', fallback: '7600361830606815268').trim();
 
+  // Coze 日总结智能体配置
+  static String get cozeDailySummaryApiToken =>
+      dotenv.get('COZE_DAILY_SUMMARY_API_TOKEN', fallback: 'eyJhbGciOiJSUzI1NiIsImtpZCI6Ijk0MTc4MjA4LTg3ZjUtNDNlMS1hNzNlLWIyYjE2ZDg2ZGYzMyJ9.eyJpc3MiOiJodHRwczovL2FwaS5jb3plLmNuIiwiYXVkIjpbImdYZEpPREFPZ0Zia29oWjl3dHZzRmtyTU1UUlFTdmdvIl0sImV4cCI6ODIxMDI2Njg3Njc5OSwiaWF0IjoxNzcyMDE2MzA0LCJzdWIiOiJzcGlmZmU6Ly9hcGkuY296ZS5jbi93b3JrbG9hZF9pZGVudGl0eS9pZDo3NjEwNzIzNzYxNTU3MzQwMjAyIiwic3JjIjoiaW5ib3VuZF9hdXRoX2FjY2Vzc190b2tlbl9pZDo3NjEwNzUyMDc2OTEzNTczODk0In0.AndWEYHD41EM_eez7NDAs-MIHy3K0ALKbaVjAZVl8_Gt8yv6tEmukcuFhyo7CbTJErFT6hsKo8SdmE_9LxSwDlwEN569CP1moYZ6KULSTubR9QpF-t-1Rw-e5SV-DNBLioWzzyKyBxqMM4yhqpRGvVUnBzxjq2UyNLI3o8HV0ETB7j1O7s-0DeOSGisPKhmgkWBUauOGFnJo-VKdXworhMfBJn1M5y5jbr2xxil7o7GJUYYV4oCE1ABT4wLjnLKMp6PVkIfc62JzRkfjam0TV_5DEhvfDMUCDsrmM6-RIpdSowlpJlN-9BtuvR8u8UxeqgIN33Nm7k3y3iSVlkoSOg').trim();
+
+  static String get cozeDailySummaryBaseUrl =>
+      dotenv.get('COZE_DAILY_SUMMARY_BASE_URL', fallback: 'https://6n23cqs4qb.coze.site').trim();
+
+  static String get cozeDailySummaryProjectId =>
+      dotenv.get('COZE_DAILY_SUMMARY_PROJECT_ID', fallback: '7610722093646233641').trim();
+
   /// 验证配置是否完整
   static bool get isConfigured {
     return doubaoAsrAppKey.isNotEmpty &&
@@ -104,6 +114,12 @@ class EnvConfig {
   static bool get isInsightConfigured {
     return cozeInsightApiToken.isNotEmpty &&
            cozeInsightProjectId.isNotEmpty;
+  }
+
+  /// 验证日总结智能体配置是否完整
+  static bool get isDailySummaryConfigured {
+    return cozeDailySummaryApiToken.isNotEmpty &&
+           cozeDailySummaryProjectId.isNotEmpty;
   }
 
   /// 获取配置状态信息（用于调试）

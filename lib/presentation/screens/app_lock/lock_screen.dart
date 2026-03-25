@@ -5,6 +5,7 @@ library;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/services/app_lock_service.dart';
 import '../../../core/di/injection.dart';
 import '../../widgets/app_lock/passcode_numpad.dart';
@@ -204,7 +205,7 @@ class _LockScreenState extends State<LockScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFFFAF6F1),
+        backgroundColor: AppColors.bgPrimary,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
@@ -221,7 +222,7 @@ class _LockScreenState extends State<LockScreen> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF5D4E3C),
+                color: AppColors.textSecondary,
               ),
             ),
           ],
@@ -232,7 +233,7 @@ class _LockScreenState extends State<LockScreen> {
           '⚠️ 警告：此操作将删除所有未备份的本地日记。',
           style: TextStyle(
             fontSize: 15,
-            color: Color(0xFF5D4E3C),
+            color: AppColors.textSecondary,
             height: 1.6,
           ),
         ),
@@ -272,7 +273,7 @@ class _LockScreenState extends State<LockScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF6F1),
+      backgroundColor: AppColors.bgPrimary,
       body: SafeArea(
         child: Column(
           children: [
@@ -283,13 +284,13 @@ class _LockScreenState extends State<LockScreen> {
               width: 80,
               height: 80,
               decoration: const BoxDecoration(
-                color: Color(0xFFF5EBE0),
+                color: AppColors.accentLight,
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.lock_outline,
                 size: 40,
-                color: Color(0xFFC4A57B),
+                color: AppColors.accent,
               ),
             ),
             const SizedBox(height: 24),
@@ -300,7 +301,7 @@ class _LockScreenState extends State<LockScreen> {
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF5D4E3C),
+                color: AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: 8),
@@ -314,7 +315,7 @@ class _LockScreenState extends State<LockScreen> {
                 fontSize: 15,
                 color: _isLockedOut
                     ? const Color(0xFFE57373)
-                    : const Color(0xFF8B7D6B),
+                    : AppColors.textTertiary,
               ),
             ),
             const SizedBox(height: 40),

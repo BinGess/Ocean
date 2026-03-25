@@ -3,13 +3,15 @@ description: 情绪觉察记录 App - Flutter 版本
 
 publish_to: 'none'
 
-version: 1.0.1+2
+version: 1.0.2+3
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
 
   # 状态管理
@@ -36,7 +38,7 @@ dependencies:
 
   # 工具类
   uuid: ^4.2.2
-  intl: ^0.18.1
+  intl: ^0.20.2
   freezed_annotation: ^2.4.1
   json_annotation: ^4.9.0
   logger: ^2.0.2
@@ -57,6 +59,9 @@ dependencies:
   # 安全与隐私
   flutter_secure_storage: ^9.0.0
   local_auth: ^2.2.0
+
+  # 内购
+  in_app_purchase: ^3.2.0
 
 dev_dependencies:
   flutter_test:
@@ -96,11 +101,3 @@ flutter:
     - assets/data/
     - assets/fonts/
     - .env
-
-  # 字体配置（暂时注释掉，等待添加字体文件）
-  # fonts:
-  #   - family: Manrope
-  #     fonts:
-  #       - asset: assets/fonts/Manrope-Regular.ttf
-  #       - asset: assets/fonts/Manrope-Bold.ttf
-  #         weight: 700

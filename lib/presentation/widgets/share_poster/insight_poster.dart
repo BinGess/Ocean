@@ -29,7 +29,7 @@ class InsightPoster extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
@@ -44,9 +44,9 @@ class InsightPoster extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  colorScheme.accent.withOpacity(0.3),
+                  colorScheme.accent.withValues(alpha: 0.3),
                   colorScheme.accent,
-                  colorScheme.accent.withOpacity(0.3),
+                  colorScheme.accent.withValues(alpha: 0.3),
                 ],
               ),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -113,7 +113,7 @@ class InsightPoster extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: colorScheme.accent.withOpacity(0.15),
+                color: colorScheme.accent.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -206,7 +206,7 @@ class InsightPoster extends StatelessWidget {
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: colorScheme.accent.withOpacity(0.12),
+                color: colorScheme.accent.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
@@ -235,8 +235,8 @@ class InsightPoster extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            colorScheme.accent.withOpacity(0.1),
-            colorScheme.accent.withOpacity(0.05),
+            colorScheme.accent.withValues(alpha: 0.1),
+            colorScheme.accent.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
@@ -338,7 +338,7 @@ class InsightPoster extends StatelessWidget {
               width: 24,
               height: 24,
               decoration: BoxDecoration(
-                color: colorScheme.accent.withOpacity(0.2),
+                color: colorScheme.accent.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Center(
@@ -367,7 +367,7 @@ class InsightPoster extends StatelessWidget {
           '看见情绪的纹理',
           style: TextStyle(
             fontSize: 11,
-            color: colorScheme.textSecondary.withOpacity(0.7),
+            color: colorScheme.textSecondary.withValues(alpha: 0.7),
             fontStyle: FontStyle.italic,
           ),
         ),

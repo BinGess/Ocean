@@ -32,7 +32,7 @@ class AuraGradientPoster extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.accent.withOpacity(0.3),
+            color: colorScheme.accent.withValues(alpha: 0.3),
             blurRadius: 40,
             offset: const Offset(0, 20),
           ),
@@ -96,7 +96,7 @@ class AuraGradientPoster extends StatelessWidget {
           colors: [
             colorScheme.backgroundStart,
             colorScheme.backgroundEnd,
-            colorScheme.backgroundStart.withOpacity(0.8),
+            colorScheme.backgroundStart.withValues(alpha: 0.8),
           ],
           stops: const [0.0, 0.5, 1.0],
         ),
@@ -118,8 +118,8 @@ class AuraGradientPoster extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  colorScheme.accent.withOpacity(0.4),
-                  colorScheme.accent.withOpacity(0.1),
+                  colorScheme.accent.withValues(alpha: 0.4),
+                  colorScheme.accent.withValues(alpha: 0.1),
                   Colors.transparent,
                 ],
               ),
@@ -137,8 +137,8 @@ class AuraGradientPoster extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  colorScheme.backgroundEnd.withOpacity(0.6),
-                  colorScheme.backgroundEnd.withOpacity(0.2),
+                  colorScheme.backgroundEnd.withValues(alpha: 0.6),
+                  colorScheme.backgroundEnd.withValues(alpha: 0.2),
                   Colors.transparent,
                 ],
               ),
@@ -156,7 +156,7 @@ class AuraGradientPoster extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  colorScheme.accent.withOpacity(0.2),
+                  colorScheme.accent.withValues(alpha: 0.2),
                   Colors.transparent,
                 ],
               ),
@@ -205,10 +205,10 @@ class AuraGradientPoster extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
           decoration: BoxDecoration(
-            color: colorScheme.cardBackground.withOpacity(0.6),
+            color: colorScheme.cardBackground.withValues(alpha: 0.6),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: colorScheme.cardBorder.withOpacity(0.3),
+              color: colorScheme.cardBorder.withValues(alpha: 0.3),
               width: 1,
             ),
           ),
@@ -242,14 +242,14 @@ class AuraGradientPoster extends StatelessWidget {
                   children: data.emotions.skip(1).take(3).map((e) => Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: colorScheme.accent.withOpacity(0.15),
+                      color: colorScheme.accent.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       e,
                       style: TextStyle(
                         fontSize: 13,
-                        color: colorScheme.textPrimary.withOpacity(0.8),
+                        color: colorScheme.textPrimary.withValues(alpha: 0.8),
                       ),
                     ),
                   )).toList(),
@@ -281,9 +281,9 @@ class AuraGradientPoster extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    colorScheme.accent.withOpacity(0.1),
-                    colorScheme.accent.withOpacity(0.5),
-                    colorScheme.accent.withOpacity(0.1),
+                    colorScheme.accent.withValues(alpha: 0.1),
+                    colorScheme.accent.withValues(alpha: 0.5),
+                    colorScheme.accent.withValues(alpha: 0.1),
                   ],
                 ),
               ),
@@ -293,7 +293,7 @@ class AuraGradientPoster extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: colorScheme.accent.withOpacity(0.2),
+              color: colorScheme.accent.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
@@ -318,10 +318,10 @@ class AuraGradientPoster extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: colorScheme.cardBackground.withOpacity(0.5),
+            color: colorScheme.cardBackground.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: colorScheme.cardBorder.withOpacity(0.2),
+              color: colorScheme.cardBorder.withValues(alpha: 0.2),
             ),
           ),
           child: Row(
@@ -362,7 +362,7 @@ class AuraGradientPoster extends StatelessWidget {
               width: 24,
               height: 24,
               decoration: BoxDecoration(
-                color: colorScheme.accent.withOpacity(0.2),
+                color: colorScheme.accent.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Center(
@@ -391,7 +391,7 @@ class AuraGradientPoster extends StatelessWidget {
           '看见情绪的纹理',
           style: TextStyle(
             fontSize: 11,
-            color: colorScheme.textSecondary.withOpacity(0.7),
+            color: colorScheme.textSecondary.withValues(alpha: 0.7),
             fontStyle: FontStyle.italic,
           ),
         ),

@@ -4,6 +4,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/services/app_lock_service.dart';
 import '../../../core/di/injection.dart';
 import '../../widgets/app_lock/passcode_numpad.dart';
@@ -320,7 +321,7 @@ class _PasscodeSetupScreenState extends State<PasscodeSetupScreen> {
                 child: Icon(
                   icon,
                   size: 48,
-                  color: const Color(0xFFC4A57B),
+                  color: AppColors.accent,
                 ),
               ),
               const SizedBox(height: 32),
@@ -356,7 +357,7 @@ class _PasscodeSetupScreenState extends State<PasscodeSetupScreen> {
                 child: ElevatedButton(
                   onPressed: _enableBiometric,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFC4A57B),
+                    backgroundColor: AppColors.accent,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(

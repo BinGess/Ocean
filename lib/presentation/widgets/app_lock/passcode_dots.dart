@@ -3,6 +3,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
 
 class PasscodeDots extends StatelessWidget {
   /// 密码总长度
@@ -38,14 +39,14 @@ class PasscodeDots extends StatelessWidget {
             color: hasError
                 ? const Color(0xFFE57373)
                 : (isFilled
-                    ? const Color(0xFFC4A57B)
+                    ? AppColors.accent
                     : Colors.transparent),
             border: Border.all(
               color: hasError
                   ? const Color(0xFFE57373)
                   : (isFilled
-                      ? const Color(0xFFC4A57B)
-                      : const Color(0xFFD4C4B0)),
+                      ? AppColors.accent
+                      : AppColors.border),
               width: 2,
             ),
           ),

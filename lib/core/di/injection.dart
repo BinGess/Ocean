@@ -12,6 +12,7 @@ import '../../domain/usecases/get_records_usecase.dart';
 import '../../domain/usecases/update_record_usecase.dart';
 import '../../domain/usecases/generate_weekly_insight_usecase.dart';
 import '../../domain/usecases/generate_insight_report_usecase.dart';
+import '../../domain/usecases/build_weekly_analysis_usecase.dart';
 import '../../domain/usecases/get_weekly_insights_usecase.dart';
 import '../../data/repositories/audio_repository_impl.dart';
 import '../../data/repositories/record_repository_impl.dart';
@@ -26,12 +27,16 @@ import '../network/coze_ai_service.dart';
 import '../constants/app_constants.dart';
 import '../services/app_lock_service.dart';
 import '../services/ai_auth_service.dart';
-import '../services/home_background_theme_service.dart';
 import '../services/quote_preloader.dart';
 import '../services/quote_update_manager.dart';
+import '../services/daily_summary_service.dart';
+import '../services/icloud_sync_service.dart';
+import '../services/pro_subscription_service.dart';
 import '../../presentation/bloc/audio/audio_bloc.dart';
 import '../../presentation/bloc/record/record_bloc.dart';
 import '../../presentation/bloc/insight/insight_bloc.dart';
+import '../../presentation/bloc/locale/locale_bloc.dart';
+import '../services/locale_service.dart';
 
 final getIt = GetIt.instance;
 
@@ -69,6 +74,9 @@ Future<void> configureDependencies() async {
   await aiAuthService.init();
   getIt.registerSingleton<AIAuthService>(aiAuthService);
 
+  // 语言服务（需要在 HiveDatabase 之后初始化，这里先注册工厂）
+  // 实际初始化在 HiveDatabase 之后
+
   // ===== Data Sources =====
 
   // Hive 数据库
@@ -76,13 +84,20 @@ Future<void> configureDependencies() async {
   await hiveDatabase.init();
   getIt.registerSingleton<HiveDatabase>(hiveDatabase);
 
-  // 首页背景主题服务（A/B 方案切换）
-  final homeBackgroundThemeService = HomeBackgroundThemeService(
-    hiveDatabase: hiveDatabase,
+  final iCloudSyncService = ICloudSyncService(
+    database: hiveDatabase,
   );
-  await homeBackgroundThemeService.init();
-  getIt.registerSingleton<HomeBackgroundThemeService>(
-    homeBackgroundThemeService,
+  await iCloudSyncService.init();
+  getIt.registerSingleton<ICloudSyncService>(iCloudSyncService);
+
+  // Pro 订阅服务
+  final proSubscriptionService = ProSubscriptionService(database: hiveDatabase);
+  await proSubscriptionService.init();
+  getIt.registerSingleton<ProSubscriptionService>(proSubscriptionService);
+
+  // 语言服务
+  getIt.registerLazySingleton<LocaleService>(
+    () => LocaleService(getIt<HiveDatabase>()),
   );
 
   // 豆包远程数据源
@@ -144,6 +159,14 @@ Future<void> configureDependencies() async {
     ),
   );
 
+  // 日总结服务
+  getIt.registerLazySingleton<DailySummaryService>(
+    () => DailySummaryService(
+      database: getIt<HiveDatabase>(),
+      cozeAIService: getIt<CozeAIService>(),
+    ),
+  );
+
   // ===== Use Cases =====
 
   // 创建快速笔记
@@ -185,6 +208,12 @@ Future<void> configureDependencies() async {
     ),
   );
 
+  getIt.registerLazySingleton<BuildWeeklyAnalysisUseCase>(
+    () => BuildWeeklyAnalysisUseCase(
+      recordRepository: getIt<RecordRepository>(),
+    ),
+  );
+
   // 获取周洞察列表
   getIt.registerLazySingleton<GetWeeklyInsightsUseCase>(
     () => GetWeeklyInsightsUseCase(
@@ -211,6 +240,7 @@ Future<void> configureDependencies() async {
       recordRepository: getIt<RecordRepository>(),
       aiRepository: getIt<AIRepository>(),
       aiAuthService: getIt<AIAuthService>(),
+      dailySummaryService: getIt<DailySummaryService>(),
     ),
   );
 
@@ -220,9 +250,15 @@ Future<void> configureDependencies() async {
       generateWeeklyInsightUseCase: getIt<GenerateWeeklyInsightUseCase>(),
       generateInsightReportUseCase: getIt<GenerateInsightReportUseCase>(),
       getWeeklyInsightsUseCase: getIt<GetWeeklyInsightsUseCase>(),
+      buildWeeklyAnalysisUseCase: getIt<BuildWeeklyAnalysisUseCase>(),
       insightRepository: getIt<InsightRepository>(),
       aiAuthService: getIt<AIAuthService>(),
     ),
+  );
+
+  // 语言 BLoC
+  getIt.registerFactory<LocaleBloc>(
+    () => LocaleBloc(getIt<LocaleService>()),
   );
 }
 
@@ -234,7 +270,9 @@ Future<void> cleanupDependencies() async {
   // 清理服务
   getIt<AppLockService>().dispose();
   getIt<AIAuthService>().dispose();
-  getIt<HomeBackgroundThemeService>().dispose();
+  getIt<DailySummaryService>().dispose();
+  getIt<ICloudSyncService>().dispose();
+  getIt<ProSubscriptionService>().dispose();
 
   // 清理网络客户端
   getIt<DoubaoLLMClient>().dispose();

@@ -1,0 +1,366 @@
+{
+  "@@locale": "zh",
+
+  "appTitle": "MindFlow",
+  "@appTitle": {"description": "App name"},
+
+  "navRecords": "记录",
+  "@navRecords": {"description": "Navigation tab - Records"},
+
+  "navHome": "瞬记",
+  "@navHome": {"description": "Navigation tab - Home/Quick record"},
+
+  "navInsights": "洞察",
+  "@navInsights": {"description": "Navigation tab - Insights"},
+
+  "settings": "设置",
+  "@settings": {"description": "Settings page title"},
+
+  "securityAndPrivacy": "安全与隐私",
+  "@securityAndPrivacy": {"description": "Settings section header"},
+
+  "appLock": "应用锁",
+  "@appLock": {"description": "App lock setting title"},
+
+  "appLockSubtitle": "使用密码或生物识别保护隐私",
+  "@appLockSubtitle": {"description": "App lock setting subtitle"},
+
+  "aiServiceAuth": "AI服务授权",
+  "@aiServiceAuth": {"description": "AI service authorization setting"},
+
+  "aiServiceAuthSubtitle": "允许使用火山引擎豆包大模型分析日记",
+  "@aiServiceAuthSubtitle": {"description": "AI service auth subtitle"},
+
+  "dataManagement": "数据管理",
+  "@dataManagement": {"description": "Settings section header"},
+
+  "export": "导出",
+  "@export": {"description": "Export setting title"},
+
+  "exportSubtitle": "导出所有记录或洞察信息",
+  "@exportSubtitle": {"description": "Export setting subtitle"},
+
+  "iCloudSync": "iCloud 云同步",
+  "@iCloudSync": {"description": "iCloud sync setting title"},
+
+  "iCloudSyncSubtitle": "将记录、每日心情、日总结和每周总结保存到 iCloud",
+  "@iCloudSyncSubtitle": {"description": "iCloud sync subtitle"},
+
+  "iCloudSyncUnavailable": "当前设备未开启 iCloud Drive，暂时无法使用",
+  "@iCloudSyncUnavailable": {"description": "iCloud unavailable message"},
+
+  "iCloudSyncEnabled": "已开启 iCloud 云同步",
+  "@iCloudSyncEnabled": {"description": "iCloud enabled message"},
+
+  "iCloudSyncDisabled": "已关闭 iCloud 云同步",
+  "@iCloudSyncDisabled": {"description": "iCloud disabled message"},
+
+  "iCloudSyncFailed": "iCloud 云同步设置失败，请稍后重试",
+  "@iCloudSyncFailed": {"description": "iCloud failed message"},
+
+  "other": "其他",
+  "@other": {"description": "Settings section header"},
+
+  "showOnboardingAlways": "每次展示新手引导",
+  "@showOnboardingAlways": {"description": "Always show onboarding setting title"},
+
+  "showOnboardingAlwaysSubtitle": "开启后每次进入应用都会展示新手引导",
+  "@showOnboardingAlwaysSubtitle": {"description": "Always show onboarding setting subtitle"},
+
+  "about": "关于",
+  "@about": {"description": "About setting title"},
+
+  "aboutSubtitle": "应用信息与隐私协议",
+  "@aboutSubtitle": {"description": "About setting subtitle"},
+
+  "language": "语言",
+  "@language": {"description": "Language setting title"},
+
+  "languageSubtitle": "切换应用显示语言",
+  "@languageSubtitle": {"description": "Language setting subtitle"},
+
+  "languageChinese": "中文",
+  "@languageChinese": {"description": "Chinese language option"},
+
+  "languageEnglish": "English",
+  "@languageEnglish": {"description": "English language option"},
+
+  "languageSystem": "跟随系统",
+  "@languageSystem": {"description": "Follow system language"},
+
+  "cancel": "取消",
+  "@cancel": {"description": "Cancel button"},
+
+  "confirm": "确定",
+  "@confirm": {"description": "Confirm button"},
+
+  "close": "关闭",
+  "@close": {"description": "Close button"},
+
+  "disableAIService": "关闭AI服务",
+  "@disableAIService": {"description": "Disable AI service dialog title"},
+
+  "disableAIServiceConfirm": "关闭后将无法使用NVC情绪分析和周洞察功能，是否继续？",
+  "@disableAIServiceConfirm": {"description": "Disable AI service confirmation message"},
+
+  "dailyRecords": "每日记录",
+  "@dailyRecords": {"description": "Daily records page title"},
+
+  "today": "今天",
+  "@today": {"description": "Today label"},
+
+  "yesterday": "昨天",
+  "@yesterday": {"description": "Yesterday label"},
+
+  "monday": "周一",
+  "@monday": {"description": "Monday"},
+
+  "tuesday": "周二",
+  "@tuesday": {"description": "Tuesday"},
+
+  "wednesday": "周三",
+  "@wednesday": {"description": "Wednesday"},
+
+  "thursday": "周四",
+  "@thursday": {"description": "Thursday"},
+
+  "friday": "周五",
+  "@friday": {"description": "Friday"},
+
+  "saturday": "周六",
+  "@saturday": {"description": "Saturday"},
+
+  "sunday": "周日",
+  "@sunday": {"description": "Sunday"},
+
+  "loadFailed": "加载失败",
+  "@loadFailed": {"description": "Load failed message"},
+
+  "retry": "重试",
+  "@retry": {"description": "Retry button"},
+
+  "noRecords": "暂无记录",
+  "@noRecords": {"description": "No records message"},
+
+  "recordDeleted": "记录已删除",
+  "@recordDeleted": {"description": "Record deleted message"},
+
+  "recordsCount": "共 {count} 条记录 · 点击修改心情",
+  "@recordsCount": {
+    "description": "Records count with mood hint",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "enableSmartInsights": "开启智能洞察",
+  "@enableSmartInsights": {"description": "Enable smart insights title"},
+
+  "enableSmartInsightsDesc": "授权AI服务后，将为您分析本周情绪记录\n生成专属的情绪洞察报告",
+  "@enableSmartInsightsDesc": {"description": "Enable smart insights description"},
+
+  "enableNow": "立即开启",
+  "@enableNow": {"description": "Enable now button"},
+
+  "learnMore": "了解更多",
+  "@learnMore": {"description": "Learn more button"},
+
+  "generatingInsight": "正在生成洞察...",
+  "@generatingInsight": {"description": "Generating insight message"},
+
+  "noEnoughContent": "本周没有足够的内容生成洞察",
+  "@noEnoughContent": {"description": "Not enough content message"},
+
+  "autoGenerateAfterMore": "记录更多内容后将自动生成",
+  "@autoGenerateAfterMore": {"description": "Auto generate after more records"},
+
+  "regenerate": "重新生成",
+  "@regenerate": {"description": "Regenerate button"},
+
+  "refreshFailed": "刷新失败，请稍后重试",
+  "@refreshFailed": {"description": "Refresh failed message"},
+
+  "aiAuthExpired": "AI授权已失效，请在设置中重新开启",
+  "@aiAuthExpired": {"description": "AI auth expired message"},
+
+  "aiNeedsAuthSnackbar": "AI功能需要授权才能使用，您可在设置中开启",
+  "@aiNeedsAuthSnackbar": {"description": "AI needs auth snackbar"},
+
+  "goToSettings": "去设置",
+  "@goToSettings": {"description": "Go to settings button"},
+
+  "viewHistoryReports": "查看历史报告",
+  "@viewHistoryReports": {"description": "View history reports button"},
+
+  "emotionOverview": "情绪概览",
+  "@emotionOverview": {"description": "Emotion overview section title"},
+
+  "highFrequencySituations": "高频情境",
+  "@highFrequencySituations": {"description": "High frequency situations section"},
+
+  "potentialNeeds": "潜在需求",
+  "@potentialNeeds": {"description": "Potential needs section"},
+
+  "actionSuggestions": "行动建议",
+  "@actionSuggestions": {"description": "Action suggestions section"},
+
+  "justNow": "刚刚更新",
+  "@justNow": {"description": "Just now time label"},
+
+  "minutesAgo": "{count}分钟前",
+  "@minutesAgo": {
+    "description": "Minutes ago",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "hoursAgo": "{count}小时前",
+  "@hoursAgo": {
+    "description": "Hours ago",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "holdToRecord": "长按说话",
+  "@holdToRecord": {"description": "Hold to record hint"},
+
+  "recording": "录音中...",
+  "@recording": {"description": "Recording status"},
+
+  "releaseToSend": "松开发送",
+  "@releaseToSend": {"description": "Release to send hint"},
+
+  "recordingTooShort": "录音时间太短",
+  "@recordingTooShort": {"description": "Recording too short message"},
+
+  "microphonePermissionDenied": "需要麦克风权限",
+  "@microphonePermissionDenied": {"description": "Microphone permission denied"},
+
+  "recordButtonTapToRecord": "点击录音",
+  "@recordButtonTapToRecord": {"description": "Tap to record hint"},
+
+  "recordButtonHoldSemantics": "长按开始录音",
+  "@recordButtonHoldSemantics": {"description": "Record button semantics label for hold mode"},
+
+  "recordButtonHoldHint": "双击并长按开始录音",
+  "@recordButtonHoldHint": {"description": "Record button semantics hint for hold mode"},
+
+  "recordButtonTapSemantics": "点击开始录音",
+  "@recordButtonTapSemantics": {"description": "Record button semantics label for tap mode"},
+
+  "recordButtonTapHint": "双击开始或停止录音",
+  "@recordButtonTapHint": {"description": "Record button semantics hint for tap mode"},
+
+  "saveFailedRetry": "保存失败，请重试",
+  "@saveFailedRetry": {"description": "Save failed message"},
+
+  "emotionInputTitle": "描述下你此刻的心情？",
+  "@emotionInputTitle": {"description": "Emotion input screen title"},
+
+  "emotionInputHint": "尽情书写，让我帮你分析此刻的心情",
+  "@emotionInputHint": {"description": "Emotion input hint"},
+
+  "emotionInputSave": "仅文字保存",
+  "@emotionInputSave": {"description": "Emotion input save action"},
+
+  "emotionInputAnalyze": "NVC分析",
+  "@emotionInputAnalyze": {"description": "Emotion input analyze action"},
+
+  "emotionGrantPermissionFirst": "请先授予录音权限",
+  "@emotionGrantPermissionFirst": {"description": "Prompt to grant microphone permission"},
+
+  "emotionEnterContentBeforeSave": "请输入内容后再保存",
+  "@emotionEnterContentBeforeSave": {"description": "Prompt to enter content before save"},
+
+  "emotionEnterContentBeforeAnalyze": "请输入内容后再分析",
+  "@emotionEnterContentBeforeAnalyze": {"description": "Prompt to enter content before analyze"},
+
+  "emotionEmptyInputCannotContinue": "输入内容为空，无法继续分析",
+  "@emotionEmptyInputCannotContinue": {"description": "Empty input prompt before continue"},
+
+  "emotionEmptyInputCannotSave": "输入内容为空，无法保存",
+  "@emotionEmptyInputCannotSave": {"description": "Empty input prompt before save"},
+
+  "emotionFinishingRecording": "正在结束录音...",
+  "@emotionFinishingRecording": {"description": "Finishing recording hint"},
+
+  "emotionTranscriptionManualFallback": "转写失败，请手动补充内容后再试",
+  "@emotionTranscriptionManualFallback": {"description": "Transcription fallback hint"},
+
+  "homeGreetingMorning": "早上好",
+  "@homeGreetingMorning": {"description": "Home greeting in the morning"},
+
+  "homeGreetingAfternoon": "下午好",
+  "@homeGreetingAfternoon": {"description": "Home greeting in the afternoon"},
+
+  "homeGreetingEvening": "晚上好",
+  "@homeGreetingEvening": {"description": "Home greeting in the evening"},
+
+  "homeContentTooShortRetry": "内容太短，请重试",
+  "@homeContentTooShortRetry": {"description": "Home short content hint"},
+
+  "homeSavingRecord": "正在保存记录...",
+  "@homeSavingRecord": {"description": "Home saving record hint"},
+
+  "homeSaveCancelled": "已取消保存",
+  "@homeSaveCancelled": {"description": "Home save canceled hint"},
+
+  "homeRecordSaved": "记录已保存",
+  "@homeRecordSaved": {"description": "Home record saved hint"},
+
+  "homeTranscriptionPending": "转写未完成，请稍后...",
+  "@homeTranscriptionPending": {"description": "Home transcription pending hint"},
+
+  "homeNoTranscriptionFallback": "暂无转写文本，已自动转为仅记录",
+  "@homeNoTranscriptionFallback": {"description": "Home fallback when no transcription is available"},
+
+  "homeRecordPrompt": "记录下此刻的情绪",
+  "@homeRecordPrompt": {"description": "Home record entry prompt"},
+
+  "homeStartVoiceRecord": "开始语音记录",
+  "@homeStartVoiceRecord": {"description": "Home voice record semantics label"},
+
+  "homeOpenVoiceInputHint": "打开语音录制输入",
+  "@homeOpenVoiceInputHint": {"description": "Home voice input semantics hint"},
+
+  "moodPickerTitle": "今天心情如何？",
+  "@moodPickerTitle": {"description": "Daily mood picker title"},
+
+  "moodPickerSubtitle": "选择一个表情来记录今天的心情",
+  "@moodPickerSubtitle": {"description": "Daily mood picker subtitle"},
+
+  "moodHappy": "开心",
+  "@moodHappy": {"description": "Happy mood label"},
+
+  "moodCalm": "平静",
+  "@moodCalm": {"description": "Calm mood label"},
+
+  "moodLoved": "幸福",
+  "@moodLoved": {"description": "Loved mood label"},
+
+  "moodSad": "低落",
+  "@moodSad": {"description": "Sad mood label"},
+
+  "moodAnnoyed": "烦躁",
+  "@moodAnnoyed": {"description": "Annoyed mood label"},
+
+  "moodAnxious": "焦虑",
+  "@moodAnxious": {"description": "Anxious mood label"},
+
+  "moodTired": "疲惫",
+  "@moodTired": {"description": "Tired mood label"},
+
+  "moodConfused": "困惑",
+  "@moodConfused": {"description": "Confused mood label"},
+
+  "selectLanguage": "选择语言",
+  "@selectLanguage": {"description": "Select language dialog title"}
+}

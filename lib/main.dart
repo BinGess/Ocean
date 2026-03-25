@@ -1,23 +1,32 @@
 // MindFlow 应用入口
 // 情绪觉察日记 App
 
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'core/di/injection.dart';
 import 'core/services/app_lock_service.dart';
+import 'core/services/icloud_sync_service.dart';
+import 'l10n/app_localizations.dart';
 import 'presentation/bloc/audio/audio_bloc.dart';
 import 'presentation/bloc/audio/audio_event.dart';
 import 'presentation/bloc/record/record_bloc.dart';
 import 'presentation/bloc/insight/insight_bloc.dart';
+import 'presentation/bloc/locale/locale_bloc.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/records/records_screen.dart';
 import 'presentation/screens/insights/insights_screen.dart';
 import 'presentation/screens/splash/splash_screen.dart';
+import 'presentation/screens/onboarding/nvc_onboarding_screen.dart';
 import 'presentation/screens/app_lock/lock_screen.dart';
 import 'presentation/widgets/app_lock/privacy_blur_overlay.dart';
+import 'data/datasources/local/hive_database.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,6 +42,7 @@ void main() async {
 
   // 初始化依赖注入
   await configureDependencies();
+  await getIt<ICloudSyncService>().initializeOnLaunch();
 
   runApp(const MindFlowApp());
 }
@@ -54,14 +64,30 @@ class MindFlowApp extends StatelessWidget {
         BlocProvider(
           create: (context) => getIt<InsightBloc>(),
         ),
+        BlocProvider(
+          create: (context) => getIt<LocaleBloc>()..add(const LocaleLoad()),
+        ),
       ],
-      child: MaterialApp(
-        title: 'MindFlow',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.light, // 后续可以从设置中读取
-        home: const AppEntryPoint(),
+      child: BlocBuilder<LocaleBloc, LocaleState>(
+        builder: (context, localeState) {
+          return MaterialApp(
+            title: 'MindFlow',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: ThemeMode.system,
+            // 本地化配置
+            locale: localeState.effectiveLocale,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: const AppEntryPoint(),
+          );
+        },
       ),
     );
   }
@@ -78,11 +104,13 @@ class AppEntryPoint extends StatefulWidget {
 class _AppEntryPointState extends State<AppEntryPoint>
     with WidgetsBindingObserver {
   bool _showSplash = true;
+  bool _showOnboarding = false;
   bool _showLockScreen = false;
   bool _showPrivacyBlur = false;
   bool _isCheckingLock = false;
 
   final _appLockService = getIt<AppLockService>();
+  final _iCloudSyncService = getIt<ICloudSyncService>();
 
   @override
   void initState() {
@@ -143,6 +171,7 @@ class _AppEntryPointState extends State<AppEntryPoint>
 
   void _onAppBackground() async {
     try {
+      unawaited(_iCloudSyncService.syncNow());
       _appLockService.onAppBackground();
       // 显示隐私遮罩
       final isEnabled = await _appLockService.isEnabled;
@@ -165,6 +194,7 @@ class _AppEntryPointState extends State<AppEntryPoint>
     }
 
     try {
+      unawaited(_iCloudSyncService.refreshFromCloudIfNeeded());
       // 检查是否需要显示锁屏
       final shouldLock = await _appLockService.shouldShowLockScreen();
       if (shouldLock && mounted) {
@@ -227,14 +257,34 @@ class _AppEntryPointState extends State<AppEntryPoint>
   }
 
   void _onSplashComplete() async {
+    // 检查是否需要展示新用户引导
+    bool needsOnboarding = false;
+    try {
+      final db = getIt<HiveDatabase>();
+      final completed = db.settingsBox.get('onboarding_completed',
+          defaultValue: false);
+      final alwaysShow = db.settingsBox.get('show_onboarding_always',
+          defaultValue: false);
+      needsOnboarding = completed != true || alwaysShow == true;
+    } catch (e) {
+      debugPrint('AppEntryPoint: 检查 onboarding flag 失败: $e');
+    }
+
     setState(() {
       _showSplash = false;
+      _showOnboarding = needsOnboarding;
     });
 
-    // Splash 结束后，直接请求麦克风权限和预热
+    // Splash 结束后，直接请求麦克风权限和预热（无论是否显示引导）
     if (mounted) {
       _requestPermissionsAndWarmUp();
     }
+  }
+
+  void _onOnboardingComplete() {
+    setState(() {
+      _showOnboarding = false;
+    });
   }
 
   @override
@@ -242,6 +292,11 @@ class _AppEntryPointState extends State<AppEntryPoint>
     // 开屏页
     if (_showSplash) {
       return SplashScreen(onComplete: _onSplashComplete);
+    }
+
+    // 新用户 NVC 引导页
+    if (_showOnboarding) {
+      return NVCOnboardingScreen(onComplete: _onOnboardingComplete);
     }
 
     // 主内容 + 锁屏层 + 隐私遮罩层
@@ -299,16 +354,16 @@ class _MainNavigationState extends State<MainNavigation> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFF7F4F0),
+          color: AppColors.bgCard,
           border: const Border(
             top: BorderSide(
-              color: Color(0xFFE9E1D7),
+              color: AppColors.borderLight,
               width: 0.7,
             ),
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF6E5A45).withValues(alpha: 0.02),
+              color: AppColors.textSecondary.withValues(alpha: 0.04),
               blurRadius: 6,
               offset: const Offset(0, -1),
             ),
@@ -317,34 +372,39 @@ class _MainNavigationState extends State<MainNavigation> {
         child: SafeArea(
           child: SizedBox(
             height: 72, // 增加高度以提供更大的点击区域
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Expanded(
-                  child: _buildNavItem(
-                    index: 0,
-                    icon: Icons.folder_outlined,
-                    activeIcon: Icons.folder,
-                    label: '记录',
-                  ),
-                ),
-                Expanded(
-                  child: _buildNavItem(
-                    index: 1,
-                    icon: Icons.circle_outlined,
-                    activeIcon: Icons.circle,
-                    label: '瞬记',
-                  ),
-                ),
-                Expanded(
-                  child: _buildNavItem(
-                    index: 2,
-                    icon: Icons.auto_awesome_outlined,
-                    activeIcon: Icons.auto_awesome,
-                    label: '洞察',
-                  ),
-                ),
-              ],
+            child: Builder(
+              builder: (context) {
+                final l10n = AppLocalizations.of(context)!;
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Expanded(
+                      child: _buildNavItem(
+                        index: 0,
+                        icon: Icons.folder_outlined,
+                        activeIcon: Icons.folder,
+                        label: l10n.navRecords,
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildNavItem(
+                        index: 1,
+                        icon: Icons.circle_outlined,
+                        activeIcon: Icons.circle,
+                        label: l10n.navHome,
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildNavItem(
+                        index: 2,
+                        icon: Icons.auto_awesome_outlined,
+                        activeIcon: Icons.auto_awesome,
+                        label: l10n.navInsights,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ),
@@ -359,38 +419,44 @@ class _MainNavigationState extends State<MainNavigation> {
     required String label,
   }) {
     final isActive = _currentIndex == index;
-    final color = isActive ? const Color(0xFFAD8558) : const Color(0xFFA19180);
+    final color = isActive ? AppColors.accent : AppColors.textSecondary;
 
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _currentIndex = index;
-        });
-      },
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        // 使用整个可用区域作为点击目标
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              isActive ? activeIcon : icon,
-              size: 26, // 稍微增大图标
-              color: color,
+    return Semantics(
+      button: true,
+      selected: isActive,
+      label: label,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+          child: Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isActive ? activeIcon : icon,
+                  size: 26,
+                  color: color,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: color,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12, // 稍微增大字体
-                color: color,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

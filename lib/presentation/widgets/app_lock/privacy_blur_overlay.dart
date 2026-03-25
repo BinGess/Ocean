@@ -4,6 +4,7 @@ library;
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
 
 class PrivacyBlurOverlay extends StatelessWidget {
   const PrivacyBlurOverlay({super.key});
@@ -11,7 +12,7 @@ class PrivacyBlurOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFFFAF6F1),
+      color: AppColors.bgPrimary,
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
@@ -20,8 +21,8 @@ class PrivacyBlurOverlay extends StatelessWidget {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color(0xFFFAF6F1),
-                Color(0xFFF5EBE0),
+                AppColors.bgPrimary,
+                AppColors.accentLight,
               ],
             ),
           ),
@@ -38,7 +39,7 @@ class PrivacyBlurOverlay extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFC4A57B).withOpacity(0.2),
+                        color: AppColors.accent.withValues(alpha: 0.2),
                         blurRadius: 20,
                         spreadRadius: 5,
                       ),
@@ -47,7 +48,7 @@ class PrivacyBlurOverlay extends StatelessWidget {
                   child: const Icon(
                     Icons.lock_outline,
                     size: 48,
-                    color: Color(0xFFC4A57B),
+                    color: AppColors.accent,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -58,7 +59,7 @@ class PrivacyBlurOverlay extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF5D4E3C),
+                    color: AppColors.textSecondary,
                     letterSpacing: 2,
                   ),
                 ),
@@ -67,7 +68,7 @@ class PrivacyBlurOverlay extends StatelessWidget {
                   '安全保护中',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF8B7D6B),
+                    color: AppColors.textTertiary,
                     letterSpacing: 1,
                   ),
                 ),

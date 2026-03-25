@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../domain/entities/insight_report.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../domain/entities/weekly_analysis.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../bloc/insight/insight_bloc.dart';
 import '../../bloc/insight/insight_state.dart';
 import '../../bloc/insight/insight_event.dart';
+import '../../bloc/record/record_bloc.dart';
+import '../../bloc/record/record_state.dart';
 import '../../widgets/ai_auth_dialog.dart';
+import '../../widgets/insights/weekly_analysis_section.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
 import 'history_reports_screen.dart';
@@ -27,6 +31,7 @@ class _InsightsScreenState extends State<InsightsScreen>
   late AnimationController _refreshController;
   bool _isRefreshing = false;
   StreamSubscription? _authSubscription;
+  String? _lastHandledRecordId;
 
   @override
   void initState() {
@@ -61,38 +66,39 @@ class _InsightsScreenState extends State<InsightsScreen>
   /// 处理AI授权请求
   Future<void> _handleAIAuthRequest(BuildContext context) async {
     final result = await AIAuthDialog.show(context: context);
+    if (!mounted) return;
 
     if (result == true) {
       // 用户同意授权
       await getIt<AIAuthService>().grant();
+      if (!mounted) return;
 
       // 重新触发洞察生成
-      if (mounted) {
-        context.read<InsightBloc>().add(const InsightGenerateCurrentWeek());
-      }
+      this.context.read<InsightBloc>().add(const InsightGenerateCurrentWeek());
     } else {
       // 用户拒绝授权
-      _showAuthDeniedGuidance(context);
+      _showAuthDeniedGuidance(this.context);
     }
   }
 
   /// 显示拒绝授权引导
   void _showAuthDeniedGuidance(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.info_outline, color: Color(0xFFFFB74D)),
+            const Icon(Icons.info_outline, color: AppColors.warning),
             const SizedBox(width: 8),
-            const Expanded(
-              child: Text('AI功能需要授权才能使用，您可在设置中开启'),
+            Expanded(
+              child: Text(l10n.aiNeedsAuthSnackbar),
             ),
           ],
         ),
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
-          label: '去设置',
-          textColor: const Color(0xFFC4A57B),
+          label: l10n.goToSettings,
+          textColor: AppColors.accent,
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -123,58 +129,96 @@ class _InsightsScreenState extends State<InsightsScreen>
             stops: [0.0, 0.62, 1.0],
           ),
         ),
-        child: BlocListener<InsightBloc, InsightState>(
-          listener: (context, state) {
-            if (_isRefreshing &&
-                (state.status == InsightStatus.success ||
-                    state.status == InsightStatus.error ||
-                    state.status == InsightStatus.needsAIAuth)) {
-              _refreshController.stop();
-              _refreshController.reset();
-              if (mounted) {
-                setState(() => _isRefreshing = false);
-              }
-            }
+        child: MultiBlocListener(
+          listeners: [
+            BlocListener<RecordBloc, RecordState>(
+              listener: (context, state) {
+                final latestRecord = state.latestRecord;
+                if (state.status != RecordStatus.success ||
+                    latestRecord == null) {
+                  return;
+                }
 
-            if (state.status == InsightStatus.error &&
-                state.currentReport != null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.errorMessage ?? '刷新失败，请稍后重试')),
-              );
-            }
+                if (_lastHandledRecordId == latestRecord.id) {
+                  return;
+                }
+                _lastHandledRecordId = latestRecord.id;
 
-            if (state.status == InsightStatus.needsAIAuth &&
-                state.currentReport != null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('AI授权已失效，请在设置中重新开启')),
-              );
-            }
-            // 注：needsAIAuth 状态不再自动弹窗，而是通过UI引导用户手动触发
-          },
+                if (_isInCurrentWeek(latestRecord.createdAt)) {
+                  context.read<InsightBloc>().add(
+                        const InsightGenerateCurrentWeek(
+                          preserveCurrentContent: true,
+                        ),
+                      );
+                }
+              },
+            ),
+            BlocListener<InsightBloc, InsightState>(
+              listener: (context, state) {
+                if (_isRefreshing &&
+                    (state.status == InsightStatus.success ||
+                        state.status == InsightStatus.error ||
+                        state.status == InsightStatus.needsAIAuth)) {
+                  _refreshController.stop();
+                  _refreshController.reset();
+                  if (mounted) {
+                    setState(() => _isRefreshing = false);
+                  }
+                }
+
+                if (state.status == InsightStatus.error &&
+                    state.currentReport != null) {
+                  final l10n = AppLocalizations.of(context)!;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content:
+                            Text(state.errorMessage ?? l10n.refreshFailed)),
+                  );
+                }
+
+                if (state.status == InsightStatus.needsAIAuth &&
+                    state.currentReport != null) {
+                  final l10n = AppLocalizations.of(context)!;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l10n.aiAuthExpired)),
+                  );
+                }
+                // 注：needsAIAuth 状态不再自动弹窗，而是通过UI引导用户手动触发
+              },
+            ),
+          ],
           child: BlocBuilder<InsightBloc, InsightState>(
             builder: (context, state) {
+              final l10n = AppLocalizations.of(context)!;
               // 无内容且需要AI授权时显示友好引导
               if (state.status == InsightStatus.needsAIAuth &&
-                  state.currentReport == null) {
-                return _buildAIAuthPromptState();
+                  state.currentReport == null &&
+                  state.weeklyAnalysis == null) {
+                return _buildAIAuthPromptState(l10n);
               }
 
               if ((state.status == InsightStatus.loading ||
                       state.status == InsightStatus.generating) &&
-                  state.currentReport == null) {
-                return _buildLoadingState(state.progressMessage);
+                  state.currentReport == null &&
+                  state.weeklyAnalysis == null) {
+                return _buildLoadingState(state.progressMessage, l10n);
               }
 
-              if (state.currentReport == null) {
-                return _buildEmptyState(state.errorMessage);
+              if (state.currentReport == null && state.weeklyAnalysis == null) {
+                return _buildEmptyState(state.errorMessage, l10n);
               }
 
               return RefreshIndicator(
                 onRefresh: _onRefresh,
-                color: const Color(0xFFC4A57B),
+                color: AppColors.accent,
                 backgroundColor: Colors.white,
                 child: _buildInsightContent(
-                    context, state.currentReport!, state.lastFetchTime),
+                  context,
+                  state.currentReport,
+                  state.weeklyAnalysis,
+                  state.lastFetchTime,
+                  l10n,
+                ),
               );
             },
           ),
@@ -183,8 +227,19 @@ class _InsightsScreenState extends State<InsightsScreen>
     );
   }
 
+  bool _isInCurrentWeek(DateTime date) {
+    final now = DateTime.now();
+    final monday = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
+    final sunday = monday.add(const Duration(days: 7));
+    return !date.isBefore(monday) && date.isBefore(sunday);
+  }
+
   /// AI授权引导状态
-  Widget _buildAIAuthPromptState() {
+  Widget _buildAIAuthPromptState(AppLocalizations l10n) {
     return SafeArea(
       child: Center(
         child: Padding(
@@ -202,49 +257,39 @@ class _InsightsScreenState extends State<InsightsScreen>
                 child: const Icon(
                   Icons.psychology_outlined,
                   size: 40,
-                  color: Color(0xFFC4A57B),
+                  color: AppColors.accent,
                 ),
               ),
               const SizedBox(height: 24),
               Text(
-                '开启智能洞察',
-                style: AppTypography.sectionTitle.copyWith(
-                  fontSize: 20,
-                  color: const Color(0xFF5D4E3C),
+                l10n.enableSmartInsights,
+                style: AppTypography.modalTitle.copyWith(
+                  color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 12),
               Text(
-                '授权AI服务后，将为您分析本周情绪记录\n生成专属的情绪洞察报告',
+                l10n.enableSmartInsightsDesc,
                 textAlign: TextAlign.center,
                 style: AppTypography.bodySecondary.copyWith(
-                  color: const Color(0xFFB8ADA0),
+                  color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 32),
-              GestureDetector(
-                onTap: () => _handleAIAuthRequest(context),
-                child: Container(
+              FilledButton(
+                onPressed: () => _handleAIAuthRequest(context),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFC4A57B),
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFC4A57B).withOpacity(0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
-                  child: Text(
-                    '立即开启',
-                    style: AppTypography.actionLabel.copyWith(
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
-                  ),
+                ),
+                child: Text(
+                  l10n.enableNow,
+                  style: AppTypography.modalButtonPrimary,
                 ),
               ),
               const SizedBox(height: 16),
@@ -255,10 +300,9 @@ class _InsightsScreenState extends State<InsightsScreen>
                   );
                 },
                 child: Text(
-                  '了解更多',
-                  style: AppTypography.sectionSubtle.copyWith(
-                    color: const Color(0xFF8B7D6B),
-                    fontSize: 13,
+                  l10n.learnMore,
+                  style: AppTypography.modalCaption.copyWith(
+                    color: AppColors.textTertiary,
                   ),
                 ),
               ),
@@ -270,7 +314,7 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// 加载状态
-  Widget _buildLoadingState(String? message) {
+  Widget _buildLoadingState(String? message, AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -279,15 +323,15 @@ class _InsightsScreenState extends State<InsightsScreen>
             width: 48,
             height: 48,
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC4A57B)),
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
               strokeWidth: 3,
             ),
           ),
           const SizedBox(height: 24),
           Text(
-            message ?? '正在生成洞察...',
+            message ?? l10n.generatingInsight,
             style: AppTypography.bodyPrimary.copyWith(
-              color: const Color(0xFF8B7D6B),
+              color: AppColors.textTertiary,
             ),
           ),
         ],
@@ -296,7 +340,7 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// 空状态
-  Widget _buildEmptyState(String? errorMessage) {
+  Widget _buildEmptyState(String? errorMessage, AppLocalizations l10n) {
     return SafeArea(
       child: Center(
         child: Padding(
@@ -308,29 +352,28 @@ class _InsightsScreenState extends State<InsightsScreen>
                 width: 80,
                 height: 80,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFF5EBE0),
+                  color: AppColors.accentLight,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.auto_awesome_outlined,
                   size: 40,
-                  color: Color(0xFFD4C4B0),
+                  color: AppColors.primary,
                 ),
               ),
               const SizedBox(height: 24),
               Text(
-                '本周没有足够的内容生成洞察',
-                style: AppTypography.sectionTitle.copyWith(
-                  fontSize: 17,
-                  color: const Color(0xFF5D4E3C),
+                l10n.noEnoughContent,
+                style: AppTypography.detailTitle.copyWith(
+                  color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 12),
               Text(
-                '记录更多内容后将自动生成',
+                l10n.autoGenerateAfterMore,
                 textAlign: TextAlign.center,
                 style: AppTypography.bodySecondary.copyWith(
-                  color: const Color(0xFFB8ADA0),
+                  color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 32),
@@ -341,7 +384,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                       .add(const InsightGenerateCurrentWeek());
                 },
                 style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFFF5EBE0),
+                  backgroundColor: AppColors.accentLight,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -349,9 +392,9 @@ class _InsightsScreenState extends State<InsightsScreen>
                   ),
                 ),
                 child: Text(
-                  '重新生成',
+                  l10n.regenerate,
                   style: AppTypography.actionLabel.copyWith(
-                    color: const Color(0xFF5D4E3C),
+                    color: AppColors.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -365,7 +408,12 @@ class _InsightsScreenState extends State<InsightsScreen>
 
   /// 洞察内容
   Widget _buildInsightContent(
-      BuildContext context, InsightReport report, DateTime? lastFetchTime) {
+    BuildContext context,
+    InsightReport? report,
+    WeeklyAnalysis? weeklyAnalysis,
+    DateTime? lastFetchTime,
+    AppLocalizations l10n,
+  ) {
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
@@ -382,9 +430,11 @@ class _InsightsScreenState extends State<InsightsScreen>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        _formatWeekRange(report.weekRange),
+                        _formatWeekRange(
+                          report?.weekRange ?? weeklyAnalysis!.weekRange,
+                        ),
                         style: AppTypography.pageMeta.copyWith(
-                          color: const Color(0xFFB8ADA0),
+                          color: AppColors.textSubtle,
                         ),
                       ),
                       // 分享、刷新按钮
@@ -394,25 +444,32 @@ class _InsightsScreenState extends State<InsightsScreen>
                           Material(
                             color: Colors.transparent,
                             child: InkWell(
-                              onTap: () => ShareInsightScreen.show(
-                                context: context,
-                                report: report,
-                              ),
+                              onTap: report == null
+                                  ? null
+                                  : () => ShareInsightScreen.show(
+                                        context: context,
+                                        report: report,
+                                      ),
                               borderRadius: BorderRadius.circular(8),
-                              splashColor: const Color(0xFFC4A57B)
-                                  .withValues(alpha: 0.18),
-                              highlightColor: const Color(0xFFC4A57B)
-                                  .withValues(alpha: 0.12),
+                              splashColor:
+                                  AppColors.accent.withValues(alpha: 0.18),
+                              highlightColor:
+                                  AppColors.accent.withValues(alpha: 0.12),
                               child: Container(
-                                padding: const EdgeInsets.all(6),
+                                width: 36,
+                                height: 36,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF5EBE0),
-                                  borderRadius: BorderRadius.circular(8),
+                                  color: report == null
+                                      ? AppColors.bgCardSecondary
+                                      : AppColors.accentLight,
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.share_outlined,
                                   size: 18,
-                                  color: Color(0xFFC4A57B),
+                                  color: report == null
+                                      ? AppColors.textMuted
+                                      : AppColors.accent,
                                 ),
                               ),
                             ),
@@ -423,16 +480,17 @@ class _InsightsScreenState extends State<InsightsScreen>
                             color: Colors.transparent,
                             child: InkWell(
                               onTap: _onRefresh,
-                              borderRadius: BorderRadius.circular(8),
-                              splashColor: const Color(0xFFC4A57B)
-                                  .withValues(alpha: 0.18),
-                              highlightColor: const Color(0xFFC4A57B)
-                                  .withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
+                              splashColor:
+                                  AppColors.accent.withValues(alpha: 0.18),
+                              highlightColor:
+                                  AppColors.accent.withValues(alpha: 0.12),
                               child: Container(
-                                padding: const EdgeInsets.all(6),
+                                width: 36,
+                                height: 36,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF5EBE0),
-                                  borderRadius: BorderRadius.circular(8),
+                                  color: AppColors.accentLight,
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: AnimatedBuilder(
                                   animation: _refreshController,
@@ -446,7 +504,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                                   child: const Icon(
                                     Icons.refresh,
                                     size: 18,
-                                    color: Color(0xFFC4A57B),
+                                    color: AppColors.accent,
                                   ),
                                 ),
                               ),
@@ -461,10 +519,10 @@ class _InsightsScreenState extends State<InsightsScreen>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        report.reportType,
+                        report?.reportType ?? '每周数据洞察',
                         style: AppTypography.pageTitle.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF5D4E3C),
+                          color: AppColors.textSecondary,
                         ),
                       ),
                       TextButton(
@@ -482,9 +540,9 @@ class _InsightsScreenState extends State<InsightsScreen>
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                         child: Text(
-                          '查看历史报告',
+                          l10n.viewHistoryReports,
                           style: AppTypography.sectionSubtle.copyWith(
-                            color: const Color(0xFF8B7D6B),
+                            color: AppColors.textTertiary,
                           ),
                         ),
                       ),
@@ -496,26 +554,46 @@ class _InsightsScreenState extends State<InsightsScreen>
           ),
         ),
 
+        if (weeklyAnalysis != null)
+          SliverToBoxAdapter(
+            child: WeeklyAnalysisSection(
+              analysis: weeklyAnalysis,
+              showEmotionNeeds: false,
+            ),
+          ),
+
         // 情绪概览
-        SliverToBoxAdapter(
-          child: _buildEmotionOverviewCard(report.emotionOverview),
-        ),
+        if (report != null)
+          SliverToBoxAdapter(
+            child: _buildEmotionOverviewCard(report.emotionOverview, l10n),
+          ),
+
+        if (weeklyAnalysis != null)
+          SliverToBoxAdapter(
+            child: WeeklyAnalysisSection(
+              analysis: weeklyAnalysis,
+              showOverview: false,
+            ),
+          ),
 
         // 高频情境
-        if (report.highFrequencyEmotions.isNotEmpty)
+        if (report != null && report.highFrequencyEmotions.isNotEmpty)
           SliverToBoxAdapter(
-            child: _buildHighFrequencySection(report.highFrequencyEmotions),
+            child:
+                _buildHighFrequencySection(report.highFrequencyEmotions, l10n),
           ),
 
         // 潜在需求
-        SliverToBoxAdapter(
-          child: _buildPatternHypothesisCard(report.patternHypothesis),
-        ),
+        if (report != null)
+          SliverToBoxAdapter(
+            child: _buildPatternHypothesisCard(report.patternHypothesis, l10n),
+          ),
 
         // 行动建议
-        if (report.actionSuggestions.isNotEmpty)
+        if (report != null && report.actionSuggestions.isNotEmpty)
           SliverToBoxAdapter(
-            child: _buildActionSuggestionsSection(report.actionSuggestions),
+            child:
+                _buildActionSuggestionsSection(report.actionSuggestions, l10n),
           ),
 
         // 底部间距
@@ -527,16 +605,17 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// 情绪概览卡片
-  Widget _buildEmotionOverviewCard(EmotionOverview overview) {
+  Widget _buildEmotionOverviewCard(
+      EmotionOverview overview, AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -551,20 +630,20 @@ class _InsightsScreenState extends State<InsightsScreen>
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8E7),
+                  color: AppColors.accentWarm,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.emoji_emotions_outlined,
                   size: 18,
-                  color: Color(0xFFC4A57B),
+                  color: AppColors.accent,
                 ),
               ),
               const SizedBox(width: 12),
               Text(
-                '情绪概览',
+                l10n.emotionOverview,
                 style: AppTypography.sectionTitle.copyWith(
-                  color: const Color(0xFF5D4E3C),
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -573,7 +652,8 @@ class _InsightsScreenState extends State<InsightsScreen>
           Text(
             overview.summary,
             style: AppTypography.bodyPrimary.copyWith(
-              color: const Color(0xFF5D4E3C),
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],
@@ -582,16 +662,17 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// 高频情境列表
-  Widget _buildHighFrequencySection(List<HighFrequencyEmotion> emotions) {
+  Widget _buildHighFrequencySection(
+      List<HighFrequencyEmotion> emotions, AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -606,20 +687,20 @@ class _InsightsScreenState extends State<InsightsScreen>
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8F4EC),
+                  color: AppColors.accentWarm,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.format_quote,
                   size: 18,
-                  color: Color(0xFF6B9080),
+                  color: AppColors.accent,
                 ),
               ),
               const SizedBox(width: 12),
               Text(
-                '高频情境',
+                l10n.highFrequencySituations,
                 style: AppTypography.sectionTitle.copyWith(
-                  color: const Color(0xFF5D4E3C),
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -637,7 +718,7 @@ class _InsightsScreenState extends State<InsightsScreen>
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAF8F5),
+        color: AppColors.bgCardSecondary,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -646,7 +727,7 @@ class _InsightsScreenState extends State<InsightsScreen>
           Text(
             '"${emotion.content}"',
             style: AppTypography.bodyQuote.copyWith(
-              color: const Color(0xFF5D4E3C),
+              color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
@@ -661,7 +742,7 @@ class _InsightsScreenState extends State<InsightsScreen>
               Text(
                 emotion.time,
                 style: AppTypography.timeLabel.copyWith(
-                  color: const Color(0xFFB8ADA0),
+                  color: AppColors.textSubtle,
                 ),
               ),
             ],
@@ -672,16 +753,17 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// 潜在需求卡片
-  Widget _buildPatternHypothesisCard(PatternHypothesis pattern) {
+  Widget _buildPatternHypothesisCard(
+      PatternHypothesis pattern, AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -696,20 +778,20 @@ class _InsightsScreenState extends State<InsightsScreen>
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8E7),
+                  color: AppColors.accentWarm,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.psychology_outlined,
                   size: 18,
-                  color: Color(0xFFC4A57B),
+                  color: AppColors.accent,
                 ),
               ),
               const SizedBox(width: 12),
               Text(
-                '潜在需求',
+                l10n.potentialNeeds,
                 style: AppTypography.sectionTitle.copyWith(
-                  color: const Color(0xFF5D4E3C),
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -743,7 +825,7 @@ class _InsightsScreenState extends State<InsightsScreen>
         spans.add(TextSpan(
           text: text.substring(lastEnd, match.start),
           style: AppTypography.bodyPrimary.copyWith(
-            color: const Color(0xFF5D4E3C),
+            color: AppColors.textSecondary,
           ),
         ));
       }
@@ -754,7 +836,7 @@ class _InsightsScreenState extends State<InsightsScreen>
       spans.add(TextSpan(
         text: value,
         style: AppTypography.bodyPrimary.copyWith(
-          color: const Color(0xFFC4A57B),
+          color: AppColors.accent,
           fontWeight: FontWeight.w600,
         ),
       ));
@@ -767,7 +849,7 @@ class _InsightsScreenState extends State<InsightsScreen>
       spans.add(TextSpan(
         text: text.substring(lastEnd),
         style: AppTypography.bodyPrimary.copyWith(
-          color: const Color(0xFF5D4E3C),
+          color: AppColors.textSecondary,
         ),
       ));
     }
@@ -778,16 +860,17 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// 行动建议
-  Widget _buildActionSuggestionsSection(List<ActionSuggestion> suggestions) {
+  Widget _buildActionSuggestionsSection(
+      List<ActionSuggestion> suggestions, AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -802,20 +885,20 @@ class _InsightsScreenState extends State<InsightsScreen>
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8E7),
+                  color: AppColors.accentWarm,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.lightbulb_outline,
                   size: 18,
-                  color: Color(0xFFC4A57B),
+                  color: AppColors.accent,
                 ),
               ),
               const SizedBox(width: 12),
               Text(
-                '行动建议',
+                l10n.actionSuggestions,
                 style: AppTypography.sectionTitle.copyWith(
-                  color: const Color(0xFF5D4E3C),
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -833,11 +916,11 @@ class _InsightsScreenState extends State<InsightsScreen>
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFDFC),
+        color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(12),
         border: const Border(
           left: BorderSide(
-            color: Color(0xFFC4A57B),
+            color: AppColors.accent,
             width: 2,
           ),
         ),
@@ -847,16 +930,16 @@ class _InsightsScreenState extends State<InsightsScreen>
         children: [
           Text(
             suggestion.title,
-            style: AppTypography.sectionTitle.copyWith(
-              fontSize: 15,
-              color: const Color(0xFF5D4E3C),
+            style: AppTypography.bodyPrimary.copyWith(
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             suggestion.content,
             style: AppTypography.bodySecondary.copyWith(
-              color: const Color(0xFF8B7D6B),
+              color: AppColors.textTertiary,
             ),
           ),
         ],
@@ -880,21 +963,5 @@ class _InsightsScreenState extends State<InsightsScreen>
       }
     }
     return weekRange;
-  }
-
-  /// 格式化最后更新时间
-  String _formatLastFetchTime(DateTime time) {
-    final now = DateTime.now();
-    final diff = now.difference(time);
-
-    if (diff.inMinutes < 1) {
-      return '刚刚更新';
-    } else if (diff.inMinutes < 60) {
-      return '${diff.inMinutes}分钟前';
-    } else if (diff.inHours < 24) {
-      return '${diff.inHours}小时前';
-    } else {
-      return DateFormat('M/d HH:mm').format(time);
-    }
   }
 }

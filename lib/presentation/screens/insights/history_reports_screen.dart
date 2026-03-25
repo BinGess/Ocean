@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/di/injection.dart';
 import '../../../domain/entities/insight_report_cache.dart';
 import '../../../domain/repositories/insight_repository.dart';
@@ -23,20 +24,20 @@ class _HistoryReportsScreenState extends State<HistoryReportsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 20, color: Color(0xFF2C2C2C)),
+          icon: const Icon(Icons.arrow_back_ios, size: 20, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
           '历史周报',
           style: TextStyle(
-            color: Color(0xFF2C2C2C),
-            fontSize: 18,
+            color: AppColors.textPrimary,
+            fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -48,7 +49,7 @@ class _HistoryReportsScreenState extends State<HistoryReportsScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC4A57B)),
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
               ),
             );
           }
@@ -98,7 +99,7 @@ class _HistoryReportsScreenState extends State<HistoryReportsScreen> {
           border: Border.all(color: const Color(0xFFE6E0D8)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -115,7 +116,7 @@ class _HistoryReportsScreenState extends State<HistoryReportsScreen> {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF2C2C2C),
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),

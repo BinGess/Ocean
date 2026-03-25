@@ -5,6 +5,7 @@ library;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 
 class AIAuthDialog extends StatelessWidget {
@@ -123,7 +124,7 @@ class AIAuthDialog extends StatelessWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 17),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFC4A57B),
+                        color: AppColors.accent,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Text(
