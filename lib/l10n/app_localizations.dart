@@ -42,6 +42,8 @@ class AppLocalizations {
       'iCloudSyncDisabled': '已关闭 iCloud 云同步',
       'iCloudSyncFailed': 'iCloud 云同步设置失败，请稍后重试',
       'other': '其他',
+      'showOnboardingAlways': '每次展示新手引导',
+      'showOnboardingAlwaysSubtitle': '开启后每次进入应用都会展示新手引导',
       'about': '关于',
       'aboutSubtitle': '应用信息与隐私协议',
       'language': '语言',
@@ -181,7 +183,10 @@ class AppLocalizations {
       'proRestoreNone': '未找到可恢复的购买记录',
       'proSubscribeNow': '立即订阅',
       'proPerMonth': '月',
-      'proSubscriptionNote': '订阅将通过您的 Apple ID 账户确认购买。\n订阅会自动续订，除非您在当前订阅期结束前至少24小时关闭自动续订。\n您可以在 App Store 账户设置中管理和取消订阅。',
+      'proPriceLoading': '价格加载中...',
+      'proPriceUnavailable': '价格获取失败，请稍后重试',
+      'proSubscriptionNote':
+          '订阅将通过您的 Apple ID 账户确认购买。\n订阅会自动续订，除非您在当前订阅期结束前至少24小时关闭自动续订。\n您可以在 App Store 账户设置中管理和取消订阅。',
       'debugMode': 'DEBUG 模式',
       'debugModeSubtitle': '开启后无需订阅即可使用导出与 iCloud（仅供内部测试）',
     },
@@ -208,6 +213,9 @@ class AppLocalizations {
       'iCloudSyncDisabled': 'iCloud sync disabled',
       'iCloudSyncFailed': 'Failed to update iCloud sync settings',
       'other': 'Other',
+      'showOnboardingAlways': 'Always show onboarding',
+      'showOnboardingAlwaysSubtitle':
+          'Show the onboarding flow every time the app opens',
       'about': 'About',
       'aboutSubtitle': 'App info and privacy policy',
       'language': 'Language',
@@ -267,7 +275,8 @@ class AppLocalizations {
       'microphonePermissionDenied': 'Microphone permission required',
       'saveFailedRetry': 'Save failed, please try again',
       'emotionInputTitle': 'What are you feeling right now?',
-      'emotionInputHint': 'Write freely and let me help you understand this moment',
+      'emotionInputHint':
+          'Write freely and let me help you understand this moment',
       'emotionInputSave': 'Save Text Only',
       'emotionInputAnalyze': 'NVC Analyze',
       'emotionGrantPermissionFirst': 'Please grant microphone permission first',
@@ -338,11 +347,14 @@ class AppLocalizations {
       'proMembership': 'Pro Membership',
       'proPrice': '¥1/mo',
       'proPurchaseTitle': 'Upgrade to Pro',
-      'proPurchaseSubtitle': 'Unlock all premium features for a complete experience',
+      'proPurchaseSubtitle':
+          'Unlock all premium features for a complete experience',
       'proFeatureExport': 'Export All Records',
-      'proFeatureExportDesc': 'Export your emotion records as JSON files for backup and migration',
+      'proFeatureExportDesc':
+          'Export your emotion records as JSON files for backup and migration',
       'proFeatureICloud': 'iCloud Sync',
-      'proFeatureICloudDesc': 'Auto-sync to iCloud across devices, never lose your data',
+      'proFeatureICloudDesc':
+          'Auto-sync to iCloud across devices, never lose your data',
       'proSubscribeButton': 'Subscribe — ¥1/mo',
       'proRestorePurchase': 'Restore Purchase',
       'proAlreadySubscribed': 'You are already a Pro member',
@@ -352,7 +364,10 @@ class AppLocalizations {
       'proRestoreNone': 'No purchase to restore',
       'proSubscribeNow': 'Subscribe Now',
       'proPerMonth': 'mo',
-      'proSubscriptionNote': 'Payment will be charged to your Apple ID account upon confirmation.\nSubscription automatically renews unless cancelled at least 24 hours before the end of the current period.\nYou can manage and cancel subscriptions in your App Store account settings.',
+      'proPriceLoading': 'Loading price...',
+      'proPriceUnavailable': 'Price unavailable, please try again later',
+      'proSubscriptionNote':
+          'Payment will be charged to your Apple ID account upon confirmation.\nSubscription automatically renews unless cancelled at least 24 hours before the end of the current period.\nYou can manage and cancel subscriptions in your App Store account settings.',
       'debugMode': 'DEBUG mode',
       'debugModeSubtitle':
           'When on, Export and iCloud work without subscription (internal testing only)',
@@ -387,7 +402,8 @@ class AppLocalizations {
   String get iCloudSyncFailed => _translate('iCloudSyncFailed');
   String get other => _translate('other');
   String get showOnboardingAlways => _translate('showOnboardingAlways');
-  String get showOnboardingAlwaysSubtitle => _translate('showOnboardingAlwaysSubtitle');
+  String get showOnboardingAlwaysSubtitle =>
+      _translate('showOnboardingAlwaysSubtitle');
   String get about => _translate('about');
   String get aboutSubtitle => _translate('aboutSubtitle');
   String get language => _translate('language');
@@ -437,8 +453,7 @@ class AppLocalizations {
   String get recordButtonHoldSemantics =>
       _translate('recordButtonHoldSemantics');
   String get recordButtonHoldHint => _translate('recordButtonHoldHint');
-  String get recordButtonTapSemantics =>
-      _translate('recordButtonTapSemantics');
+  String get recordButtonTapSemantics => _translate('recordButtonTapSemantics');
   String get recordButtonTapHint => _translate('recordButtonTapHint');
   String get recording => _translate('recording');
   String get releaseToSend => _translate('releaseToSend');
@@ -460,7 +475,8 @@ class AppLocalizations {
       _translate('emotionEmptyInputCannotContinue');
   String get emotionEmptyInputCannotSave =>
       _translate('emotionEmptyInputCannotSave');
-  String get emotionFinishingRecording => _translate('emotionFinishingRecording');
+  String get emotionFinishingRecording =>
+      _translate('emotionFinishingRecording');
   String get emotionTranscriptionManualFallback =>
       _translate('emotionTranscriptionManualFallback');
   String get homeGreetingMorning => _translate('homeGreetingMorning');
@@ -539,6 +555,8 @@ class AppLocalizations {
   String get proRestoreNone => _translate('proRestoreNone');
   String get proSubscribeNow => _translate('proSubscribeNow');
   String get proPerMonth => _translate('proPerMonth');
+  String get proPriceLoading => _translate('proPriceLoading');
+  String get proPriceUnavailable => _translate('proPriceUnavailable');
   String get proSubscriptionNote => _translate('proSubscriptionNote');
   String get debugMode => _translate('debugMode');
   String get debugModeSubtitle => _translate('debugModeSubtitle');

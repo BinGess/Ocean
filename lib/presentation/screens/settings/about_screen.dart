@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/pro_subscription_service.dart';
+import '../../../data/datasources/local/hive_database.dart';
 import '../../../l10n/app_localizations.dart';
 
 class AboutScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class _AboutScreenState extends State<AboutScreen> {
   Timer? _tapResetTimer;
   late bool _showDebugSection;
   late bool _debugModeEnabled;
+  bool _showOnboardingAlways = false;
 
   @override
   void initState() {
@@ -30,6 +32,7 @@ class _AboutScreenState extends State<AboutScreen> {
     _proService = getIt<ProSubscriptionService>();
     _showDebugSection = _proService.debugMenuUnlocked;
     _debugModeEnabled = _proService.isDebugModeEnabled;
+    _loadOnboardingAlwaysSetting();
   }
 
   @override
@@ -57,6 +60,25 @@ class _AboutScreenState extends State<AboutScreen> {
   void _onDebugModeChanged(bool value) {
     setState(() => _debugModeEnabled = value);
     unawaited(_proService.setDebugModeEnabled(value));
+  }
+
+  Future<void> _loadOnboardingAlwaysSetting() async {
+    try {
+      final db = getIt<HiveDatabase>();
+      final value = db.settingsBox.get(
+        'show_onboarding_always',
+        defaultValue: false,
+      );
+      if (!mounted) return;
+      setState(() => _showOnboardingAlways = value == true);
+    } catch (_) {}
+  }
+
+  void _onShowOnboardingAlwaysChanged(bool value) {
+    setState(() => _showOnboardingAlways = value);
+    unawaited(
+      getIt<HiveDatabase>().settingsBox.put('show_onboarding_always', value),
+    );
   }
 
   @override
@@ -159,40 +181,18 @@ class _AboutScreenState extends State<AboutScreen> {
             const SizedBox(height: 16),
             const Divider(height: 1),
             const SizedBox(height: 12),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.debugMode,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        l10n.debugModeSubtitle,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF8B8B8B),
-                          height: 1.35,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                CupertinoSwitch(
-                  value: _debugModeEnabled,
-                  activeTrackColor: AppColors.accent,
-                  onChanged: _onDebugModeChanged,
-                ),
-              ],
+            _buildDebugToggleRow(
+              title: l10n.debugMode,
+              subtitle: l10n.debugModeSubtitle,
+              value: _debugModeEnabled,
+              onChanged: _onDebugModeChanged,
+            ),
+            const SizedBox(height: 14),
+            _buildDebugToggleRow(
+              title: l10n.showOnboardingAlways,
+              subtitle: l10n.showOnboardingAlwaysSubtitle,
+              value: _showOnboardingAlways,
+              onChanged: _onShowOnboardingAlwaysChanged,
             ),
           ],
         ],
@@ -233,11 +233,55 @@ class _AboutScreenState extends State<AboutScreen> {
             ),
             if (onTap != null) ...[
               const SizedBox(width: 6),
-              const Icon(Icons.chevron_right, size: 18, color: Color(0xFFB0B0B0)),
+              const Icon(Icons.chevron_right,
+                  size: 18, color: Color(0xFFB0B0B0)),
             ],
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDebugToggleRow({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF8B8B8B),
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        CupertinoSwitch(
+          value: value,
+          activeTrackColor: AppColors.accent,
+          onChanged: onChanged,
+        ),
+      ],
     );
   }
 

@@ -114,8 +114,8 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                              Color(0xFF8B8B8B)),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Color(0xFF8B8B8B)),
                         ),
                       ),
                     )
@@ -268,9 +268,7 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
 
   /// 订阅按钮 - 优先使用 App Store 返回的真实价格
   Widget _buildSubscribeButton(AppLocalizations l10n) {
-    final buttonText = _proService.productDetails != null
-        ? '${l10n.proSubscribeNow} — ${_proService.priceString}/${l10n.proPerMonth}'
-        : l10n.proSubscribeButton;
+    final buttonText = _buildSubscribeButtonText(l10n);
 
     return SizedBox(
       width: double.infinity,
@@ -303,6 +301,16 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
               ),
       ),
     );
+  }
+
+  String _buildSubscribeButtonText(AppLocalizations l10n) {
+    if (_proService.productDetails != null) {
+      return '${l10n.proSubscribeNow} — ${_proService.priceString}/${l10n.proPerMonth}';
+    }
+    if (_proService.loading) {
+      return l10n.proPriceLoading;
+    }
+    return l10n.proPriceUnavailable;
   }
 
   Widget _buildAlreadyProBanner(AppLocalizations l10n) {
