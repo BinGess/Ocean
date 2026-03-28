@@ -179,6 +179,18 @@ class ICloudSyncService {
     if (_cachedContainerPath != null) return _cachedContainerPath;
 
     try {
+      final info = await _channel.invokeMapMethod<String, dynamic>(
+        'getICloudContainerInfo',
+      );
+      if (info != null) {
+        final path = _extractPathFromContainerInfo(info);
+        if (path == null || path.isEmpty) {
+          return null;
+        }
+        _cachedContainerPath = path;
+        return path;
+      }
+
       final path =
           await _channel.invokeMethod<String>('getICloudContainerPath');
       if (path == null || path.isEmpty) {
@@ -186,9 +198,36 @@ class ICloudSyncService {
       }
       _cachedContainerPath = path;
       return path;
+    } on MissingPluginException catch (error) {
+      debugPrint(
+        'ICloudSyncService: iCloud method channel is not registered: $error',
+      );
+      return null;
     } catch (error) {
       debugPrint('ICloudSyncService: failed to resolve iCloud path: $error');
       return null;
+    }
+  }
+
+  String? _extractPathFromContainerInfo(Map<String, dynamic> info) {
+    final status = info['status']?.toString();
+    final path = info['path']?.toString();
+
+    switch (status) {
+      case 'available':
+        return path;
+      case 'notSignedIn':
+        debugPrint('ICloudSyncService: iCloud is unavailable because no iCloud account is signed in on this device.');
+        return null;
+      case 'driveUnavailable':
+        debugPrint('ICloudSyncService: iCloud Drive is unavailable even though an iCloud account exists. Check whether iCloud Drive is enabled for this device and app.');
+        return null;
+      case 'directoryCreationFailed':
+        debugPrint('ICloudSyncService: failed to prepare the app iCloud Documents directory.');
+        return null;
+      default:
+        debugPrint('ICloudSyncService: received unknown iCloud container status: $status');
+        return path;
     }
   }
 

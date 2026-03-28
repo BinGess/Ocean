@@ -138,8 +138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
               } else {
                 Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (_) => const ProPurchaseScreen()),
+                  MaterialPageRoute(builder: (_) => const ProPurchaseScreen()),
                 );
               }
             },
@@ -216,7 +215,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: const Color(0xFFF8F6F3),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.language, color: AppColors.textSecondary),
+                  child: const Icon(Icons.language,
+                      color: AppColors.textSecondary),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -441,8 +441,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       onTap: needsPro
           ? () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                    builder: (_) => const ProPurchaseScreen()),
+                MaterialPageRoute(builder: (_) => const ProPurchaseScreen()),
               );
             }
           : null,

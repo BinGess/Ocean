@@ -23,8 +23,10 @@ import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/records/records_screen.dart';
 import 'presentation/screens/insights/insights_screen.dart';
 import 'presentation/screens/splash/splash_screen.dart';
+import 'presentation/screens/onboarding/nvc_onboarding_screen.dart';
 import 'presentation/screens/app_lock/lock_screen.dart';
 import 'presentation/widgets/app_lock/privacy_blur_overlay.dart';
+import 'data/datasources/local/hive_database.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -102,6 +104,7 @@ class AppEntryPoint extends StatefulWidget {
 class _AppEntryPointState extends State<AppEntryPoint>
     with WidgetsBindingObserver {
   bool _showSplash = true;
+  bool _showOnboarding = false;
   bool _showLockScreen = false;
   bool _showPrivacyBlur = false;
   bool _isCheckingLock = false;
@@ -251,14 +254,34 @@ class _AppEntryPointState extends State<AppEntryPoint>
   }
 
   void _onSplashComplete() async {
+    // 检查是否需要展示新用户引导
+    bool needsOnboarding = false;
+    try {
+      final db = getIt<HiveDatabase>();
+      final completed = db.settingsBox.get('onboarding_completed',
+          defaultValue: false);
+      final alwaysShow = db.settingsBox.get('show_onboarding_always',
+          defaultValue: false);
+      needsOnboarding = completed != true || alwaysShow == true;
+    } catch (e) {
+      debugPrint('AppEntryPoint: 检查 onboarding flag 失败: $e');
+    }
+
     setState(() {
       _showSplash = false;
+      _showOnboarding = needsOnboarding;
     });
 
-    // Splash 结束后，直接请求麦克风权限和预热
+    // Splash 结束后，直接请求麦克风权限和预热（无论是否显示引导）
     if (mounted) {
       _requestPermissionsAndWarmUp();
     }
+  }
+
+  void _onOnboardingComplete() {
+    setState(() {
+      _showOnboarding = false;
+    });
   }
 
   @override
@@ -266,6 +289,11 @@ class _AppEntryPointState extends State<AppEntryPoint>
     // 开屏页
     if (_showSplash) {
       return SplashScreen(onComplete: _onSplashComplete);
+    }
+
+    // 新用户 NVC 引导页
+    if (_showOnboarding) {
+      return NVCOnboardingScreen(onComplete: _onOnboardingComplete);
     }
 
     // 主内容 + 锁屏层 + 隐私遮罩层

@@ -34,9 +34,9 @@ class AppColors {
   static const Color bgCardSecondary = Color(0xFFF7F0E8);
   static const Color bgInput = Color(0xFFF5F5F5);
   static const List<Color> homeBackgroundGradient = <Color>[
-    Color(0xFFF4F8FC),
-    Color(0xFFF7F6F2),
-    Color(0xFFFFF7ED),
+    Color(0xFFFEFBF6), // 暖奶白
+    Color(0xFFF9F1E6), // 暖羊皮
+    Color(0xFFFFF0D6), // 暖琥珀米
   ];
   static const List<Color> warmPageBackgroundGradient = <Color>[
     Color(0xFFFFFCF8),

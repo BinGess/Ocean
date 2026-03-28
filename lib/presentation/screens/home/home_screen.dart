@@ -252,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen>
                           radius: 0.92,
                           colors: [
                             Colors.white.withValues(alpha: 0.18),
-                            const Color(0xFFDCE8F2).withValues(alpha: 0.10),
+                            const Color(0xFFE8D5C0).withValues(alpha: 0.10),
                             Colors.white.withValues(alpha: 0.0),
                           ],
                           stops: const [0.0, 0.55, 1.0],
@@ -274,46 +274,6 @@ class _HomeScreenState extends State<HomeScreen>
                     rowHeight: rowHeight,
                   );
                 }),
-              ),
-            ),
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: IgnorePointer(
-                child: Container(
-                  height: 34,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        const Color(0xFFF4F7FA).withValues(alpha: 0.78),
-                        const Color(0xFFF4F7FA).withValues(alpha: 0.0),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: IgnorePointer(
-                child: Container(
-                  height: 34,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [
-                        const Color(0xFFF1F4F8).withValues(alpha: 0.82),
-                        const Color(0xFFF1F4F8).withValues(alpha: 0.0),
-                      ],
-                    ),
-                  ),
-                ),
               ),
             ),
           ],
@@ -344,8 +304,8 @@ class _HomeScreenState extends State<HomeScreen>
     final scale = ui.lerpDouble(0.92, 1.0, easedEmphasis)!;
     final blur = ui.lerpDouble(0.9, 0.0, easedEmphasis)!;
     final textColor = Color.lerp(
-      const Color(0xFF8B9FB1).withValues(alpha: 0.88),
-      const Color(0xFF1E3140),
+      const Color(0xFFAA9585).withValues(alpha: 0.88),
+      const Color(0xFF3D2A1A),
       easedEmphasis,
     )!;
     final verticalNudge = ui.lerpDouble(1.6, 0.0, easedEmphasis)!;
@@ -1187,14 +1147,14 @@ class _HomeScreenState extends State<HomeScreen>
                   color: Colors.white.withValues(alpha: 0.68),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.45),
+                    color: const Color(0xFFD4B896).withValues(alpha: 0.70),
                     width: 1.0,
                   ),
                 ),
                 child: const Center(
                   child: Icon(
                     Icons.person_outline_rounded,
-                    color: AppColors.primary,
+                    color: AppColors.textSecondary,
                     size: 21,
                   ),
                 ),
@@ -1224,8 +1184,8 @@ class _HomeScreenState extends State<HomeScreen>
                   style: TextStyle(
                     fontSize: 12,
                     color: isToday
-                        ? const Color(0xFF6B9FC2)
-                        : const Color(0xFF8397A7),
+                        ? AppColors.accent
+                        : const Color(0xFFA8978A),
                     fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),
@@ -1237,7 +1197,7 @@ class _HomeScreenState extends State<HomeScreen>
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color:
-                        isToday ? const Color(0xFF63A2C9) : Colors.transparent,
+                        isToday ? AppColors.accent : Colors.transparent,
                     shape: BoxShape.circle,
                   ),
                   child: Text(
@@ -1246,7 +1206,7 @@ class _HomeScreenState extends State<HomeScreen>
                       fontSize: 32 / 2,
                       color: isToday
                           ? Colors.white
-                          : const Color(0xFF6D8497).withValues(alpha: 0.95),
+                          : const Color(0xFF9A8778).withValues(alpha: 0.95),
                       fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
                     ),
                   ),
@@ -1271,13 +1231,13 @@ class _HomeScreenState extends State<HomeScreen>
           borderRadius: BorderRadius.circular(29),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF5FAED8).withValues(alpha: 0.22),
-              blurRadius: 16,
-              spreadRadius: 0.8,
-              offset: const Offset(0, 1),
+              color: AppColors.accent.withValues(alpha: 0.18),
+              blurRadius: 18,
+              spreadRadius: 0.5,
+              offset: const Offset(0, 2),
             ),
             BoxShadow(
-              color: Colors.white.withValues(alpha: 0.35),
+              color: Colors.white.withValues(alpha: 0.50),
               blurRadius: 4,
               spreadRadius: 0.2,
               offset: const Offset(0, -1),
@@ -1288,11 +1248,11 @@ class _HomeScreenState extends State<HomeScreen>
           height: 57,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.74),
+            color: Colors.white.withValues(alpha: 0.82),
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: const Color(0xFF5FAED8).withValues(alpha: 0.98),
-              width: 1.55,
+              color: const Color(0xFFD4B896).withValues(alpha: 0.90),
+              width: 1.5,
             ),
             boxShadow: [
               BoxShadow(
@@ -1329,7 +1289,7 @@ class _HomeScreenState extends State<HomeScreen>
               Container(
                 width: 1,
                 height: 21,
-                color: const Color(0xFFCBD5DE).withValues(alpha: 0.95),
+                color: const Color(0xFFD4B896).withValues(alpha: 0.70),
               ),
               const SizedBox(width: 12),
               Semantics(
@@ -1363,7 +1323,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 height: haloSize,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: AppColors.primary
+                                  color: AppColors.accent
                                       .withValues(alpha: haloOpacity),
                                 ),
                               ),
@@ -1383,8 +1343,8 @@ class _HomeScreenState extends State<HomeScreen>
                                           Color(0xFFC96F4A),
                                         ]
                                       : const [
-                                          AppColors.primary,
-                                          AppColors.primaryDark,
+                                          Color(0xFFCDAA85),
+                                          Color(0xFFC4A57B),
                                         ],
                                 ),
                                 border: Border.all(
@@ -1395,9 +1355,9 @@ class _HomeScreenState extends State<HomeScreen>
                                   BoxShadow(
                                     color: (isRecording
                                             ? const Color(0xFFC96F4A)
-                                            : AppColors.primary)
+                                            : AppColors.accent)
                                         .withValues(
-                                      alpha: isRecording ? 0.28 : 0.34,
+                                      alpha: isRecording ? 0.28 : 0.30,
                                     ),
                                     blurRadius: isRecording ? 16 : 14,
                                     offset: const Offset(0, 4),
@@ -1450,31 +1410,8 @@ class _HomeScreenState extends State<HomeScreen>
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: _switchToNextQuote,
-              child: Container(
+              child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  color: const Color(0xFFF5F7FA).withValues(alpha: 0.38),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      const Color(0xFFF7F9FC).withValues(alpha: 0.54),
-                      const Color(0xFFF2F5F8).withValues(alpha: 0.44),
-                    ],
-                  ),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.50),
-                    width: 0.8,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF7A9CB4).withValues(alpha: 0.025),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -1518,17 +1455,17 @@ class _HomeBackgroundPalette {
 
   static const defaultPalette = _HomeBackgroundPalette(
     gradientColors: [
-      Color(0xFFEFF6FF),
-      Color(0xFFF4F8FB),
-      Color(0xFFFFF7ED),
+      Color(0xFFFEFCF9), // 暖奶白 — 顶部
+      Color(0xFFFAF5EE), // 轻暖米 — 中段（比原来浅很多）
+      Color(0xFFF6EFE4), // 淡暖杏 — 底部（替代过饱和琥珀）
     ],
-    gradientStops: [0.0, 0.62, 1.0],
-    bottomFogColor: Color(0xFFF6EBDD),
-    bottomFogMiddleAlpha: 0.62,
-    ringColor: Color(0xFFB8CCE1),
-    ringAlpha: 0.24,
-    overlayColor: Color(0xFFC9D9E8),
-    overlayAlpha: 0.06,
+    gradientStops: [0.0, 0.55, 1.0],
+    bottomFogColor: Color(0xFFF2EAE0),
+    bottomFogMiddleAlpha: 0.50,
+    ringColor: Color(0xFFCDAA85),
+    ringAlpha: 0.14,
+    overlayColor: Color(0xFFCDAA85),
+    overlayAlpha: 0.03,
   );
 }
 
@@ -1554,8 +1491,8 @@ class _SoftUITexturePainter extends CustomPainter {
         maxRadiusFactor: 0.30,
         minRadiusFactor: 0.14,
         rings: 5,
-        color: Color(0xFFB7CBE0),
-        alpha: 0.175,
+        color: Color(0xFFD4C0A8), // 暖沙，替代蓝灰
+        alpha: 0.13,
         irregularity: 0.050,
         phase: 0.35,
       ),
@@ -1565,8 +1502,8 @@ class _SoftUITexturePainter extends CustomPainter {
         maxRadiusFactor: 0.28,
         minRadiusFactor: 0.13,
         rings: 5,
-        color: Color(0xFFC0D2E5),
-        alpha: 0.16,
+        color: Color(0xFFCCB99E), // 暖沙
+        alpha: 0.12,
         irregularity: 0.047,
         phase: 1.12,
       ),
@@ -1576,8 +1513,8 @@ class _SoftUITexturePainter extends CustomPainter {
         maxRadiusFactor: 0.27,
         minRadiusFactor: 0.12,
         rings: 5,
-        color: Color(0xFFB9CEE3),
-        alpha: 0.155,
+        color: Color(0xFFD8C9B2), // 暖沙
+        alpha: 0.11,
         irregularity: 0.048,
         phase: 2.10,
       ),
@@ -1587,8 +1524,8 @@ class _SoftUITexturePainter extends CustomPainter {
         maxRadiusFactor: 0.275,
         minRadiusFactor: 0.125,
         rings: 5,
-        color: Color(0xFFBED3E6),
-        alpha: 0.16,
+        color: Color(0xFFCFC0A6), // 暖沙
+        alpha: 0.12,
         irregularity: 0.049,
         phase: 2.76,
       ),
@@ -1598,8 +1535,8 @@ class _SoftUITexturePainter extends CustomPainter {
         maxRadiusFactor: 0.34,
         minRadiusFactor: 0.16,
         rings: 5,
-        color: Color(0xFFC4D8EA),
-        alpha: 0.15,
+        color: Color(0xFFD2BEA4), // 暖沙
+        alpha: 0.10,
         irregularity: 0.052,
         phase: 3.42,
       ),

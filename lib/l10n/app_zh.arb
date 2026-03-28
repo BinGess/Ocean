@@ -61,6 +61,12 @@
   "other": "其他",
   "@other": {"description": "Settings section header"},
 
+  "showOnboardingAlways": "每次展示新手引导",
+  "@showOnboardingAlways": {"description": "Always show onboarding setting title"},
+
+  "showOnboardingAlwaysSubtitle": "开启后每次进入应用都会展示新手引导",
+  "@showOnboardingAlwaysSubtitle": {"description": "Always show onboarding setting subtitle"},
+
   "about": "关于",
   "@about": {"description": "About setting title"},
 
