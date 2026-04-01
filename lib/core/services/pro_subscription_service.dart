@@ -1,9 +1,6 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
-import 'package:in_app_purchase_storekit/store_kit_wrappers.dart';
 import '../../data/datasources/local/hive_database.dart';
 
 /// Pro 订阅服务
@@ -52,7 +49,10 @@ class ProSubscriptionService {
       return;
     }
 
-    // 监听购买更新流
+    // 必须先监听 purchaseStream，再做任何其他操作。
+    // purchaseStream 会自动投递上次未完成的待处理交易（包括用户已付款但 App
+    // 崩溃/关闭导致未激活的订单），由 _onPurchaseUpdate 统一处理并调用
+    // completePurchase，不要手动通过 SKPaymentQueueWrapper 清除交易。
     _purchaseSubscription = _iap.purchaseStream.listen(
       _onPurchaseUpdate,
       onError: (error) {
@@ -62,15 +62,6 @@ class ProSubscriptionService {
 
     // 加载商品信息
     await _loadProducts();
-
-    // iOS: 结束未完成的交易（防止卡单）
-    if (Platform.isIOS) {
-      final paymentWrapper = SKPaymentQueueWrapper();
-      final transactions = await paymentWrapper.transactions();
-      for (final tx in transactions) {
-        await paymentWrapper.finishTransaction(tx);
-      }
-    }
   }
 
   /// 从 App Store 加载商品信息
@@ -159,15 +150,23 @@ class ProSubscriptionService {
   }
 
   /// 处理购买更新回调
-  Future<void> _onPurchaseUpdate(List<PurchaseDetails> purchaseDetailsList) async {
+  Future<void> _onPurchaseUpdate(
+      List<PurchaseDetails> purchaseDetailsList) async {
     for (final purchase in purchaseDetailsList) {
       debugPrint(
-          '[ProSubscription] Purchase update: ${purchase.productID} - ${purchase.status}');
+          '[ProSubscription] Purchase update: ${purchase.productID} '
+          '- status=${purchase.status}');
 
       switch (purchase.status) {
         case PurchaseStatus.purchased:
         case PurchaseStatus.restored:
-          await _verifyAndActivate(purchase);
+          // 先激活，再完成交易。即使激活失败也必须 completePurchase，
+          // 否则 iOS 会反复弹出未完成交易的确认弹窗（卡单）。
+          try {
+            await _verifyAndActivate(purchase);
+          } catch (e) {
+            debugPrint('[ProSubscription] Activate failed: $e');
+          }
           break;
         case PurchaseStatus.error:
           _errorMessage = purchase.error?.message ?? 'Unknown error';
@@ -176,6 +175,7 @@ class ProSubscriptionService {
               '[ProSubscription] Purchase error: ${purchase.error?.message}');
           break;
         case PurchaseStatus.canceled:
+          _statusController.add(false);
           debugPrint('[ProSubscription] Purchase canceled');
           break;
         case PurchaseStatus.pending:
@@ -183,7 +183,7 @@ class ProSubscriptionService {
           break;
       }
 
-      // 完成交易（必须调用，否则 iOS 会反复弹出购买确认）
+      // 无论成功还是失败，都必须完成交易，防止卡单
       if (purchase.pendingCompletePurchase) {
         await _iap.completePurchase(purchase);
       }
@@ -192,8 +192,6 @@ class ProSubscriptionService {
 
   /// 验证并激活订阅
   Future<void> _verifyAndActivate(PurchaseDetails purchase) async {
-    // 注意：生产环境应该将 receipt 发送到自己的服务器进行验证
-    // 这里采用客户端本地验证（适合小型 App 快速上线）
     if (purchase.productID == monthlySubscriptionId) {
       await _activateSubscription(
         productId: purchase.productID,

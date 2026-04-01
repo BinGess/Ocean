@@ -22,14 +22,22 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
     super.initState();
     _proService = getIt<ProSubscriptionService>();
 
-    // 监听订阅状态变化（购买/恢复成功后自动更新 UI）
+    // 监听订阅状态变化（购买/恢复成功、失败/取消都会通知）
     _statusSubscription = _proService.statusStream.listen((isPro) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       if (isPro) {
-        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.proSubscribeSuccess)),
         );
+      } else if (_purchasing) {
+        // isPro == false 且正在购买中 → 购买失败或用户取消
+        final errorMsg = _proService.errorMessage;
+        if (errorMsg != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMsg)),
+          );
+        }
       }
       setState(() {
         _purchasing = false;
