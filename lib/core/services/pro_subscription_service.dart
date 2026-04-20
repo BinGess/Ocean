@@ -26,9 +26,14 @@ class ProSubscriptionService {
 
   final StreamController<bool> _statusController =
       StreamController<bool>.broadcast();
+  final StreamController<void> _priceController =
+      StreamController<void>.broadcast();
   StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
 
   Stream<bool> get statusStream => _statusController.stream;
+
+  /// 价格信息更新时广播（加载成功或失败后触发，UI 可监听此 stream 刷新）
+  Stream<void> get priceStream => _priceController.stream;
 
   /// 当前可用的商品信息（从 App Store 获取）
   ProductDetails? _productDetails;
@@ -78,7 +83,7 @@ class ProSubscriptionService {
     }
   }
 
-  /// 从 App Store 加载商品信息
+  /// 从 App Store 加载商品信息（可被外部调用以重试）
   Future<void> _loadProducts() async {
     _loading = true;
     try {
@@ -101,7 +106,18 @@ class ProSubscriptionService {
       debugPrint('[ProSubscription] Load products failed: $e');
     } finally {
       _loading = false;
+      _priceController.add(null); // 通知 UI 价格状态已更新（无论成功或失败）
     }
+  }
+
+  /// 主动重新拉取价格（供 UI 在打开页面或点击重试时调用）
+  Future<void> reloadProducts() async {
+    if (_loading) return;
+    if (!_storeAvailable) {
+      _storeAvailable = await _iap.isAvailable();
+      if (!_storeAvailable) return;
+    }
+    await _loadProducts();
   }
 
   /// 当前是否为 Pro 用户（仅真实订阅，不含 DEBUG）
@@ -147,10 +163,9 @@ class ProSubscriptionService {
     }
 
     if (_productDetails == null) {
-      // 重试加载一次
       await _loadProducts();
       if (_productDetails == null) {
-        _errorMessage = 'Product not available';
+        _errorMessage = 'product_not_available'; // UI 层用本地化字符串替换
         return false;
       }
     }
@@ -250,5 +265,6 @@ class ProSubscriptionService {
   void dispose() {
     _purchaseSubscription?.cancel();
     _statusController.close();
+    _priceController.close();
   }
 }

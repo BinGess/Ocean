@@ -177,6 +177,8 @@ class AppLocalizations {
       'proAlreadySubscribed': '你已经是 Pro 会员',
       'proSubscribeSuccess': '订阅成功，欢迎成为 Pro 会员！',
       'proSubscribeFailed': '订阅失败，请稍后重试',
+      'proProductNotAvailable': '价格获取失败，请检查网络后重试',
+      'proPriceRetry': '重新获取价格',
       'proRequired': '此功能需要 Pro 会员',
       'proRestoreNone': '未找到可恢复的购买记录',
       'proSubscribeNow': '立即订阅',
@@ -348,6 +350,8 @@ class AppLocalizations {
       'proAlreadySubscribed': 'You are already a Pro member',
       'proSubscribeSuccess': 'Subscribed successfully! Welcome to Pro!',
       'proSubscribeFailed': 'Subscription failed, please try again later',
+      'proProductNotAvailable': 'Failed to load price. Please check your connection and try again.',
+      'proPriceRetry': 'Retry',
       'proRequired': 'This feature requires Pro membership',
       'proRestoreNone': 'No purchase to restore',
       'proSubscribeNow': 'Subscribe Now',
@@ -535,6 +539,8 @@ class AppLocalizations {
   String get proAlreadySubscribed => _translate('proAlreadySubscribed');
   String get proSubscribeSuccess => _translate('proSubscribeSuccess');
   String get proSubscribeFailed => _translate('proSubscribeFailed');
+  String get proProductNotAvailable => _translate('proProductNotAvailable');
+  String get proPriceRetry => _translate('proPriceRetry');
   String get proRequired => _translate('proRequired');
   String get proRestoreNone => _translate('proRestoreNone');
   String get proSubscribeNow => _translate('proSubscribeNow');

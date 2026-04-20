@@ -15,8 +15,10 @@ class ProPurchaseScreen extends StatefulWidget {
 class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
   late final ProSubscriptionService _proService;
   StreamSubscription<bool>? _statusSubscription;
+  StreamSubscription<void>? _priceSubscription;
   bool _purchasing = false;
   bool _restoring = false;
+  bool _priceLoading = false;
 
   @override
   void initState() {
@@ -37,11 +39,24 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
         _restoring = false;
       });
     });
+
+    // 监听价格更新，刷新按钮文字和加载状态
+    _priceSubscription = _proService.priceStream.listen((_) {
+      if (!mounted) return;
+      setState(() => _priceLoading = false);
+    });
+
+    // 页面打开时如果价格未加载，立即触发一次拉取
+    if (_proService.productDetails == null && !_proService.loading) {
+      _priceLoading = true;
+      _proService.reloadProducts();
+    }
   }
 
   @override
   void dispose() {
     _statusSubscription?.cancel();
+    _priceSubscription?.cancel();
     super.dispose();
   }
 
@@ -268,40 +283,64 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
 
   /// 订阅按钮 - 优先使用 App Store 返回的真实价格
   Widget _buildSubscribeButton(AppLocalizations l10n) {
-    final buttonText = _proService.productDetails != null
+    final priceReady = _proService.productDetails != null;
+    final buttonText = priceReady
         ? '${l10n.proSubscribeNow} — ${_proService.priceString}/${l10n.proPerMonth}'
         : l10n.proSubscribeButton;
 
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: ElevatedButton(
-        onPressed: _purchasing ? null : _handleSubscribe,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.accent,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          height: 54,
+          child: ElevatedButton(
+            onPressed: (_purchasing || _priceLoading) ? null : _handleSubscribe,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.accent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              elevation: 0,
+            ),
+            child: _purchasing || _priceLoading
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Text(
+                    buttonText,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
           ),
-          elevation: 0,
         ),
-        child: _purchasing
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : Text(
-                buttonText,
+        // 价格加载失败时显示重试入口
+        if (!_priceLoading && !priceReady)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: GestureDetector(
+              onTap: () {
+                setState(() => _priceLoading = true);
+                _proService.reloadProducts();
+              },
+              child: Text(
+                l10n.proPriceRetry,
                 style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: Color(0xFFAAAAAA),
+                  decoration: TextDecoration.underline,
                 ),
               ),
-      ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -340,7 +379,10 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
     final success = await _proService.purchase();
     if (!success && mounted) {
       final l10n = AppLocalizations.of(context)!;
-      final errorMsg = _proService.errorMessage ?? l10n.proSubscribeFailed;
+      final raw = _proService.errorMessage ?? '';
+      final errorMsg = raw == 'product_not_available'
+          ? l10n.proProductNotAvailable
+          : (raw.isNotEmpty ? raw : l10n.proSubscribeFailed);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(errorMsg)),
       );
