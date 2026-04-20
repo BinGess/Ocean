@@ -263,6 +263,7 @@ class _InsightsScreenState extends State<InsightsScreen>
               const SizedBox(height: 24),
               Text(
                 l10n.enableSmartInsights,
+                textAlign: TextAlign.center,
                 style: AppTypography.modalTitle.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -364,6 +365,7 @@ class _InsightsScreenState extends State<InsightsScreen>
               const SizedBox(height: 24),
               Text(
                 l10n.noEnoughContent,
+                textAlign: TextAlign.center,
                 style: AppTypography.detailTitle.copyWith(
                   color: AppColors.textSecondary,
                 ),

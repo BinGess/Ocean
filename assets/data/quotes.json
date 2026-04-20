@@ -2,6 +2,7 @@
   {
     "id": "q001",
     "content": "先写一行，今天就不算白过。",
+    "contentEn": "One line down — today already counts.",
     "author": "瞬记",
     "category": "mindfulness",
     "targetMoods": ["焦虑", "紧张", "疲惫"],
@@ -12,6 +13,7 @@
   {
     "id": "q002",
     "content": "把情绪倒出来，心里会轻很多。",
+    "contentEn": "Pour it out. Your heart will feel lighter.",
     "author": "瞬记",
     "category": "selfCompassion",
     "targetMoods": ["低落", "烦躁", "委屈"],
@@ -22,6 +24,7 @@
   {
     "id": "q003",
     "content": "你肯写下来，已经很棒了。",
+    "contentEn": "The fact that you wrote it down — that's already something.",
     "author": "瞬记",
     "category": "selfCompassion",
     "targetMoods": ["自责", "内疚", "沮丧"],
@@ -32,6 +35,7 @@
   {
     "id": "q004",
     "content": "先记发生了啥，再记心里咋了。",
+    "contentEn": "First, what happened. Then, how it felt.",
     "author": "瞬记",
     "category": "nvc",
     "targetMoods": ["混乱", "冲突", "压抑"],
@@ -42,6 +46,7 @@
   {
     "id": "q005",
     "content": "哪怕一句，也是在照顾自己。",
+    "contentEn": "Even one sentence is an act of self-care.",
     "author": "瞬记",
     "category": "stoicism",
     "targetMoods": ["无力", "空虚", "疲惫"],
@@ -52,6 +57,7 @@
   {
     "id": "q006",
     "content": "今天不卷完美，先做真实的你。",
+    "contentEn": "Not perfect today. Just real.",
     "author": "瞬记",
     "category": "mindfulness",
     "targetMoods": ["压力", "焦虑", "完美主义"],
@@ -62,6 +68,7 @@
   {
     "id": "q007",
     "content": "你现在的感受，值得被认真对待。",
+    "contentEn": "What you're feeling right now deserves to be taken seriously.",
     "author": "瞬记",
     "category": "mindfulness",
     "targetMoods": ["不安", "羞愧", "自我怀疑"],
@@ -72,6 +79,7 @@
   {
     "id": "q008",
     "content": "先缓口气，再写下此刻。",
+    "contentEn": "Take a breath. Then write this moment down.",
     "author": "瞬记",
     "category": "mindfulness",
     "targetMoods": ["紧张", "烦躁", "愤怒"],
@@ -82,6 +90,7 @@
   {
     "id": "q009",
     "content": "敢面对自己，本身就很酷。",
+    "contentEn": "Being willing to face yourself — that takes real courage.",
     "author": "瞬记",
     "category": "selfCompassion",
     "targetMoods": ["迷茫", "失落", "无助"],
@@ -92,6 +101,7 @@
   {
     "id": "q010",
     "content": "把担心写出来，它就没那么吓人。",
+    "contentEn": "Write down what worries you. It shrinks on paper.",
     "author": "瞬记",
     "category": "stoicism",
     "targetMoods": ["担心", "焦虑", "压力"],
@@ -102,6 +112,7 @@
   {
     "id": "q011",
     "content": "先写三个词，状态就会回来。",
+    "contentEn": "Just three words. You'll find your footing.",
     "author": "瞬记",
     "category": "mindfulness",
     "targetMoods": ["拖延", "无力", "疲惫"],
@@ -112,6 +123,7 @@
   {
     "id": "q012",
     "content": "别急着苛责自己，先抱抱自己。",
+    "contentEn": "Before the self-criticism — a little self-kindness first.",
     "author": "瞬记",
     "category": "selfCompassion",
     "targetMoods": ["难过", "内疚", "自责"],
@@ -122,6 +134,7 @@
   {
     "id": "q013",
     "content": "先记下来，答案会慢慢浮出来。",
+    "contentEn": "Write it down. The answer will surface on its own.",
     "author": "瞬记",
     "category": "nvc",
     "targetMoods": ["困惑", "压抑", "冲突"],
@@ -132,6 +145,7 @@
   {
     "id": "q014",
     "content": "今天没垮掉，就已经赢了。",
+    "contentEn": "You didn't fall apart today. That's already a win.",
     "author": "瞬记",
     "category": "stoicism",
     "targetMoods": ["挫败", "低落", "失望"],
@@ -142,6 +156,7 @@
   {
     "id": "q015",
     "content": "写下这一刻，重新开机。",
+    "contentEn": "Write this moment. Hit reset.",
     "author": "瞬记",
     "category": "mindfulness",
     "targetMoods": ["迷茫", "焦虑", "不确定"],
@@ -152,6 +167,7 @@
   {
     "id": "q016",
     "content": "你的情绪不是麻烦，是信号。",
+    "contentEn": "Your emotions aren't a problem — they're a signal.",
     "author": "瞬记",
     "category": "selfCompassion",
     "targetMoods": ["孤独", "委屈", "被忽视"],
@@ -162,6 +178,7 @@
   {
     "id": "q017",
     "content": "想说啥先写这儿，别憋着。",
+    "contentEn": "Say it here first. Don't keep it bottled up.",
     "author": "瞬记",
     "category": "nvc",
     "targetMoods": ["压抑", "委屈", "愤怒"],
@@ -172,6 +189,7 @@
   {
     "id": "q018",
     "content": "慢一点没事，你已经在变好了。",
+    "contentEn": "It's okay to go slow. You're already getting better.",
     "author": "瞬记",
     "category": "stoicism",
     "targetMoods": ["自我怀疑", "焦虑", "紧张"],
@@ -182,6 +200,7 @@
   {
     "id": "q019",
     "content": "记录一下，脑子会清爽不少。",
+    "contentEn": "Write it down. Your mind will breathe easier.",
     "author": "瞬记",
     "category": "mindfulness",
     "targetMoods": ["压力", "烦躁", "疲惫"],
@@ -192,6 +211,7 @@
   {
     "id": "q020",
     "content": "今天的你，已经值得被夸奖。",
+    "contentEn": "Today's version of you already deserves recognition.",
     "author": "瞬记",
     "category": "selfCompassion",
     "targetMoods": ["无力", "低落", "疲惫"],
@@ -202,6 +222,7 @@
   {
     "id": "q021",
     "content": "先说感受，再想你真正想要啥。",
+    "contentEn": "Name the feeling first, then ask what you really need.",
     "author": "瞬记",
     "category": "nvc",
     "targetMoods": ["冲突", "关系压力", "委屈"],
@@ -212,6 +233,7 @@
   {
     "id": "q022",
     "content": "字不多也没关系，动笔就很赞。",
+    "contentEn": "A few words is plenty. Starting is the whole thing.",
     "author": "瞬记",
     "category": "stoicism",
     "targetMoods": ["拖延", "焦虑", "无力"],
@@ -222,6 +244,7 @@
   {
     "id": "q023",
     "content": "你在认真生活，这件事超珍贵。",
+    "contentEn": "Living this carefully — that's rarer than you think.",
     "author": "瞬记",
     "category": "selfCompassion",
     "targetMoods": ["迷茫", "自责", "不安"],
@@ -232,6 +255,7 @@
   {
     "id": "q024",
     "content": "把今天存一下，明天会更有底气。",
+    "contentEn": "Save today. Tomorrow you'll feel steadier for it.",
     "author": "瞬记",
     "category": "mindfulness",
     "targetMoods": ["不确定", "焦虑", "压力"],

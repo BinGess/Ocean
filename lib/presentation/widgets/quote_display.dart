@@ -159,13 +159,15 @@ class _QuoteDisplayState extends State<QuoteDisplay>
 
   /// 构建文案和作者文本
   Widget _buildQuoteText(Quote quote) {
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final displayContent = quote.localizedContent(languageCode);
     return Column(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // 主文案（衬线字体）
         Text(
-          quote.content,
+          displayContent,
           textAlign: TextAlign.center,
           style: AppTypography.quoteBody,
         ),
