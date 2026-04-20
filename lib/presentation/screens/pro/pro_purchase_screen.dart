@@ -25,13 +25,21 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
     super.initState();
     _proService = getIt<ProSubscriptionService>();
 
-    // 监听订阅状态变化（购买/恢复成功后自动更新 UI）
+    // 监听订阅状态变化（购买成功/失败/取消后自动更新 UI）
     _statusSubscription = _proService.statusStream.listen((isPro) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       if (isPro) {
-        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.proSubscribeSuccess)),
+        );
+      } else if (_purchasing) {
+        // false 代表取消或支付失败，只在购买流程中才提示
+        final msg = _proService.errorMessage?.isNotEmpty == true
+            ? _proService.errorMessage!
+            : l10n.proSubscribeFailed;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg)),
         );
       }
       setState(() {

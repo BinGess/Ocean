@@ -1,9 +1,6 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
-import 'package:in_app_purchase_storekit/store_kit_wrappers.dart';
 import '../../data/datasources/local/hive_database.dart';
 
 /// Pro 订阅服务
@@ -72,15 +69,6 @@ class ProSubscriptionService {
 
     // 加载商品信息
     await _loadProducts();
-
-    // iOS: 结束未完成的交易（防止卡单）
-    if (Platform.isIOS) {
-      final paymentWrapper = SKPaymentQueueWrapper();
-      final transactions = await paymentWrapper.transactions();
-      for (final tx in transactions) {
-        await paymentWrapper.finishTransaction(tx);
-      }
-    }
   }
 
   /// 从 App Store 加载商品信息（可被外部调用以重试）
@@ -215,6 +203,7 @@ class ProSubscriptionService {
               '[ProSubscription] Purchase error: ${purchase.error?.message}');
           break;
         case PurchaseStatus.canceled:
+          _statusController.add(false);
           debugPrint('[ProSubscription] Purchase canceled');
           break;
         case PurchaseStatus.pending:
@@ -233,11 +222,16 @@ class ProSubscriptionService {
   Future<void> _verifyAndActivate(PurchaseDetails purchase) async {
     // 注意：生产环境应该将 receipt 发送到自己的服务器进行验证
     // 这里采用客户端本地验证（适合小型 App 快速上线）
-    if (purchase.productID == monthlySubscriptionId) {
-      await _activateSubscription(
-        productId: purchase.productID,
-        duration: const Duration(days: 30),
-      );
+    try {
+      if (purchase.productID == monthlySubscriptionId) {
+        await _activateSubscription(
+          productId: purchase.productID,
+          duration: const Duration(days: 30),
+        );
+      }
+    } catch (e) {
+      debugPrint('[ProSubscription] Verify/activate failed: $e');
+      _statusController.add(false);
     }
   }
 
