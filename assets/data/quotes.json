@@ -13,7 +13,7 @@
   {
     "id": "q002",
     "content": "把情绪倒出来，心里会轻很多。",
-    "contentEn": "Pour it out. Your heart will feel lighter.",
+    "contentEn": "Get it out. You'll feel lighter.",
     "author": "瞬记",
     "category": "selfCompassion",
     "targetMoods": ["低落", "烦躁", "委屈"],
@@ -24,7 +24,7 @@
   {
     "id": "q003",
     "content": "你肯写下来，已经很棒了。",
-    "contentEn": "The fact that you wrote it down — that's already something.",
+    "contentEn": "You wrote it down. That's enough.",
     "author": "瞬记",
     "category": "selfCompassion",
     "targetMoods": ["自责", "内疚", "沮丧"],
@@ -46,7 +46,7 @@
   {
     "id": "q005",
     "content": "哪怕一句，也是在照顾自己。",
-    "contentEn": "Even one sentence is an act of self-care.",
+    "contentEn": "Even one line counts. That's taking care of yourself.",
     "author": "瞬记",
     "category": "stoicism",
     "targetMoods": ["无力", "空虚", "疲惫"],
@@ -68,7 +68,7 @@
   {
     "id": "q007",
     "content": "你现在的感受，值得被认真对待。",
-    "contentEn": "What you're feeling right now deserves to be taken seriously.",
+    "contentEn": "What you're feeling right now — it matters.",
     "author": "瞬记",
     "category": "mindfulness",
     "targetMoods": ["不安", "羞愧", "自我怀疑"],
@@ -79,7 +79,7 @@
   {
     "id": "q008",
     "content": "先缓口气，再写下此刻。",
-    "contentEn": "Take a breath. Then write this moment down.",
+    "contentEn": "Catch your breath first. Then write.",
     "author": "瞬记",
     "category": "mindfulness",
     "targetMoods": ["紧张", "烦躁", "愤怒"],
@@ -90,7 +90,7 @@
   {
     "id": "q009",
     "content": "敢面对自己，本身就很酷。",
-    "contentEn": "Being willing to face yourself — that takes real courage.",
+    "contentEn": "Turning toward yourself takes guts.",
     "author": "瞬记",
     "category": "selfCompassion",
     "targetMoods": ["迷茫", "失落", "无助"],
@@ -112,7 +112,7 @@
   {
     "id": "q011",
     "content": "先写三个词，状态就会回来。",
-    "contentEn": "Just three words. You'll find your footing.",
+    "contentEn": "Just three words. Your head will clear.",
     "author": "瞬记",
     "category": "mindfulness",
     "targetMoods": ["拖延", "无力", "疲惫"],
@@ -123,7 +123,7 @@
   {
     "id": "q012",
     "content": "别急着苛责自己，先抱抱自己。",
-    "contentEn": "Before the self-criticism — a little self-kindness first.",
+    "contentEn": "Slow down on the blame. Be kind to yourself first.",
     "author": "瞬记",
     "category": "selfCompassion",
     "targetMoods": ["难过", "内疚", "自责"],
@@ -178,7 +178,7 @@
   {
     "id": "q017",
     "content": "想说啥先写这儿，别憋着。",
-    "contentEn": "Say it here first. Don't keep it bottled up.",
+    "contentEn": "Say it here first. No holding back.",
     "author": "瞬记",
     "category": "nvc",
     "targetMoods": ["压抑", "委屈", "愤怒"],
@@ -189,7 +189,7 @@
   {
     "id": "q018",
     "content": "慢一点没事，你已经在变好了。",
-    "contentEn": "It's okay to go slow. You're already getting better.",
+    "contentEn": "No rush. You're already on your way.",
     "author": "瞬记",
     "category": "stoicism",
     "targetMoods": ["自我怀疑", "焦虑", "紧张"],
@@ -200,7 +200,7 @@
   {
     "id": "q019",
     "content": "记录一下，脑子会清爽不少。",
-    "contentEn": "Write it down. Your mind will breathe easier.",
+    "contentEn": "Get it on paper. Your mind will breathe again.",
     "author": "瞬记",
     "category": "mindfulness",
     "targetMoods": ["压力", "烦躁", "疲惫"],
@@ -211,7 +211,7 @@
   {
     "id": "q020",
     "content": "今天的你，已经值得被夸奖。",
-    "contentEn": "Today's version of you already deserves recognition.",
+    "contentEn": "You showed up today. That counts.",
     "author": "瞬记",
     "category": "selfCompassion",
     "targetMoods": ["无力", "低落", "疲惫"],
@@ -222,7 +222,7 @@
   {
     "id": "q021",
     "content": "先说感受，再想你真正想要啥。",
-    "contentEn": "Name the feeling first, then ask what you really need.",
+    "contentEn": "Name the feeling first. Then ask what you need.",
     "author": "瞬记",
     "category": "nvc",
     "targetMoods": ["冲突", "关系压力", "委屈"],
@@ -233,7 +233,7 @@
   {
     "id": "q022",
     "content": "字不多也没关系，动笔就很赞。",
-    "contentEn": "A few words is plenty. Starting is the whole thing.",
+    "contentEn": "Doesn't have to be much. Starting is the win.",
     "author": "瞬记",
     "category": "stoicism",
     "targetMoods": ["拖延", "焦虑", "无力"],
@@ -244,7 +244,7 @@
   {
     "id": "q023",
     "content": "你在认真生活，这件事超珍贵。",
-    "contentEn": "Living this carefully — that's rarer than you think.",
+    "contentEn": "You're showing up for your life. That's rare.",
     "author": "瞬记",
     "category": "selfCompassion",
     "targetMoods": ["迷茫", "自责", "不安"],
@@ -255,7 +255,7 @@
   {
     "id": "q024",
     "content": "把今天存一下，明天会更有底气。",
-    "contentEn": "Save today. Tomorrow you'll feel steadier for it.",
+    "contentEn": "Hold onto today. Tomorrow will feel more solid.",
     "author": "瞬记",
     "category": "mindfulness",
     "targetMoods": ["不确定", "焦虑", "压力"],

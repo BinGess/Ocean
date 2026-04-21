@@ -7,7 +7,7 @@ import '../datasources/local/hive_database.dart';
 class QuotesRepository {
   final HiveDatabase _hiveDatabase;
   static const String _seedVersionKey = 'quote_version';
-  static const String _seedVersion = '2.3.0';
+  static const String _seedVersion = '2.4.0';
 
   QuotesRepository({required HiveDatabase hiveDatabase})
       : _hiveDatabase = hiveDatabase;
