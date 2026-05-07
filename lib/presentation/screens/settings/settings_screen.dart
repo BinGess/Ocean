@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'about_screen.dart';
 import 'export_screen.dart';
+import 'ocean_sync_screen.dart';
 import '../app_lock/app_lock_settings_screen.dart';
 import '../pro/pro_purchase_screen.dart';
 import '../../widgets/ai_auth_dialog.dart';
@@ -189,6 +190,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 8),
             _buildICloudStatusCard(l10n),
           ],
+          const SizedBox(height: 12),
+          _buildNavItem(
+            title: '账号同步',
+            subtitle: '登录后备份和恢复本地记录',
+            icon: Icons.sync_outlined,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const OceanSyncScreen()),
+              );
+            },
+          ),
           const SizedBox(height: 16),
 
           // 其他分组

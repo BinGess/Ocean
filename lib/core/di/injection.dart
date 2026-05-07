@@ -24,6 +24,7 @@ import '../../data/datasources/remote/doubao_datasource.dart';
 import '../network/doubao_asr_client.dart';
 import '../network/doubao_llm_client.dart';
 import '../network/coze_ai_service.dart';
+import '../network/ocean_api_client.dart';
 import '../constants/app_constants.dart';
 import '../services/app_lock_service.dart';
 import '../services/ai_auth_service.dart';
@@ -31,6 +32,7 @@ import '../services/quote_preloader.dart';
 import '../services/quote_update_manager.dart';
 import '../services/daily_summary_service.dart';
 import '../services/icloud_sync_service.dart';
+import '../services/ocean_sync_service.dart';
 import '../services/pro_subscription_service.dart';
 import '../../presentation/bloc/audio/audio_bloc.dart';
 import '../../presentation/bloc/record/record_bloc.dart';
@@ -60,6 +62,16 @@ Future<void> configureDependencies() async {
   // Coze AI 服务（智能体）
   getIt.registerLazySingleton<CozeAIService>(
     () => CozeAIService(),
+  );
+
+  getIt.registerLazySingleton<OceanTokenStore>(
+    () => OceanSecureTokenStore(),
+  );
+
+  getIt.registerLazySingleton<OceanApiClient>(
+    () => OceanApiClient(
+      tokenStore: getIt<OceanTokenStore>(),
+    ),
   );
 
   // ===== Services =====
@@ -164,6 +176,14 @@ Future<void> configureDependencies() async {
     () => DailySummaryService(
       database: getIt<HiveDatabase>(),
       cozeAIService: getIt<CozeAIService>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<OceanSyncService>(
+    () => OceanSyncService(
+      api: getIt<OceanApiClient>(),
+      recordsStore: HiveOceanRecordsStore(getIt<HiveDatabase>()),
+      stateStore: HiveOceanSyncStateStore(getIt<HiveDatabase>()),
     ),
   );
 
