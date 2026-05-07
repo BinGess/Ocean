@@ -20,7 +20,8 @@ enum TimeContext {
 /// 文案实体
 class Quote {
   final String id;
-  final String content;              // 文案内容
+  final String content;              // 文案内容（中文）
+  final String? contentEn;           // 英文版文案（可选，无则回退到 content）
   final String author;               // 作者
   final QuoteCategory category;      // 心理学分类
   final List<String> targetMoods;    // 目标情绪
@@ -31,6 +32,7 @@ class Quote {
   const Quote({
     required this.id,
     required this.content,
+    this.contentEn,
     required this.author,
     required this.category,
     required this.targetMoods,
@@ -39,11 +41,20 @@ class Quote {
     required this.createdAt,
   });
 
+  /// 根据语言返回对应文案，无英文版时回退到中文
+  String localizedContent(String languageCode) {
+    if (languageCode == 'en' && contentEn != null && contentEn!.isNotEmpty) {
+      return contentEn!;
+    }
+    return content;
+  }
+
   /// 从JSON构建Quote对象
   factory Quote.fromJson(Map<String, dynamic> json) {
     return Quote(
       id: json['id'] as String,
       content: json['content'] as String,
+      contentEn: json['contentEn'] as String?,
       author: json['author'] as String,
       category: _parseCategory(json['category'] as String),
       targetMoods: List<String>.from(json['targetMoods'] as List),

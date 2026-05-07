@@ -1,9 +1,6 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
-import 'package:in_app_purchase_storekit/store_kit_wrappers.dart';
 import '../../data/datasources/local/hive_database.dart';
 
 /// Pro 订阅服务
@@ -26,9 +23,14 @@ class ProSubscriptionService {
 
   final StreamController<bool> _statusController =
       StreamController<bool>.broadcast();
+  final StreamController<void> _priceController =
+      StreamController<void>.broadcast();
   StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
 
   Stream<bool> get statusStream => _statusController.stream;
+
+  /// 价格信息更新时广播（加载成功或失败后触发，UI 可监听此 stream 刷新）
+  Stream<void> get priceStream => _priceController.stream;
 
   /// 当前可用的商品信息（从 App Store 获取）
   ProductDetails? _productDetails;
@@ -67,18 +69,9 @@ class ProSubscriptionService {
 
     // 加载商品信息
     await _loadProducts();
-
-    // iOS: 结束未完成的交易（防止卡单）
-    if (Platform.isIOS) {
-      final paymentWrapper = SKPaymentQueueWrapper();
-      final transactions = await paymentWrapper.transactions();
-      for (final tx in transactions) {
-        await paymentWrapper.finishTransaction(tx);
-      }
-    }
   }
 
-  /// 从 App Store 加载商品信息
+  /// 从 App Store 加载商品信息（可被外部调用以重试）
   Future<void> _loadProducts() async {
     _loading = true;
     try {
@@ -101,7 +94,18 @@ class ProSubscriptionService {
       debugPrint('[ProSubscription] Load products failed: $e');
     } finally {
       _loading = false;
+      _priceController.add(null); // 通知 UI 价格状态已更新（无论成功或失败）
     }
+  }
+
+  /// 主动重新拉取价格（供 UI 在打开页面或点击重试时调用）
+  Future<void> reloadProducts() async {
+    if (_loading) return;
+    if (!_storeAvailable) {
+      _storeAvailable = await _iap.isAvailable();
+      if (!_storeAvailable) return;
+    }
+    await _loadProducts();
   }
 
   /// 当前是否为 Pro 用户（仅真实订阅，不含 DEBUG）
@@ -147,10 +151,9 @@ class ProSubscriptionService {
     }
 
     if (_productDetails == null) {
-      // 重试加载一次
       await _loadProducts();
       if (_productDetails == null) {
-        _errorMessage = 'Product not available';
+        _errorMessage = 'product_not_available'; // UI 层用本地化字符串替换
         return false;
       }
     }
@@ -200,6 +203,7 @@ class ProSubscriptionService {
               '[ProSubscription] Purchase error: ${purchase.error?.message}');
           break;
         case PurchaseStatus.canceled:
+          _statusController.add(false);
           debugPrint('[ProSubscription] Purchase canceled');
           break;
         case PurchaseStatus.pending:
@@ -218,11 +222,16 @@ class ProSubscriptionService {
   Future<void> _verifyAndActivate(PurchaseDetails purchase) async {
     // 注意：生产环境应该将 receipt 发送到自己的服务器进行验证
     // 这里采用客户端本地验证（适合小型 App 快速上线）
-    if (purchase.productID == monthlySubscriptionId) {
-      await _activateSubscription(
-        productId: purchase.productID,
-        duration: const Duration(days: 30),
-      );
+    try {
+      if (purchase.productID == monthlySubscriptionId) {
+        await _activateSubscription(
+          productId: purchase.productID,
+          duration: const Duration(days: 30),
+        );
+      }
+    } catch (e) {
+      debugPrint('[ProSubscription] Verify/activate failed: $e');
+      _statusController.add(false);
     }
   }
 
@@ -250,5 +259,6 @@ class ProSubscriptionService {
   void dispose() {
     _purchaseSubscription?.cancel();
     _statusController.close();
+    _priceController.close();
   }
 }

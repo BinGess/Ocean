@@ -19,11 +19,9 @@ import '../../widgets/nvc_error_dialog.dart';
 import '../../widgets/nvc_analyzing_modal.dart';
 import '../../widgets/ai_auth_dialog.dart';
 import '../settings/settings_screen.dart';
-import '../pro/pro_purchase_screen.dart';
 import 'emotion_input_screen.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
-import '../../../core/services/pro_subscription_service.dart';
 import '../../../core/services/quote_preloader.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../l10n/app_localizations.dart';
@@ -1075,92 +1073,6 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
           ),
-          // Pro 按钮
-          if (!getIt<ProSubscriptionService>().hasProFeatureAccess)
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const ProPurchaseScreen(),
-                    ),
-                  );
-                },
-                child: Container(
-                  height: 32,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFD4B896), AppColors.accent],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.accent.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.workspace_premium,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        'Pro',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          const SizedBox(width: 10),
-          // 设置按钮
-          Material(
-            color: Colors.transparent,
-            shape: const CircleBorder(),
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const SettingsScreen(),
-                  ),
-                );
-              },
-              child: Container(
-                width: 43,
-                height: 43,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.68),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFFD4B896).withValues(alpha: 0.70),
-                    width: 1.0,
-                  ),
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.person_outline_rounded,
-                    color: AppColors.textSecondary,
-                    size: 21,
-                  ),
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -1183,9 +1095,7 @@ class _HomeScreenState extends State<HomeScreen>
                   _l10n.getWeekday(index + 1),
                   style: TextStyle(
                     fontSize: 12,
-                    color: isToday
-                        ? AppColors.accent
-                        : const Color(0xFFA8978A),
+                    color: isToday ? AppColors.accent : const Color(0xFFA8978A),
                     fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),
@@ -1196,8 +1106,7 @@ class _HomeScreenState extends State<HomeScreen>
                   height: 33,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color:
-                        isToday ? AppColors.accent : Colors.transparent,
+                    color: isToday ? AppColors.accent : Colors.transparent,
                     shape: BoxShape.circle,
                   ),
                   child: Text(
@@ -1277,7 +1186,8 @@ class _HomeScreenState extends State<HomeScreen>
                         overflow: TextOverflow.ellipsis,
                         style: AppTypography.transcriptionStatus.copyWith(
                           fontSize: 29 / 2,
-                          color: AppColors.textSecondary.withValues(alpha: 0.62),
+                          color:
+                              AppColors.textSecondary.withValues(alpha: 0.62),
                           fontWeight: FontWeight.w500,
                           letterSpacing: 0.1,
                         ),
@@ -1303,84 +1213,85 @@ class _HomeScreenState extends State<HomeScreen>
                     customBorder: const CircleBorder(),
                     onTap: () => _openInputScreen(autoStartRecording: true),
                     child: SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: AnimatedBuilder(
-                      animation: _pulseController,
-                      builder: (context, _) {
-                        final pulse = _pulseController.value;
-                        final isRecording = audioState.isRecording;
-                        final haloOpacity =
-                            isRecording ? 0.18 - (pulse * 0.08) : 0.0;
-                        final haloSize = 44 + (pulse * 6);
+                      width: 44,
+                      height: 44,
+                      child: AnimatedBuilder(
+                        animation: _pulseController,
+                        builder: (context, _) {
+                          final pulse = _pulseController.value;
+                          final isRecording = audioState.isRecording;
+                          final haloOpacity =
+                              isRecording ? 0.18 - (pulse * 0.08) : 0.0;
+                          final haloSize = 44 + (pulse * 6);
 
-                        return Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            if (isRecording)
-                              Container(
-                                width: haloSize,
-                                height: haloSize,
+                          return Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              if (isRecording)
+                                Container(
+                                  width: haloSize,
+                                  height: haloSize,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: AppColors.accent
+                                        .withValues(alpha: haloOpacity),
+                                  ),
+                                ),
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 220),
+                                curve: Curves.easeOutCubic,
+                                width: 38,
+                                height: 38,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: AppColors.accent
-                                      .withValues(alpha: haloOpacity),
-                                ),
-                              ),
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 220),
-                              curve: Curves.easeOutCubic,
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: isRecording
-                                      ? const [
-                                          Color(0xFFD98B68),
-                                          Color(0xFFC96F4A),
-                                        ]
-                                      : const [
-                                          Color(0xFFCDAA85),
-                                          Color(0xFFC4A57B),
-                                        ],
-                                ),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.82),
-                                  width: 1.1,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: (isRecording
-                                            ? const Color(0xFFC96F4A)
-                                            : AppColors.accent)
-                                        .withValues(
-                                      alpha: isRecording ? 0.28 : 0.30,
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: isRecording
+                                        ? const [
+                                            Color(0xFFD98B68),
+                                            Color(0xFFC96F4A),
+                                          ]
+                                        : const [
+                                            Color(0xFFCDAA85),
+                                            Color(0xFFC4A57B),
+                                          ],
+                                  ),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.82),
+                                    width: 1.1,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: (isRecording
+                                              ? const Color(0xFFC96F4A)
+                                              : AppColors.accent)
+                                          .withValues(
+                                        alpha: isRecording ? 0.28 : 0.30,
+                                      ),
+                                      blurRadius: isRecording ? 16 : 14,
+                                      offset: const Offset(0, 4),
                                     ),
-                                    blurRadius: isRecording ? 16 : 14,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                  BoxShadow(
-                                    color: Colors.white.withValues(alpha: 0.34),
-                                    blurRadius: 3,
-                                    offset: const Offset(0, -1),
-                                  ),
-                                ],
+                                    BoxShadow(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.34),
+                                      blurRadius: 3,
+                                      offset: const Offset(0, -1),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  isRecording
+                                      ? Icons.stop_rounded
+                                      : Icons.mic_rounded,
+                                  size: 20,
+                                  color: Colors.white,
+                                ),
                               ),
-                              child: Icon(
-                                isRecording
-                                    ? Icons.stop_rounded
-                                    : Icons.mic_rounded,
-                                size: 20,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
+                            ],
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),

@@ -74,4 +74,50 @@ void main() {
     expect(find.text('被理解与稳定支持'), findsOneWidget);
     expect(find.text('3 次 · 38%'), findsOneWidget);
   });
+
+  testWidgets('compact emotion and needs card keeps tag rows visible',
+      (tester) async {
+    const analysis = WeeklyAnalysis(
+      weekRange: '2026-03-16 ~ 2026-03-22',
+      totalRecords: 8,
+      activeDays: 5,
+      longestStreak: 3,
+      topMood: '焦虑',
+      topNeed: '支持',
+      topMoods: [
+        WeeklyTagStat(label: '被理解与稳定支持', count: 4, percentage: 50),
+        WeeklyTagStat(label: '需要一个可以慢慢整理情绪的安全空间', count: 3, percentage: 38),
+        WeeklyTagStat(label: '想要休息和重新获得身体能量', count: 2, percentage: 25),
+      ],
+      topNeeds: [
+        WeeklyTagStat(label: '清晰表达界限并被尊重', count: 3, percentage: 38),
+        WeeklyTagStat(label: '稳定陪伴', count: 2, percentage: 25),
+      ],
+      peakTimeBucket: '晚上',
+      busiestWeekday: '周三',
+      moodTaggedCount: 6,
+      needTaggedCount: 4,
+      coverageSummary: '6/8 条记录包含心情，4/8 条记录包含需求',
+      changesSummary: ['本周记录数较上周增加 2 条'],
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: WeeklyAnalysisSection(
+              analysis: analysis,
+              showOverview: false,
+              compact: true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('被理解与稳定支持'), findsOneWidget);
+    expect(find.text('需要一个可以慢慢整理情绪的安全空间'), findsOneWidget);
+    expect(find.text('想要休息和重新获得身体能量'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

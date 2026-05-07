@@ -396,7 +396,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
                             itemBuilder: (context, index) {
                               final date = dateRange[index];
                               final records = groupedRecords[date] ?? [];
-                              return _buildDaySection(date, records);
+                              return _buildDaySection(
+                                date,
+                                records,
+                                isFirst: index == 0,
+                              );
                             },
                           ),
                         );
@@ -549,11 +553,15 @@ class _RecordsScreenState extends State<RecordsScreen> {
   }
 
   /// 构建每天的记录区块
-  Widget _buildDaySection(DateTime date, List<Record> records) {
+  Widget _buildDaySection(
+    DateTime date,
+    List<Record> records, {
+    required bool isFirst,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: AppSpacing.xl),
+        SizedBox(height: isFirst ? AppSpacing.xl : AppSpacing.md),
 
         // 日期标题行
         Row(
@@ -586,7 +594,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
           ],
         ),
 
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.md),
 
         // 每日心情概览
         if (records.isNotEmpty) _buildDailyMoodCard(date, records),
@@ -796,7 +804,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     ),
                   )
                 else
-                  const SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: AppSpacing.sm),
               ],
             ),
           ),
@@ -811,7 +819,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 onTap: () => _handleRecordTap(record),
                 borderRadius: BorderRadius.circular(AppSpacing.lg),
                 child: Container(
-                  margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+                  margin: EdgeInsets.only(
+                    bottom: isLast ? AppSpacing.sm : AppSpacing.lg,
+                  ),
                   padding: const EdgeInsets.all(AppSpacing.md),
                   decoration: BoxDecoration(
                     color: AppColors.bgCard,

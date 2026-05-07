@@ -8,11 +8,13 @@ class WeeklyAnalysisSection extends StatelessWidget {
     required this.analysis,
     this.showOverview = true,
     this.showEmotionNeeds = true,
+    this.compact = false,
   });
 
   final WeeklyAnalysis analysis;
   final bool showOverview;
   final bool showEmotionNeeds;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +25,7 @@ class WeeklyAnalysisSection extends StatelessWidget {
           icon: Icons.insights_outlined,
           iconBgColor: AppColors.accentWarm,
           iconColor: AppColors.accent,
+          compact: compact,
           child: Column(
             children: [
               Row(
@@ -31,6 +34,7 @@ class WeeklyAnalysisSection extends StatelessWidget {
                     child: _MetricTile(
                       label: '记录数',
                       value: '${analysis.totalRecords}',
+                      compact: compact,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -38,17 +42,19 @@ class WeeklyAnalysisSection extends StatelessWidget {
                     child: _MetricTile(
                       label: '活跃天数',
                       value: '${analysis.activeDays}',
+                      compact: compact,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: compact ? 8 : 12),
               Row(
                 children: [
                   Expanded(
                     child: _MetricTile(
                       label: '高峰时段',
                       value: analysis.peakTimeBucket ?? '暂无',
+                      compact: compact,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -56,13 +62,16 @@ class WeeklyAnalysisSection extends StatelessWidget {
                     child: _MetricTile(
                       label: '最密集日',
                       value: analysis.busiestWeekday ?? '暂无',
+                      compact: compact,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: compact ? 10 : 16),
               Text(
                 _buildOverviewSummaryText(analysis.changesSummary),
+                maxLines: compact ? 1 : null,
+                overflow: compact ? TextOverflow.ellipsis : null,
                 style: AppTypography.sectionSubtle.copyWith(
                   color: analysis.changesSummary.isEmpty
                       ? AppColors.textSubtle
@@ -79,9 +88,11 @@ class WeeklyAnalysisSection extends StatelessWidget {
           icon: Icons.favorite_border,
           iconBgColor: const Color(0xFFFFF4E6),
           iconColor: const Color(0xFFFF9500),
+          compact: compact,
           child: _SwipeableTagStatsCard(
             moodItems: analysis.topMoods,
             needItems: analysis.topNeeds,
+            compact: compact,
           ),
         ),
     ];
@@ -106,6 +117,7 @@ class _Card extends StatelessWidget {
     required this.iconBgColor,
     required this.iconColor,
     required this.child,
+    required this.compact,
   });
 
   final String title;
@@ -113,12 +125,13 @@ class _Card extends StatelessWidget {
   final Color iconBgColor;
   final Color iconColor;
   final Widget child;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(compact ? 16 : 20),
       decoration: BoxDecoration(
         color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(20),
@@ -157,7 +170,7 @@ class _Card extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: compact ? 12 : 16),
           child,
         ],
       ),
@@ -169,15 +182,17 @@ class _MetricTile extends StatelessWidget {
   const _MetricTile({
     required this.label,
     required this.value,
+    required this.compact,
   });
 
   final String label;
   final String value;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(compact ? 10 : 14),
       decoration: BoxDecoration(
         color: AppColors.bgCardSecondary,
         borderRadius: BorderRadius.circular(14),
@@ -191,11 +206,11 @@ class _MetricTile extends StatelessWidget {
               color: AppColors.textMuted,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: compact ? 4 : 8),
           Text(
             value,
             style: AppTypography.pageTitle.copyWith(
-              fontSize: 20,
+              fontSize: compact ? 18 : 20,
               color: AppColors.textSecondary,
             ),
           ),
@@ -209,10 +224,12 @@ class _SwipeableTagStatsCard extends StatefulWidget {
   const _SwipeableTagStatsCard({
     required this.moodItems,
     required this.needItems,
+    required this.compact,
   });
 
   final List<WeeklyTagStat> moodItems;
   final List<WeeklyTagStat> needItems;
+  final bool compact;
 
   @override
   State<_SwipeableTagStatsCard> createState() => _SwipeableTagStatsCardState();
@@ -243,7 +260,13 @@ class _SwipeableTagStatsCardState extends State<_SwipeableTagStatsCard> {
     final maxItems = pages
         .map((page) => page.$2.length)
         .fold<int>(0, (max, count) => count > max ? count : max);
-    final pageHeight = (maxItems * 72 + 40).clamp(140, 320).toDouble();
+    final rowHeight = widget.compact ? 70 : 72;
+    final baseHeight = widget.compact ? 32 : 40;
+    final minHeight = widget.compact ? 124 : 140;
+    final maxHeight = widget.compact ? 280 : 320;
+    final pageHeight = (maxItems * rowHeight + baseHeight)
+        .clamp(minHeight, maxHeight)
+        .toDouble();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -304,7 +327,7 @@ class _SwipeableTagStatsCardState extends State<_SwipeableTagStatsCard> {
             ),
           ],
         ),
-        const SizedBox(height: 14),
+        SizedBox(height: widget.compact ? 10 : 14),
         SizedBox(
           height: pageHeight,
           child: PageView(
@@ -318,6 +341,7 @@ class _SwipeableTagStatsCardState extends State<_SwipeableTagStatsCard> {
                 .map(
                   (page) => _TagStatsPage(
                     items: page.$2,
+                    compact: widget.compact,
                   ),
                 )
                 .toList(),
@@ -331,15 +355,17 @@ class _SwipeableTagStatsCardState extends State<_SwipeableTagStatsCard> {
 class _TagStatsPage extends StatelessWidget {
   const _TagStatsPage({
     required this.items,
+    required this.compact,
   });
 
   final List<WeeklyTagStat> items;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(compact ? 10 : 14),
       decoration: BoxDecoration(
         color: const Color(0xFFFAF8F5),
         borderRadius: BorderRadius.circular(16),
@@ -358,11 +384,14 @@ class _TagStatsPage extends StatelessWidget {
             ...items.asMap().entries.map(
                   (entry) => Padding(
                     padding: EdgeInsets.only(
-                      bottom: entry.key == items.length - 1 ? 0 : 10,
+                      bottom: entry.key == items.length - 1
+                          ? 0
+                          : (compact ? 8 : 10),
                     ),
                     child: _TagStatRow(
                       rank: entry.key + 1,
                       item: entry.value,
+                      compact: compact,
                     ),
                   ),
                 ),
@@ -376,18 +405,20 @@ class _TagStatRow extends StatelessWidget {
   const _TagStatRow({
     required this.rank,
     required this.item,
+    required this.compact,
   });
 
   final int rank;
   final WeeklyTagStat item;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         horizontal: 12,
-        vertical: 12,
+        vertical: compact ? 8 : 12,
       ),
       decoration: BoxDecoration(
         color: Colors.white,
