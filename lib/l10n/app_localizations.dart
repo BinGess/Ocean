@@ -26,6 +26,18 @@ class AppLocalizations {
       'navRecords': '记录',
       'navHome': '瞬记',
       'navInsights': '洞察',
+      'navMe': '我的',
+      'profileNickname': 'MindFlow 用户',
+      'profileSubtitle': '慢慢记录，也慢慢理解自己',
+      'myWeeklyUnavailable': '记录更多内容后，这里会出现本周概览',
+      'editProfile': '编辑个人信息',
+      'profileAvatar': '头像',
+      'profileNicknameLabel': '昵称',
+      'profileSignature': '签名',
+      'profileAvatarDefault': '我',
+      'save': '保存',
+      'manageSubscription': '管理订阅',
+      'moreSettings': '更多设置',
       'settings': '设置',
       'securityAndPrivacy': '安全与隐私',
       'appLock': '应用锁',
@@ -41,6 +53,16 @@ class AppLocalizations {
       'iCloudSyncEnabled': '已开启 iCloud 云同步',
       'iCloudSyncDisabled': '已关闭 iCloud 云同步',
       'iCloudSyncFailed': 'iCloud 云同步设置失败，请稍后重试',
+      'iCloudBackupStatusTitle': '云端备份状态',
+      'iCloudBackupChecking': '正在检查云端备份...',
+      'iCloudBackupNotFound': '暂未发现云端备份，开启后会自动创建',
+      'iCloudBackupLastSynced': '上次同步',
+      'iCloudBackupContent': '备份内容',
+      'iCloudBackupRecords': '条记录',
+      'iCloudBackupWeeklyInsights': '个周洞察',
+      'iCloudBackupReports': '份报告',
+      'iCloudBackupFile': '备份文件',
+      'iCloudBackupTimeUnknown': '时间未知',
       'other': '其他',
       'about': '关于',
       'aboutSubtitle': '应用信息与隐私协议',
@@ -183,7 +205,8 @@ class AppLocalizations {
       'proRestoreNone': '未找到可恢复的购买记录',
       'proSubscribeNow': '立即订阅',
       'proPerMonth': '月',
-      'proSubscriptionNote': '订阅将通过您的 Apple ID 账户确认购买。\n订阅会自动续订，除非您在当前订阅期结束前至少24小时关闭自动续订。\n您可以在 App Store 账户设置中管理和取消订阅。',
+      'proSubscriptionNote':
+          '订阅将通过您的 Apple ID 账户确认购买。\n订阅会自动续订，除非您在当前订阅期结束前至少24小时关闭自动续订。\n您可以在 App Store 账户设置中管理和取消订阅。',
       'debugMode': 'DEBUG 模式',
       'debugModeSubtitle': '开启后无需订阅即可使用导出与 iCloud（仅供内部测试）',
     },
@@ -192,6 +215,19 @@ class AppLocalizations {
       'navRecords': 'Records',
       'navHome': 'Record',
       'navInsights': 'Insights',
+      'navMe': 'Me',
+      'profileNickname': 'MindFlow User',
+      'profileSubtitle': 'Keep noticing, one entry at a time',
+      'myWeeklyUnavailable':
+          'Your weekly overview will appear here after more records',
+      'editProfile': 'Edit profile',
+      'profileAvatar': 'Avatar',
+      'profileNicknameLabel': 'Nickname',
+      'profileSignature': 'Signature',
+      'profileAvatarDefault': 'M',
+      'save': 'Save',
+      'manageSubscription': 'Manage Subscription',
+      'moreSettings': 'More Settings',
       'settings': 'Settings',
       'securityAndPrivacy': 'Security & Privacy',
       'appLock': 'App Lock',
@@ -209,6 +245,17 @@ class AppLocalizations {
       'iCloudSyncEnabled': 'iCloud sync enabled',
       'iCloudSyncDisabled': 'iCloud sync disabled',
       'iCloudSyncFailed': 'Failed to update iCloud sync settings',
+      'iCloudBackupStatusTitle': 'Cloud backup status',
+      'iCloudBackupChecking': 'Checking cloud backup...',
+      'iCloudBackupNotFound':
+          'No cloud backup found yet. One will be created after sync is enabled.',
+      'iCloudBackupLastSynced': 'Last synced',
+      'iCloudBackupContent': 'Backup content',
+      'iCloudBackupRecords': 'records',
+      'iCloudBackupWeeklyInsights': 'weekly insights',
+      'iCloudBackupReports': 'reports',
+      'iCloudBackupFile': 'Backup file',
+      'iCloudBackupTimeUnknown': 'Unknown time',
       'other': 'Other',
       'about': 'About',
       'aboutSubtitle': 'App info and privacy policy',
@@ -269,7 +316,8 @@ class AppLocalizations {
       'microphonePermissionDenied': 'Microphone permission required',
       'saveFailedRetry': 'Save failed, please try again',
       'emotionInputTitle': 'What are you feeling right now?',
-      'emotionInputHint': 'Write freely and let me help you understand this moment',
+      'emotionInputHint':
+          'Write freely and let me help you understand this moment',
       'emotionInputSave': 'Save Text Only',
       'emotionInputAnalyze': 'NVC Analyze',
       'emotionGrantPermissionFirst': 'Please grant microphone permission first',
@@ -340,23 +388,28 @@ class AppLocalizations {
       'proMembership': 'Pro Membership',
       'proPrice': '¥1/mo',
       'proPurchaseTitle': 'Upgrade to Pro',
-      'proPurchaseSubtitle': 'Unlock all premium features for a complete experience',
+      'proPurchaseSubtitle':
+          'Unlock all premium features for a complete experience',
       'proFeatureExport': 'Export All Records',
-      'proFeatureExportDesc': 'Export your emotion records as JSON files for backup and migration',
+      'proFeatureExportDesc':
+          'Export your emotion records as JSON files for backup and migration',
       'proFeatureICloud': 'iCloud Sync',
-      'proFeatureICloudDesc': 'Auto-sync to iCloud across devices, never lose your data',
+      'proFeatureICloudDesc':
+          'Auto-sync to iCloud across devices, never lose your data',
       'proSubscribeButton': 'Subscribe — ¥1/mo',
       'proRestorePurchase': 'Restore Purchase',
       'proAlreadySubscribed': 'You are already a Pro member',
       'proSubscribeSuccess': 'Subscribed successfully! Welcome to Pro!',
       'proSubscribeFailed': 'Subscription failed, please try again later',
-      'proProductNotAvailable': 'Failed to load price. Please check your connection and try again.',
+      'proProductNotAvailable':
+          'Failed to load price. Please check your connection and try again.',
       'proPriceRetry': 'Retry',
       'proRequired': 'This feature requires Pro membership',
       'proRestoreNone': 'No purchase to restore',
       'proSubscribeNow': 'Subscribe Now',
       'proPerMonth': 'mo',
-      'proSubscriptionNote': 'Payment will be charged to your Apple ID account upon confirmation.\nSubscription automatically renews unless cancelled at least 24 hours before the end of the current period.\nYou can manage and cancel subscriptions in your App Store account settings.',
+      'proSubscriptionNote':
+          'Payment will be charged to your Apple ID account upon confirmation.\nSubscription automatically renews unless cancelled at least 24 hours before the end of the current period.\nYou can manage and cancel subscriptions in your App Store account settings.',
       'debugMode': 'DEBUG mode',
       'debugModeSubtitle':
           'When on, Export and iCloud work without subscription (internal testing only)',
@@ -374,6 +427,18 @@ class AppLocalizations {
   String get navRecords => _translate('navRecords');
   String get navHome => _translate('navHome');
   String get navInsights => _translate('navInsights');
+  String get navMe => _translate('navMe');
+  String get profileNickname => _translate('profileNickname');
+  String get profileSubtitle => _translate('profileSubtitle');
+  String get myWeeklyUnavailable => _translate('myWeeklyUnavailable');
+  String get editProfile => _translate('editProfile');
+  String get profileAvatar => _translate('profileAvatar');
+  String get profileNicknameLabel => _translate('profileNicknameLabel');
+  String get profileSignature => _translate('profileSignature');
+  String get profileAvatarDefault => _translate('profileAvatarDefault');
+  String get save => _translate('save');
+  String get manageSubscription => _translate('manageSubscription');
+  String get moreSettings => _translate('moreSettings');
   String get settings => _translate('settings');
   String get securityAndPrivacy => _translate('securityAndPrivacy');
   String get appLock => _translate('appLock');
@@ -389,9 +454,21 @@ class AppLocalizations {
   String get iCloudSyncEnabled => _translate('iCloudSyncEnabled');
   String get iCloudSyncDisabled => _translate('iCloudSyncDisabled');
   String get iCloudSyncFailed => _translate('iCloudSyncFailed');
+  String get iCloudBackupStatusTitle => _translate('iCloudBackupStatusTitle');
+  String get iCloudBackupChecking => _translate('iCloudBackupChecking');
+  String get iCloudBackupNotFound => _translate('iCloudBackupNotFound');
+  String get iCloudBackupLastSynced => _translate('iCloudBackupLastSynced');
+  String get iCloudBackupContent => _translate('iCloudBackupContent');
+  String get iCloudBackupRecords => _translate('iCloudBackupRecords');
+  String get iCloudBackupWeeklyInsights =>
+      _translate('iCloudBackupWeeklyInsights');
+  String get iCloudBackupReports => _translate('iCloudBackupReports');
+  String get iCloudBackupFile => _translate('iCloudBackupFile');
+  String get iCloudBackupTimeUnknown => _translate('iCloudBackupTimeUnknown');
   String get other => _translate('other');
   String get showOnboardingAlways => _translate('showOnboardingAlways');
-  String get showOnboardingAlwaysSubtitle => _translate('showOnboardingAlwaysSubtitle');
+  String get showOnboardingAlwaysSubtitle =>
+      _translate('showOnboardingAlwaysSubtitle');
   String get about => _translate('about');
   String get aboutSubtitle => _translate('aboutSubtitle');
   String get language => _translate('language');
@@ -441,8 +518,7 @@ class AppLocalizations {
   String get recordButtonHoldSemantics =>
       _translate('recordButtonHoldSemantics');
   String get recordButtonHoldHint => _translate('recordButtonHoldHint');
-  String get recordButtonTapSemantics =>
-      _translate('recordButtonTapSemantics');
+  String get recordButtonTapSemantics => _translate('recordButtonTapSemantics');
   String get recordButtonTapHint => _translate('recordButtonTapHint');
   String get recording => _translate('recording');
   String get releaseToSend => _translate('releaseToSend');
@@ -464,7 +540,8 @@ class AppLocalizations {
       _translate('emotionEmptyInputCannotContinue');
   String get emotionEmptyInputCannotSave =>
       _translate('emotionEmptyInputCannotSave');
-  String get emotionFinishingRecording => _translate('emotionFinishingRecording');
+  String get emotionFinishingRecording =>
+      _translate('emotionFinishingRecording');
   String get emotionTranscriptionManualFallback =>
       _translate('emotionTranscriptionManualFallback');
   String get homeGreetingMorning => _translate('homeGreetingMorning');

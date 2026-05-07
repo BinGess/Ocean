@@ -28,6 +28,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _aiAuthEnabled = false;
   bool _iCloudSyncEnabled = false;
   bool _iCloudAvailable = false;
+  bool _iCloudStatusLoading = false;
+  ICloudBackupStatus? _iCloudBackupStatus;
   bool _showOnboardingAlways = false;
   late final AIAuthService _aiAuthService;
   late final ICloudSyncService _iCloudSyncService;
@@ -64,12 +66,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadICloudStatus() async {
+    if (mounted) {
+      setState(() => _iCloudStatusLoading = true);
+    }
+
     final enabled = await _iCloudSyncService.isEnabled;
     final available = await _iCloudSyncService.isAvailable;
+    final backupStatus = await _iCloudSyncService.getBackupStatus();
     if (mounted) {
       setState(() {
         _iCloudSyncEnabled = enabled;
         _iCloudAvailable = available;
+        _iCloudBackupStatus = backupStatus;
+        _iCloudStatusLoading = false;
       });
     }
   }
@@ -77,7 +86,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadOnboardingAlwaysSetting() async {
     try {
       final db = getIt<HiveDatabase>();
-      final value = db.settingsBox.get('show_onboarding_always', defaultValue: false);
+      final value =
+          db.settingsBox.get('show_onboarding_always', defaultValue: false);
       if (mounted) {
         setState(() => _showOnboardingAlways = value == true);
       }
@@ -159,8 +169,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
               } else {
                 Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (_) => const ProPurchaseScreen()),
+                  MaterialPageRoute(builder: (_) => const ProPurchaseScreen()),
                 );
               }
             },
@@ -176,6 +185,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (value) => _handleICloudSyncToggle(value),
             proRequired: true,
           ),
+          if (_iCloudAvailable) ...[
+            const SizedBox(height: 8),
+            _buildICloudStatusCard(l10n),
+          ],
           const SizedBox(height: 16),
 
           // 其他分组
@@ -245,7 +258,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: const Color(0xFFF8F6F3),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.language, color: AppColors.textSecondary),
+                  child: const Icon(Icons.language,
+                      color: AppColors.textSecondary),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -470,8 +484,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       onTap: needsPro
           ? () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                    builder: (_) => const ProPurchaseScreen()),
+                MaterialPageRoute(builder: (_) => const ProPurchaseScreen()),
               );
             }
           : null,
@@ -538,6 +551,97 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildICloudStatusCard(AppLocalizations l10n) {
+    final status = _iCloudBackupStatus;
+    final subtitle = _iCloudStatusLoading
+        ? l10n.iCloudBackupChecking
+        : _formatICloudBackupStatus(l10n, status);
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFBFAF8),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFEDE8DF)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            status?.backupExists == true
+                ? Icons.cloud_done_outlined
+                : Icons.cloud_queue_outlined,
+            size: 20,
+            color: AppColors.accent,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.iCloudBackupStatusTitle,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    height: 1.4,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatICloudBackupStatus(
+    AppLocalizations l10n,
+    ICloudBackupStatus? status,
+  ) {
+    if (status == null) return l10n.iCloudBackupChecking;
+    if (!status.backupExists) return l10n.iCloudBackupNotFound;
+
+    final syncedAt = status.exportedAt == null
+        ? l10n.iCloudBackupTimeUnknown
+        : _formatDateTime(status.exportedAt!);
+    final size = _formatFileSize(status.fileSizeBytes);
+
+    return '${l10n.iCloudBackupLastSynced}: $syncedAt\n'
+        '${l10n.iCloudBackupContent}: ${status.recordCount} ${l10n.iCloudBackupRecords}, '
+        '${status.weeklyInsightCount} ${l10n.iCloudBackupWeeklyInsights}, '
+        '${status.insightReportCount} ${l10n.iCloudBackupReports}\n'
+        '${l10n.iCloudBackupFile}: ${status.fileName} · $size';
+  }
+
+  String _formatDateTime(DateTime value) {
+    final local = value.toLocal();
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '${local.year}/$month/$day $hour:$minute';
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) {
+      final kb = bytes / 1024;
+      return '${kb.toStringAsFixed(kb >= 10 ? 0 : 1)} KB';
+    }
+    final mb = bytes / (1024 * 1024);
+    return '${mb.toStringAsFixed(mb >= 10 ? 0 : 1)} MB';
+  }
+
   /// 处理AI授权开关切换
   Future<void> _handleAIAuthToggle(bool value) async {
     if (value) {
@@ -573,6 +677,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _iCloudSyncEnabled = value;
       });
+      await _loadICloudStatus();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(

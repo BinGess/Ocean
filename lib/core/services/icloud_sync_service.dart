@@ -56,6 +56,43 @@ class ICloudSyncService {
   Future<DateTime?> get lastSyncedAt async =>
       _parseDateTime(_database.settingsBox.get(_lastSyncedAtKey) as String?);
 
+  Future<ICloudBackupStatus> getBackupStatus() async {
+    final containerPath = await _getContainerPath();
+    if (containerPath == null) {
+      return const ICloudBackupStatus(
+        isAvailable: false,
+        backupExists: false,
+        fileName: _backupFileName,
+      );
+    }
+
+    final file = File('$containerPath/$_backupFileName');
+    if (!await file.exists()) {
+      return const ICloudBackupStatus(
+        isAvailable: true,
+        backupExists: false,
+        fileName: _backupFileName,
+      );
+    }
+
+    final stat = await file.stat();
+    final payload = await _readRemotePayload();
+    final records = payload?['records'];
+    final weeklyInsights = payload?['weekly_insights'];
+    final insightReports = payload?['insight_reports'];
+
+    return ICloudBackupStatus(
+      isAvailable: true,
+      backupExists: true,
+      fileName: _backupFileName,
+      fileSizeBytes: stat.size,
+      exportedAt: _parseDateTime(payload?['exported_at'] as String?),
+      recordCount: records is List ? records.length : 0,
+      weeklyInsightCount: weeklyInsights is List ? weeklyInsights.length : 0,
+      insightReportCount: insightReports is Map ? insightReports.length : 0,
+    );
+  }
+
   Future<void> setEnabled(bool enabled) async {
     if (!enabled) {
       await _database.settingsBox.put(_enabledKey, false);
@@ -510,4 +547,26 @@ class ICloudSyncService {
     }
     return result;
   }
+}
+
+class ICloudBackupStatus {
+  const ICloudBackupStatus({
+    required this.isAvailable,
+    required this.backupExists,
+    required this.fileName,
+    this.exportedAt,
+    this.fileSizeBytes = 0,
+    this.recordCount = 0,
+    this.weeklyInsightCount = 0,
+    this.insightReportCount = 0,
+  });
+
+  final bool isAvailable;
+  final bool backupExists;
+  final String fileName;
+  final DateTime? exportedAt;
+  final int fileSizeBytes;
+  final int recordCount;
+  final int weeklyInsightCount;
+  final int insightReportCount;
 }

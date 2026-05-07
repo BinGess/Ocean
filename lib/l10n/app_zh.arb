@@ -13,6 +13,42 @@
   "navInsights": "洞察",
   "@navInsights": {"description": "Navigation tab - Insights"},
 
+  "navMe": "我的",
+  "@navMe": {"description": "Navigation tab - Me/Profile"},
+
+  "profileNickname": "MindFlow 用户",
+  "@profileNickname": {"description": "Default profile nickname"},
+
+  "profileSubtitle": "慢慢记录，也慢慢理解自己",
+  "@profileSubtitle": {"description": "Profile subtitle"},
+
+  "myWeeklyUnavailable": "记录更多内容后，这里会出现本周概览",
+  "@myWeeklyUnavailable": {"description": "My page weekly overview empty state"},
+
+  "editProfile": "编辑个人信息",
+  "@editProfile": {"description": "Edit profile action and dialog title"},
+
+  "profileAvatar": "头像",
+  "@profileAvatar": {"description": "Profile avatar field label"},
+
+  "profileNicknameLabel": "昵称",
+  "@profileNicknameLabel": {"description": "Profile nickname field label"},
+
+  "profileSignature": "签名",
+  "@profileSignature": {"description": "Profile signature field label"},
+
+  "profileAvatarDefault": "我",
+  "@profileAvatarDefault": {"description": "Default profile avatar text"},
+
+  "save": "保存",
+  "@save": {"description": "Save action"},
+
+  "manageSubscription": "管理订阅",
+  "@manageSubscription": {"description": "Manage subscription entry"},
+
+  "moreSettings": "更多设置",
+  "@moreSettings": {"description": "More settings entry"},
+
   "settings": "设置",
   "@settings": {"description": "Settings page title"},
 
@@ -57,6 +93,26 @@
 
   "iCloudSyncFailed": "iCloud 云同步设置失败，请稍后重试",
   "@iCloudSyncFailed": {"description": "iCloud failed message"},
+  "iCloudBackupStatusTitle": "云端备份状态",
+  "@iCloudBackupStatusTitle": {"description": "iCloud backup status title"},
+  "iCloudBackupChecking": "正在检查云端备份...",
+  "@iCloudBackupChecking": {"description": "iCloud backup checking message"},
+  "iCloudBackupNotFound": "暂未发现云端备份，开启后会自动创建",
+  "@iCloudBackupNotFound": {"description": "iCloud backup not found message"},
+  "iCloudBackupLastSynced": "上次同步",
+  "@iCloudBackupLastSynced": {"description": "iCloud last synced label"},
+  "iCloudBackupContent": "备份内容",
+  "@iCloudBackupContent": {"description": "iCloud backup content label"},
+  "iCloudBackupRecords": "条记录",
+  "@iCloudBackupRecords": {"description": "iCloud backup records unit"},
+  "iCloudBackupWeeklyInsights": "个周洞察",
+  "@iCloudBackupWeeklyInsights": {"description": "iCloud backup weekly insights unit"},
+  "iCloudBackupReports": "份报告",
+  "@iCloudBackupReports": {"description": "iCloud backup reports unit"},
+  "iCloudBackupFile": "备份文件",
+  "@iCloudBackupFile": {"description": "iCloud backup file label"},
+  "iCloudBackupTimeUnknown": "时间未知",
+  "@iCloudBackupTimeUnknown": {"description": "iCloud backup unknown time"},
 
   "other": "其他",
   "@other": {"description": "Settings section header"},

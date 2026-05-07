@@ -12,7 +12,6 @@ import '../../bloc/insight/insight_event.dart';
 import '../../bloc/record/record_bloc.dart';
 import '../../bloc/record/record_state.dart';
 import '../../widgets/ai_auth_dialog.dart';
-import '../../widgets/insights/weekly_analysis_section.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
 import 'history_reports_screen.dart';
@@ -192,19 +191,17 @@ class _InsightsScreenState extends State<InsightsScreen>
               final l10n = AppLocalizations.of(context)!;
               // 无内容且需要AI授权时显示友好引导
               if (state.status == InsightStatus.needsAIAuth &&
-                  state.currentReport == null &&
-                  state.weeklyAnalysis == null) {
+                  state.currentReport == null) {
                 return _buildAIAuthPromptState(l10n);
               }
 
               if ((state.status == InsightStatus.loading ||
                       state.status == InsightStatus.generating) &&
-                  state.currentReport == null &&
-                  state.weeklyAnalysis == null) {
+                  state.currentReport == null) {
                 return _buildLoadingState(state.progressMessage, l10n);
               }
 
-              if (state.currentReport == null && state.weeklyAnalysis == null) {
+              if (state.currentReport == null) {
                 return _buildEmptyState(state.errorMessage, l10n);
               }
 
@@ -214,7 +211,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                 backgroundColor: Colors.white,
                 child: _buildInsightContent(
                   context,
-                  state.currentReport,
+                  state.currentReport!,
                   state.weeklyAnalysis,
                   state.lastFetchTime,
                   l10n,
@@ -556,26 +553,10 @@ class _InsightsScreenState extends State<InsightsScreen>
           ),
         ),
 
-        if (weeklyAnalysis != null)
-          SliverToBoxAdapter(
-            child: WeeklyAnalysisSection(
-              analysis: weeklyAnalysis,
-              showEmotionNeeds: false,
-            ),
-          ),
-
         // 情绪概览
         if (report != null)
           SliverToBoxAdapter(
             child: _buildEmotionOverviewCard(report.emotionOverview, l10n),
-          ),
-
-        if (weeklyAnalysis != null)
-          SliverToBoxAdapter(
-            child: WeeklyAnalysisSection(
-              analysis: weeklyAnalysis,
-              showOverview: false,
-            ),
           ),
 
         // 高频情境

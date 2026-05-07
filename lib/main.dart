@@ -22,6 +22,7 @@ import 'presentation/bloc/locale/locale_bloc.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/records/records_screen.dart';
 import 'presentation/screens/insights/insights_screen.dart';
+import 'presentation/screens/me/my_screen.dart';
 import 'presentation/screens/splash/splash_screen.dart';
 import 'presentation/screens/onboarding/nvc_onboarding_screen.dart';
 import 'presentation/screens/app_lock/lock_screen.dart';
@@ -261,10 +262,10 @@ class _AppEntryPointState extends State<AppEntryPoint>
     bool needsOnboarding = false;
     try {
       final db = getIt<HiveDatabase>();
-      final completed = db.settingsBox.get('onboarding_completed',
-          defaultValue: false);
-      final alwaysShow = db.settingsBox.get('show_onboarding_always',
-          defaultValue: false);
+      final completed =
+          db.settingsBox.get('onboarding_completed', defaultValue: false);
+      final alwaysShow =
+          db.settingsBox.get('show_onboarding_always', defaultValue: false);
       needsOnboarding = completed != true || alwaysShow == true;
     } catch (e) {
       debugPrint('AppEntryPoint: 检查 onboarding flag 失败: $e');
@@ -326,7 +327,7 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 1; // 默认首页
 
-  // 三个主要页面
+  // 四个主要页面
   late final List<Widget> _screens;
 
   @override
@@ -342,6 +343,7 @@ class _MainNavigationState extends State<MainNavigation> {
       ), // 记录
       const HomeScreen(), // 首页（录音）
       const InsightsScreen(), // 洞察
+      const MyScreen(), // 我的
     ];
   }
 
@@ -400,6 +402,14 @@ class _MainNavigationState extends State<MainNavigation> {
                         icon: Icons.auto_awesome_outlined,
                         activeIcon: Icons.auto_awesome,
                         label: l10n.navInsights,
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildNavItem(
+                        index: 3,
+                        icon: Icons.person_outline,
+                        activeIcon: Icons.person,
+                        label: l10n.navMe,
                       ),
                     ),
                   ],

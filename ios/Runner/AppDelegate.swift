@@ -3,44 +3,52 @@ import UIKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
-  private let iCloudChannelName = "mindflow/icloud_sync"
-
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    let didFinish = super.application(application, didFinishLaunchingWithOptions: launchOptions)
-
-    if let controller = window?.rootViewController as? FlutterViewController {
-      configureICloudChannel(messenger: controller.binaryMessenger)
-    }
-
-    return didFinish
+    super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
   }
+}
 
-  private func configureICloudChannel(messenger: FlutterBinaryMessenger) {
-    let channel = FlutterMethodChannel(name: iCloudChannelName, binaryMessenger: messenger)
-    channel.setMethodCallHandler { [weak self] call, result in
-      guard let self = self else {
-        result(FlutterError(code: "unavailable", message: "AppDelegate released", details: nil))
-        return
-      }
+@objc class SceneDelegate: FlutterSceneDelegate {
+  override func scene(
+    _ scene: UIScene,
+    willConnectTo session: UISceneSession,
+    options connectionOptions: UIScene.ConnectionOptions
+  ) {
+    super.scene(scene, willConnectTo: session, options: connectionOptions)
 
+    if let controller = window?.rootViewController as? FlutterViewController {
+      ICloudSyncChannel.configure(messenger: controller.binaryMessenger)
+    }
+  }
+}
+
+private enum ICloudSyncChannel {
+  private static let channelName = "mindflow/icloud_sync"
+  private static let containerIdentifier = "iCloud.com.mindflow.app.mindflow"
+
+  static func configure(messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(name: channelName, binaryMessenger: messenger)
+    channel.setMethodCallHandler { call, result in
       switch call.method {
       case "getICloudContainerPath":
-        result(self.resolveICloudContainerPath())
+        result(resolveICloudContainerPath())
       default:
         result(FlutterMethodNotImplemented)
       }
     }
   }
 
-  private func resolveICloudContainerPath() -> String? {
-    guard let containerURL = FileManager.default.url(forUbiquityContainerIdentifier: nil) else {
+  private static func resolveICloudContainerPath() -> String? {
+    guard let containerURL = FileManager.default.url(
+      forUbiquityContainerIdentifier: containerIdentifier
+    ) else {
       return nil
     }
 
