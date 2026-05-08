@@ -175,7 +175,8 @@ class _HomeScreenState extends State<HomeScreen>
 
     final quoteIndex =
         _positiveModulo(_currentQuoteIndex + offset, _quotes.length);
-    return _normalizeQuoteText(_quotes[quoteIndex].content);
+    final languageCode = Localizations.localeOf(context).languageCode;
+    return _normalizeQuoteText(_quotes[quoteIndex].localizedContent(languageCode));
   }
 
   double _lyricScrollProgress() {
