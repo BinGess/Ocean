@@ -35,6 +35,7 @@ import '../services/icloud_sync_service.dart';
 import '../services/ocean_sync_service.dart';
 import '../services/ocean_account_cache_service.dart';
 import '../services/ocean_account_service.dart';
+import '../services/ocean_installation_service.dart';
 import '../services/pro_subscription_service.dart';
 import '../../presentation/bloc/audio/audio_bloc.dart';
 import '../../presentation/bloc/record/record_bloc.dart';
@@ -97,6 +98,13 @@ Future<void> configureDependencies() async {
   final hiveDatabase = HiveDatabase();
   await hiveDatabase.init();
   getIt.registerSingleton<HiveDatabase>(hiveDatabase);
+
+  final oceanInstallationService = OceanInstallationService(
+    database: hiveDatabase,
+    tokenStore: getIt<OceanTokenStore>(),
+  );
+  await oceanInstallationService.reconcileInstallState();
+  getIt.registerSingleton<OceanInstallationService>(oceanInstallationService);
 
   final iCloudSyncService = ICloudSyncService(
     database: hiveDatabase,

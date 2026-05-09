@@ -45,6 +45,7 @@ class OceanSyncResult {
 }
 
 abstract class OceanAccountSyncService {
+  Future<OceanSyncResult> pushAllLocalData();
   Future<OceanSyncResult> restoreSnapshot();
 }
 
@@ -473,6 +474,7 @@ class OceanSyncService implements OceanAccountSyncService {
 
   Future<OceanSyncResult> pushLocalRecords() => pushAllLocalData();
 
+  @override
   Future<OceanSyncResult> pushAllLocalData() async {
     final data = await _dataStore.readAll();
     final response = await _api.pushData(

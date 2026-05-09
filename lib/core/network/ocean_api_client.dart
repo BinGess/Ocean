@@ -174,7 +174,7 @@ class OceanApiClient
             'nickname': nickname.trim(),
         },
       );
-      return _saveAuthResponse(response.data, email);
+      return await _saveAuthResponse(response.data, email);
     } on DioException catch (error) {
       throw OceanApiException.fromDio(error);
     }
@@ -193,7 +193,7 @@ class OceanApiClient
           'password': password,
         },
       );
-      return _saveAuthResponse(response.data, email);
+      return await _saveAuthResponse(response.data, email);
     } on DioException catch (error) {
       throw OceanApiException.fromDio(error);
     }
@@ -210,7 +210,7 @@ class OceanApiClient
         '/auth/refresh',
         data: {'refreshToken': refreshToken},
       );
-      return _saveAuthResponse(response.data, current?.email);
+      return await _saveAuthResponse(response.data, current?.email);
     } on DioException catch (error) {
       throw OceanApiException.fromDio(error);
     }
@@ -411,7 +411,10 @@ class OceanApiClient
     _dio.options.headers['Authorization'] = 'Bearer $accessToken';
   }
 
-  OceanAuthTokens _saveAuthResponse(Map<String, dynamic>? data, String? email) {
+  Future<OceanAuthTokens> _saveAuthResponse(
+    Map<String, dynamic>? data,
+    String? email,
+  ) async {
     final accessToken = data?['accessToken'] as String?;
     final refreshToken = data?['refreshToken'] as String?;
     if (accessToken == null || refreshToken == null) {
@@ -422,7 +425,7 @@ class OceanApiClient
       refreshToken: refreshToken,
       email: email,
     );
-    tokenStore.saveTokens(tokens);
+    await tokenStore.saveTokens(tokens);
     return tokens;
   }
 }

@@ -82,13 +82,13 @@ class _OceanSyncScreenState extends State<OceanSyncScreen> {
       setState(() => _status = validation);
       return;
     }
-    await _run('正在注册并恢复服务端数据...', () async {
+    await _run('正在注册、迁移本地数据并恢复服务端数据...', () async {
       await _accountService.register(
         email: _emailController.text.trim(),
         password: _passwordController.text,
         nickname: _nicknameController.text.trim(),
       );
-      return '注册成功，已登录并恢复服务端数据。';
+      return '注册成功，本地数据已迁移到服务端。';
     });
   }
 
@@ -98,12 +98,12 @@ class _OceanSyncScreenState extends State<OceanSyncScreen> {
       setState(() => _status = validation);
       return;
     }
-    await _run('正在登录并恢复服务端数据...', () async {
+    await _run('正在登录、迁移本地数据并恢复服务端数据...', () async {
       await _accountService.login(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      return '登录成功，已恢复服务端数据。';
+      return '登录成功，本地数据已迁移到服务端。';
     });
   }
 

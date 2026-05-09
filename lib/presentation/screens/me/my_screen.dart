@@ -12,6 +12,7 @@ import '../../bloc/insight/insight_bloc.dart';
 import '../../bloc/insight/insight_event.dart';
 import '../../bloc/insight/insight_state.dart';
 import '../../widgets/insights/weekly_analysis_section.dart';
+import '../account/account_entry_screen.dart';
 import '../pro/pro_purchase_screen.dart';
 import '../settings/settings_screen.dart';
 
@@ -20,10 +21,12 @@ class MyScreen extends StatefulWidget {
     super.key,
     this.proScreenBuilder,
     this.settingsScreenBuilder,
+    this.accountScreenBuilder,
   });
 
   final WidgetBuilder? proScreenBuilder;
   final WidgetBuilder? settingsScreenBuilder;
+  final WidgetBuilder? accountScreenBuilder;
 
   @override
   State<MyScreen> createState() => _MyScreenState();
@@ -32,9 +35,11 @@ class MyScreen extends StatefulWidget {
 class _MyScreenState extends State<MyScreen> {
   late final HiveDatabase _database;
   OceanUserDataApi? _userDataApi;
+  OceanAccountService? _accountService;
   String? _avatar;
   String? _nickname;
   String? _signature;
+  bool _signedIn = false;
   StreamSubscription<void>? _accountDataSubscription;
 
   @override
@@ -43,12 +48,16 @@ class _MyScreenState extends State<MyScreen> {
     _database = getIt<HiveDatabase>();
     _userDataApi =
         getIt.isRegistered<OceanApiClient>() ? getIt<OceanApiClient>() : null;
+    _accountService = getIt.isRegistered<OceanAccountService>()
+        ? getIt<OceanAccountService>()
+        : null;
     _loadProfile();
+    _loadAccountState();
     if (getIt.isRegistered<OceanAccountDataRefreshService>()) {
       _accountDataSubscription =
           getIt<OceanAccountDataRefreshService>().changes.listen((_) {
         if (!mounted) return;
-        setState(_loadProfile);
+        _reloadProfileAndAccountState();
       });
     }
     context.read<InsightBloc>().add(const InsightLoadCurrentWeek());
@@ -64,6 +73,18 @@ class _MyScreenState extends State<MyScreen> {
     _avatar = _database.settingsBox.get('profile_avatar') as String?;
     _nickname = _database.settingsBox.get('profile_nickname') as String?;
     _signature = _database.settingsBox.get('profile_signature') as String?;
+  }
+
+  Future<void> _loadAccountState() async {
+    final service = _accountService;
+    final signedIn = service != null && await service.isSignedIn;
+    if (!mounted) return;
+    setState(() => _signedIn = signedIn);
+  }
+
+  Future<void> _reloadProfileAndAccountState() async {
+    _loadProfile();
+    await _loadAccountState();
   }
 
   Future<void> _onRefresh() async {
@@ -162,6 +183,20 @@ class _MyScreenState extends State<MyScreen> {
     );
   }
 
+  Future<void> _openAccountScreen() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: widget.accountScreenBuilder ??
+            (_) => AccountEntryScreen(
+                  onComplete: () => Navigator.of(context).pop(),
+                  onSkip: () => Navigator.of(context).pop(),
+                ),
+      ),
+    );
+    if (!mounted) return;
+    await _reloadProfileAndAccountState();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -194,7 +229,9 @@ class _MyScreenState extends State<MyScreen> {
                         nickname: _profileNickname(l10n),
                         signature: _profileSignature(l10n),
                         l10n: l10n,
+                        signedIn: _signedIn,
                         onEdit: () => _showEditProfileDialog(l10n),
+                        onLogin: _openAccountScreen,
                       ),
                     ),
                     if (state.weeklyAnalysis != null)
@@ -469,96 +506,124 @@ class _ProfileHeader extends StatelessWidget {
     required this.nickname,
     required this.signature,
     required this.l10n,
+    required this.signedIn,
     required this.onEdit,
+    required this.onLogin,
   });
 
   final String avatar;
   final String nickname;
   final String signature;
   final AppLocalizations l10n;
+  final bool signedIn;
   final VoidCallback onEdit;
+  final VoidCallback onLogin;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Semantics(
-        button: true,
-        label: l10n.editProfile,
-        child: InkWell(
-          onTap: onEdit,
-          borderRadius: BorderRadius.circular(24),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                Container(
-                  width: 72,
-                  height: 72,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        AppColors.accentWarm,
-                        AppColors.accentLight,
-                      ],
-                    ),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      width: 3,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.textSecondary.withValues(alpha: 0.08),
-                        blurRadius: 18,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    avatar,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.pageTitle.copyWith(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        children: [
+          Expanded(
+            child: Semantics(
+              button: true,
+              label: l10n.editProfile,
+              child: InkWell(
+                onTap: onEdit,
+                borderRadius: BorderRadius.circular(24),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
                     children: [
-                      Text(
-                        nickname,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.pageTitle.copyWith(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w600,
+                      Container(
+                        width: 72,
+                        height: 72,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppColors.accentWarm,
+                              AppColors.accentLight,
+                            ],
+                          ),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            width: 3,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.textSecondary
+                                  .withValues(alpha: 0.08),
+                              blurRadius: 18,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          avatar,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.pageTitle.copyWith(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        signature,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.bodySecondary.copyWith(
-                          color: AppColors.textMuted,
-                          height: 1.35,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              nickname,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.pageTitle.copyWith(
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              signature,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.bodySecondary.copyWith(
+                                color: AppColors.textMuted,
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+          if (!signedIn) ...[
+            const SizedBox(width: 12),
+            TextButton.icon(
+              onPressed: onLogin,
+              icon: const Icon(Icons.login_rounded, size: 18),
+              label: const Text('登录'),
+              style: TextButton.styleFrom(
+                minimumSize: const Size(76, 44),
+                foregroundColor: Colors.white,
+                backgroundColor: AppColors.primary,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

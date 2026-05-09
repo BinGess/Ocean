@@ -5,7 +5,7 @@ import 'package:mindflow/core/services/ocean_account_service.dart';
 import 'package:mindflow/core/services/ocean_sync_service.dart';
 
 void main() {
-  test('login restores server snapshot and notifies account data listeners',
+  test('login migrates local data, restores server snapshot, and notifies',
       () async {
     final api = _FakeAccountApi();
     final syncService = _FakeSyncService();
@@ -24,10 +24,64 @@ void main() {
     await Future<void>.delayed(Duration.zero);
 
     expect(api.loggedInEmail, 'user@example.com');
+    expect(syncService.pushAllLocalDataCount, 1);
     expect(syncService.restoreSnapshotCount, 1);
     expect(notifications, 1);
     expect(cacheService.clearCount, 0);
     await subscription.cancel();
+  });
+
+  test('login still succeeds when post-login sync fails', () async {
+    final api = _FakeAccountApi();
+    final syncService = _FakeSyncService()
+      ..pushError = Exception('temporary sync failure');
+    final cacheService = _FakeAccountCacheService();
+    final notifier = OceanAccountDataRefreshService();
+    var notifications = 0;
+    final subscription = notifier.changes.listen((_) => notifications++);
+    final service = OceanAccountService(
+      api: api,
+      syncService: syncService,
+      cacheService: cacheService,
+      refreshService: notifier,
+    );
+
+    final tokens = await service.login(
+      email: 'user@example.com',
+      password: 'password123',
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(tokens.accessToken, 'access');
+    expect(api.loggedInEmail, 'user@example.com');
+    expect(syncService.pushAllLocalDataCount, 1);
+    expect(notifications, 1);
+    await subscription.cancel();
+  });
+
+  test('register still succeeds when post-register sync fails', () async {
+    final api = _FakeAccountApi();
+    final syncService = _FakeSyncService()
+      ..restoreError = Exception('temporary restore failure');
+    final cacheService = _FakeAccountCacheService();
+    final notifier = OceanAccountDataRefreshService();
+    final service = OceanAccountService(
+      api: api,
+      syncService: syncService,
+      cacheService: cacheService,
+      refreshService: notifier,
+    );
+
+    final tokens = await service.register(
+      email: 'user@example.com',
+      password: 'password123',
+      nickname: 'Ocean',
+    );
+
+    expect(tokens.accessToken, 'access');
+    expect(api.loggedInEmail, 'user@example.com');
+    expect(syncService.pushAllLocalDataCount, 1);
+    expect(syncService.restoreSnapshotCount, 1);
   });
 
   test('logout clears account cache and notifies account data listeners',
@@ -51,6 +105,31 @@ void main() {
     expect(api.logoutCount, 1);
     expect(cacheService.clearCount, 1);
     expect(syncService.restoreSnapshotCount, 0);
+    expect(notifications, 1);
+    await subscription.cancel();
+  });
+
+  test('restoreSignedInSession restores snapshot only when token exists',
+      () async {
+    final api = _FakeAccountApi()..loggedInEmail = 'user@example.com';
+    final syncService = _FakeSyncService();
+    final cacheService = _FakeAccountCacheService();
+    final notifier = OceanAccountDataRefreshService();
+    var notifications = 0;
+    final subscription = notifier.changes.listen((_) => notifications++);
+    final service = OceanAccountService(
+      api: api,
+      syncService: syncService,
+      cacheService: cacheService,
+      refreshService: notifier,
+    );
+
+    final restored = await service.restoreSignedInSession();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(restored, isTrue);
+    expect(syncService.pushAllLocalDataCount, 0);
+    expect(syncService.restoreSnapshotCount, 1);
     expect(notifications, 1);
     await subscription.cancel();
   });
@@ -101,11 +180,24 @@ class _FakeAccountApi implements OceanAccountApi {
 }
 
 class _FakeSyncService implements OceanAccountSyncService {
+  int pushAllLocalDataCount = 0;
   int restoreSnapshotCount = 0;
+  Object? pushError;
+  Object? restoreError;
+
+  @override
+  Future<OceanSyncResult> pushAllLocalData() async {
+    pushAllLocalDataCount += 1;
+    final error = pushError;
+    if (error != null) throw error;
+    return const OceanSyncResult(cursor: '1');
+  }
 
   @override
   Future<OceanSyncResult> restoreSnapshot() async {
     restoreSnapshotCount += 1;
+    final error = restoreError;
+    if (error != null) throw error;
     return const OceanSyncResult(cursor: '1');
   }
 }

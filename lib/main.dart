@@ -12,7 +12,9 @@ import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'core/di/injection.dart';
 import 'core/services/app_lock_service.dart';
+import 'core/services/app_entry_flow.dart';
 import 'core/services/icloud_sync_service.dart';
+import 'core/services/ocean_account_service.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/bloc/audio/audio_bloc.dart';
 import 'presentation/bloc/audio/audio_event.dart';
@@ -26,6 +28,7 @@ import 'presentation/screens/me/my_screen.dart';
 import 'presentation/screens/splash/splash_screen.dart';
 import 'presentation/screens/onboarding/nvc_onboarding_screen.dart';
 import 'presentation/screens/app_lock/lock_screen.dart';
+import 'presentation/screens/account/account_entry_screen.dart';
 import 'presentation/widgets/app_lock/privacy_blur_overlay.dart';
 import 'data/datasources/local/hive_database.dart';
 
@@ -105,13 +108,18 @@ class AppEntryPoint extends StatefulWidget {
 class _AppEntryPointState extends State<AppEntryPoint>
     with WidgetsBindingObserver {
   bool _showSplash = true;
+  bool _showAccountEntry = false;
   bool _showOnboarding = false;
   bool _showLockScreen = false;
   bool _showPrivacyBlur = false;
   bool _isCheckingLock = false;
+  int _mainGeneration = 0;
 
   final _appLockService = getIt<AppLockService>();
   final _iCloudSyncService = getIt<ICloudSyncService>();
+  final _accountService = getIt<OceanAccountService>();
+
+  static const _loginGuideSkippedKey = 'ocean_login_guide_skipped';
 
   @override
   void initState() {
@@ -260,6 +268,7 @@ class _AppEntryPointState extends State<AppEntryPoint>
   void _onSplashComplete() async {
     // 检查是否需要展示新用户引导
     bool needsOnboarding = false;
+    bool needsAccountEntry = false;
     try {
       final db = getIt<HiveDatabase>();
       final completed =
@@ -267,12 +276,20 @@ class _AppEntryPointState extends State<AppEntryPoint>
       final alwaysShow =
           db.settingsBox.get('show_onboarding_always', defaultValue: false);
       needsOnboarding = completed != true || alwaysShow == true;
+
+      final restoredSignedInSession =
+          await _accountService.restoreSignedInSession();
+      final skippedLoginGuide =
+          db.settingsBox.get(_loginGuideSkippedKey, defaultValue: false) ==
+              true;
+      needsAccountEntry = !restoredSignedInSession && !skippedLoginGuide;
     } catch (e) {
-      debugPrint('AppEntryPoint: 检查 onboarding flag 失败: $e');
+      debugPrint('AppEntryPoint: 检查入口状态失败: $e');
     }
 
     setState(() {
       _showSplash = false;
+      _showAccountEntry = needsAccountEntry;
       _showOnboarding = needsOnboarding;
     });
 
@@ -288,23 +305,54 @@ class _AppEntryPointState extends State<AppEntryPoint>
     });
   }
 
+  Future<void> _skipAccountEntry() async {
+    try {
+      final db = getIt<HiveDatabase>();
+      await db.settingsBox.put(_loginGuideSkippedKey, true);
+    } catch (e) {
+      debugPrint('AppEntryPoint: 保存登录跳过状态失败: $e');
+    }
+    if (!mounted) return;
+    setState(() {
+      _showAccountEntry = false;
+      _mainGeneration = AppEntryFlow.nextMainGeneration(_mainGeneration);
+    });
+  }
+
+  void _completeAccountEntry() {
+    setState(() {
+      _showAccountEntry = false;
+      _mainGeneration = AppEntryFlow.nextMainGeneration(_mainGeneration);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    // 开屏页
-    if (_showSplash) {
-      return SplashScreen(onComplete: _onSplashComplete);
-    }
+    final visibleStep = AppEntryFlow.visibleStep(
+      showSplash: _showSplash,
+      showOnboarding: _showOnboarding,
+      showAccountEntry: _showAccountEntry,
+    );
 
-    // 新用户 NVC 引导页
-    if (_showOnboarding) {
-      return NVCOnboardingScreen(onComplete: _onOnboardingComplete);
+    switch (visibleStep) {
+      case AppEntryStep.splash:
+        return SplashScreen(onComplete: _onSplashComplete);
+      case AppEntryStep.onboarding:
+        return NVCOnboardingScreen(onComplete: _onOnboardingComplete);
+      case AppEntryStep.accountEntry:
+        return AccountEntryScreen(
+          onComplete: _completeAccountEntry,
+          onSkip: _skipAccountEntry,
+        );
+      case AppEntryStep.main:
+        break;
     }
 
     // 主内容 + 锁屏层 + 隐私遮罩层
     return Stack(
       children: [
         // 主导航
-        const MainNavigation(),
+        MainNavigation(key: ValueKey(_mainGeneration)),
 
         // 锁屏界面
         if (_showLockScreen) LockScreen(onUnlocked: _onUnlocked),

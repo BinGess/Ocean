@@ -92,6 +92,32 @@ void main() {
     expect(tokenStore.refreshToken, 'new-refresh');
   });
 
+  test('login waits until tokens are persisted before returning', () async {
+    final adapter = _FakeAdapter((options) {
+      return _jsonResponse(
+        body: {
+          'accessToken': 'access-after-login',
+          'refreshToken': 'refresh-after-login',
+        },
+        requestOptions: options,
+      );
+    });
+    final tokenStore = _DelayedTokenStore();
+    final client = OceanApiClient(
+      tokenStore: tokenStore,
+      dio: Dio(BaseOptions(baseUrl: 'https://api.example.test'))
+        ..httpClientAdapter = adapter,
+    );
+
+    await client.login(
+      email: 'user@example.com',
+      password: 'StrongerPass123',
+    );
+
+    expect(tokenStore.saveCompleted, isTrue);
+    expect((await tokenStore.readTokens())?.accessToken, 'access-after-login');
+  });
+
   test('createRecord posts to server-first records endpoint', () async {
     RequestOptions? captured;
     final adapter = _FakeAdapter((options) {
@@ -248,5 +274,16 @@ class _MemoryTokenStore implements OceanTokenStore {
     accessToken = null;
     refreshToken = null;
     email = null;
+  }
+}
+
+class _DelayedTokenStore extends _MemoryTokenStore {
+  bool saveCompleted = false;
+
+  @override
+  Future<void> saveTokens(OceanAuthTokens tokens) async {
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    await super.saveTokens(tokens);
+    saveCompleted = true;
   }
 }

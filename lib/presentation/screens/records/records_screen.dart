@@ -23,6 +23,12 @@ import '../../widgets/nvc_confirmation_modal.dart';
 import '../../widgets/daily_mood_picker.dart';
 import '../record_detail/record_detail_screen.dart';
 
+const emptyRecordsGuidanceItems = [
+  '可以用语音或文字记下一段想法、情绪、梦境或片刻观察。',
+  '记录变多后，这里会按日期整理出时间线和每日心情概览。',
+  '未登录时数据保存在本机；登录后会自动迁移并备份到服务端。',
+];
+
 class RecordsScreen extends StatefulWidget {
   final VoidCallback? onNavigateToHome;
   final HiveDatabase? database;
@@ -928,26 +934,132 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   Widget _buildEmptyState() {
     final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.xxxl),
-      child: Center(
-        child: Column(
-          children: [
-            Icon(
-              Icons.edit_note,
-              size: 48,
-              color: AppColors.textMuted.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              l10n.noRecords,
-              style: TextStyle(
-                fontSize: 15.0,
-                color: AppColors.textMuted.withValues(alpha: 0.5),
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: AppSpacing.lg, bottom: AppSpacing.xxl),
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+      decoration: BoxDecoration(
+        color: AppColors.bgCard.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.borderLight.withValues(alpha: 0.9),
+          width: 0.8,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.035),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.edit_note_rounded,
+                  size: 28,
+                  color: AppColors.accent,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.noRecords,
+                      style: AppTypography.sectionTitle.copyWith(
+                        fontSize: 18,
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '先留下一点点痕迹，Ocean 会慢慢帮你看见情绪和需要的线索。',
+                      style: AppTypography.bodySecondary.copyWith(
+                        fontSize: 13,
+                        height: 1.55,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          ...emptyRecordsGuidanceItems.map(_buildEmptyGuidanceRow),
+          const SizedBox(height: 18),
+          if (widget.onNavigateToHome != null)
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: widget.onNavigateToHome,
+                icon: const Icon(Icons.radio_button_checked_rounded, size: 18),
+                label: const Text('去记录此刻'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  textStyle: AppTypography.actionLabel.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyGuidanceRow(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 22,
+            height: 22,
+            margin: const EdgeInsets.only(top: 1),
+            decoration: BoxDecoration(
+              color: AppColors.bgCardSecondary,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: const Icon(
+              Icons.check_rounded,
+              size: 14,
+              color: AppColors.accent,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: AppTypography.bodySecondary.copyWith(
+                fontSize: 13,
+                height: 1.45,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

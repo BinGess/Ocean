@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import '../network/ocean_api_client.dart';
 import 'ocean_account_cache_service.dart';
 import 'ocean_sync_service.dart';
@@ -45,8 +47,7 @@ class OceanAccountService {
     required String password,
   }) async {
     final tokens = await _api.login(email: email, password: password);
-    await _syncService.restoreSnapshot();
-    _refreshService.notifyChanged();
+    await _trySyncAfterAuth('login');
     return tokens;
   }
 
@@ -60,14 +61,42 @@ class OceanAccountService {
       password: password,
       nickname: nickname,
     );
-    await _syncService.restoreSnapshot();
-    _refreshService.notifyChanged();
+    await _trySyncAfterAuth('register');
     return tokens;
+  }
+
+  Future<bool> restoreSignedInSession() async {
+    if (!await _api.isSignedIn) return false;
+    try {
+      await _syncService.restoreSnapshot();
+    } catch (error) {
+      debugPrint(
+          'OceanAccountService: restore signed-in session failed: $error');
+    }
+    _refreshService.notifyChanged();
+    return true;
   }
 
   Future<void> logout() async {
     await _api.logout();
     await _cacheService.clearAccountCache();
+    _refreshService.notifyChanged();
+  }
+
+  Future<void> _trySyncAfterAuth(String action) async {
+    try {
+      await _syncService.pushAllLocalData();
+    } catch (error) {
+      debugPrint('OceanAccountService: $action local migration failed: $error');
+    }
+
+    try {
+      await _syncService.restoreSnapshot();
+    } catch (error) {
+      debugPrint(
+          'OceanAccountService: $action snapshot restore failed: $error');
+    }
+
     _refreshService.notifyChanged();
   }
 }

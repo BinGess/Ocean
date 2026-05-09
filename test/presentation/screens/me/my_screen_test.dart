@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:mindflow/core/di/injection.dart';
+import 'package:mindflow/core/services/ocean_account_service.dart';
 import 'package:mindflow/data/datasources/local/hive_database.dart';
 import 'package:mindflow/l10n/app_localizations.dart';
 import 'package:mindflow/presentation/bloc/insight/insight_bloc.dart';
@@ -46,7 +47,19 @@ class _FakeInsightBloc extends Fake implements InsightBloc {
   Future<void> close() async {}
 }
 
-Widget _buildTestable({required InsightBloc insightBloc}) {
+class _FakeOceanAccountService extends Fake implements OceanAccountService {
+  _FakeOceanAccountService({required this.signedIn});
+
+  bool signedIn;
+
+  @override
+  Future<bool> get isSignedIn async => signedIn;
+}
+
+Widget _buildTestable({
+  required InsightBloc insightBloc,
+  WidgetBuilder? accountScreenBuilder,
+}) {
   return MaterialApp(
     locale: const Locale('zh'),
     supportedLocales: AppLocalizations.supportedLocales,
@@ -61,6 +74,7 @@ Widget _buildTestable({required InsightBloc insightBloc}) {
       child: MyScreen(
         proScreenBuilder: (_) => const Scaffold(body: Text('Pro 测试页')),
         settingsScreenBuilder: (_) => const Scaffold(body: Text('设置测试页')),
+        accountScreenBuilder: accountScreenBuilder,
       ),
     ),
   );
@@ -83,6 +97,9 @@ void main() {
   tearDown(() {
     if (getIt.isRegistered<HiveDatabase>()) {
       getIt.unregister<HiveDatabase>();
+    }
+    if (getIt.isRegistered<OceanAccountService>()) {
+      getIt.unregister<OceanAccountService>();
     }
   });
 
@@ -145,5 +162,27 @@ void main() {
     await tester.tap(find.text('更多设置'));
     await tester.pumpAndSettle();
     expect(find.text('设置测试页'), findsOneWidget);
+  });
+
+  testWidgets('未登录时我的页顶部提供登录入口并跳转账号引导页', (tester) async {
+    getIt.registerSingleton<OceanAccountService>(
+      _FakeOceanAccountService(signedIn: false),
+    );
+
+    await tester.pumpWidget(
+      _buildTestable(
+        insightBloc: fakeInsightBloc,
+        accountScreenBuilder: (_) =>
+            const Scaffold(body: Center(child: Text('账号引导测试页'))),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.widgetWithText(TextButton, '登录'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(TextButton, '登录'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('账号引导测试页'), findsOneWidget);
   });
 }

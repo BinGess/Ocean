@@ -73,6 +73,12 @@ void main() {
   test('buildDailySummarySyncSignature marks empty state explicitly', () {
     expect(buildDailySummarySyncSignature(const {}), 'empty');
   });
+
+  test('empty records guidance gives enough context and action cues', () {
+    expect(emptyRecordsGuidanceItems, hasLength(greaterThanOrEqualTo(3)));
+    expect(emptyRecordsGuidanceItems.join('\n'), contains('登录'));
+    expect(emptyRecordsGuidanceItems.join('\n'), contains('服务端'));
+  });
 }
 
 Record _record({
