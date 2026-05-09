@@ -3,39 +3,100 @@ import 'package:mindflow/core/services/ocean_sync_service.dart';
 import 'package:mindflow/domain/entities/record.dart';
 
 void main() {
-  test('pushLocalRecords uploads local records and saves returned cursor',
+  test('pushAllLocalData uploads all local entity groups and saves cursor',
       () async {
     final api = _FakeOceanSyncApi();
     final stateStore = _MemorySyncStateStore();
-    final recordsStore = _MemoryRecordsStore([
-      Record(
-        id: 'record-1',
-        type: RecordType.quickNote,
-        transcription: 'sync me',
-        createdAt: DateTime.utc(2026, 5, 7, 13, 40),
-        updatedAt: DateTime.utc(2026, 5, 7, 13, 41),
-        audioUrl: '/local/audio.m4a',
+    final dataStore = _MemorySyncDataStore(
+      OceanLocalSyncData(
+        profile: const {
+          'avatar': '🌊',
+          'nickname': 'Ocean',
+          'signature': 'stay fluid',
+          'clientUpdatedAt': '2026-05-07T13:39:00.000Z',
+        },
+        records: [
+          Record(
+            id: 'record-1',
+            type: RecordType.quickNote,
+            transcription: 'sync me',
+            createdAt: DateTime.utc(2026, 5, 7, 13, 40),
+            updatedAt: DateTime.utc(2026, 5, 7, 13, 41),
+            audioUrl: '/local/audio.m4a',
+          ),
+        ],
+        dailySummaries: const [
+          {
+            'date': '2026-05-07',
+            'moodWord': '平静',
+            'oneSentence': '今天比较稳定',
+            'score': 6,
+            'recordCount': 2,
+            'generatedAt': '2026-05-07T13:42:00.000Z',
+            'userOverridden': false,
+            'clientUpdatedAt': '2026-05-07T13:42:00.000Z',
+          },
+        ],
+        dailyMoods: const [
+          {
+            'date': '2026-05-07',
+            'imagePath': 'assets/images/moods/calm.png',
+            'clientUpdatedAt': '2026-05-07T13:43:00.000Z',
+          },
+        ],
+        insightReports: const [
+          {
+            'periodType': 'weekly',
+            'periodKey': '2026-05-04 ~ 2026-05-10',
+            'weekRange': '2026-05-04 ~ 2026-05-10',
+            'cachedAt': '2026-05-07T13:44:00.000Z',
+            'recordCount': 3,
+            'report': {'id': 'report-1'},
+            'clientUpdatedAt': '2026-05-07T13:44:00.000Z',
+          },
+        ],
+        weeklyInsights: const [
+          {
+            'id': 'weekly-1',
+            'weekRange': '2026-05-04 ~ 2026-05-10',
+            'startDate': '2026-05-04T00:00:00.000Z',
+            'endDate': '2026-05-10T00:00:00.000Z',
+            'payload': {'id': 'weekly-1'},
+            'clientUpdatedAt': '2026-05-07T13:45:00.000Z',
+          },
+        ],
       ),
-    ]);
+    );
     final service = OceanSyncService(
       api: api,
-      recordsStore: recordsStore,
+      dataStore: dataStore,
       stateStore: stateStore,
     );
 
-    final result = await service.pushLocalRecords();
+    final result = await service.pushAllLocalData();
 
-    expect(result.accepted, 1);
+    expect(result.accepted, 5);
     expect(stateStore.cursor, '9');
+    expect(api.pushedProfile?['nickname'], 'Ocean');
     expect(api.pushedRecords.single['id'], 'record-1');
     expect(api.pushedRecords.single['audioUrl'], isNull);
+    expect(api.pushedDailySummaries.single['date'], '2026-05-07');
+    expect(api.pushedDailyMoods.single['imagePath'], contains('calm'));
+    expect(api.pushedInsightReports.single['periodType'], 'weekly');
+    expect(api.pushedWeeklyInsights.single['id'], 'weekly-1');
   });
 
-  test('restoreSnapshot upserts server records and saves snapshot cursor',
+  test('restoreSnapshot upserts all server entities and saves snapshot cursor',
       () async {
     final api = _FakeOceanSyncApi()
       ..snapshot = {
         'cursor': '12',
+        'profile': {
+          'avatar': '🌊',
+          'nickname': 'Ocean',
+          'signature': 'stay fluid',
+          'clientUpdatedAt': '2026-05-07T13:39:00.000Z',
+        },
         'records': [
           {
             'id': 'server-record',
@@ -46,34 +107,212 @@ void main() {
             'audioUrl': null,
           }
         ],
+        'dailySummaries': [
+          {
+            'date': '2026-05-07',
+            'moodWord': '平静',
+            'oneSentence': '今天比较稳定',
+            'score': 6,
+            'recordCount': 2,
+            'generatedAt': '2026-05-07T13:42:00.000Z',
+            'userOverridden': false,
+            'clientUpdatedAt': '2026-05-07T13:42:00.000Z',
+          },
+        ],
+        'dailyMoods': [
+          {
+            'date': '2026-05-07',
+            'imagePath': 'assets/images/moods/calm.png',
+            'clientUpdatedAt': '2026-05-07T13:43:00.000Z',
+          },
+        ],
+        'insightReports': [
+          {
+            'periodType': 'weekly',
+            'periodKey': '2026-05-04 ~ 2026-05-10',
+            'weekRange': '2026-05-04 ~ 2026-05-10',
+            'cachedAt': '2026-05-07T13:44:00.000Z',
+            'recordCount': 3,
+            'report': {'id': 'report-1'},
+            'clientUpdatedAt': '2026-05-07T13:44:00.000Z',
+          },
+        ],
       };
     final stateStore = _MemorySyncStateStore();
-    final recordsStore = _MemoryRecordsStore([]);
+    final dataStore = _MemorySyncDataStore(const OceanLocalSyncData());
     final service = OceanSyncService(
       api: api,
-      recordsStore: recordsStore,
+      dataStore: dataStore,
       stateStore: stateStore,
     );
 
     final result = await service.restoreSnapshot();
 
+    expect(result.totalChanged, 5);
     expect(result.recordsChanged, 1);
+    expect(result.dailySummariesChanged, 1);
+    expect(result.dailyMoodsChanged, 1);
+    expect(result.insightReportsChanged, 1);
     expect(stateStore.cursor, '12');
-    expect(recordsStore.records.single.id, 'server-record');
-    expect(recordsStore.records.single.transcription, 'from server');
+    expect(dataStore.profile?['nickname'], 'Ocean');
+    expect(dataStore.records.single.id, 'server-record');
+    expect(dataStore.dailySummaries.single['date'], '2026-05-07');
+  });
+
+  test(
+      'restoreSnapshot replaces stale local account cache with server snapshot',
+      () async {
+    final api = _FakeOceanSyncApi()
+      ..snapshot = {
+        'cursor': '20',
+        'profile': {
+          'avatar': '🌊',
+          'nickname': 'Server User',
+          'signature': 'from server',
+          'clientUpdatedAt': '2026-05-08T08:00:00.000Z',
+        },
+        'records': [
+          {
+            'id': 'server-record',
+            'type': 'quick_note',
+            'transcription': 'from server',
+            'createdAt': '2026-05-08T08:00:00.000Z',
+            'updatedAt': '2026-05-08T08:00:00.000Z',
+            'audioUrl': null,
+          },
+        ],
+        'dailySummaries': const [],
+        'dailyMoods': const [],
+        'insightReports': const [],
+        'weeklyInsights': const [],
+      };
+    final stateStore = _MemorySyncStateStore();
+    final dataStore = _MemorySyncDataStore(
+      OceanLocalSyncData(
+        profile: const {'nickname': 'Stale User'},
+        records: [
+          Record(
+            id: 'stale-record',
+            type: RecordType.quickNote,
+            transcription: 'stale',
+            createdAt: DateTime.utc(2026, 5, 7),
+            updatedAt: DateTime.utc(2026, 5, 7),
+          ),
+        ],
+        dailySummaries: const [
+          {'date': '2026-05-07', 'moodWord': '旧总结'},
+        ],
+        dailyMoods: const [
+          {'date': '2026-05-07', 'imagePath': 'old.png'},
+        ],
+        insightReports: const [
+          {'periodType': 'weekly', 'periodKey': 'old-week', 'report': {}},
+        ],
+        weeklyInsights: const [
+          {'id': 'old-weekly', 'payload': {}},
+        ],
+      ),
+    );
+    final service = OceanSyncService(
+      api: api,
+      dataStore: dataStore,
+      stateStore: stateStore,
+    );
+
+    await service.restoreSnapshot();
+
+    expect(dataStore.profile?['nickname'], 'Server User');
+    expect(dataStore.records.map((item) => item.id), ['server-record']);
+    expect(dataStore.dailySummaries, isEmpty);
+    expect(dataStore.dailyMoods, isEmpty);
+    expect(dataStore.insightReports, isEmpty);
+    expect(dataStore.weeklyInsights, isEmpty);
+  });
+
+  test('pullChanges applies tombstone deletes for records and daily moods',
+      () async {
+    final api = _FakeOceanSyncApi()
+      ..pullResponse = {
+        'cursor': '18',
+        'changes': [
+          {
+            'entityType': 'record',
+            'payload': {'id': 'record-1', 'deletedAt': '2026-05-07T14:00:00Z'},
+          },
+          {
+            'entityType': 'daily_mood',
+            'payload': {
+              'date': '2026-05-07',
+              'deletedAt': '2026-05-07T14:00:00Z'
+            },
+          },
+        ],
+      };
+    final stateStore = _MemorySyncStateStore()..cursor = '12';
+    final dataStore = _MemorySyncDataStore(
+      OceanLocalSyncData(
+        records: [
+          Record(
+            id: 'record-1',
+            type: RecordType.quickNote,
+            transcription: 'delete me',
+            createdAt: DateTime.utc(2026, 5, 7),
+            updatedAt: DateTime.utc(2026, 5, 7),
+          ),
+        ],
+        dailyMoods: const [
+          {'date': '2026-05-07', 'imagePath': 'assets/images/moods/calm.png'},
+        ],
+      ),
+    );
+    final service = OceanSyncService(
+      api: api,
+      dataStore: dataStore,
+      stateStore: stateStore,
+    );
+
+    final result = await service.pullChanges();
+
+    expect(result.totalChanged, 2);
+    expect(stateStore.cursor, '18');
+    expect(dataStore.records, isEmpty);
+    expect(dataStore.dailyMoods, isEmpty);
   });
 }
 
 class _FakeOceanSyncApi implements OceanSyncApi {
+  Map<String, dynamic>? pushedProfile;
   List<Map<String, dynamic>> pushedRecords = [];
+  List<Map<String, dynamic>> pushedDailySummaries = [];
+  List<Map<String, dynamic>> pushedDailyMoods = [];
+  List<Map<String, dynamic>> pushedInsightReports = [];
+  List<Map<String, dynamic>> pushedWeeklyInsights = [];
   Map<String, dynamic> snapshot = const {'cursor': '0', 'records': []};
+  Map<String, dynamic> pullResponse = const {'cursor': '0', 'changes': []};
+
+  @override
+  Future<Map<String, dynamic>> pushData({
+    Map<String, dynamic>? profile,
+    List<Map<String, dynamic>> records = const [],
+    List<Map<String, dynamic>> dailySummaries = const [],
+    List<Map<String, dynamic>> dailyMoods = const [],
+    List<Map<String, dynamic>> insightReports = const [],
+    List<Map<String, dynamic>> weeklyInsights = const [],
+  }) async {
+    pushedProfile = profile;
+    pushedRecords = records;
+    pushedDailySummaries = dailySummaries;
+    pushedDailyMoods = dailyMoods;
+    pushedInsightReports = insightReports;
+    pushedWeeklyInsights = weeklyInsights;
+    return {'accepted': 5, 'ignored': 0, 'cursor': '9'};
+  }
 
   @override
   Future<Map<String, dynamic>> pushRecords(
     List<Map<String, dynamic>> records,
   ) async {
-    pushedRecords = records;
-    return {'accepted': records.length, 'ignored': 0, 'cursor': '9'};
+    return pushData(records: records);
   }
 
   @override
@@ -81,17 +320,53 @@ class _FakeOceanSyncApi implements OceanSyncApi {
 
   @override
   Future<Map<String, dynamic>> pull({required String cursor}) async {
-    return {'cursor': cursor, 'changes': []};
+    return pullResponse;
   }
 }
 
-class _MemoryRecordsStore implements OceanRecordsStore {
-  _MemoryRecordsStore(List<Record> records) : records = [...records];
+class _MemorySyncDataStore implements OceanSyncDataStore {
+  _MemorySyncDataStore(this.data)
+      : profile = data.profile == null ? null : Map.of(data.profile!),
+        records = [...data.records],
+        dailySummaries = data.dailySummaries.map(Map.of).toList(),
+        dailyMoods = data.dailyMoods.map(Map.of).toList(),
+        insightReports = data.insightReports.map(Map.of).toList(),
+        weeklyInsights = data.weeklyInsights.map(Map.of).toList();
 
+  final OceanLocalSyncData data;
+  Map<String, dynamic>? profile;
   final List<Record> records;
+  final List<Map<String, dynamic>> dailySummaries;
+  final List<Map<String, dynamic>> dailyMoods;
+  final List<Map<String, dynamic>> insightReports;
+  final List<Map<String, dynamic>> weeklyInsights;
 
   @override
-  Future<List<Record>> getAllRecords() async => [...records];
+  Future<OceanLocalSyncData> readAll() async {
+    return OceanLocalSyncData(
+      profile: profile,
+      records: [...records],
+      dailySummaries: dailySummaries.map(Map.of).toList(),
+      dailyMoods: dailyMoods.map(Map.of).toList(),
+      insightReports: insightReports.map(Map.of).toList(),
+      weeklyInsights: weeklyInsights.map(Map.of).toList(),
+    );
+  }
+
+  @override
+  Future<void> clearAccountData() async {
+    profile = null;
+    records.clear();
+    dailySummaries.clear();
+    dailyMoods.clear();
+    insightReports.clear();
+    weeklyInsights.clear();
+  }
+
+  @override
+  Future<void> upsertProfile(Map<String, dynamic> profile) async {
+    this.profile = Map.of(profile);
+  }
 
   @override
   Future<void> upsertRecord(Record record) async {
@@ -103,6 +378,54 @@ class _MemoryRecordsStore implements OceanRecordsStore {
   Future<void> deleteRecord(String id) async {
     records.removeWhere((item) => item.id == id);
   }
+
+  @override
+  Future<void> upsertDailySummary(Map<String, dynamic> summary) async {
+    dailySummaries.removeWhere((item) => item['date'] == summary['date']);
+    dailySummaries.add(Map.of(summary));
+  }
+
+  @override
+  Future<void> deleteDailySummary(String date) async {
+    dailySummaries.removeWhere((item) => item['date'] == date);
+  }
+
+  @override
+  Future<void> upsertDailyMood(Map<String, dynamic> mood) async {
+    dailyMoods.removeWhere((item) => item['date'] == mood['date']);
+    dailyMoods.add(Map.of(mood));
+  }
+
+  @override
+  Future<void> deleteDailyMood(String date) async {
+    dailyMoods.removeWhere((item) => item['date'] == date);
+  }
+
+  @override
+  Future<void> upsertInsightReport(Map<String, dynamic> report) async {
+    insightReports
+        .removeWhere((item) => item['periodKey'] == report['periodKey']);
+    insightReports.add(Map.of(report));
+  }
+
+  @override
+  Future<void> deleteInsightReport(String periodType, String periodKey) async {
+    insightReports.removeWhere((item) => item['periodKey'] == periodKey);
+  }
+
+  @override
+  Future<void> upsertWeeklyInsight(Map<String, dynamic> insight) async {
+    weeklyInsights.removeWhere((item) => item['id'] == insight['id']);
+    weeklyInsights.add(Map.of(insight));
+  }
+
+  @override
+  Future<void> deleteWeeklyInsight(String id) async {
+    weeklyInsights.removeWhere((item) => item['id'] == id);
+  }
+
+  @override
+  Future<void> clearSyncedTombstones() async {}
 }
 
 class _MemorySyncStateStore implements OceanSyncStateStore {

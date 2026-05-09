@@ -3,6 +3,7 @@
 library;
 
 import 'dart:convert';
+import '../../core/network/ocean_api_client.dart';
 import '../../domain/entities/weekly_insight.dart';
 import '../../domain/entities/insight_report.dart';
 import '../../domain/entities/insight_report_cache.dart';
@@ -12,8 +13,12 @@ import '../models/weekly_insight_model.dart';
 
 class InsightRepositoryImpl implements InsightRepository {
   final HiveDatabase database;
+  final OceanUserDataApi? userDataApi;
 
-  InsightRepositoryImpl({required this.database});
+  InsightRepositoryImpl({
+    required this.database,
+    this.userDataApi,
+  });
 
   @override
   Future<WeeklyInsight> createWeeklyInsight(WeeklyInsight insight) async {
@@ -91,8 +96,10 @@ class InsightRepositoryImpl implements InsightRepository {
     final weekStart = now.subtract(Duration(days: now.weekday - 1));
     final weekEnd = weekStart.add(const Duration(days: 6));
 
-    final startStr = '${weekStart.year}-${weekStart.month.toString().padLeft(2, '0')}-${weekStart.day.toString().padLeft(2, '0')}';
-    final endStr = '${weekEnd.year}-${weekEnd.month.toString().padLeft(2, '0')}-${weekEnd.day.toString().padLeft(2, '0')}';
+    final startStr =
+        '${weekStart.year}-${weekStart.month.toString().padLeft(2, '0')}-${weekStart.day.toString().padLeft(2, '0')}';
+    final endStr =
+        '${weekEnd.year}-${weekEnd.month.toString().padLeft(2, '0')}-${weekEnd.day.toString().padLeft(2, '0')}';
 
     return '$startStr ~ $endStr';
   }
@@ -129,8 +136,24 @@ class InsightRepositoryImpl implements InsightRepository {
     InsightReport report, {
     DateTime? cachedAt,
   }) async {
+    final resolvedCachedAt = cachedAt ?? DateTime.now();
+    final clientUpdatedAt = DateTime.now().toUtc().toIso8601String();
+    final api = userDataApi;
+    if (api != null && await api.isSignedIn) {
+      await api.upsertReport(
+        periodType: 'weekly',
+        periodKey: report.weekRange,
+        report: {
+          'weekRange': report.weekRange,
+          'cachedAt': resolvedCachedAt.toUtc().toIso8601String(),
+          'recordCount': report.recordCount,
+          'report': report.toJson(),
+          'clientUpdatedAt': clientUpdatedAt,
+        },
+      );
+    }
     final payload = {
-      'cached_at': (cachedAt ?? DateTime.now()).toIso8601String(),
+      'cached_at': resolvedCachedAt.toIso8601String(),
       'report': report.toJson(),
     };
     await database.insightReportsBox.put(report.weekRange, jsonEncode(payload));

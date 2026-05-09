@@ -21,6 +21,21 @@ abstract class OceanTokenStore {
   Future<void> clear();
 }
 
+abstract class OceanAccountApi {
+  Future<bool> get isSignedIn;
+  Future<String?> get currentEmail;
+  Future<OceanAuthTokens> register({
+    required String email,
+    required String password,
+    String? nickname,
+  });
+  Future<OceanAuthTokens> login({
+    required String email,
+    required String password,
+  });
+  Future<void> logout();
+}
+
 class OceanSecureTokenStore implements OceanTokenStore {
   OceanSecureTokenStore({
     FlutterSecureStorage? storage,
@@ -66,11 +81,53 @@ class OceanSecureTokenStore implements OceanTokenStore {
 
 abstract class OceanSyncApi {
   Future<Map<String, dynamic>> getSnapshot();
+  Future<Map<String, dynamic>> pushData({
+    Map<String, dynamic>? profile,
+    List<Map<String, dynamic>> records = const [],
+    List<Map<String, dynamic>> dailySummaries = const [],
+    List<Map<String, dynamic>> dailyMoods = const [],
+    List<Map<String, dynamic>> insightReports = const [],
+    List<Map<String, dynamic>> weeklyInsights = const [],
+  });
   Future<Map<String, dynamic>> pushRecords(List<Map<String, dynamic>> records);
   Future<Map<String, dynamic>> pull({required String cursor});
 }
 
-class OceanApiClient implements OceanSyncApi {
+abstract class OceanRecordsApi {
+  Future<bool> get isSignedIn;
+  Future<Map<String, dynamic>> listRecords();
+  Future<Map<String, dynamic>> createRecord(Map<String, dynamic> record);
+  Future<Map<String, dynamic>> updateRecord(
+    String id,
+    Map<String, dynamic> record,
+  );
+  Future<Map<String, dynamic>> deleteRecord(String id);
+}
+
+abstract class OceanUserDataApi {
+  Future<bool> get isSignedIn;
+  Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> profile);
+  Future<Map<String, dynamic>> updateDailyMood(
+    String date,
+    Map<String, dynamic> mood,
+  );
+  Future<Map<String, dynamic>> updateDailySummary(
+    String date,
+    Map<String, dynamic> summary,
+  );
+  Future<Map<String, dynamic>> upsertReport({
+    required String periodType,
+    required String periodKey,
+    required Map<String, dynamic> report,
+  });
+}
+
+class OceanApiClient
+    implements
+        OceanAccountApi,
+        OceanSyncApi,
+        OceanRecordsApi,
+        OceanUserDataApi {
   OceanApiClient({
     required this.tokenStore,
     Dio? dio,
@@ -94,11 +151,14 @@ class OceanApiClient implements OceanSyncApi {
   final OceanTokenStore tokenStore;
   final Dio _dio;
 
+  @override
   Future<bool> get isSignedIn async => (await tokenStore.readTokens()) != null;
 
+  @override
   Future<String?> get currentEmail async =>
       (await tokenStore.readTokens())?.email;
 
+  @override
   Future<OceanAuthTokens> register({
     required String email,
     required String password,
@@ -120,6 +180,7 @@ class OceanApiClient implements OceanSyncApi {
     }
   }
 
+  @override
   Future<OceanAuthTokens> login({
     required String email,
     required String password,
@@ -155,6 +216,7 @@ class OceanApiClient implements OceanSyncApi {
     }
   }
 
+  @override
   Future<void> logout() async {
     final current = await tokenStore.readTokens();
     final refreshToken = current?.refreshToken;
@@ -182,16 +244,36 @@ class OceanApiClient implements OceanSyncApi {
   }
 
   @override
-  Future<Map<String, dynamic>> pushRecords(
-    List<Map<String, dynamic>> records,
-  ) async {
+  Future<Map<String, dynamic>> pushData({
+    Map<String, dynamic>? profile,
+    List<Map<String, dynamic>> records = const [],
+    List<Map<String, dynamic>> dailySummaries = const [],
+    List<Map<String, dynamic>> dailyMoods = const [],
+    List<Map<String, dynamic>> insightReports = const [],
+    List<Map<String, dynamic>> weeklyInsights = const [],
+  }) async {
+    final payload = <String, dynamic>{
+      if (profile != null) 'profile': profile,
+      if (records.isNotEmpty) 'records': records,
+      if (dailySummaries.isNotEmpty) 'dailySummaries': dailySummaries,
+      if (dailyMoods.isNotEmpty) 'dailyMoods': dailyMoods,
+      if (insightReports.isNotEmpty) 'insightReports': insightReports,
+      if (weeklyInsights.isNotEmpty) 'weeklyInsights': weeklyInsights,
+    };
     final response = await _authorizedRequest<Map<String, dynamic>>(
       () => _dio.post<Map<String, dynamic>>(
         '/sync/push',
-        data: {'records': records},
+        data: payload,
       ),
     );
     return Map<String, dynamic>.from(response.data ?? const {});
+  }
+
+  @override
+  Future<Map<String, dynamic>> pushRecords(
+    List<Map<String, dynamic>> records,
+  ) {
+    return pushData(records: records);
   }
 
   @override
@@ -200,6 +282,105 @@ class OceanApiClient implements OceanSyncApi {
       () => _dio.get<Map<String, dynamic>>(
         '/sync/pull',
         queryParameters: {'cursor': cursor},
+      ),
+    );
+    return Map<String, dynamic>.from(response.data ?? const {});
+  }
+
+  @override
+  Future<Map<String, dynamic>> listRecords() async {
+    final response = await _authorizedRequest<Map<String, dynamic>>(
+      () => _dio.get<Map<String, dynamic>>('/records'),
+    );
+    return Map<String, dynamic>.from(response.data ?? const {});
+  }
+
+  @override
+  Future<Map<String, dynamic>> createRecord(
+    Map<String, dynamic> record,
+  ) async {
+    final response = await _authorizedRequest<Map<String, dynamic>>(
+      () => _dio.post<Map<String, dynamic>>(
+        '/records',
+        data: record,
+      ),
+    );
+    return Map<String, dynamic>.from(response.data ?? const {});
+  }
+
+  @override
+  Future<Map<String, dynamic>> updateRecord(
+    String id,
+    Map<String, dynamic> record,
+  ) async {
+    final response = await _authorizedRequest<Map<String, dynamic>>(
+      () => _dio.put<Map<String, dynamic>>(
+        '/records/$id',
+        data: record,
+      ),
+    );
+    return Map<String, dynamic>.from(response.data ?? const {});
+  }
+
+  @override
+  Future<Map<String, dynamic>> deleteRecord(String id) async {
+    final response = await _authorizedRequest<Map<String, dynamic>>(
+      () => _dio.delete<Map<String, dynamic>>('/records/$id'),
+    );
+    return Map<String, dynamic>.from(response.data ?? const {});
+  }
+
+  @override
+  Future<Map<String, dynamic>> updateProfile(
+    Map<String, dynamic> profile,
+  ) async {
+    final response = await _authorizedRequest<Map<String, dynamic>>(
+      () => _dio.put<Map<String, dynamic>>(
+        '/me/profile',
+        data: profile,
+      ),
+    );
+    return Map<String, dynamic>.from(response.data ?? const {});
+  }
+
+  @override
+  Future<Map<String, dynamic>> updateDailyMood(
+    String date,
+    Map<String, dynamic> mood,
+  ) async {
+    final response = await _authorizedRequest<Map<String, dynamic>>(
+      () => _dio.put<Map<String, dynamic>>(
+        '/daily/$date/mood',
+        data: mood,
+      ),
+    );
+    return Map<String, dynamic>.from(response.data ?? const {});
+  }
+
+  @override
+  Future<Map<String, dynamic>> updateDailySummary(
+    String date,
+    Map<String, dynamic> summary,
+  ) async {
+    final response = await _authorizedRequest<Map<String, dynamic>>(
+      () => _dio.put<Map<String, dynamic>>(
+        '/daily/$date/summary',
+        data: summary,
+      ),
+    );
+    return Map<String, dynamic>.from(response.data ?? const {});
+  }
+
+  @override
+  Future<Map<String, dynamic>> upsertReport({
+    required String periodType,
+    required String periodKey,
+    required Map<String, dynamic> report,
+  }) async {
+    final response = await _authorizedRequest<Map<String, dynamic>>(
+      () => _dio.put<Map<String, dynamic>>(
+        '/reports/$periodType/${Uri.encodeComponent(periodKey)}',
+        data: report,
       ),
     );
     return Map<String, dynamic>.from(response.data ?? const {});

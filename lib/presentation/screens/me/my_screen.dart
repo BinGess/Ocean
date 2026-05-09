@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:async';
 
 import '../../../core/di/injection.dart';
+import '../../../core/network/ocean_api_client.dart';
+import '../../../core/services/ocean_account_service.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/datasources/local/hive_database.dart';
 import '../../../l10n/app_localizations.dart';
@@ -28,16 +31,33 @@ class MyScreen extends StatefulWidget {
 
 class _MyScreenState extends State<MyScreen> {
   late final HiveDatabase _database;
+  OceanUserDataApi? _userDataApi;
   String? _avatar;
   String? _nickname;
   String? _signature;
+  StreamSubscription<void>? _accountDataSubscription;
 
   @override
   void initState() {
     super.initState();
     _database = getIt<HiveDatabase>();
+    _userDataApi =
+        getIt.isRegistered<OceanApiClient>() ? getIt<OceanApiClient>() : null;
     _loadProfile();
+    if (getIt.isRegistered<OceanAccountDataRefreshService>()) {
+      _accountDataSubscription =
+          getIt<OceanAccountDataRefreshService>().changes.listen((_) {
+        if (!mounted) return;
+        setState(_loadProfile);
+      });
+    }
     context.read<InsightBloc>().add(const InsightLoadCurrentWeek());
+  }
+
+  @override
+  void dispose() {
+    _accountDataSubscription?.cancel();
+    super.dispose();
   }
 
   void _loadProfile() {
@@ -59,15 +79,40 @@ class _MyScreenState extends State<MyScreen> {
     final normalizedNickname = nickname.trim();
     final normalizedSignature = signature.trim();
 
-    await _database.settingsBox.put('profile_avatar', normalizedAvatar);
-    await _database.settingsBox.put('profile_nickname', normalizedNickname);
-    await _database.settingsBox.put('profile_signature', normalizedSignature);
+    final clientUpdatedAt = DateTime.now().toUtc().toIso8601String();
+    var avatarToCache = normalizedAvatar;
+    var nicknameToCache = normalizedNickname;
+    var signatureToCache = normalizedSignature;
+
+    final api = _userDataApi;
+    if (api != null && await api.isSignedIn) {
+      final response = await api.updateProfile({
+        'avatar': normalizedAvatar,
+        'nickname': normalizedNickname,
+        'signature': normalizedSignature,
+        'clientUpdatedAt': clientUpdatedAt,
+      });
+      final data = response['data'];
+      if (data is Map) {
+        avatarToCache = data['avatar']?.toString() ?? '';
+        nicknameToCache = data['nickname']?.toString() ?? '';
+        signatureToCache = data['signature']?.toString() ?? '';
+      }
+    }
+
+    await _database.settingsBox.put('profile_avatar', avatarToCache);
+    await _database.settingsBox.put('profile_nickname', nicknameToCache);
+    await _database.settingsBox.put('profile_signature', signatureToCache);
+    await _database.settingsBox.put(
+      'ocean_sync_updated_at_profile_me',
+      clientUpdatedAt,
+    );
 
     if (!mounted) return;
     setState(() {
-      _avatar = normalizedAvatar;
-      _nickname = normalizedNickname;
-      _signature = normalizedSignature;
+      _avatar = avatarToCache;
+      _nickname = nicknameToCache;
+      _signature = signatureToCache;
     });
   }
 

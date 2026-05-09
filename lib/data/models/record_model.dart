@@ -43,6 +43,27 @@ class RecordModel extends HiveObject {
   @HiveField(10)
   final Map<String, dynamic>? nvc;
 
+  @HiveField(11)
+  final String? title;
+
+  @HiveField(12)
+  final String? summary;
+
+  @HiveField(13)
+  final String? date;
+
+  @HiveField(14)
+  final List<String>? referencedFragments;
+
+  @HiveField(15)
+  final String? weekRange;
+
+  @HiveField(16)
+  final List<String>? referencedRecords;
+
+  @HiveField(17)
+  final String? patternFeedback;
+
   RecordModel({
     required this.id,
     required this.type,
@@ -55,6 +76,13 @@ class RecordModel extends HiveObject {
     this.moods,
     this.needs,
     this.nvc,
+    this.title,
+    this.summary,
+    this.date,
+    this.referencedFragments,
+    this.weekRange,
+    this.referencedRecords,
+    this.patternFeedback,
   });
 
   /// 从 Domain 实体转换
@@ -80,6 +108,13 @@ class RecordModel extends HiveObject {
               'analyzedAt': entity.nvc!.analyzedAt.toIso8601String(),
             }
           : null,
+      title: entity.title,
+      summary: entity.summary,
+      date: entity.date,
+      referencedFragments: entity.referencedFragments,
+      weekRange: entity.weekRange,
+      referencedRecords: entity.referencedRecords,
+      patternFeedback: entity.patternFeedback,
     );
   }
 
@@ -93,14 +128,18 @@ class RecordModel extends HiveObject {
       updatedAt: updatedAt,
       audioUrl: audioUrl,
       duration: duration,
-      processingMode: processingMode != null
-          ? _parseProcessingMode(processingMode!)
-          : null,
+      processingMode:
+          processingMode != null ? _parseProcessingMode(processingMode!) : null,
       moods: moods,
       needs: needs,
-      nvc: nvc != null
-          ? NVCAnalysis.fromJson(_normalizeJsonMap(nvc!))
-          : null,
+      nvc: nvc != null ? NVCAnalysis.fromJson(_normalizeJsonMap(nvc!)) : null,
+      title: title,
+      summary: summary,
+      date: date,
+      referencedFragments: referencedFragments,
+      weekRange: weekRange,
+      referencedRecords: referencedRecords,
+      patternFeedback: patternFeedback,
     );
   }
 
@@ -174,6 +213,13 @@ class RecordModel extends HiveObject {
     List<String>? moods,
     List<String>? needs,
     Map<String, dynamic>? nvc,
+    String? title,
+    String? summary,
+    String? date,
+    List<String>? referencedFragments,
+    String? weekRange,
+    List<String>? referencedRecords,
+    String? patternFeedback,
   }) {
     return RecordModel(
       id: id ?? this.id,
@@ -187,6 +233,13 @@ class RecordModel extends HiveObject {
       moods: moods ?? this.moods,
       needs: needs ?? this.needs,
       nvc: nvc ?? this.nvc,
+      title: title ?? this.title,
+      summary: summary ?? this.summary,
+      date: date ?? this.date,
+      referencedFragments: referencedFragments ?? this.referencedFragments,
+      weekRange: weekRange ?? this.weekRange,
+      referencedRecords: referencedRecords ?? this.referencedRecords,
+      patternFeedback: patternFeedback ?? this.patternFeedback,
     );
   }
 }

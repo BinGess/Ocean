@@ -33,8 +33,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   String? _completedAudioPath;
   // 用户编辑后的转写文本 - 用于NVC分析确认页面回显
   String? _editedTranscription;
@@ -84,9 +83,6 @@ class _HomeScreenState extends State<HomeScreen>
     // 这里仅作为备用检查，确保权限状态正确
     _checkAndRequestPermission();
 
-    // 加载文案数据
-    _loadQuotes();
-
     // 初始化脉冲动画控制器 - 强化膨胀效果
     _pulseController = AnimationController(
       vsync: this,
@@ -99,6 +95,9 @@ class _HomeScreenState extends State<HomeScreen>
       vsync: this,
       duration: const Duration(milliseconds: 560),
     );
+
+    // 加载文案数据必须在动画控制器初始化之后启动。
+    _loadQuotes();
   }
 
   void _syncRecordEntryPulse(bool isRecording) {
@@ -716,9 +715,9 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void dispose() {
+    _quoteAutoSwitchTimer?.cancel();
     _pulseController.dispose();
     _quoteTransitionController.dispose();
-    _quoteAutoSwitchTimer?.cancel();
     super.dispose();
   }
 

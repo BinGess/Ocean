@@ -10,7 +10,9 @@ import 'package:intl/intl.dart';
 import '../../../domain/entities/record.dart';
 import '../../../domain/entities/daily_summary.dart';
 import '../../../core/di/injection.dart';
+import '../../../core/network/ocean_api_client.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/services/ocean_account_service.dart';
 import '../../../core/services/daily_summary_service.dart';
 import '../../../data/datasources/local/hive_database.dart';
 import '../../../l10n/app_localizations.dart';
@@ -40,11 +42,13 @@ class RecordsScreen extends StatefulWidget {
 class _RecordsScreenState extends State<RecordsScreen> {
   late final HiveDatabase _database;
   late final DailySummaryService _dailySummaryService;
+  OceanUserDataApi? _userDataApi;
   final Map<String, String> _dailyMoods = {};
   final Map<String, DailySummary> _dailySummaries = {};
   final Set<String> _generatingSummaries = {};
   bool _isRefreshingDailySummary = false;
   StreamSubscription<DailySummaryUpdate>? _dailySummarySubscription;
+  StreamSubscription<void>? _accountDataSubscription;
   String? _lastDailySummarySyncSignature;
 
   @override
@@ -53,6 +57,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
     _database = widget.database ?? getIt<HiveDatabase>();
     _dailySummaryService =
         widget.dailySummaryService ?? getIt<DailySummaryService>();
+    _userDataApi =
+        getIt.isRegistered<OceanApiClient>() ? getIt<OceanApiClient>() : null;
     _dailySummarySubscription = _dailySummaryService.summaryUpdates.listen((
       update,
     ) {
@@ -62,6 +68,13 @@ class _RecordsScreenState extends State<RecordsScreen> {
         _generatingSummaries.remove(update.key);
       });
     });
+    if (getIt.isRegistered<OceanAccountDataRefreshService>()) {
+      _accountDataSubscription =
+          getIt<OceanAccountDataRefreshService>().changes.listen((_) {
+        if (!mounted) return;
+        _reloadAccountScopedData();
+      });
+    }
     _loadRecords();
     _loadDailyMoods();
   }
@@ -69,6 +82,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
   @override
   void dispose() {
     _dailySummarySubscription?.cancel();
+    _accountDataSubscription?.cancel();
     super.dispose();
   }
 
@@ -77,6 +91,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
   }
 
   void _loadDailyMoods() {
+    _dailyMoods.clear();
     final now = DateTime.now();
     for (int i = 0; i < 30; i++) {
       final date = now.subtract(Duration(days: i));
@@ -87,6 +102,14 @@ class _RecordsScreenState extends State<RecordsScreen> {
       }
     }
     if (mounted) setState(() {});
+  }
+
+  void _reloadAccountScopedData() {
+    _dailySummaries.clear();
+    _generatingSummaries.clear();
+    _lastDailySummarySyncSignature = null;
+    _loadDailyMoods();
+    _loadRecords();
   }
 
   /// 加载日总结并在需要时触发生成
@@ -272,7 +295,20 @@ class _RecordsScreenState extends State<RecordsScreen> {
     );
 
     if (selectedMood != null) {
+      final dateKey = key.substring('daily_mood_'.length);
+      final clientUpdatedAt = DateTime.now().toUtc().toIso8601String();
+      final api = _userDataApi;
+      if (api != null && await api.isSignedIn) {
+        await api.updateDailyMood(dateKey, {
+          'imagePath': selectedMood.imagePath,
+          'clientUpdatedAt': clientUpdatedAt,
+        });
+      }
       await _database.settingsBox.put(key, selectedMood.imagePath);
+      await _database.settingsBox.put(
+        'ocean_sync_updated_at_daily_mood_$dateKey',
+        clientUpdatedAt,
+      );
       // 标记用户已手动设置心情，防止 AI 覆盖
       await _dailySummaryService.markUserOverridden(date);
       setState(() {

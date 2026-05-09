@@ -33,6 +33,8 @@ import '../services/quote_update_manager.dart';
 import '../services/daily_summary_service.dart';
 import '../services/icloud_sync_service.dart';
 import '../services/ocean_sync_service.dart';
+import '../services/ocean_account_cache_service.dart';
+import '../services/ocean_account_service.dart';
 import '../services/pro_subscription_service.dart';
 import '../../presentation/bloc/audio/audio_bloc.dart';
 import '../../presentation/bloc/record/record_bloc.dart';
@@ -131,6 +133,7 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<RecordRepository>(
     () => RecordRepositoryImpl(
       database: getIt<HiveDatabase>(),
+      recordsApi: getIt<OceanApiClient>(),
     ),
   );
 
@@ -146,6 +149,7 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<InsightRepository>(
     () => InsightRepositoryImpl(
       database: getIt<HiveDatabase>(),
+      userDataApi: getIt<OceanApiClient>(),
     ),
   );
 
@@ -176,14 +180,32 @@ Future<void> configureDependencies() async {
     () => DailySummaryService(
       database: getIt<HiveDatabase>(),
       cozeAIService: getIt<CozeAIService>(),
+      userDataApi: getIt<OceanApiClient>(),
     ),
   );
 
   getIt.registerLazySingleton<OceanSyncService>(
     () => OceanSyncService(
       api: getIt<OceanApiClient>(),
-      recordsStore: HiveOceanRecordsStore(getIt<HiveDatabase>()),
+      dataStore: HiveOceanSyncDataStore(getIt<HiveDatabase>()),
       stateStore: HiveOceanSyncStateStore(getIt<HiveDatabase>()),
+    ),
+  );
+
+  getIt.registerLazySingleton<OceanAccountCacheService>(
+    () => OceanAccountCacheService(getIt<HiveDatabase>()),
+  );
+
+  getIt.registerLazySingleton<OceanAccountDataRefreshService>(
+    () => OceanAccountDataRefreshService(),
+  );
+
+  getIt.registerLazySingleton<OceanAccountService>(
+    () => OceanAccountService(
+      api: getIt<OceanApiClient>(),
+      syncService: getIt<OceanSyncService>(),
+      cacheService: getIt<OceanAccountCacheService>(),
+      refreshService: getIt<OceanAccountDataRefreshService>(),
     ),
   );
 

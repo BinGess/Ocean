@@ -10,10 +10,12 @@ import '../../domain/entities/daily_summary.dart';
 import '../../domain/entities/record.dart';
 import '../../data/datasources/local/hive_database.dart';
 import '../network/coze_ai_service.dart';
+import '../network/ocean_api_client.dart';
 
 class DailySummaryService {
   final HiveDatabase _database;
   final CozeAIService _cozeAIService;
+  final OceanUserDataApi? _userDataApi;
 
   /// 防抖计时器（按日期隔离，避免不同日期相互取消）
   final Map<String, Timer> _debounceTimers = {};
@@ -30,8 +32,10 @@ class DailySummaryService {
   DailySummaryService({
     required HiveDatabase database,
     required CozeAIService cozeAIService,
+    OceanUserDataApi? userDataApi,
   })  : _database = database,
-        _cozeAIService = cozeAIService;
+        _cozeAIService = cozeAIService,
+        _userDataApi = userDataApi;
 
   Stream<DailySummaryUpdate> get summaryUpdates =>
       _summaryUpdatesController.stream;
@@ -61,7 +65,25 @@ class DailySummaryService {
   Future<void> _saveDailySummary(DailySummary summary) async {
     final key = getDailySummaryKey(summary.date);
     final jsonStr = jsonEncode(summary.toJson());
+    final dateKey = key.substring('daily_summary_'.length);
+    final clientUpdatedAt = DateTime.now().toUtc().toIso8601String();
+    final api = _userDataApi;
+    if (api != null && await api.isSignedIn) {
+      await api.updateDailySummary(dateKey, {
+        'moodWord': summary.moodWord,
+        'oneSentence': summary.oneSentence,
+        'score': summary.score,
+        'recordCount': summary.recordCount,
+        'generatedAt': summary.generatedAt.toUtc().toIso8601String(),
+        'userOverridden': summary.userOverridden,
+        'clientUpdatedAt': clientUpdatedAt,
+      });
+    }
     await _database.settingsBox.put(key, jsonStr);
+    await _database.settingsBox.put(
+      'ocean_sync_updated_at_daily_summary_$dateKey',
+      clientUpdatedAt,
+    );
     debugPrint('DailySummaryService: 已保存日总结 (${summary.date})');
   }
 
@@ -69,6 +91,9 @@ class DailySummaryService {
   Future<void> deleteDailySummary(DateTime date) async {
     final key = getDailySummaryKey(date);
     await _database.settingsBox.delete(key);
+    await _database.settingsBox.delete(
+      'ocean_sync_updated_at_daily_summary_${key.substring('daily_summary_'.length)}',
+    );
     debugPrint('DailySummaryService: 已删除日总结 ($date)');
   }
 

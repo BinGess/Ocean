@@ -91,6 +91,94 @@ void main() {
     expect(tokenStore.accessToken, 'new-access');
     expect(tokenStore.refreshToken, 'new-refresh');
   });
+
+  test('createRecord posts to server-first records endpoint', () async {
+    RequestOptions? captured;
+    final adapter = _FakeAdapter((options) {
+      captured = options;
+      return _jsonResponse(
+        statusCode: 201,
+        body: {
+          'revision': '1',
+          'data': {
+            'id': 'record-1',
+            'type': 'quick_note',
+            'transcription': 'server first',
+            'createdAt': '2026-05-08T08:00:00.000Z',
+            'updatedAt': '2026-05-08T08:01:00.000Z',
+            'audioUrl': null,
+          },
+        },
+        requestOptions: options,
+      );
+    });
+    final client = OceanApiClient(
+      tokenStore: _MemoryTokenStore(
+        accessToken: 'access',
+        refreshToken: 'refresh',
+      ),
+      dio: Dio(BaseOptions(baseUrl: 'https://api.example.test'))
+        ..httpClientAdapter = adapter,
+    );
+
+    final result = await client.createRecord({
+      'id': 'record-1',
+      'type': 'quick_note',
+      'transcription': 'server first',
+      'createdAt': '2026-05-08T08:00:00.000Z',
+      'updatedAt': '2026-05-08T08:01:00.000Z',
+      'audioUrl': '/private/local/audio.wav',
+    });
+
+    expect(result['revision'], '1');
+    expect(result['data'], isA<Map<String, dynamic>>());
+    expect(captured?.path, '/records');
+    expect(captured?.method, 'POST');
+    expect(captured?.headers['Authorization'], 'Bearer access');
+  });
+
+  test('updates profile, daily mood, daily summary, and report endpoints',
+      () async {
+    final paths = <String>[];
+    final adapter = _FakeAdapter((options) {
+      paths.add('${options.method} ${options.path}');
+      return _jsonResponse(
+        body: {
+          'revision': paths.length.toString(),
+          'data': options.data is Map
+              ? Map<String, dynamic>.from(options.data as Map)
+              : {},
+        },
+        requestOptions: options,
+      );
+    });
+    final client = OceanApiClient(
+      tokenStore: _MemoryTokenStore(
+        accessToken: 'access',
+        refreshToken: 'refresh',
+      ),
+      dio: Dio(BaseOptions(baseUrl: 'https://api.example.test'))
+        ..httpClientAdapter = adapter,
+    );
+
+    await client.updateProfile({'nickname': 'Ocean'});
+    await client.updateDailyMood('2026-05-08', {'imagePath': 'calm.png'});
+    await client.updateDailySummary('2026-05-08', {'moodWord': '平静'});
+    await client.upsertReport(
+      periodType: 'weekly',
+      periodKey: '2026-05-04 ~ 2026-05-10',
+      report: {
+        'report': {'id': 'report-1'}
+      },
+    );
+
+    expect(paths, [
+      'PUT /me/profile',
+      'PUT /daily/2026-05-08/mood',
+      'PUT /daily/2026-05-08/summary',
+      'PUT /reports/weekly/2026-05-04%20~%202026-05-10',
+    ]);
+  });
 }
 
 typedef _Responder = FutureOr<ResponseBody> Function(RequestOptions options);

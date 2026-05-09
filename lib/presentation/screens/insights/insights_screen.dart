@@ -14,6 +14,7 @@ import '../../bloc/record/record_state.dart';
 import '../../widgets/ai_auth_dialog.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
+import '../../../core/services/ocean_account_service.dart';
 import 'history_reports_screen.dart';
 import '../share/share_insight_screen.dart';
 import '../settings/settings_screen.dart';
@@ -30,6 +31,7 @@ class _InsightsScreenState extends State<InsightsScreen>
   late AnimationController _refreshController;
   bool _isRefreshing = false;
   StreamSubscription? _authSubscription;
+  StreamSubscription<void>? _accountDataSubscription;
   String? _lastHandledRecordId;
 
   @override
@@ -50,6 +52,14 @@ class _InsightsScreenState extends State<InsightsScreen>
         context.read<InsightBloc>().add(const InsightLoadCurrentWeek());
       }
     });
+    if (getIt.isRegistered<OceanAccountDataRefreshService>()) {
+      _accountDataSubscription =
+          getIt<OceanAccountDataRefreshService>().changes.listen((_) {
+        if (mounted) {
+          context.read<InsightBloc>().add(const InsightAccountDataChanged());
+        }
+      });
+    }
   }
 
   /// 强制刷新洞察
@@ -111,6 +121,7 @@ class _InsightsScreenState extends State<InsightsScreen>
   @override
   void dispose() {
     _authSubscription?.cancel();
+    _accountDataSubscription?.cancel();
     _refreshController.dispose();
     super.dispose();
   }

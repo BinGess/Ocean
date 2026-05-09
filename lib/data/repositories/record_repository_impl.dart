@@ -1,6 +1,9 @@
 // 记录仓储实现
 // 使用 Hive 进行本地存储
 
+import 'dart:convert';
+import '../../core/network/ocean_api_client.dart';
+import '../../core/services/ocean_record_sync_mapper.dart';
 import '../../domain/entities/record.dart';
 import '../../domain/entities/nvc_analysis.dart';
 import '../../domain/entities/day_aggregation.dart';
@@ -10,8 +13,12 @@ import '../models/record_model.dart';
 
 class RecordRepositoryImpl implements RecordRepository {
   final HiveDatabase database;
+  final OceanRecordsApi? recordsApi;
 
-  RecordRepositoryImpl({required this.database});
+  RecordRepositoryImpl({
+    required this.database,
+    this.recordsApi,
+  });
 
   @override
   Future<Record> createQuickNote({
@@ -155,6 +162,15 @@ class RecordRepositoryImpl implements RecordRepository {
   }
 
   Future<Record> _createRecord(Record record) async {
+    if (await _isServerFirstEnabled()) {
+      final response = await recordsApi!.createRecord(
+        OceanRecordSyncMapper.toServerRecord(record),
+      );
+      final serverRecord = _recordFromResponse(response);
+      await _cacheRecord(serverRecord);
+      return serverRecord;
+    }
+
     final model = RecordModel.fromEntity(record);
     await database.recordsBox.put(record.id, model);
     return model.toEntity();
@@ -168,6 +184,23 @@ class RecordRepositoryImpl implements RecordRepository {
 
   @override
   Future<List<Record>> getAllRecords() async {
+    if (await _isServerFirstEnabled()) {
+      final response = await recordsApi!.listRecords();
+      final data = response['data'];
+      if (data is List) {
+        final records = <Record>[];
+        for (final item in data) {
+          if (item is! Map) continue;
+          final record = OceanRecordSyncMapper.fromServerRecord(
+            Map<String, dynamic>.from(item),
+          );
+          await _cacheRecord(record);
+          records.add(record);
+        }
+        return records;
+      }
+    }
+
     final models = database.recordsBox.values.toList();
     return models.map((m) => m.toEntity()).toList();
   }
@@ -211,6 +244,16 @@ class RecordRepositoryImpl implements RecordRepository {
 
   @override
   Future<Record> updateRecord(Record record) async {
+    if (await _isServerFirstEnabled()) {
+      final response = await recordsApi!.updateRecord(
+        record.id,
+        OceanRecordSyncMapper.toServerRecord(record),
+      );
+      final serverRecord = _recordFromResponse(response);
+      await _cacheRecord(serverRecord);
+      return serverRecord;
+    }
+
     final model = RecordModel.fromEntity(record);
     await database.recordsBox.put(record.id, model);
     return model.toEntity();
@@ -218,7 +261,86 @@ class RecordRepositoryImpl implements RecordRepository {
 
   @override
   Future<void> deleteRecord(String id) async {
+    if (await _isServerFirstEnabled()) {
+      await recordsApi!.deleteRecord(id);
+      await database.recordsBox.delete(id);
+      await database.settingsBox.delete('ocean_sync_deleted_record_$id');
+      return;
+    }
+
+    final model = database.recordsBox.get(id);
+    if (model != null) {
+      final record = model.toEntity();
+      final deletedAt = DateTime.now().toUtc();
+      await database.settingsBox.put(
+        'ocean_sync_deleted_record_$id',
+        jsonEncode({
+          'id': record.id,
+          'type': _recordTypeToApi(record.type),
+          'transcription': record.transcription,
+          'createdAt': record.createdAt.toUtc().toIso8601String(),
+          'updatedAt': deletedAt.toIso8601String(),
+          'audioUrl': null,
+          'duration': record.duration,
+          'processingMode': record.processingMode == null
+              ? null
+              : _processingModeToApi(record.processingMode!),
+          'moods': record.moods,
+          'needs': record.needs,
+          'nvc': record.nvc?.toJson(),
+          'title': record.title,
+          'summary': record.summary,
+          'date': record.date,
+          'referencedFragments': record.referencedFragments,
+          'weekRange': record.weekRange,
+          'referencedRecords': record.referencedRecords,
+          'patternFeedback': record.patternFeedback,
+          'deletedAt': deletedAt.toIso8601String(),
+        }),
+      );
+    }
     await database.recordsBox.delete(id);
+  }
+
+  Future<bool> _isServerFirstEnabled() async {
+    final api = recordsApi;
+    return api != null && await api.isSignedIn;
+  }
+
+  Record _recordFromResponse(Map<String, dynamic> response) {
+    final data = response['data'];
+    if (data is! Map) {
+      throw const OceanApiException('Invalid record response');
+    }
+    return OceanRecordSyncMapper.fromServerRecord(
+      Map<String, dynamic>.from(data),
+    );
+  }
+
+  Future<void> _cacheRecord(Record record) async {
+    await database.recordsBox.put(record.id, RecordModel.fromEntity(record));
+  }
+
+  String _recordTypeToApi(RecordType type) {
+    switch (type) {
+      case RecordType.quickNote:
+        return 'quick_note';
+      case RecordType.journal:
+        return 'journal';
+      case RecordType.weekly:
+        return 'weekly';
+    }
+  }
+
+  String _processingModeToApi(ProcessingMode mode) {
+    switch (mode) {
+      case ProcessingMode.onlyRecord:
+        return 'only_record';
+      case ProcessingMode.withMood:
+        return 'with_mood';
+      case ProcessingMode.withNVC:
+        return 'with_nvc';
+    }
   }
 
   Future<int> getRecordsCount() async {

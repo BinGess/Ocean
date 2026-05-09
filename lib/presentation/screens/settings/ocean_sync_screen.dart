@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/network/ocean_api_client.dart';
 import '../../../core/services/ocean_account_input_validator.dart';
+import '../../../core/services/ocean_account_service.dart';
 import '../../../core/services/ocean_sync_service.dart';
 import '../../../core/theme/app_colors.dart';
 
@@ -19,8 +20,9 @@ class _OceanSyncScreenState extends State<OceanSyncScreen> {
   final _passwordController = TextEditingController();
   final _nicknameController = TextEditingController();
 
-  late final OceanApiClient _apiClient;
+  late final OceanAccountService _accountService;
   late final OceanSyncService _syncService;
+  late final OceanAccountDataRefreshService _refreshService;
 
   bool _loading = false;
   bool _signedIn = false;
@@ -30,8 +32,9 @@ class _OceanSyncScreenState extends State<OceanSyncScreen> {
   @override
   void initState() {
     super.initState();
-    _apiClient = getIt<OceanApiClient>();
+    _accountService = getIt<OceanAccountService>();
     _syncService = getIt<OceanSyncService>();
+    _refreshService = getIt<OceanAccountDataRefreshService>();
     _loadAccount();
   }
 
@@ -44,8 +47,8 @@ class _OceanSyncScreenState extends State<OceanSyncScreen> {
   }
 
   Future<void> _loadAccount() async {
-    final signedIn = await _apiClient.isSignedIn;
-    final email = await _apiClient.currentEmail;
+    final signedIn = await _accountService.isSignedIn;
+    final email = await _accountService.currentEmail;
     if (!mounted) return;
     setState(() {
       _signedIn = signedIn;
@@ -79,13 +82,13 @@ class _OceanSyncScreenState extends State<OceanSyncScreen> {
       setState(() => _status = validation);
       return;
     }
-    await _run('正在注册...', () async {
-      await _apiClient.register(
+    await _run('正在注册并恢复服务端数据...', () async {
+      await _accountService.register(
         email: _emailController.text.trim(),
         password: _passwordController.text,
         nickname: _nicknameController.text.trim(),
       );
-      return '注册成功，已登录。';
+      return '注册成功，已登录并恢复服务端数据。';
     });
   }
 
@@ -95,39 +98,41 @@ class _OceanSyncScreenState extends State<OceanSyncScreen> {
       setState(() => _status = validation);
       return;
     }
-    await _run('正在登录...', () async {
-      await _apiClient.login(
+    await _run('正在登录并恢复服务端数据...', () async {
+      await _accountService.login(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      return '登录成功。';
+      return '登录成功，已恢复服务端数据。';
     });
   }
 
-  Future<void> _pushRecords() async {
-    await _run('正在上传本地记录...', () async {
-      final result = await _syncService.pushLocalRecords();
-      return '上传完成：接受 ${result.accepted} 条，忽略 ${result.ignored} 条。';
+  Future<void> _pushAllLocalData() async {
+    await _run('正在上传本地数据...', () async {
+      final result = await _syncService.pushAllLocalData();
+      return '上传完成：接受 ${result.accepted} 项，忽略 ${result.ignored} 项。';
     });
   }
 
   Future<void> _restoreSnapshot() async {
-    await _run('正在从服务端恢复记录...', () async {
+    await _run('正在从服务端恢复数据...', () async {
       final result = await _syncService.restoreSnapshot();
-      return '恢复完成：写入 ${result.recordsChanged} 条记录。';
+      _refreshService.notifyChanged();
+      return '恢复完成：写入 ${result.totalChanged} 项，其中记录 ${result.recordsChanged} 条，日总结 ${result.dailySummariesChanged} 条，报告 ${result.insightReportsChanged} 份。';
     });
   }
 
   Future<void> _pullChanges() async {
     await _run('正在拉取增量变更...', () async {
       final result = await _syncService.pullChanges();
-      return '拉取完成：更新 ${result.recordsChanged} 条记录。';
+      _refreshService.notifyChanged();
+      return '拉取完成：更新 ${result.totalChanged} 项，其中记录 ${result.recordsChanged} 条，日总结 ${result.dailySummariesChanged} 条，报告 ${result.insightReportsChanged} 份。';
     });
   }
 
   Future<void> _logout() async {
     await _run('正在退出登录...', () async {
-      await _apiClient.logout();
+      await _accountService.logout();
       return '已退出登录。';
     });
   }
@@ -261,7 +266,7 @@ class _OceanSyncScreenState extends State<OceanSyncScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            '记录同步',
+            '数据同步',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -270,10 +275,10 @@ class _OceanSyncScreenState extends State<OceanSyncScreen> {
           ),
           const SizedBox(height: 14),
           _PrimaryButton(
-            label: '上传本地记录',
+            label: '上传本地数据',
             icon: Icons.cloud_upload_outlined,
             loading: _loading,
-            onPressed: _pushRecords,
+            onPressed: _pushAllLocalData,
           ),
           const SizedBox(height: 10),
           _SecondaryButton(
