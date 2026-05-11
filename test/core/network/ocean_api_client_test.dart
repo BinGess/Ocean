@@ -163,6 +163,45 @@ void main() {
     expect(captured?.headers['Authorization'], 'Bearer access');
   });
 
+  test('sends SMS code and logs in through phone endpoint', () async {
+    final paths = <String>[];
+    final tokenStore = _MemoryTokenStore();
+    final adapter = _FakeAdapter((options) {
+      paths.add('${options.method} ${options.path}');
+      if (options.path == '/auth/sms/login') {
+        return _jsonResponse(
+          statusCode: 201,
+          body: {
+            'accessToken': 'sms-access',
+            'refreshToken': 'sms-refresh',
+            'user': {'phone': '138****8000'},
+          },
+          requestOptions: options,
+        );
+      }
+      return _jsonResponse(
+        statusCode: 201,
+        body: {'success': true, 'cooldownSeconds': 60},
+        requestOptions: options,
+      );
+    });
+    final client = OceanApiClient(
+      tokenStore: tokenStore,
+      dio: Dio(BaseOptions(baseUrl: 'https://api.example.test'))
+        ..httpClientAdapter = adapter,
+    );
+
+    await client.sendSmsCode(phone: '13800138000');
+    await client.loginWithSms(phone: '13800138000', code: '123456');
+
+    expect(paths, [
+      'POST /auth/sms/send-code',
+      'POST /auth/sms/login',
+    ]);
+    expect(tokenStore.accessToken, 'sms-access');
+    expect(tokenStore.refreshToken, 'sms-refresh');
+  });
+
   test('updates profile, daily mood, daily summary, and report endpoints',
       () async {
     final paths = <String>[];

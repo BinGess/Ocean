@@ -112,6 +112,7 @@ class _AppEntryPointState extends State<AppEntryPoint>
   bool _showOnboarding = false;
   bool _showLockScreen = false;
   bool _showPrivacyBlur = false;
+  bool _protectLocalDataInAccountEntry = false;
   bool _isCheckingLock = false;
   int _mainGeneration = 0;
 
@@ -120,6 +121,9 @@ class _AppEntryPointState extends State<AppEntryPoint>
   final _accountService = getIt<OceanAccountService>();
 
   static const _loginGuideSkippedKey = 'ocean_login_guide_skipped';
+  static const _loginDataProtectionPromptVersionKey =
+      'ocean_login_data_protection_prompt_version';
+  static const _loginDataProtectionPromptVersion = 1;
 
   @override
   void initState() {
@@ -269,6 +273,7 @@ class _AppEntryPointState extends State<AppEntryPoint>
     // 检查是否需要展示新用户引导
     bool needsOnboarding = false;
     bool needsAccountEntry = false;
+    bool protectLocalData = false;
     try {
       final db = getIt<HiveDatabase>();
       final completed =
@@ -282,7 +287,16 @@ class _AppEntryPointState extends State<AppEntryPoint>
       final skippedLoginGuide =
           db.settingsBox.get(_loginGuideSkippedKey, defaultValue: false) ==
               true;
-      needsAccountEntry = !restoredSignedInSession && !skippedLoginGuide;
+      protectLocalData = _hasLocalAccountDataToProtect(db);
+      final dataProtectionPromptShown =
+          (db.settingsBox.get(_loginDataProtectionPromptVersionKey) as int?) ==
+              _loginDataProtectionPromptVersion;
+      needsAccountEntry = AppEntryFlow.shouldShowAccountEntry(
+        restoredSignedInSession: restoredSignedInSession,
+        skippedLoginGuide: skippedLoginGuide,
+        hasLocalDataToProtect: protectLocalData,
+        dataProtectionPromptShown: dataProtectionPromptShown,
+      );
     } catch (e) {
       debugPrint('AppEntryPoint: 检查入口状态失败: $e');
     }
@@ -291,6 +305,7 @@ class _AppEntryPointState extends State<AppEntryPoint>
       _showSplash = false;
       _showAccountEntry = needsAccountEntry;
       _showOnboarding = needsOnboarding;
+      _protectLocalDataInAccountEntry = protectLocalData;
     });
 
     // Splash 结束后，直接请求麦克风权限和预热（无论是否显示引导）
@@ -309,6 +324,12 @@ class _AppEntryPointState extends State<AppEntryPoint>
     try {
       final db = getIt<HiveDatabase>();
       await db.settingsBox.put(_loginGuideSkippedKey, true);
+      if (_protectLocalDataInAccountEntry) {
+        await db.settingsBox.put(
+          _loginDataProtectionPromptVersionKey,
+          _loginDataProtectionPromptVersion,
+        );
+      }
     } catch (e) {
       debugPrint('AppEntryPoint: 保存登录跳过状态失败: $e');
     }
@@ -343,6 +364,7 @@ class _AppEntryPointState extends State<AppEntryPoint>
         return AccountEntryScreen(
           onComplete: _completeAccountEntry,
           onSkip: _skipAccountEntry,
+          protectLocalData: _protectLocalDataInAccountEntry,
         );
       case AppEntryStep.main:
         break;
@@ -361,6 +383,30 @@ class _AppEntryPointState extends State<AppEntryPoint>
         if (_showPrivacyBlur && !_showLockScreen) const PrivacyBlurOverlay(),
       ],
     );
+  }
+
+  bool _hasLocalAccountDataToProtect(HiveDatabase db) {
+    if (db.recordsBox.isNotEmpty ||
+        db.weeklyInsightsBox.isNotEmpty ||
+        db.insightReportsBox.isNotEmpty) {
+      return true;
+    }
+
+    for (final rawKey in db.settingsBox.keys) {
+      final key = rawKey.toString();
+      if (key == 'profile_avatar' ||
+          key == 'profile_nickname' ||
+          key == 'profile_signature' ||
+          key.startsWith('daily_mood_') ||
+          key.startsWith('daily_summary_')) {
+        final value = db.settingsBox.get(rawKey);
+        if (value != null && value.toString().trim().isNotEmpty) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 }
 

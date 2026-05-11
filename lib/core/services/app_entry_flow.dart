@@ -19,5 +19,16 @@ class AppEntryFlow {
     return AppEntryStep.main;
   }
 
+  static bool shouldShowAccountEntry({
+    required bool restoredSignedInSession,
+    required bool skippedLoginGuide,
+    required bool hasLocalDataToProtect,
+    required bool dataProtectionPromptShown,
+  }) {
+    if (restoredSignedInSession) return false;
+    if (!skippedLoginGuide) return true;
+    return hasLocalDataToProtect && !dataProtectionPromptShown;
+  }
+
   static int nextMainGeneration(int current) => current + 1;
 }

@@ -33,6 +33,11 @@ abstract class OceanAccountApi {
     required String email,
     required String password,
   });
+  Future<void> sendSmsCode({required String phone});
+  Future<OceanAuthTokens> loginWithSms({
+    required String phone,
+    required String code,
+  });
   Future<void> logout();
 }
 
@@ -194,6 +199,37 @@ class OceanApiClient
         },
       );
       return await _saveAuthResponse(response.data, email);
+    } on DioException catch (error) {
+      throw OceanApiException.fromDio(error);
+    }
+  }
+
+  @override
+  Future<void> sendSmsCode({required String phone}) async {
+    try {
+      await _dio.post<Map<String, dynamic>>(
+        '/auth/sms/send-code',
+        data: {'phone': phone},
+      );
+    } on DioException catch (error) {
+      throw OceanApiException.fromDio(error);
+    }
+  }
+
+  @override
+  Future<OceanAuthTokens> loginWithSms({
+    required String phone,
+    required String code,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/auth/sms/login',
+        data: {
+          'phone': phone,
+          'code': code,
+        },
+      );
+      return await _saveAuthResponse(response.data, null);
     } on DioException catch (error) {
       throw OceanApiException.fromDio(error);
     }
@@ -493,6 +529,13 @@ class OceanApiException implements Exception {
     }
     if (message.contains('Missing bearer token')) {
       return '请先登录 Ocean 账号';
+    }
+    if (message.contains('Invalid SMS verification code')) {
+      return '验证码错误或已过期';
+    }
+    if (message.contains('Too Many Requests') ||
+        message.contains('验证码发送过于频繁')) {
+      return '验证码发送过于频繁，请稍后再试';
     }
     return message;
   }

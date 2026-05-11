@@ -51,6 +51,19 @@ class OceanAccountService {
     return tokens;
   }
 
+  Future<void> sendSmsCode({required String phone}) {
+    return _api.sendSmsCode(phone: phone);
+  }
+
+  Future<OceanAuthTokens> loginWithSms({
+    required String phone,
+    required String code,
+  }) async {
+    final tokens = await _api.loginWithSms(phone: phone, code: code);
+    await _trySyncAfterAuth('sms login');
+    return tokens;
+  }
+
   Future<OceanAuthTokens> register({
     required String email,
     required String password,

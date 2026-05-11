@@ -28,4 +28,50 @@ void main() {
     expect(AppEntryFlow.nextMainGeneration(0), 1);
     expect(AppEntryFlow.nextMainGeneration(4), 5);
   });
+
+  test('does not show account entry when a signed-in session is restored', () {
+    expect(
+      AppEntryFlow.shouldShowAccountEntry(
+        restoredSignedInSession: true,
+        skippedLoginGuide: false,
+        hasLocalDataToProtect: true,
+        dataProtectionPromptShown: false,
+      ),
+      isFalse,
+    );
+  });
+
+  test('shows account entry when login guide has not been skipped', () {
+    expect(
+      AppEntryFlow.shouldShowAccountEntry(
+        restoredSignedInSession: false,
+        skippedLoginGuide: false,
+        hasLocalDataToProtect: false,
+        dataProtectionPromptShown: false,
+      ),
+      isTrue,
+    );
+  });
+
+  test('shows data protection prompt once for skipped users with local data',
+      () {
+    expect(
+      AppEntryFlow.shouldShowAccountEntry(
+        restoredSignedInSession: false,
+        skippedLoginGuide: true,
+        hasLocalDataToProtect: true,
+        dataProtectionPromptShown: false,
+      ),
+      isTrue,
+    );
+    expect(
+      AppEntryFlow.shouldShowAccountEntry(
+        restoredSignedInSession: false,
+        skippedLoginGuide: true,
+        hasLocalDataToProtect: true,
+        dataProtectionPromptShown: true,
+      ),
+      isFalse,
+    );
+  });
 }

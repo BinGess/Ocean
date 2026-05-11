@@ -84,6 +84,32 @@ void main() {
     expect(syncService.restoreSnapshotCount, 1);
   });
 
+  test('sms login restores server snapshot and notifies', () async {
+    final api = _FakeAccountApi();
+    final syncService = _FakeSyncService();
+    final cacheService = _FakeAccountCacheService();
+    final notifier = OceanAccountDataRefreshService();
+    var notifications = 0;
+    final subscription = notifier.changes.listen((_) => notifications++);
+    final service = OceanAccountService(
+      api: api,
+      syncService: syncService,
+      cacheService: cacheService,
+      refreshService: notifier,
+    );
+
+    await service.sendSmsCode(phone: '13800138000');
+    await service.loginWithSms(phone: '13800138000', code: '123456');
+    await Future<void>.delayed(Duration.zero);
+
+    expect(api.smsCodeSentTo, '13800138000');
+    expect(api.loggedInPhone, '13800138000');
+    expect(syncService.pushAllLocalDataCount, 1);
+    expect(syncService.restoreSnapshotCount, 1);
+    expect(notifications, 1);
+    await subscription.cancel();
+  });
+
   test('logout clears account cache and notifies account data listeners',
       () async {
     final api = _FakeAccountApi();
@@ -137,13 +163,16 @@ void main() {
 
 class _FakeAccountApi implements OceanAccountApi {
   String? loggedInEmail;
+  String? loggedInPhone;
+  String? smsCodeSentTo;
   int logoutCount = 0;
 
   @override
   Future<String?> get currentEmail async => loggedInEmail;
 
   @override
-  Future<bool> get isSignedIn async => loggedInEmail != null;
+  Future<bool> get isSignedIn async =>
+      loggedInEmail != null || loggedInPhone != null;
 
   @override
   Future<OceanAuthTokens> login({
@@ -162,6 +191,24 @@ class _FakeAccountApi implements OceanAccountApi {
   Future<void> logout() async {
     logoutCount += 1;
     loggedInEmail = null;
+    loggedInPhone = null;
+  }
+
+  @override
+  Future<void> sendSmsCode({required String phone}) async {
+    smsCodeSentTo = phone;
+  }
+
+  @override
+  Future<OceanAuthTokens> loginWithSms({
+    required String phone,
+    required String code,
+  }) async {
+    loggedInPhone = phone;
+    return const OceanAuthTokens(
+      accessToken: 'access',
+      refreshToken: 'refresh',
+    );
   }
 
   @override
