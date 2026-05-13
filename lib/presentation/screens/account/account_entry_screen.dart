@@ -41,6 +41,7 @@ class _AccountEntryScreenState extends State<AccountEntryScreen> {
   int _smsCooldown = 0;
   Timer? _smsTimer;
   bool _agreementsAccepted = false;
+  bool _localMigrationRetryAvailable = false;
   String? _message;
 
   @override
@@ -61,6 +62,10 @@ class _AccountEntryScreenState extends State<AccountEntryScreen> {
   }
 
   Future<void> _sendSmsCode() async {
+    if (_localMigrationRetryAvailable) {
+      setState(() => _message = '验证码已经通过，请直接重试上传本机数据。');
+      return;
+    }
     if (!_ensureAgreementsAccepted()) return;
     final validation = _validatePhone();
     if (validation != null) {
@@ -101,6 +106,10 @@ class _AccountEntryScreenState extends State<AccountEntryScreen> {
   }
 
   Future<void> _loginWithSms() async {
+    if (_localMigrationRetryAvailable) {
+      await _retryLocalMigration();
+      return;
+    }
     if (!_ensureAgreementsAccepted()) return;
     final phoneValidation = _validatePhone();
     if (phoneValidation != null) {
@@ -122,6 +131,10 @@ class _AccountEntryScreenState extends State<AccountEntryScreen> {
   }
 
   Future<void> _login() async {
+    if (_localMigrationRetryAvailable) {
+      await _retryLocalMigration();
+      return;
+    }
     if (!_ensureAgreementsAccepted()) return;
     final validation = _validateCredentials();
     if (validation != null) {
@@ -138,6 +151,10 @@ class _AccountEntryScreenState extends State<AccountEntryScreen> {
   }
 
   Future<void> _register() async {
+    if (_localMigrationRetryAvailable) {
+      await _retryLocalMigration();
+      return;
+    }
     if (!_ensureAgreementsAccepted()) return;
     final validation = _validateCredentials();
     if (validation != null) {
@@ -164,10 +181,24 @@ class _AccountEntryScreenState extends State<AccountEntryScreen> {
       await task();
     } catch (error) {
       if (!mounted) return;
-      setState(() => _message = '操作失败：${_formatError(error)}');
+      setState(() {
+        if (error is OceanLocalMigrationException) {
+          _localMigrationRetryAvailable = true;
+        }
+        _message = '操作失败：${_formatError(error)}';
+      });
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _retryLocalMigration() async {
+    await _run('正在重新上传本机数据...', () async {
+      await _accountService.retryLocalMigration();
+      if (!mounted) return;
+      setState(() => _localMigrationRetryAvailable = false);
+      widget.onComplete();
+    });
   }
 
   String? _validateCredentials() {
@@ -282,6 +313,7 @@ class _AccountEntryScreenState extends State<AccountEntryScreen> {
                         loading: _loading,
                         sendingSms: _sendingSms,
                         cooldown: _smsCooldown,
+                        retryMigration: _localMigrationRetryAvailable,
                         onSendCode: _sendSmsCode,
                         onLogin: _loginWithSms,
                       )
@@ -291,6 +323,7 @@ class _AccountEntryScreenState extends State<AccountEntryScreen> {
                         passwordController: _passwordController,
                         nicknameController: _nicknameController,
                         loading: _loading,
+                        retryMigration: _localMigrationRetryAvailable,
                         onLogin: _login,
                         onRegister: _register,
                       ),
@@ -627,6 +660,7 @@ class _PhoneLoginForm extends StatelessWidget {
     required this.loading,
     required this.sendingSms,
     required this.cooldown,
+    required this.retryMigration,
     required this.onSendCode,
     required this.onLogin,
   });
@@ -636,6 +670,7 @@ class _PhoneLoginForm extends StatelessWidget {
   final bool loading;
   final bool sendingSms;
   final int cooldown;
+  final bool retryMigration;
   final VoidCallback onSendCode;
   final VoidCallback onLogin;
 
@@ -648,7 +683,7 @@ class _PhoneLoginForm extends StatelessWidget {
           controller: phoneController,
           label: '手机号',
           keyboardType: TextInputType.phone,
-          enabled: !loading,
+          enabled: !loading && !retryMigration,
         ),
         const SizedBox(height: 12),
         Row(
@@ -658,30 +693,31 @@ class _PhoneLoginForm extends StatelessWidget {
                 controller: codeController,
                 label: '验证码',
                 keyboardType: TextInputType.number,
-                enabled: !loading,
+                enabled: !loading && !retryMigration,
               ),
             ),
             const SizedBox(width: 10),
-            SizedBox(
-              height: 52,
-              child: OutlinedButton(
-                onPressed:
-                    loading || sendingSms || cooldown > 0 ? null : onSendCode,
-                style: OutlinedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            if (!retryMigration)
+              SizedBox(
+                height: 52,
+                child: OutlinedButton(
+                  onPressed:
+                      loading || sendingSms || cooldown > 0 ? null : onSendCode,
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
+                  child: sendingSms
+                      ? const CupertinoActivityIndicator()
+                      : Text(cooldown > 0 ? '${cooldown}s' : '获取验证码'),
                 ),
-                child: sendingSms
-                    ? const CupertinoActivityIndicator()
-                    : Text(cooldown > 0 ? '${cooldown}s' : '获取验证码'),
               ),
-            ),
           ],
         ),
         const SizedBox(height: 20),
         _PrimaryButton(
-          label: '登录',
+          label: retryMigration ? '重试上传本机数据' : '登录',
           loading: loading,
           onPressed: onLogin,
         ),
@@ -696,6 +732,7 @@ class _EmailLoginForm extends StatelessWidget {
     required this.passwordController,
     required this.nicknameController,
     required this.loading,
+    required this.retryMigration,
     required this.onLogin,
     required this.onRegister,
   });
@@ -704,6 +741,7 @@ class _EmailLoginForm extends StatelessWidget {
   final TextEditingController passwordController;
   final TextEditingController nicknameController;
   final bool loading;
+  final bool retryMigration;
   final VoidCallback onLogin;
   final VoidCallback onRegister;
 
@@ -716,33 +754,35 @@ class _EmailLoginForm extends StatelessWidget {
           controller: emailController,
           label: '邮箱',
           keyboardType: TextInputType.emailAddress,
-          enabled: !loading,
+          enabled: !loading && !retryMigration,
         ),
         const SizedBox(height: 12),
         _Input(
           controller: passwordController,
           label: '密码（至少 8 位）',
           obscureText: true,
-          enabled: !loading,
+          enabled: !loading && !retryMigration,
         ),
         const SizedBox(height: 12),
         _Input(
           controller: nicknameController,
           label: '昵称（注册时可选）',
-          enabled: !loading,
+          enabled: !loading && !retryMigration,
         ),
         const SizedBox(height: 20),
         _PrimaryButton(
-          label: '登录',
+          label: retryMigration ? '重试上传本机数据' : '登录',
           loading: loading,
           onPressed: onLogin,
         ),
-        const SizedBox(height: 10),
-        _SecondaryButton(
-          label: '注册并进入',
-          loading: loading,
-          onPressed: onRegister,
-        ),
+        if (!retryMigration) ...[
+          const SizedBox(height: 10),
+          _SecondaryButton(
+            label: '注册并进入',
+            loading: loading,
+            onPressed: onRegister,
+          ),
+        ],
       ],
     );
   }

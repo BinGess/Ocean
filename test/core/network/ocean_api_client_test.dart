@@ -202,6 +202,16 @@ void main() {
     expect(tokenStore.refreshToken, 'sms-refresh');
   });
 
+  test('translates Aliyun SMS verification failure into readable text',
+      () async {
+    const error = OceanApiException(
+      '验证码校验失败：isv.ValidateFail: code: 400, 验证失败 request id: 123',
+      statusCode: 400,
+    );
+
+    expect(error.displayMessage, '验证码已失效或已被使用，请重新获取验证码');
+  });
+
   test('updates profile, daily mood, daily summary, and report endpoints',
       () async {
     final paths = <String>[];

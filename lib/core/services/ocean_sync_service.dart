@@ -44,6 +44,24 @@ class OceanSyncResult {
       weeklyInsightsChanged;
 }
 
+class OceanSyncUploadException implements Exception {
+  const OceanSyncUploadException({
+    required this.message,
+    this.cause,
+    this.failedItems = const [],
+  });
+
+  final String message;
+  final Object? cause;
+  final List<String> failedItems;
+
+  @override
+  String toString() {
+    if (failedItems.isEmpty) return message;
+    return '$message（失败项：${failedItems.join(', ')}）';
+  }
+}
+
 abstract class OceanAccountSyncService {
   Future<OceanSyncResult> pushAllLocalData();
   Future<OceanSyncResult> restoreSnapshot();
@@ -477,25 +495,27 @@ class OceanSyncService implements OceanAccountSyncService {
   @override
   Future<OceanSyncResult> pushAllLocalData() async {
     final data = await _dataStore.readAll();
-    final response = await _api.pushData(
-      profile: data.profile,
-      records: [
-        ...data.records.map(OceanRecordSyncMapper.toServerRecord),
-        ...data.deletedRecords,
-      ],
-      dailySummaries: data.dailySummaries,
-      dailyMoods: data.dailyMoods,
-      insightReports: data.insightReports,
-      weeklyInsights: data.weeklyInsights,
-    );
-    final cursor = _readCursorFromResponse(response);
-    await _stateStore.saveCursor(cursor);
-    await _dataStore.clearSyncedTombstones();
-    return OceanSyncResult(
-      accepted: _readInt(response['accepted']),
-      ignored: _readInt(response['ignored']),
-      cursor: cursor,
-    );
+    final records = [
+      ...data.records.map(OceanRecordSyncMapper.toServerRecord),
+      ...data.deletedRecords,
+    ];
+    try {
+      final response = await _api.pushData(
+        profile: data.profile,
+        records: records,
+        dailySummaries: data.dailySummaries,
+        dailyMoods: data.dailyMoods,
+        insightReports: data.insightReports,
+        weeklyInsights: data.weeklyInsights,
+      );
+      return _finishPush([response]);
+    } catch (error) {
+      return _pushLocalDataInSmallBatches(
+        data: data,
+        records: records,
+        originalError: error,
+      );
+    }
   }
 
   @override
@@ -562,6 +582,98 @@ class OceanSyncService implements OceanAccountSyncService {
     await _applyEntityList(
         counts, 'weekly_insight', response['weeklyInsights']);
     return counts;
+  }
+
+  Future<OceanSyncResult> _pushLocalDataInSmallBatches({
+    required OceanLocalSyncData data,
+    required List<Map<String, dynamic>> records,
+    required Object originalError,
+  }) async {
+    final responses = <Map<String, dynamic>>[];
+    final failedItems = <String>[];
+
+    Future<void> pushItem(
+      String label,
+      Future<Map<String, dynamic>> Function() action,
+    ) async {
+      try {
+        responses.add(await action());
+      } catch (_) {
+        failedItems.add(label);
+      }
+    }
+
+    if (data.profile != null) {
+      await pushItem(
+        'profile',
+        () => _api.pushData(profile: data.profile),
+      );
+    }
+    for (final record in records) {
+      await pushItem(
+        'record:${record['id'] ?? 'unknown'}',
+        () => _api.pushData(records: [record]),
+      );
+    }
+    for (final summary in data.dailySummaries) {
+      await pushItem(
+        'dailySummary:${summary['date'] ?? 'unknown'}',
+        () => _api.pushData(dailySummaries: [summary]),
+      );
+    }
+    for (final mood in data.dailyMoods) {
+      await pushItem(
+        'dailyMood:${mood['date'] ?? 'unknown'}',
+        () => _api.pushData(dailyMoods: [mood]),
+      );
+    }
+    for (final report in data.insightReports) {
+      await pushItem(
+        'insightReport:${report['periodKey'] ?? 'unknown'}',
+        () => _api.pushData(insightReports: [report]),
+      );
+    }
+    for (final insight in data.weeklyInsights) {
+      await pushItem(
+        'weeklyInsight:${insight['id'] ?? 'unknown'}',
+        () => _api.pushData(weeklyInsights: [insight]),
+      );
+    }
+
+    if (failedItems.isNotEmpty) {
+      throw OceanSyncUploadException(
+        message: '本机数据上传未全部完成，请稍后重试',
+        cause: originalError,
+        failedItems: failedItems,
+      );
+    }
+    if (responses.isEmpty) {
+      throw OceanSyncUploadException(
+        message: '本机数据上传失败，请稍后重试',
+        cause: originalError,
+      );
+    }
+    return _finishPush(responses);
+  }
+
+  Future<OceanSyncResult> _finishPush(
+    List<Map<String, dynamic>> responses,
+  ) async {
+    var accepted = 0;
+    var ignored = 0;
+    var cursor = '0';
+    for (final response in responses) {
+      accepted += _readInt(response['accepted']);
+      ignored += _readInt(response['ignored']);
+      cursor = _readCursorFromResponse(response);
+    }
+    await _stateStore.saveCursor(cursor);
+    await _dataStore.clearSyncedTombstones();
+    return OceanSyncResult(
+      accepted: accepted,
+      ignored: ignored,
+      cursor: cursor,
+    );
   }
 
   Future<void> _applyEntityList(

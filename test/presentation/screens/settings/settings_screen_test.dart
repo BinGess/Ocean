@@ -56,11 +56,21 @@ class _FakeAIAuthService extends Fake implements AIAuthService {
 }
 
 class _FakeICloudSyncService extends Fake implements ICloudSyncService {
-  @override
-  Future<bool> get isEnabled async => false;
+  bool enabled = false;
+  bool available = false;
+  final List<bool> setEnabledCalls = [];
 
   @override
-  Future<bool> get isAvailable async => false;
+  Future<bool> get isEnabled async => enabled;
+
+  @override
+  Future<bool> get isAvailable async => available;
+
+  @override
+  Future<void> setEnabled(bool enabled) async {
+    setEnabledCalls.add(enabled);
+    this.enabled = enabled;
+  }
 
   @override
   Future<ICloudBackupStatus> getBackupStatus() async {
@@ -117,15 +127,17 @@ void main() {
   late _FakeHiveDatabase fakeDb;
   late _FakeAIAuthService fakeAIAuthService;
   late _FakeOceanAccountService fakeAccountService;
+  late _FakeICloudSyncService fakeICloudSyncService;
 
   setUp(() {
     fakeDb = _FakeHiveDatabase();
     fakeAIAuthService = _FakeAIAuthService();
     fakeAccountService = _FakeOceanAccountService(signedIn: true);
+    fakeICloudSyncService = _FakeICloudSyncService();
 
     getIt
       ..registerSingleton<AIAuthService>(fakeAIAuthService)
-      ..registerSingleton<ICloudSyncService>(_FakeICloudSyncService())
+      ..registerSingleton<ICloudSyncService>(fakeICloudSyncService)
       ..registerSingleton<ProSubscriptionService>(
         _FakeProSubscriptionService(),
       )
@@ -170,5 +182,18 @@ void main() {
 
     expect(fakeAccountService.logoutCount, 1);
     expect(find.widgetWithText(OutlinedButton, '退出登录'), findsNothing);
+  });
+
+  testWidgets('已登录账号时自动关闭并隐藏 iCloud 同步入口', (tester) async {
+    fakeICloudSyncService
+      ..enabled = true
+      ..available = true;
+
+    await tester.pumpWidget(_buildTestable(database: fakeDb));
+    await tester.pumpAndSettle();
+
+    expect(fakeICloudSyncService.setEnabledCalls, [false]);
+    expect(find.text('iCloud 云同步'), findsNothing);
+    expect(find.text('云端备份状态'), findsNothing);
   });
 }

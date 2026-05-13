@@ -533,6 +533,9 @@ class OceanApiException implements Exception {
     if (message.contains('Invalid SMS verification code')) {
       return '验证码错误或已过期';
     }
+    if (message.contains('isv.ValidateFail') || message.contains('验证码校验失败')) {
+      return '验证码已失效或已被使用，请重新获取验证码';
+    }
     if (message.contains('Too Many Requests') ||
         message.contains('验证码发送过于频繁')) {
       return '验证码发送过于频繁，请稍后再试';

@@ -75,8 +75,8 @@ void main() {
 
     final result = await service.pushAllLocalData();
 
-    expect(result.accepted, 5);
-    expect(stateStore.cursor, '9');
+    expect(result.accepted, 6);
+    expect(stateStore.cursor, '3');
     expect(api.pushedProfile?['nickname'], 'Ocean');
     expect(api.pushedRecords.single['id'], 'record-1');
     expect(api.pushedRecords.single['audioUrl'], isNull);
@@ -84,6 +84,100 @@ void main() {
     expect(api.pushedDailyMoods.single['imagePath'], contains('calm'));
     expect(api.pushedInsightReports.single['periodType'], 'weekly');
     expect(api.pushedWeeklyInsights.single['id'], 'weekly-1');
+  });
+
+  test('pushAllLocalData falls back to small batches when bulk upload fails',
+      () async {
+    final api = _FakeOceanSyncApi()..failNextPush = Exception('bulk failed');
+    final stateStore = _MemorySyncStateStore();
+    final dataStore = _MemorySyncDataStore(
+      OceanLocalSyncData(
+        profile: const {
+          'nickname': 'Ocean',
+          'clientUpdatedAt': '2026-05-07T13:39:00.000Z',
+        },
+        records: [
+          Record(
+            id: 'local-record',
+            type: RecordType.quickNote,
+            transcription: 'device B local record',
+            createdAt: DateTime.utc(2026, 5, 7, 13, 40),
+            updatedAt: DateTime.utc(2026, 5, 7, 13, 41),
+          ),
+        ],
+        dailySummaries: const [
+          {
+            'date': '2026-05-07',
+            'moodWord': '平静',
+            'oneSentence': '今天比较稳定',
+            'score': 6,
+            'recordCount': 1,
+            'generatedAt': '2026-05-07T13:42:00.000Z',
+            'userOverridden': false,
+            'clientUpdatedAt': '2026-05-07T13:42:00.000Z',
+          },
+        ],
+      ),
+    );
+    final service = OceanSyncService(
+      api: api,
+      dataStore: dataStore,
+      stateStore: stateStore,
+    );
+
+    final result = await service.pushAllLocalData();
+
+    expect(result.accepted, 3);
+    expect(api.pushCallCount, 4);
+    expect(api.pushedProfiles.length, 1);
+    expect(api.pushedRecordBatches.single.single['id'], 'local-record');
+    expect(api.pushedDailySummaryBatches.single.single['date'], '2026-05-07');
+    expect(stateStore.cursor, '12');
+    expect(dataStore.clearSyncedTombstonesCount, 1);
+  });
+
+  test(
+      'pushAllLocalData reports partial small-batch failures without clearing tombstones',
+      () async {
+    final api = _FakeOceanSyncApi()
+      ..failNextPush = Exception('bulk failed')
+      ..failedRecordIds.add('bad-record');
+    final stateStore = _MemorySyncStateStore();
+    final dataStore = _MemorySyncDataStore(
+      OceanLocalSyncData(
+        records: [
+          Record(
+            id: 'ok-record',
+            type: RecordType.quickNote,
+            transcription: 'ok',
+            createdAt: DateTime.utc(2026, 5, 7),
+            updatedAt: DateTime.utc(2026, 5, 7),
+          ),
+          Record(
+            id: 'bad-record',
+            type: RecordType.quickNote,
+            transcription: 'bad',
+            createdAt: DateTime.utc(2026, 5, 7),
+            updatedAt: DateTime.utc(2026, 5, 7),
+          ),
+        ],
+      ),
+    );
+    final service = OceanSyncService(
+      api: api,
+      dataStore: dataStore,
+      stateStore: stateStore,
+    );
+
+    await expectLater(
+      service.pushAllLocalData(),
+      throwsA(isA<OceanSyncUploadException>()),
+    );
+
+    expect(api.pushedRecordBatches.length, 1);
+    expect(api.pushedRecordBatches.single.single['id'], 'ok-record');
+    expect(stateStore.cursor, '0');
+    expect(dataStore.clearSyncedTombstonesCount, 0);
   });
 
   test('restoreSnapshot upserts all server entities and saves snapshot cursor',
@@ -287,6 +381,12 @@ class _FakeOceanSyncApi implements OceanSyncApi {
   List<Map<String, dynamic>> pushedDailyMoods = [];
   List<Map<String, dynamic>> pushedInsightReports = [];
   List<Map<String, dynamic>> pushedWeeklyInsights = [];
+  final List<Map<String, dynamic>> pushedProfiles = [];
+  final List<List<Map<String, dynamic>>> pushedRecordBatches = [];
+  final List<List<Map<String, dynamic>>> pushedDailySummaryBatches = [];
+  final Set<String> failedRecordIds = {};
+  Object? failNextPush;
+  int pushCallCount = 0;
   Map<String, dynamic> snapshot = const {'cursor': '0', 'records': []};
   Map<String, dynamic> pullResponse = const {'cursor': '0', 'changes': []};
 
@@ -299,13 +399,36 @@ class _FakeOceanSyncApi implements OceanSyncApi {
     List<Map<String, dynamic>> insightReports = const [],
     List<Map<String, dynamic>> weeklyInsights = const [],
   }) async {
+    pushCallCount += 1;
+    final pendingError = failNextPush;
+    if (pendingError != null) {
+      failNextPush = null;
+      throw pendingError;
+    }
+    if (records.any((record) => failedRecordIds.contains(record['id']))) {
+      throw Exception('record rejected');
+    }
     pushedProfile = profile;
     pushedRecords = records;
     pushedDailySummaries = dailySummaries;
     pushedDailyMoods = dailyMoods;
     pushedInsightReports = insightReports;
     pushedWeeklyInsights = weeklyInsights;
-    return {'accepted': 5, 'ignored': 0, 'cursor': '9'};
+    if (profile != null) pushedProfiles.add(profile);
+    if (records.isNotEmpty) pushedRecordBatches.add(records);
+    if (dailySummaries.isNotEmpty) {
+      pushedDailySummaryBatches.add(dailySummaries);
+    }
+    final accepted = [
+      if (profile != null) profile,
+      ...records,
+      ...dailySummaries,
+      ...dailyMoods,
+      ...insightReports,
+      ...weeklyInsights,
+    ].length;
+    final cursor = (pushCallCount * 3).toString();
+    return {'accepted': accepted, 'ignored': 0, 'cursor': cursor};
   }
 
   @override
@@ -340,6 +463,7 @@ class _MemorySyncDataStore implements OceanSyncDataStore {
   final List<Map<String, dynamic>> dailyMoods;
   final List<Map<String, dynamic>> insightReports;
   final List<Map<String, dynamic>> weeklyInsights;
+  int clearSyncedTombstonesCount = 0;
 
   @override
   Future<OceanLocalSyncData> readAll() async {
@@ -425,7 +549,9 @@ class _MemorySyncDataStore implements OceanSyncDataStore {
   }
 
   @override
-  Future<void> clearSyncedTombstones() async {}
+  Future<void> clearSyncedTombstones() async {
+    clearSyncedTombstonesCount += 1;
+  }
 }
 
 class _MemorySyncStateStore implements OceanSyncStateStore {

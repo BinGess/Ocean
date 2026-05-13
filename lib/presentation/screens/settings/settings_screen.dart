@@ -100,8 +100,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadAccountStatus() async {
     final service = _accountService;
     final signedIn = service != null && await service.isSignedIn;
+    if (signedIn && await _iCloudSyncService.isEnabled) {
+      try {
+        await _iCloudSyncService.setEnabled(false);
+      } catch (error) {
+        debugPrint(
+            'SettingsScreen: failed to disable iCloud after login: $error');
+      }
+    }
     if (!mounted) return;
     setState(() => _signedIn = signedIn);
+    if (signedIn) {
+      unawaited(_loadICloudStatus());
+    }
   }
 
   @override
@@ -176,20 +187,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
               }
             },
           ),
-          const SizedBox(height: 12),
-          _buildSwitchItem(
-            title: l10n.iCloudSync,
-            subtitle: _iCloudAvailable
-                ? l10n.iCloudSyncSubtitle
-                : l10n.iCloudSyncUnavailable,
-            icon: Icons.cloud_outlined,
-            value: _iCloudSyncEnabled,
-            onChanged: (value) => _handleICloudSyncToggle(value),
-            proRequired: true,
-          ),
-          if (_iCloudAvailable) ...[
-            const SizedBox(height: 8),
-            _buildICloudStatusCard(l10n),
+          if (!_signedIn) ...[
+            const SizedBox(height: 12),
+            _buildSwitchItem(
+              title: l10n.iCloudSync,
+              subtitle: _iCloudAvailable
+                  ? l10n.iCloudSyncSubtitle
+                  : l10n.iCloudSyncUnavailable,
+              icon: Icons.cloud_outlined,
+              value: _iCloudSyncEnabled,
+              onChanged: (value) => _handleICloudSyncToggle(value),
+              proRequired: true,
+            ),
+            if (_iCloudAvailable) ...[
+              const SizedBox(height: 8),
+              _buildICloudStatusCard(l10n),
+            ],
           ],
           const SizedBox(height: 12),
           _buildNavItem(
@@ -485,6 +498,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required IconData icon,
     required bool value,
     required ValueChanged<bool> onChanged,
+    bool enabled = true,
     bool proRequired = false,
   }) {
     final needsPro =
@@ -553,7 +567,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               CupertinoSwitch(
                 value: value,
                 activeTrackColor: AppColors.accent,
-                onChanged: onChanged,
+                onChanged: enabled ? onChanged : null,
               ),
           ],
         ),
@@ -701,6 +715,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _handleICloudSyncToggle(bool value) async {
     final l10n = AppLocalizations.of(context)!;
+
+    if (value && _signedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('你已登录 Ocean 账号。为避免数据冲突，不能同时开启 iCloud 同步。'),
+        ),
+      );
+      return;
+    }
 
     if (value && !_iCloudAvailable) {
       ScaffoldMessenger.of(context).showSnackBar(

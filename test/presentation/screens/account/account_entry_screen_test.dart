@@ -89,6 +89,30 @@ void main() {
     expect(find.text('隐私政策'), findsOneWidget);
     expect(find.text('我们收集的信息'), findsOneWidget);
   });
+
+  testWidgets('本地迁移失败后再次点击登录会重试迁移而不是重新校验验证码', (tester) async {
+    accountService.loginWithSmsError =
+        const OceanLocalMigrationException('本机数据上传失败');
+    await tester.pumpWidget(_buildTestable());
+
+    await tester.enterText(
+        find.widgetWithText(TextField, '手机号'), '13800138000');
+    await tester.enterText(find.widgetWithText(TextField, '验证码'), '123456');
+    await tester.tap(find.byType(Checkbox));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '登录'));
+    await tester.pumpAndSettle();
+
+    expect(accountService.smsLoginCount, 1);
+    expect(find.text('重试上传本机数据'), findsOneWidget);
+
+    accountService.loginWithSmsError = null;
+    await tester.tap(find.widgetWithText(FilledButton, '重试上传本机数据'));
+    await tester.pumpAndSettle();
+
+    expect(accountService.smsLoginCount, 1);
+    expect(accountService.retryLocalMigrationCount, 1);
+  });
 }
 
 Widget _buildTestable() {
@@ -104,7 +128,10 @@ class _FakeOceanAccountService extends Fake implements OceanAccountService {
   int sendSmsCodeCount = 0;
   int loginCount = 0;
   int registerCount = 0;
+  int smsLoginCount = 0;
+  int retryLocalMigrationCount = 0;
   String? smsCodeSentTo;
+  Object? loginWithSmsError;
 
   @override
   Future<void> sendSmsCode({required String phone}) async {
@@ -117,10 +144,18 @@ class _FakeOceanAccountService extends Fake implements OceanAccountService {
     required String phone,
     required String code,
   }) async {
+    smsLoginCount += 1;
+    final error = loginWithSmsError;
+    if (error != null) throw error;
     return const OceanAuthTokens(
       accessToken: 'access',
       refreshToken: 'refresh',
     );
+  }
+
+  @override
+  Future<void> retryLocalMigration() async {
+    retryLocalMigrationCount += 1;
   }
 
   @override

@@ -214,6 +214,7 @@ Future<void> configureDependencies() async {
       syncService: getIt<OceanSyncService>(),
       cacheService: getIt<OceanAccountCacheService>(),
       refreshService: getIt<OceanAccountDataRefreshService>(),
+      iCloudSyncService: getIt<ICloudSyncService>(),
     ),
   );
 
