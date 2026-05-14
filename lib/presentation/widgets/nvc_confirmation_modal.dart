@@ -3,6 +3,7 @@ import '../../core/theme/app_colors.dart';
 import '../../domain/entities/nvc_analysis.dart';
 import '../../domain/entities/record.dart';
 import 'delete_confirmation_dialog.dart';
+import 'record_date_time_picker.dart';
 import '../screens/share/share_poster_screen.dart';
 
 class NVCConfirmationModal extends StatefulWidget {
@@ -11,6 +12,7 @@ class NVCConfirmationModal extends StatefulWidget {
   final Function(NVCAnalysis, DateTime) onConfirm;
   final VoidCallback? onRevert;
   final Record? record; // 可选的完整记录，用于分享
+  final DateTime? initialDateTime;
 
   const NVCConfirmationModal({
     super.key,
@@ -19,6 +21,7 @@ class NVCConfirmationModal extends StatefulWidget {
     required this.onConfirm,
     this.onRevert,
     this.record,
+    this.initialDateTime,
   });
 
   @override
@@ -30,6 +33,7 @@ class NVCConfirmationModal extends StatefulWidget {
     required String transcription,
     VoidCallback? onRevert,
     Record? record,
+    DateTime? initialDateTime,
   }) {
     return showModalBottomSheet<NVCModalResult>(
       context: context,
@@ -47,6 +51,7 @@ class NVCConfirmationModal extends StatefulWidget {
         ),
         onRevert: onRevert,
         record: record,
+        initialDateTime: initialDateTime,
       ),
     );
   }
@@ -68,8 +73,9 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     _insight = widget.initialAnalysis.request ??
         widget.initialAnalysis.insight ??
         '尝试在双方情绪平稳时，以"我"开头表达感受，而非指责。';
-    _selectedDateTime =
-        widget.record?.createdAt ?? widget.initialAnalysis.analyzedAt;
+    _selectedDateTime = widget.initialDateTime ??
+        widget.record?.createdAt ??
+        widget.initialAnalysis.analyzedAt;
   }
 
   String _stripSquareBrackets(String value) {
@@ -135,51 +141,18 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     widget.onConfirm(updatedAnalysis, _selectedDateTime);
   }
 
-  String _formatDateTime(DateTime dateTime) {
-    final month = dateTime.month;
-    final day = dateTime.day;
-    final period = dateTime.hour < 12 ? '上午' : '下午';
-    final hour24 = dateTime.hour;
-    final hour = hour24 == 0 ? 12 : (hour24 > 12 ? hour24 - 12 : hour24);
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    return '$month月$day日·$period$hour:$minute';
-  }
-
   Future<void> _pickRecordDateTime() async {
-    final pickedDate = await showDatePicker(
+    final pickedDateTime = await showRecordDateTimePicker(
       context: context,
-      initialDate: _selectedDateTime,
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now().add(const Duration(days: 3650)),
-      helpText: '选择记录日期',
-      cancelText: '取消',
-      confirmText: '下一步',
+      initialDateTime: _selectedDateTime,
     );
 
-    if (pickedDate == null || !mounted) {
-      return;
-    }
-
-    final pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
-      helpText: '选择记录时间',
-      cancelText: '取消',
-      confirmText: '确定',
-    );
-
-    if (pickedTime == null || !mounted) {
+    if (pickedDateTime == null || !mounted) {
       return;
     }
 
     setState(() {
-      _selectedDateTime = DateTime(
-        pickedDate.year,
-        pickedDate.month,
-        pickedDate.day,
-        pickedTime.hour,
-        pickedTime.minute,
-      );
+      _selectedDateTime = pickedDateTime;
     });
   }
 
@@ -443,7 +416,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          _formatDateTime(_selectedDateTime),
+                          formatRecordDateTime(_selectedDateTime),
                           style: const TextStyle(
                             color: Color(0xFF8B8B8B),
                             fontSize: 14,

@@ -14,6 +14,8 @@ import '../../widgets/nvc_confirmation_modal.dart';
 import '../../widgets/nvc_error_dialog.dart';
 import '../../widgets/delete_confirmation_dialog.dart';
 import '../../widgets/ai_auth_dialog.dart';
+import '../../widgets/record_date_time_picker.dart';
+import '../../widgets/nvc_analyzing_modal.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
 import '../share/share_poster_screen.dart';
@@ -35,6 +37,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
   late List<String> _selectedMoods;
   late DateTime _selectedDateTime;
   bool _isAnalyzing = false;
+  bool _isAnalyzingModalVisible = false;
 
   @override
   void initState() {
@@ -64,17 +67,6 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
     return result;
   }
 
-  /// 格式化日期时间
-  String _formatDateTime(DateTime dateTime) {
-    final month = dateTime.month;
-    final day = dateTime.day;
-    final period = dateTime.hour < 12 ? '上午' : '下午';
-    final hour24 = dateTime.hour;
-    final hour = hour24 == 0 ? 12 : (hour24 > 12 ? hour24 - 12 : hour24);
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    return '$month月$day日·$period$hour:$minute';
-  }
-
   Record _buildDraftRecord({
     DateTime? updatedAt,
     List<String>? moods,
@@ -93,40 +85,17 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
   }
 
   Future<void> _pickRecordDateTime() async {
-    final pickedDate = await showDatePicker(
+    final pickedDateTime = await showRecordDateTimePicker(
       context: context,
-      initialDate: _selectedDateTime,
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now().add(const Duration(days: 3650)),
-      helpText: '选择记录日期',
-      cancelText: '取消',
-      confirmText: '下一步',
+      initialDateTime: _selectedDateTime,
     );
 
-    if (pickedDate == null || !mounted) {
-      return;
-    }
-
-    final pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
-      helpText: '选择记录时间',
-      cancelText: '取消',
-      confirmText: '确定',
-    );
-
-    if (pickedTime == null || !mounted) {
+    if (pickedDateTime == null || !mounted) {
       return;
     }
 
     setState(() {
-      _selectedDateTime = DateTime(
-        pickedDate.year,
-        pickedDate.month,
-        pickedDate.day,
-        pickedTime.hour,
-        pickedTime.minute,
-      );
+      _selectedDateTime = pickedDateTime;
     });
   }
 
@@ -172,10 +141,31 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
       _isAnalyzing = true;
     });
 
+    _showAnalyzingModal(widget.record.transcription);
+
     // 发送NVC分析请求
     context.read<RecordBloc>().add(
           RecordAnalyzeNVC(widget.record.transcription),
         );
+  }
+
+  void _showAnalyzingModal(String transcription) {
+    if (_isAnalyzingModalVisible) return;
+    _isAnalyzingModalVisible = true;
+    NVCAnalyzingModal.show(
+      context: context,
+      transcription: transcription,
+    ).then((_) {
+      _isAnalyzingModalVisible = false;
+    });
+  }
+
+  void _hideAnalyzingModal() {
+    if (!_isAnalyzingModalVisible) return;
+    _isAnalyzingModalVisible = false;
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
   }
 
   /// 保存并关闭
@@ -220,6 +210,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
 
       // 重新触发NVC分析
       if (state.transcription != null && state.transcription!.isNotEmpty) {
+        _showAnalyzingModal(state.transcription!);
         context.read<RecordBloc>().add(
               RecordAnalyzeNVC(state.transcription!),
             );
@@ -333,6 +324,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
       listener: (context, state) {
         // 处理需要AI授权的情况
         if (state.status == RecordStatus.needsAIAuth && _isAnalyzing) {
+          _hideAnalyzingModal();
           setState(() {
             _isAnalyzing = false;
           });
@@ -343,12 +335,14 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
             }
           });
         } else if (state.status == RecordStatus.analyzed && _isAnalyzing) {
+          _hideAnalyzingModal();
           setState(() {
             _isAnalyzing = false;
           });
 
           _handleAnalyzedState(state);
         } else if (state.status == RecordStatus.error && _isAnalyzing) {
+          _hideAnalyzingModal();
           setState(() {
             _isAnalyzing = false;
           });
@@ -368,7 +362,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
             onPressed: () => Navigator.of(context).pop(),
           ),
           title: Text(
-            _formatDateTime(_selectedDateTime),
+            formatRecordDateTime(_selectedDateTime),
             style: AppTypography.appBarTitle,
           ),
           centerTitle: true,
@@ -470,7 +464,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _formatDateTime(_selectedDateTime),
+                              formatRecordDateTime(_selectedDateTime),
                               style: AppTypography.detailTitle.copyWith(
                                 color: AppColors.textPrimary,
                               ),

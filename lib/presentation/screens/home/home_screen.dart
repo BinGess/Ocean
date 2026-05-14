@@ -37,6 +37,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   String? _completedAudioPath;
   // 用户编辑后的转写文本 - 用于NVC分析确认页面回显
   String? _editedTranscription;
+  DateTime? _selectedRecordDateTime;
   List<Quote> _quotes = [];
   bool _quotesLoaded = false;
   int _currentQuoteIndex = 0;
@@ -389,6 +390,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() {
       _completedAudioPath = audioPath;
       _editedTranscription = null; // 清除上次编辑的转写文本
+      _selectedRecordDateTime = null;
     });
     // 清除上次错误记录，允许新的错误被处理
     _lastHandledError = null;
@@ -450,7 +452,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ).then((result) {
         if (result != null && _completedAudioPath != null) {
           _handleProcessingModeSelected(result.mode,
-              editedTranscription: result.transcription);
+              editedTranscription: result.transcription,
+              selectedDateTime: result.selectedDateTime);
         }
       });
     }
@@ -473,7 +476,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     ).then((result) {
       if (result != null && _completedAudioPath != null) {
         _handleProcessingModeSelected(result.mode,
-            editedTranscription: result.transcription);
+            editedTranscription: result.transcription,
+            selectedDateTime: result.selectedDateTime);
       }
     });
   }
@@ -530,8 +534,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _handleProcessingModeSelected(ProcessingMode mode,
-      {String? editedTranscription}) async {
+  void _handleProcessingModeSelected(
+    ProcessingMode mode, {
+    String? editedTranscription,
+    DateTime? selectedDateTime,
+  }) async {
     if (_completedAudioPath == null) return;
 
     // 优先使用用户编辑后的转写文本，其次流式转写，最后RecordBloc的转写
@@ -540,9 +547,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final recordTranscription = context.read<RecordBloc>().state.transcription;
     final transcription =
         editedTranscription ?? streamTranscription ?? recordTranscription;
+    final effectiveSelectedDateTime =
+        selectedDateTime ?? _selectedRecordDateTime ?? DateTime.now();
 
     // 保存编辑后的转写文本，用于NVC分析确认页面回显
     _editedTranscription = transcription;
+    _selectedRecordDateTime = effectiveSelectedDateTime;
 
     switch (mode) {
       case ProcessingMode.onlyRecord:
@@ -571,6 +581,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 audioPath: _completedAudioPath!,
                 mode: mode,
                 transcription: transcription,
+                createdAt: effectiveSelectedDateTime,
               ),
             );
         // _clearCompletedAudio(); // 移至 BlocListener 处理
@@ -606,6 +617,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   mode: mode,
                   transcription: transcription,
                   selectedMoods: moods,
+                  createdAt: effectiveSelectedDateTime,
                 ),
               );
           // _clearCompletedAudio(); // 移至 BlocListener 处理
@@ -683,6 +695,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   audioPath: _completedAudioPath!,
                   mode: ProcessingMode.onlyRecord,
                   transcription: transcription,
+                  createdAt: effectiveSelectedDateTime,
                 ),
               );
           // _clearCompletedAudio(); // 移至 BlocListener 处理
@@ -695,6 +708,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() {
       _completedAudioPath = null;
       _editedTranscription = null;
+      _selectedRecordDateTime = null;
     });
     _lastHandledTranscriptionError = null;
   }
@@ -858,6 +872,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           context: context,
                           initialAnalysis: recordState.nvcAnalysis!,
                           transcription: transcription,
+                          initialDateTime: _selectedRecordDateTime,
                           onRevert: () {
                             _handleProcessingModeSelected(
                                 ProcessingMode.onlyRecord);

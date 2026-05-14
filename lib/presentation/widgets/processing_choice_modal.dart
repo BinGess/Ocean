@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
 import '../../domain/entities/record.dart';
 import '../../core/theme/app_typography.dart';
+import 'record_date_time_picker.dart';
 
 /// 处理选择的结果，包含模式和用户可能编辑过的转写文本
 class ProcessingResult {
   final ProcessingMode mode;
   final String transcription;
+  final DateTime selectedDateTime;
 
-  const ProcessingResult({required this.mode, required this.transcription});
+  const ProcessingResult({
+    required this.mode,
+    required this.transcription,
+    required this.selectedDateTime,
+  });
 }
 
 class ProcessingChoiceModal extends StatefulWidget {
@@ -33,6 +38,7 @@ class ProcessingChoiceModal extends StatefulWidget {
 
 class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
   late TextEditingController _textController;
+  late DateTime _selectedDateTime;
   // 标记用户是否手动编辑过文本
   bool _userEdited = false;
 
@@ -44,6 +50,7 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
     _textController = TextEditingController(
       text: isPlaceholder ? '' : widget.transcription,
     );
+    _selectedDateTime = DateTime.now();
   }
 
   @override
@@ -82,7 +89,23 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
     widget.onSelect(ProcessingResult(
       mode: mode,
       transcription: editedText.isNotEmpty ? editedText : fallbackText,
+      selectedDateTime: _selectedDateTime,
     ));
+  }
+
+  Future<void> _pickRecordDateTime() async {
+    final pickedDateTime = await showRecordDateTimePicker(
+      context: context,
+      initialDateTime: _selectedDateTime,
+    );
+
+    if (pickedDateTime == null || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _selectedDateTime = pickedDateTime;
+    });
   }
 
   @override
@@ -227,6 +250,66 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
                         }
                       },
                     ),
+            ),
+
+            const SizedBox(height: 16),
+
+            GestureDetector(
+              onTap: _pickRecordDateTime,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8F4EF),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: const Color(0xFFE5D9CA),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF0E6),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.calendar_month_rounded,
+                        size: 17,
+                        color: AppColors.accent,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            '保存日期',
+                            style: AppTypography.modalCaption,
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            formatRecordDateTime(_selectedDateTime),
+                            style: AppTypography.modalBody.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.expand_more_rounded,
+                      size: 20,
+                      color: Color(0xFFB8ADA0),
+                    ),
+                  ],
+                ),
+              ),
             ),
 
             const SizedBox(height: 24),

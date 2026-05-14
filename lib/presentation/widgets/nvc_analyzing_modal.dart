@@ -1,6 +1,6 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 
 /// NVC分析加载动画弹窗
@@ -41,6 +41,7 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
   late AnimationController _progressController;
   late AnimationController _sparkleController;
   late Animation<double> _pulseAnimation;
+  Timer? _stepTimer;
 
   int _currentStep = 0;
   final List<_AnalysisStep> _steps = const [
@@ -95,20 +96,25 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
     _startStepAnimation();
   }
 
-  void _startStepAnimation() async {
-    for (int i = 0; i < _steps.length; i++) {
-      if (!mounted) return;
-      await Future.delayed(const Duration(milliseconds: 1200));
-      if (!mounted) return;
+  void _startStepAnimation() {
+    var nextStep = 0;
+    _stepTimer?.cancel();
+    _stepTimer = Timer.periodic(const Duration(milliseconds: 1200), (timer) {
+      if (!mounted || nextStep >= _steps.length) {
+        timer.cancel();
+        return;
+      }
       setState(() {
-        _currentStep = i;
+        _currentStep = nextStep;
       });
       _progressController.forward(from: 0);
-    }
+      nextStep += 1;
+    });
   }
 
   @override
   void dispose() {
+    _stepTimer?.cancel();
     _pulseController.dispose();
     _progressController.dispose();
     _sparkleController.dispose();
