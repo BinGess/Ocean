@@ -362,7 +362,10 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
             onPressed: () => Navigator.of(context).pop(),
           ),
           title: Text(
-            formatRecordDateTime(_selectedDateTime),
+            formatRecordDateTime(
+              _selectedDateTime,
+              languageCode: Localizations.localeOf(context).languageCode,
+            ),
             style: AppTypography.appBarTitle,
           ),
           centerTitle: true,
@@ -464,7 +467,11 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              formatRecordDateTime(_selectedDateTime),
+                              formatRecordDateTime(
+                                _selectedDateTime,
+                                languageCode: Localizations.localeOf(context)
+                                    .languageCode,
+                              ),
                               style: AppTypography.detailTitle.copyWith(
                                 color: AppColors.textPrimary,
                               ),

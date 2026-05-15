@@ -525,7 +525,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                     ),
                     IconButton(
                       onPressed: _pickRecordDateTime,
-                      tooltip: '选择保存日期',
+                      tooltip: _l10n.recordPickSaveDateTooltip,
                       style: IconButton.styleFrom(
                         fixedSize: const Size(40, 40),
                         backgroundColor: const Color(0xFFECE6DE),

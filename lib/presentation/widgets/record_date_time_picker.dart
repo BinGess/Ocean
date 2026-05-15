@@ -1,15 +1,42 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../l10n/app_localizations.dart';
 
-String formatRecordDateTime(DateTime dateTime) {
+String formatRecordDateTime(
+  DateTime dateTime, {
+  String languageCode = 'zh',
+}) {
   final month = dateTime.month;
   final day = dateTime.day;
-  final period = dateTime.hour < 12 ? '上午' : '下午';
   final hour24 = dateTime.hour;
   final hour = hour24 == 0 ? 12 : (hour24 > 12 ? hour24 - 12 : hour24);
   final minute = dateTime.minute.toString().padLeft(2, '0');
+
+  if (languageCode == 'en') {
+    final period = dateTime.hour < 12 ? 'AM' : 'PM';
+    return '${_englishMonthName(month)} $day · $hour:$minute $period';
+  }
+
+  final period = dateTime.hour < 12 ? '上午' : '下午';
   return '$month月$day日·$period$hour:$minute';
+}
+
+String _englishMonthName(int month) {
+  return const [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ][month - 1];
 }
 
 Future<DateTime?> showRecordDateTimePicker({
@@ -78,6 +105,9 @@ class _RecordDateTimePickerSheetState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context) ??
+        AppLocalizations(Localizations.localeOf(context));
+
     return Container(
       height: 344,
       decoration: const BoxDecoration(
@@ -95,16 +125,16 @@ class _RecordDateTimePickerSheetState
                   CupertinoButton(
                     padding: const EdgeInsets.symmetric(horizontal: 18),
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text(
-                      '取消',
-                      style: TextStyle(color: AppColors.textSecondary),
+                    child: Text(
+                      l10n.cancel,
+                      style: const TextStyle(color: AppColors.textSecondary),
                     ),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      '保存日期',
+                      l10n.recordSaveDate,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -115,9 +145,9 @@ class _RecordDateTimePickerSheetState
                     padding: const EdgeInsets.symmetric(horizontal: 18),
                     onPressed: () =>
                         Navigator.of(context).pop(_selectedDateTime),
-                    child: const Text(
-                      '完成',
-                      style: TextStyle(
+                    child: Text(
+                      l10n.confirm,
+                      style: const TextStyle(
                         color: AppColors.accent,
                         fontWeight: FontWeight.w600,
                       ),
@@ -134,7 +164,8 @@ class _RecordDateTimePickerSheetState
                 minimumDate: widget.minimumDate,
                 maximumDate: widget.maximumDate,
                 minuteInterval: 1,
-                use24hFormat: false,
+                use24hFormat:
+                    Localizations.localeOf(context).languageCode != 'en',
                 onDateTimeChanged: (value) {
                   _selectedDateTime = value;
                 },

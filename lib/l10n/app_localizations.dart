@@ -64,6 +64,8 @@ class AppLocalizations {
       'iCloudBackupFile': '备份文件',
       'iCloudBackupTimeUnknown': '时间未知',
       'other': '其他',
+      'showOnboardingAlways': '每次展示新手引导',
+      'showOnboardingAlwaysSubtitle': '开启后每次进入应用都会展示新手引导',
       'about': '关于',
       'aboutSubtitle': '应用信息与隐私协议',
       'language': '语言',
@@ -130,6 +132,19 @@ class AppLocalizations {
       'emotionEmptyInputCannotSave': '输入内容为空，无法保存',
       'emotionFinishingRecording': '正在结束录音...',
       'emotionTranscriptionManualFallback': '转写失败，请手动补充内容后再试',
+      'recordSaveDate': '保存日期',
+      'recordPickSaveDateTooltip': '选择保存日期',
+      'processingRecordingCompleted': '录音完成',
+      'processingTranscribing': '正在转写中...',
+      'processingManualInputRequired': '请先输入内容',
+      'processingTranscriptionFailedHint': '转写失败，请手动输入内容...',
+      'processingEditTranscriptionHint': '点击编辑转写内容...',
+      'processingSelectMode': '选择处理方式',
+      'processingNVCAnalysis': 'NVC 分析',
+      'processingNVCDescription': '完整的情绪分析',
+      'processingOnlyRecord': '仅记录文本',
+      'processingOnlyRecordDescription': '不做进一步分析',
+      'quoteEmptyData': '暂无文案数据',
       'homeGreetingMorning': '早上好',
       'homeGreetingAfternoon': '下午好',
       'homeGreetingEvening': '晚上好',
@@ -257,6 +272,9 @@ class AppLocalizations {
       'iCloudBackupFile': 'Backup file',
       'iCloudBackupTimeUnknown': 'Unknown time',
       'other': 'Other',
+      'showOnboardingAlways': 'Show onboarding every time',
+      'showOnboardingAlwaysSubtitle':
+          'Show the onboarding guide every time you open the app',
       'about': 'About',
       'aboutSubtitle': 'App info and privacy policy',
       'language': 'Language',
@@ -328,6 +346,20 @@ class AppLocalizations {
       'emotionFinishingRecording': 'Finishing recording...',
       'emotionTranscriptionManualFallback':
           'Transcription failed. Add your text manually and try again',
+      'recordSaveDate': 'Save Date',
+      'recordPickSaveDateTooltip': 'Choose save date',
+      'processingRecordingCompleted': 'Recording Complete',
+      'processingTranscribing': 'Transcribing...',
+      'processingManualInputRequired': 'Please enter some content first',
+      'processingTranscriptionFailedHint':
+          'Transcription failed. Enter the text manually...',
+      'processingEditTranscriptionHint': 'Tap to edit transcript...',
+      'processingSelectMode': 'Choose how to save',
+      'processingNVCAnalysis': 'NVC Analysis',
+      'processingNVCDescription': 'Full emotion analysis',
+      'processingOnlyRecord': 'Save Text Only',
+      'processingOnlyRecordDescription': 'No further analysis',
+      'quoteEmptyData': 'No quote data yet',
       'homeGreetingMorning': 'Good morning',
       'homeGreetingAfternoon': 'Good afternoon',
       'homeGreetingEvening': 'Good evening',
@@ -544,6 +576,25 @@ class AppLocalizations {
       _translate('emotionFinishingRecording');
   String get emotionTranscriptionManualFallback =>
       _translate('emotionTranscriptionManualFallback');
+  String get recordSaveDate => _translate('recordSaveDate');
+  String get recordPickSaveDateTooltip =>
+      _translate('recordPickSaveDateTooltip');
+  String get processingRecordingCompleted =>
+      _translate('processingRecordingCompleted');
+  String get processingTranscribing => _translate('processingTranscribing');
+  String get processingManualInputRequired =>
+      _translate('processingManualInputRequired');
+  String get processingTranscriptionFailedHint =>
+      _translate('processingTranscriptionFailedHint');
+  String get processingEditTranscriptionHint =>
+      _translate('processingEditTranscriptionHint');
+  String get processingSelectMode => _translate('processingSelectMode');
+  String get processingNVCAnalysis => _translate('processingNVCAnalysis');
+  String get processingNVCDescription => _translate('processingNVCDescription');
+  String get processingOnlyRecord => _translate('processingOnlyRecord');
+  String get processingOnlyRecordDescription =>
+      _translate('processingOnlyRecordDescription');
+  String get quoteEmptyData => _translate('quoteEmptyData');
   String get homeGreetingMorning => _translate('homeGreetingMorning');
   String get homeGreetingAfternoon => _translate('homeGreetingAfternoon');
   String get homeGreetingEvening => _translate('homeGreetingEvening');

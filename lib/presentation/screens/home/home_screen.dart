@@ -175,7 +175,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     final quoteIndex =
         _positiveModulo(_currentQuoteIndex + offset, _quotes.length);
-    return _normalizeQuoteText(_quotes[quoteIndex].content);
+    final languageCode = Localizations.localeOf(context).languageCode;
+    return _normalizeQuoteText(
+      _quotes[quoteIndex].localizedContent(languageCode),
+    );
   }
 
   double _lyricScrollProgress() {
@@ -263,15 +266,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
             Transform.translate(
               offset: Offset(0, -rowHeight * (1 + progress)),
-              child: Column(
-                children: List.generate(5, (index) {
-                  final relativePosition = (index - 2) - progress;
-                  return _buildLyricQuoteLine(
-                    text: _quoteTextForOffset(index - 2),
-                    relativePosition: relativePosition,
-                    rowHeight: rowHeight,
-                  );
-                }),
+              child: OverflowBox(
+                alignment: Alignment.topCenter,
+                minHeight: rowHeight * 5,
+                maxHeight: rowHeight * 5,
+                child: Column(
+                  children: List.generate(5, (index) {
+                    final relativePosition = (index - 2) - progress;
+                    return _buildLyricQuoteLine(
+                      text: _quoteTextForOffset(index - 2),
+                      relativePosition: relativePosition,
+                      rowHeight: rowHeight,
+                    );
+                  }),
+                ),
               ),
             ),
           ],

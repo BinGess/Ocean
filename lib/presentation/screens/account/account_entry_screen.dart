@@ -521,7 +521,7 @@ const _userAgreementSections = [
 const _privacyPolicySections = [
   _LegalSection(
     '版本信息',
-    '版本号：V1.1\n生效日期：2026年2月15日\n更新日期：2026年5月11日',
+    '版本号：V1.4\n生效日期：2026年2月15日\n更新日期：2026年5月11日',
   ),
   _LegalSection(
     '我们收集的信息',

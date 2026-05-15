@@ -416,7 +416,11 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          formatRecordDateTime(_selectedDateTime),
+                          formatRecordDateTime(
+                            _selectedDateTime,
+                            languageCode:
+                                Localizations.localeOf(context).languageCode,
+                          ),
                           style: const TextStyle(
                             color: Color(0xFF8B8B8B),
                             fontSize: 14,

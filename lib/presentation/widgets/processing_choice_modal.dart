@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/record.dart';
 import '../../core/theme/app_typography.dart';
+import '../../l10n/app_localizations.dart';
 import 'record_date_time_picker.dart';
 
 /// 处理选择的结果，包含模式和用户可能编辑过的转写文本
@@ -37,6 +38,8 @@ class ProcessingChoiceModal extends StatefulWidget {
 }
 
 class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
+  static const _transcribingPlaceholder = '正在转写中...';
+
   late TextEditingController _textController;
   late DateTime _selectedDateTime;
   // 标记用户是否手动编辑过文本
@@ -45,8 +48,8 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
   @override
   void initState() {
     super.initState();
-    final isPlaceholder =
-        widget.transcription.isEmpty || widget.transcription == '正在转写中...';
+    final isPlaceholder = widget.transcription.isEmpty ||
+        widget.transcription == _transcribingPlaceholder;
     _textController = TextEditingController(
       text: isPlaceholder ? '' : widget.transcription,
     );
@@ -58,8 +61,8 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
     super.didUpdateWidget(oldWidget);
     // 如果用户还没有手动编辑，且外部传入了新的转写文本，则更新
     if (!_userEdited && widget.transcription != oldWidget.transcription) {
-      final isPlaceholder =
-          widget.transcription.isEmpty || widget.transcription == '正在转写中...';
+      final isPlaceholder = widget.transcription.isEmpty ||
+          widget.transcription == _transcribingPlaceholder;
       if (!isPlaceholder) {
         _textController.text = widget.transcription;
       }
@@ -76,11 +79,16 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
     final editedText = _textController.text.trim();
     final fallbackText = widget.transcription.trim();
     final hasFallbackText =
-        fallbackText.isNotEmpty && fallbackText != '正在转写中...';
+        fallbackText.isNotEmpty && fallbackText != _transcribingPlaceholder;
+    final l10n = AppLocalizations.of(context) ??
+        AppLocalizations(Localizations.localeOf(context));
     if (editedText.isEmpty && !hasFallbackText) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(widget.transcriptionErrorMessage ?? '请先输入内容'),
+          content: Text(
+            widget.transcriptionErrorMessage ??
+                l10n.processingManualInputRequired,
+          ),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -110,10 +118,13 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context) ??
+        AppLocalizations(Localizations.localeOf(context));
     final hasTranscriptionError =
         widget.transcriptionErrorMessage?.trim().isNotEmpty == true;
     final isPlaceholder = !hasTranscriptionError &&
-        (widget.transcription.isEmpty || widget.transcription == '正在转写中...');
+        (widget.transcription.isEmpty ||
+            widget.transcription == _transcribingPlaceholder);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -133,8 +144,8 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  '录音完成',
+                Text(
+                  l10n.processingRecordingCompleted,
                   style: AppTypography.modalTitle,
                 ),
                 GestureDetector(
@@ -217,7 +228,7 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
                           ),
                           const SizedBox(width: 10),
                           Text(
-                            '正在转写中...',
+                            l10n.processingTranscribing,
                             style: AppTypography.modalBody.copyWith(
                               color: const Color(0xFF9F8C7A),
                             ),
@@ -240,8 +251,8 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
                         hintText: hasTranscriptionError
-                            ? '转写失败，请手动输入内容...'
-                            : '点击编辑转写内容...',
+                            ? l10n.processingTranscriptionFailedHint
+                            : l10n.processingEditTranscriptionHint,
                         hintStyle: AppTypography.modalBody,
                       ),
                       onChanged: (_) {
@@ -287,13 +298,17 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            '保存日期',
+                          Text(
+                            l10n.recordSaveDate,
                             style: AppTypography.modalCaption,
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            formatRecordDateTime(_selectedDateTime),
+                            formatRecordDateTime(
+                              _selectedDateTime,
+                              languageCode:
+                                  Localizations.localeOf(context).languageCode,
+                            ),
                             style: AppTypography.modalBody.copyWith(
                               color: AppColors.textPrimary,
                               fontWeight: FontWeight.w600,
@@ -315,8 +330,8 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
             const SizedBox(height: 24),
 
             // 选项标题
-            const Text(
-              '选择处理方式',
+            Text(
+              l10n.processingSelectMode,
               style: AppTypography.modalCaption,
             ),
 
@@ -329,8 +344,8 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
                 Expanded(
                   child: _ProcessingOption(
                     icon: Icons.lightbulb_outline,
-                    title: 'NVC 分析',
-                    description: '完整的情绪分析',
+                    title: l10n.processingNVCAnalysis,
+                    description: l10n.processingNVCDescription,
                     iconColor: AppColors.accent,
                     backgroundColor: AppColors.accentWarm,
                     onTap: widget.onNVCInsight ??
@@ -346,8 +361,8 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
                 Expanded(
                   child: _ProcessingOption(
                     icon: Icons.description_outlined,
-                    title: '仅记录文本',
-                    description: '不做进一步分析',
+                    title: l10n.processingOnlyRecord,
+                    description: l10n.processingOnlyRecordDescription,
                     iconColor: const Color(0xFF9E9E9E),
                     backgroundColor: const Color(0xFFF2F2F2),
                     onTap: () {
