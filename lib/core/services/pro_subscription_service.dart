@@ -18,7 +18,8 @@ class ProSubscriptionService {
 
   /// 关于页连点 Logo 解锁后，才显示 DEBUG 开关（持久化）
   static const String _debugMenuUnlockedKey = 'debug_menu_unlocked';
-  /// DEBUG 模式：免订阅使用导出与 iCloud（仅内部测试）
+
+  /// DEBUG 模式：免订阅使用导出（仅内部测试）
   static const String _debugModeKey = 'app_debug_mode_enabled';
 
   final StreamController<bool> _statusController =
@@ -77,8 +78,7 @@ class ProSubscriptionService {
     try {
       final response = await _iap.queryProductDetails({monthlySubscriptionId});
       if (response.error != null) {
-        debugPrint(
-            '[ProSubscription] Query products error: ${response.error}');
+        debugPrint('[ProSubscription] Query products error: ${response.error}');
         return;
       }
       if (response.notFoundIDs.isNotEmpty) {
@@ -130,7 +130,7 @@ class ProSubscriptionService {
     await _database.settingsBox.put(_debugMenuUnlockedKey, value);
   }
 
-  /// DEBUG 模式开启时，导出与 iCloud 等同 Pro，无需购买
+  /// DEBUG 模式开启时，导出等同 Pro，无需购买
   bool get isDebugModeEnabled =>
       _database.settingsBox.get(_debugModeKey) as bool? ?? false;
 
@@ -186,7 +186,8 @@ class ProSubscriptionService {
   }
 
   /// 处理购买更新回调
-  Future<void> _onPurchaseUpdate(List<PurchaseDetails> purchaseDetailsList) async {
+  Future<void> _onPurchaseUpdate(
+      List<PurchaseDetails> purchaseDetailsList) async {
     for (final purchase in purchaseDetailsList) {
       debugPrint(
           '[ProSubscription] Purchase update: ${purchase.productID} - ${purchase.status}');

@@ -49,28 +49,48 @@ void main() {
     expect(find.text('验证码已发送，5 分钟内有效'), findsOneWidget);
   });
 
-  testWidgets('未同意用户协议和隐私政策时不能邮箱登录或注册', (tester) async {
+  testWidgets('登录页隐藏邮箱登录入口', (tester) async {
     await tester.pumpWidget(_buildTestable());
 
-    await tester.tap(find.text('邮箱登录'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextField, '邮箱'),
-      'user@example.com',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextField, '密码（至少 8 位）'),
-      'password123',
-    );
+    expect(find.text('邮箱登录'), findsNothing);
+    expect(find.widgetWithText(TextField, '邮箱'), findsNothing);
+    expect(find.widgetWithText(TextField, '密码（至少 8 位）'), findsNothing);
+    expect(find.widgetWithText(OutlinedButton, '注册并进入'), findsNothing);
+  });
 
-    await tester.tap(find.widgetWithText(FilledButton, '登录'));
+  testWidgets('登录页不展示多余标题并将验证码按钮收进验证码输入框', (tester) async {
+    await tester.pumpWidget(_buildTestable());
+
+    expect(find.text('登录 Ocean 账号'), findsNothing);
+
+    final codeInputFinder = find.widgetWithText(TextField, '验证码');
+    expect(codeInputFinder, findsOneWidget);
+    expect(
+      find.descendant(
+        of: codeInputFinder,
+        matching: find.text('获取验证码'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('获取验证码后进入60秒倒计时并禁止重复点击', (tester) async {
+    await tester.pumpWidget(_buildTestable());
+
+    await tester.enterText(
+        find.widgetWithText(TextField, '手机号'), '13800138000');
+    await tester.tap(find.byType(Checkbox));
     await tester.pump();
-    await tester.tap(find.widgetWithText(OutlinedButton, '注册并进入'));
+    await tester.tap(find.text('获取验证码'));
     await tester.pump();
 
-    expect(accountService.loginCount, 0);
-    expect(accountService.registerCount, 0);
-    expect(find.text('请先阅读并同意用户协议和隐私政策'), findsOneWidget);
+    expect(accountService.sendSmsCodeCount, 1);
+    expect(find.text('60秒'), findsOneWidget);
+
+    await tester.tap(find.text('60秒'));
+    await tester.pump();
+
+    expect(accountService.sendSmsCodeCount, 1);
   });
 
   testWidgets('用户协议和隐私政策链接打开内置文档页', (tester) async {

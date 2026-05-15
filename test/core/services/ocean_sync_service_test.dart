@@ -253,8 +253,7 @@ void main() {
     expect(dataStore.dailySummaries.single['date'], '2026-05-07');
   });
 
-  test(
-      'restoreSnapshot replaces stale local account cache with server snapshot',
+  test('restoreSnapshot merges server snapshot without clearing local data',
       () async {
     final api = _FakeOceanSyncApi()
       ..snapshot = {
@@ -316,11 +315,14 @@ void main() {
     await service.restoreSnapshot();
 
     expect(dataStore.profile?['nickname'], 'Server User');
-    expect(dataStore.records.map((item) => item.id), ['server-record']);
-    expect(dataStore.dailySummaries, isEmpty);
-    expect(dataStore.dailyMoods, isEmpty);
-    expect(dataStore.insightReports, isEmpty);
-    expect(dataStore.weeklyInsights, isEmpty);
+    expect(
+      dataStore.records.map((item) => item.id),
+      containsAll(['stale-record', 'server-record']),
+    );
+    expect(dataStore.dailySummaries.single['date'], '2026-05-07');
+    expect(dataStore.dailyMoods.single['date'], '2026-05-07');
+    expect(dataStore.insightReports.single['periodKey'], 'old-week');
+    expect(dataStore.weeklyInsights.single['id'], 'old-weekly');
   });
 
   test('pullChanges applies tombstone deletes for records and daily moods',
@@ -552,6 +554,16 @@ class _MemorySyncDataStore implements OceanSyncDataStore {
   Future<void> clearSyncedTombstones() async {
     clearSyncedTombstonesCount += 1;
   }
+
+  @override
+  Future<void> markRecordsSyncedToCurrentAccount(
+    Iterable<String> recordIds,
+  ) async {}
+
+  @override
+  Future<void> markLocalDataSyncedToCurrentAccount(
+    OceanLocalSyncData data,
+  ) async {}
 }
 
 class _MemorySyncStateStore implements OceanSyncStateStore {

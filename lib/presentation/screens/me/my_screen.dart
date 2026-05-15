@@ -5,6 +5,7 @@ import 'dart:async';
 import '../../../core/di/injection.dart';
 import '../../../core/network/ocean_api_client.dart';
 import '../../../core/services/ocean_account_service.dart';
+import '../../../core/services/ocean_record_ownership_service.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/datasources/local/hive_database.dart';
 import '../../../l10n/app_localizations.dart';
@@ -36,6 +37,7 @@ class _MyScreenState extends State<MyScreen> {
   late final HiveDatabase _database;
   OceanUserDataApi? _userDataApi;
   OceanAccountService? _accountService;
+  OceanRecordOwnershipService? _ownershipService;
   String? _avatar;
   String? _nickname;
   String? _signature;
@@ -50,6 +52,9 @@ class _MyScreenState extends State<MyScreen> {
         getIt.isRegistered<OceanApiClient>() ? getIt<OceanApiClient>() : null;
     _accountService = getIt.isRegistered<OceanAccountService>()
         ? getIt<OceanAccountService>()
+        : null;
+    _ownershipService = getIt.isRegistered<OceanRecordOwnershipService>()
+        ? getIt<OceanRecordOwnershipService>()
         : null;
     _loadProfile();
     _loadAccountState();
@@ -70,6 +75,12 @@ class _MyScreenState extends State<MyScreen> {
   }
 
   void _loadProfile() {
+    if (!_isEntityVisible('profile', 'me')) {
+      _avatar = null;
+      _nickname = null;
+      _signature = null;
+      return;
+    }
     _avatar = _database.settingsBox.get('profile_avatar') as String?;
     _nickname = _database.settingsBox.get('profile_nickname') as String?;
     _signature = _database.settingsBox.get('profile_signature') as String?;
@@ -119,6 +130,9 @@ class _MyScreenState extends State<MyScreen> {
         nicknameToCache = data['nickname']?.toString() ?? '';
         signatureToCache = data['signature']?.toString() ?? '';
       }
+      await _markEntityAccount('profile', 'me');
+    } else {
+      await _ownershipService?.markEntityLocal('profile', 'me');
     }
 
     await _database.settingsBox.put('profile_avatar', avatarToCache);
@@ -135,6 +149,27 @@ class _MyScreenState extends State<MyScreen> {
       _nickname = nicknameToCache;
       _signature = signatureToCache;
     });
+  }
+
+  bool _isEntityVisible(String entityType, String entityId) {
+    final ownership = _ownershipService;
+    if (ownership == null) return true;
+    return ownership.isEntityVisible(
+      entityType: entityType,
+      entityId: entityId,
+      accountKey: ownership.activeAccount,
+    );
+  }
+
+  Future<void> _markEntityAccount(String entityType, String entityId) async {
+    final api = _userDataApi is OceanAccountApi
+        ? _userDataApi as OceanAccountApi
+        : null;
+    if (api == null) return;
+    final accountKey = await api.currentAccountKey;
+    if (accountKey == null || accountKey.isEmpty) return;
+    await _ownershipService?.markEntityAccount(
+        entityType, entityId, accountKey);
   }
 
   Future<void> _showEditProfileDialog(AppLocalizations l10n) async {
@@ -614,9 +649,10 @@ class _ProfileHeader extends StatelessWidget {
               label: const Text('登录'),
               style: TextButton.styleFrom(
                 minimumSize: const Size(76, 44),
-                foregroundColor: Colors.white,
-                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.textSecondary,
+                backgroundColor: AppColors.accentLight,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
+                side: const BorderSide(color: AppColors.borderLight),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18),
                 ),

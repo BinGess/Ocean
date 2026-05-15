@@ -3,16 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'account_info_screen.dart';
 import 'about_screen.dart';
 import 'export_screen.dart';
-import 'ocean_sync_screen.dart';
 import '../app_lock/app_lock_settings_screen.dart';
 import '../pro/pro_purchase_screen.dart';
 import '../../widgets/ai_auth_dialog.dart';
 import '../../bloc/locale/locale_bloc.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
-import '../../../core/services/icloud_sync_service.dart';
 import '../../../core/services/ocean_account_service.dart';
 import '../../../core/services/pro_subscription_service.dart';
 import '../../../core/theme/app_colors.dart';
@@ -27,14 +26,9 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _aiAuthEnabled = false;
-  bool _iCloudSyncEnabled = false;
-  bool _iCloudAvailable = false;
-  bool _iCloudStatusLoading = false;
-  ICloudBackupStatus? _iCloudBackupStatus;
   bool _signedIn = false;
   bool _logoutLoading = false;
   late final AIAuthService _aiAuthService;
-  late final ICloudSyncService _iCloudSyncService;
   OceanAccountService? _accountService;
   StreamSubscription? _authSubscription;
   StreamSubscription<void>? _accountDataSubscription;
@@ -43,12 +37,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _aiAuthService = getIt<AIAuthService>();
-    _iCloudSyncService = getIt<ICloudSyncService>();
     _accountService = getIt.isRegistered<OceanAccountService>()
         ? getIt<OceanAccountService>()
         : null;
     _loadAIAuthStatus();
-    _loadICloudStatus();
     _loadAccountStatus();
 
     // 监听授权状态变化
@@ -79,40 +71,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _loadICloudStatus() async {
-    if (mounted) {
-      setState(() => _iCloudStatusLoading = true);
-    }
-
-    final enabled = await _iCloudSyncService.isEnabled;
-    final available = await _iCloudSyncService.isAvailable;
-    final backupStatus = await _iCloudSyncService.getBackupStatus();
-    if (mounted) {
-      setState(() {
-        _iCloudSyncEnabled = enabled;
-        _iCloudAvailable = available;
-        _iCloudBackupStatus = backupStatus;
-        _iCloudStatusLoading = false;
-      });
-    }
-  }
-
   Future<void> _loadAccountStatus() async {
     final service = _accountService;
     final signedIn = service != null && await service.isSignedIn;
-    if (signedIn && await _iCloudSyncService.isEnabled) {
-      try {
-        await _iCloudSyncService.setEnabled(false);
-      } catch (error) {
-        debugPrint(
-            'SettingsScreen: failed to disable iCloud after login: $error');
-      }
-    }
     if (!mounted) return;
     setState(() => _signedIn = signedIn);
-    if (signedIn) {
-      unawaited(_loadICloudStatus());
-    }
   }
 
   @override
@@ -143,6 +106,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // 账号分组
+          _buildSectionHeader('账号'),
+          const SizedBox(height: 8),
+          _buildNavItem(
+            title: '账号信息',
+            subtitle: _signedIn ? '查看手机号、昵称、头像和签名' : '当前未登录',
+            icon: Icons.account_circle_outlined,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AccountInfoScreen()),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+
           // 安全与隐私分组
           _buildSectionHeader(l10n.securityAndPrivacy),
           const SizedBox(height: 8),
@@ -185,34 +163,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   MaterialPageRoute(builder: (_) => const ProPurchaseScreen()),
                 );
               }
-            },
-          ),
-          if (!_signedIn) ...[
-            const SizedBox(height: 12),
-            _buildSwitchItem(
-              title: l10n.iCloudSync,
-              subtitle: _iCloudAvailable
-                  ? l10n.iCloudSyncSubtitle
-                  : l10n.iCloudSyncUnavailable,
-              icon: Icons.cloud_outlined,
-              value: _iCloudSyncEnabled,
-              onChanged: (value) => _handleICloudSyncToggle(value),
-              proRequired: true,
-            ),
-            if (_iCloudAvailable) ...[
-              const SizedBox(height: 8),
-              _buildICloudStatusCard(l10n),
-            ],
-          ],
-          const SizedBox(height: 12),
-          _buildNavItem(
-            title: '账号同步',
-            subtitle: '登录后备份和恢复本地记录',
-            icon: Icons.sync_outlined,
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const OceanSyncScreen()),
-              );
             },
           ),
           const SizedBox(height: 16),
@@ -278,7 +228,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8F6F3),
+                    color: AppColors.bgInput,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(Icons.language,
@@ -455,7 +405,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFF8F6F3),
+                color: AppColors.bgInput,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: AppColors.textSecondary),
@@ -531,7 +481,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFF8F6F3),
+                color: AppColors.bgInput,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: AppColors.textSecondary),
@@ -603,97 +553,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildICloudStatusCard(AppLocalizations l10n) {
-    final status = _iCloudBackupStatus;
-    final subtitle = _iCloudStatusLoading
-        ? l10n.iCloudBackupChecking
-        : _formatICloudBackupStatus(l10n, status);
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFBFAF8),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFEDE8DF)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            status?.backupExists == true
-                ? Icons.cloud_done_outlined
-                : Icons.cloud_queue_outlined,
-            size: 20,
-            color: AppColors.accent,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.iCloudBackupStatusTitle,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    height: 1.4,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatICloudBackupStatus(
-    AppLocalizations l10n,
-    ICloudBackupStatus? status,
-  ) {
-    if (status == null) return l10n.iCloudBackupChecking;
-    if (!status.backupExists) return l10n.iCloudBackupNotFound;
-
-    final syncedAt = status.exportedAt == null
-        ? l10n.iCloudBackupTimeUnknown
-        : _formatDateTime(status.exportedAt!);
-    final size = _formatFileSize(status.fileSizeBytes);
-
-    return '${l10n.iCloudBackupLastSynced}: $syncedAt\n'
-        '${l10n.iCloudBackupContent}: ${status.recordCount} ${l10n.iCloudBackupRecords}, '
-        '${status.weeklyInsightCount} ${l10n.iCloudBackupWeeklyInsights}, '
-        '${status.insightReportCount} ${l10n.iCloudBackupReports}\n'
-        '${l10n.iCloudBackupFile}: ${status.fileName} · $size';
-  }
-
-  String _formatDateTime(DateTime value) {
-    final local = value.toLocal();
-    final month = local.month.toString().padLeft(2, '0');
-    final day = local.day.toString().padLeft(2, '0');
-    final hour = local.hour.toString().padLeft(2, '0');
-    final minute = local.minute.toString().padLeft(2, '0');
-    return '${local.year}/$month/$day $hour:$minute';
-  }
-
-  String _formatFileSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) {
-      final kb = bytes / 1024;
-      return '${kb.toStringAsFixed(kb >= 10 ? 0 : 1)} KB';
-    }
-    final mb = bytes / (1024 * 1024);
-    return '${mb.toStringAsFixed(mb >= 10 ? 0 : 1)} MB';
-  }
-
   /// 处理AI授权开关切换
   Future<void> _handleAIAuthToggle(bool value) async {
     if (value) {
@@ -710,51 +569,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         await _aiAuthService.revoke();
         // Stream会自动更新UI
       }
-    }
-  }
-
-  Future<void> _handleICloudSyncToggle(bool value) async {
-    final l10n = AppLocalizations.of(context)!;
-
-    if (value && _signedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('你已登录 Ocean 账号。为避免数据冲突，不能同时开启 iCloud 同步。'),
-        ),
-      );
-      return;
-    }
-
-    if (value && !_iCloudAvailable) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.iCloudSyncUnavailable)),
-      );
-      return;
-    }
-
-    try {
-      await _iCloudSyncService.setEnabled(value);
-      if (!mounted) return;
-      setState(() {
-        _iCloudSyncEnabled = value;
-      });
-      await _loadICloudStatus();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            value ? l10n.iCloudSyncEnabled : l10n.iCloudSyncDisabled,
-          ),
-        ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _iCloudSyncEnabled = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.iCloudSyncFailed)),
-      );
     }
   }
 

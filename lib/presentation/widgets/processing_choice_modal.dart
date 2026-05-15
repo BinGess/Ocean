@@ -264,7 +264,7 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
                   color: const Color(0xFFF8F4EF),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: const Color(0xFFE5D9CA),
+                    color: AppColors.borderLight,
                   ),
                 ),
                 child: Row(
@@ -273,7 +273,7 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
                       width: 32,
                       height: 32,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFF0E6),
+                        color: AppColors.accentWarm,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(
@@ -332,7 +332,7 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
                     title: 'NVC 分析',
                     description: '完整的情绪分析',
                     iconColor: AppColors.accent,
-                    backgroundColor: const Color(0xFFFFF0E6),
+                    backgroundColor: AppColors.accentWarm,
                     onTap: widget.onNVCInsight ??
                         () {
                           _selectMode(ProcessingMode.withNVC);

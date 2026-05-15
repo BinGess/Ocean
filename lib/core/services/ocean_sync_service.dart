@@ -9,6 +9,7 @@ import '../../domain/entities/record.dart';
 import '../../domain/entities/weekly_insight.dart';
 import '../network/ocean_api_client.dart';
 import 'ocean_record_sync_mapper.dart';
+import 'ocean_record_ownership_service.dart';
 
 export '../network/ocean_api_client.dart' show OceanSyncApi;
 
@@ -101,11 +102,18 @@ abstract class OceanSyncDataStore {
   Future<void> deleteInsightReport(String periodType, String periodKey);
   Future<void> upsertWeeklyInsight(Map<String, dynamic> insight);
   Future<void> deleteWeeklyInsight(String id);
+  Future<void> markRecordsSyncedToCurrentAccount(Iterable<String> recordIds);
+  Future<void> markLocalDataSyncedToCurrentAccount(OceanLocalSyncData data);
   Future<void> clearSyncedTombstones();
 }
 
 class HiveOceanSyncDataStore implements OceanSyncDataStore {
-  HiveOceanSyncDataStore(this._database);
+  HiveOceanSyncDataStore(
+    this._database, {
+    OceanRecordOwnershipService? ownershipService,
+    OceanAccountApi? accountApi,
+  })  : _ownershipService = ownershipService,
+        _accountApi = accountApi;
 
   static const _profileAvatarKey = 'profile_avatar';
   static const _profileNicknameKey = 'profile_nickname';
@@ -116,37 +124,86 @@ class HiveOceanSyncDataStore implements OceanSyncDataStore {
   static const _deletedRecordPrefix = 'ocean_sync_deleted_record_';
 
   final HiveDatabase _database;
+  final OceanRecordOwnershipService? _ownershipService;
+  final OceanAccountApi? _accountApi;
 
   @override
   Future<OceanLocalSyncData> readAll() async {
     return OceanLocalSyncData(
       profile: await _readProfile(),
-      records:
-          _database.recordsBox.values.map((model) => model.toEntity()).toList(),
+      records: await _readOwnedRecords(),
       deletedRecords: _readDeletedRecords(),
-      dailySummaries: _readDailySummaries(),
+      dailySummaries: await _readDailySummaries(),
       dailyMoods: await _readDailyMoods(),
-      insightReports: _readInsightReports(),
-      weeklyInsights: _readWeeklyInsights(),
+      insightReports: await _readInsightReports(),
+      weeklyInsights: await _readWeeklyInsights(),
     );
   }
 
   @override
   Future<void> clearAccountData() async {
-    await _database.recordsBox.clear();
-    await _database.weeklyInsightsBox.clear();
-    await _database.insightReportsBox.clear();
+    // Snapshot restore is merge-based. Do not delete local records or local
+    // generated data here; server tombstones are applied per entity instead.
+  }
 
-    final keys = _database.settingsBox.keys
-        .map((key) => key.toString())
-        .where(_isAccountScopedSetting)
-        .toList();
-    for (final key in keys) {
-      await _database.settingsBox.delete(key);
+  Future<List<Record>> _readOwnedRecords() async {
+    final accountKey = await _currentAccountKey();
+    final ownership = _ownershipService;
+    if (ownership == null) {
+      return _database.recordsBox.values
+          .map((model) => model.toEntity())
+          .toList();
     }
+    return _database.recordsBox.values
+        .where((model) => ownership.isLocalOrCurrentAccount(
+              recordId: model.id,
+              accountKey: accountKey,
+            ))
+        .map((model) => model.toEntity())
+        .toList();
+  }
+
+  Future<String?> _currentAccountKey() async {
+    final accountApi = _accountApi;
+    if (accountApi == null) return null;
+    return await accountApi.currentAccountKey;
+  }
+
+  Future<bool> _isEntityVisible(String entityType, String entityId) async {
+    return _isEntityVisibleSync(
+      entityType,
+      entityId,
+      await _currentAccountKey(),
+    );
+  }
+
+  bool _isEntityVisibleSync(
+    String entityType,
+    String entityId,
+    String? accountKey,
+  ) {
+    final ownership = _ownershipService;
+    if (ownership == null) return true;
+    return ownership.isEntityVisible(
+      entityType: entityType,
+      entityId: entityId,
+      accountKey: accountKey,
+    );
+  }
+
+  Future<void> _markEntityAccount(String entityType, String entityId) async {
+    final accountKey = await _currentAccountKey();
+    if (accountKey == null || accountKey.isEmpty) return;
+    await _ownershipService?.markEntityAccount(
+        entityType, entityId, accountKey);
+  }
+
+  Future<void> _clearEntityOwner(String entityType, String entityId) async {
+    await _ownershipService?.clearEntityOwner(entityType, entityId);
   }
 
   Future<Map<String, dynamic>?> _readProfile() async {
+    if (!await _isEntityVisible('profile', 'me')) return null;
     final avatar = _database.settingsBox.get(_profileAvatarKey) as String?;
     final nickname = _database.settingsBox.get(_profileNicknameKey) as String?;
     final signature =
@@ -162,26 +219,35 @@ class HiveOceanSyncDataStore implements OceanSyncDataStore {
     };
   }
 
-  List<Map<String, dynamic>> _readDailySummaries() {
+  Future<List<Map<String, dynamic>>> _readDailySummaries() async {
     final results = <Map<String, dynamic>>[];
+    final accountKey = await _currentAccountKey();
     for (final rawKey in _database.settingsBox.keys) {
       final key = rawKey.toString();
       if (!key.startsWith(_dailySummaryPrefix)) continue;
+      final date = key.substring(_dailySummaryPrefix.length);
+      if (!_isEntityVisibleSync(
+        'daily_summary',
+        date,
+        accountKey,
+      )) {
+        continue;
+      }
       final raw = _database.settingsBox.get(key);
       if (raw is! String || raw.isEmpty) continue;
       try {
         final json = jsonDecode(raw) as Map<String, dynamic>;
         final summary = DailySummary.fromJson(json);
         results.add({
-          'date': key.substring(_dailySummaryPrefix.length),
+          'date': date,
           'moodWord': summary.moodWord,
           'oneSentence': summary.oneSentence,
           'score': summary.score,
           'recordCount': summary.recordCount,
           'generatedAt': summary.generatedAt.toUtc().toIso8601String(),
           'userOverridden': summary.userOverridden,
-          'clientUpdatedAt': _readUpdatedAt('daily_summary',
-              key.substring(_dailySummaryPrefix.length), summary.generatedAt),
+          'clientUpdatedAt':
+              _readUpdatedAt('daily_summary', date, summary.generatedAt),
         });
       } catch (_) {
         // Ignore corrupt local cache entries.
@@ -192,12 +258,14 @@ class HiveOceanSyncDataStore implements OceanSyncDataStore {
 
   Future<List<Map<String, dynamic>>> _readDailyMoods() async {
     final results = <Map<String, dynamic>>[];
+    final accountKey = await _currentAccountKey();
     for (final rawKey in _database.settingsBox.keys) {
       final key = rawKey.toString();
       if (!key.startsWith(_dailyMoodPrefix)) continue;
+      final date = key.substring(_dailyMoodPrefix.length);
+      if (!_isEntityVisibleSync('daily_mood', date, accountKey)) continue;
       final imagePath = _database.settingsBox.get(key) as String?;
       if (_isBlank(imagePath)) continue;
-      final date = key.substring(_dailyMoodPrefix.length);
       results.add({
         'date': date,
         'imagePath': imagePath,
@@ -207,10 +275,14 @@ class HiveOceanSyncDataStore implements OceanSyncDataStore {
     return results;
   }
 
-  List<Map<String, dynamic>> _readInsightReports() {
+  Future<List<Map<String, dynamic>>> _readInsightReports() async {
     final results = <Map<String, dynamic>>[];
+    final accountKey = await _currentAccountKey();
     for (final rawKey in _database.insightReportsBox.keys) {
       final periodKey = rawKey.toString();
+      if (!_isEntityVisibleSync('insight_report', periodKey, accountKey)) {
+        continue;
+      }
       final raw = _database.insightReportsBox.get(rawKey);
       if (raw == null || raw.isEmpty) continue;
       try {
@@ -234,8 +306,11 @@ class HiveOceanSyncDataStore implements OceanSyncDataStore {
     return results;
   }
 
-  List<Map<String, dynamic>> _readWeeklyInsights() {
-    return _database.weeklyInsightsBox.values.map((model) {
+  Future<List<Map<String, dynamic>>> _readWeeklyInsights() async {
+    final accountKey = await _currentAccountKey();
+    return _database.weeklyInsightsBox.values.where((model) {
+      return _isEntityVisibleSync('weekly_insight', model.id, accountKey);
+    }).map((model) {
       final insight = model.toEntity();
       return {
         'id': insight.id,
@@ -275,25 +350,36 @@ class HiveOceanSyncDataStore implements OceanSyncDataStore {
       'me',
       profile['clientUpdatedAt']?.toString(),
     );
+    await _markEntityAccount('profile', 'me');
   }
 
   @override
   Future<void> upsertRecord(Record record) async {
     await _database.recordsBox.put(record.id, RecordModel.fromEntity(record));
+    final accountKey = await _accountApi?.currentAccountKey;
+    if (accountKey != null && accountKey.isNotEmpty) {
+      await _ownershipService?.markAccount(record.id, accountKey);
+    }
   }
 
   @override
   Future<void> deleteRecord(String id) async {
+    final ownership = _ownershipService;
+    if (ownership != null && ownership.isLocal(id)) {
+      return;
+    }
     await _database.recordsBox.delete(id);
     await _database.settingsBox.delete('$_deletedRecordPrefix$id');
+    await _ownershipService?.clearOwner(id);
   }
 
   @override
   Future<void> upsertDailySummary(Map<String, dynamic> summary) async {
     final date = summary['date']?.toString();
     if (_isBlank(date)) return;
+    final dateKey = date!;
     final localJson = {
-      'date': date,
+      'date': dateKey,
       'mood_word': summary['moodWord'],
       'one_sentence': summary['oneSentence'],
       'score': summary['score'],
@@ -302,19 +388,24 @@ class HiveOceanSyncDataStore implements OceanSyncDataStore {
       'user_overridden': summary['userOverridden'] ?? false,
     };
     await _database.settingsBox.put(
-      '$_dailySummaryPrefix$date',
+      '$_dailySummaryPrefix$dateKey',
       jsonEncode(localJson),
     );
     await _saveUpdatedAt(
       'daily_summary',
-      date!,
+      dateKey,
       summary['clientUpdatedAt']?.toString(),
     );
+    await _markEntityAccount('daily_summary', dateKey);
   }
 
   @override
   Future<void> deleteDailySummary(String date) async {
+    if (_ownershipService?.isEntityLocal('daily_summary', date) ?? false) {
+      return;
+    }
     await _database.settingsBox.delete('$_dailySummaryPrefix$date');
+    await _clearEntityOwner('daily_summary', date);
   }
 
   @override
@@ -322,14 +413,20 @@ class HiveOceanSyncDataStore implements OceanSyncDataStore {
     final date = mood['date']?.toString();
     final imagePath = mood['imagePath']?.toString();
     if (_isBlank(date) || _isBlank(imagePath)) return;
-    await _database.settingsBox.put('$_dailyMoodPrefix$date', imagePath);
+    final dateKey = date!;
+    await _database.settingsBox.put('$_dailyMoodPrefix$dateKey', imagePath);
     await _saveUpdatedAt(
-        'daily_mood', date!, mood['clientUpdatedAt']?.toString());
+        'daily_mood', dateKey, mood['clientUpdatedAt']?.toString());
+    await _markEntityAccount('daily_mood', dateKey);
   }
 
   @override
   Future<void> deleteDailyMood(String date) async {
+    if (_ownershipService?.isEntityLocal('daily_mood', date) ?? false) {
+      return;
+    }
     await _database.settingsBox.delete('$_dailyMoodPrefix$date');
+    await _clearEntityOwner('daily_mood', date);
   }
 
   @override
@@ -348,11 +445,17 @@ class HiveOceanSyncDataStore implements OceanSyncDataStore {
       periodKey,
       report['clientUpdatedAt']?.toString(),
     );
+    await _markEntityAccount('insight_report', periodKey);
   }
 
   @override
   Future<void> deleteInsightReport(String periodType, String periodKey) async {
+    if (_ownershipService?.isEntityLocal('insight_report', periodKey) ??
+        false) {
+      return;
+    }
     await _database.insightReportsBox.delete(periodKey);
+    await _clearEntityOwner('insight_report', periodKey);
   }
 
   @override
@@ -374,11 +477,16 @@ class HiveOceanSyncDataStore implements OceanSyncDataStore {
       id!,
       insight['clientUpdatedAt']?.toString(),
     );
+    await _markEntityAccount('weekly_insight', id);
   }
 
   @override
   Future<void> deleteWeeklyInsight(String id) async {
+    if (_ownershipService?.isEntityLocal('weekly_insight', id) ?? false) {
+      return;
+    }
     await _database.weeklyInsightsBox.delete(id);
+    await _clearEntityOwner('weekly_insight', id);
   }
 
   @override
@@ -389,6 +497,60 @@ class HiveOceanSyncDataStore implements OceanSyncDataStore {
         .toList();
     for (final key in keys) {
       await _database.settingsBox.delete(key);
+    }
+  }
+
+  @override
+  Future<void> markRecordsSyncedToCurrentAccount(
+    Iterable<String> recordIds,
+  ) async {
+    final accountKey = await _accountApi?.currentAccountKey;
+    if (accountKey == null || accountKey.isEmpty) return;
+    await _ownershipService?.markManyAccount(recordIds, accountKey);
+  }
+
+  @override
+  Future<void> markLocalDataSyncedToCurrentAccount(
+    OceanLocalSyncData data,
+  ) async {
+    final accountKey = await _accountApi?.currentAccountKey;
+    final ownership = _ownershipService;
+    if (accountKey == null || accountKey.isEmpty || ownership == null) return;
+
+    if (data.profile != null) {
+      await ownership.markEntityAccount('profile', 'me', accountKey);
+    }
+    await ownership.markManyAccount(
+      data.records.map((record) => record.id),
+      accountKey,
+    );
+    for (final summary in data.dailySummaries) {
+      final date = summary['date']?.toString();
+      if (!_isBlank(date)) {
+        await ownership.markEntityAccount('daily_summary', date!, accountKey);
+      }
+    }
+    for (final mood in data.dailyMoods) {
+      final date = mood['date']?.toString();
+      if (!_isBlank(date)) {
+        await ownership.markEntityAccount('daily_mood', date!, accountKey);
+      }
+    }
+    for (final report in data.insightReports) {
+      final periodKey = report['periodKey']?.toString();
+      if (!_isBlank(periodKey)) {
+        await ownership.markEntityAccount(
+          'insight_report',
+          periodKey!,
+          accountKey,
+        );
+      }
+    }
+    for (final insight in data.weeklyInsights) {
+      final id = insight['id']?.toString();
+      if (!_isBlank(id)) {
+        await ownership.markEntityAccount('weekly_insight', id!, accountKey);
+      }
     }
   }
 
@@ -436,17 +598,6 @@ class HiveOceanSyncDataStore implements OceanSyncDataStore {
 
   bool _isBlank(Object? value) =>
       value == null || value.toString().trim().isEmpty;
-
-  bool _isAccountScopedSetting(String key) {
-    return key == _profileAvatarKey ||
-        key == _profileNicknameKey ||
-        key == _profileSignatureKey ||
-        key == HiveOceanSyncStateStore.cursorKey ||
-        key.startsWith(_dailyMoodPrefix) ||
-        key.startsWith(_dailySummaryPrefix) ||
-        key.startsWith('${_updatedAtPrefix}_') ||
-        key.startsWith(_deletedRecordPrefix);
-  }
 
   String? _emptyToNull(String? value) {
     final trimmed = value?.trim();
@@ -508,7 +659,7 @@ class OceanSyncService implements OceanAccountSyncService {
         insightReports: data.insightReports,
         weeklyInsights: data.weeklyInsights,
       );
-      return _finishPush([response]);
+      return _finishPush([response], syncedData: data);
     } catch (error) {
       return _pushLocalDataInSmallBatches(
         data: data,
@@ -568,7 +719,6 @@ class OceanSyncService implements OceanAccountSyncService {
   Future<_EntityChangeCounts> _applySnapshot(
       Map<String, dynamic> response) async {
     final counts = _EntityChangeCounts();
-    await _dataStore.clearAccountData();
     final profile = response['profile'];
     if (profile is Map) {
       counts.add(
@@ -653,12 +803,16 @@ class OceanSyncService implements OceanAccountSyncService {
         cause: originalError,
       );
     }
-    return _finishPush(responses);
+    return _finishPush(
+      responses,
+      syncedData: data,
+    );
   }
 
   Future<OceanSyncResult> _finishPush(
-    List<Map<String, dynamic>> responses,
-  ) async {
+    List<Map<String, dynamic>> responses, {
+    OceanLocalSyncData? syncedData,
+  }) async {
     var accepted = 0;
     var ignored = 0;
     var cursor = '0';
@@ -668,6 +822,9 @@ class OceanSyncService implements OceanAccountSyncService {
       cursor = _readCursorFromResponse(response);
     }
     await _stateStore.saveCursor(cursor);
+    if (syncedData != null) {
+      await _dataStore.markLocalDataSyncedToCurrentAccount(syncedData);
+    }
     await _dataStore.clearSyncedTombstones();
     return OceanSyncResult(
       accepted: accepted,

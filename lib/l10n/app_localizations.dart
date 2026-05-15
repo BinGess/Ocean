@@ -189,7 +189,7 @@ class AppLocalizations {
       'proMembership': 'Pro 会员',
       'proPrice': '¥1/月',
       'proPurchaseTitle': '升级为 Pro 会员',
-      'proPurchaseSubtitle': '解锁全部高级功能，让记录更完整',
+      'proPurchaseSubtitle': '解锁数据导出能力，随时备份和迁移记录',
       'proFeatureExport': '导出所有记录',
       'proFeatureExportDesc': '将你的情绪记录导出为 JSON 文件，随时备份和迁移数据',
       'proFeatureICloud': 'iCloud 云同步',
@@ -208,7 +208,7 @@ class AppLocalizations {
       'proSubscriptionNote':
           '订阅将通过您的 Apple ID 账户确认购买。\n订阅会自动续订，除非您在当前订阅期结束前至少24小时关闭自动续订。\n您可以在 App Store 账户设置中管理和取消订阅。',
       'debugMode': 'DEBUG 模式',
-      'debugModeSubtitle': '开启后无需订阅即可使用导出与 iCloud（仅供内部测试）',
+      'debugModeSubtitle': '开启后无需订阅即可使用导出（仅供内部测试）',
     },
     'en': {
       'appTitle': 'MindFlow',
@@ -389,7 +389,7 @@ class AppLocalizations {
       'proPrice': '¥1/mo',
       'proPurchaseTitle': 'Upgrade to Pro',
       'proPurchaseSubtitle':
-          'Unlock all premium features for a complete experience',
+          'Unlock data export for backup and migration whenever you need it',
       'proFeatureExport': 'Export All Records',
       'proFeatureExportDesc':
           'Export your emotion records as JSON files for backup and migration',
@@ -412,7 +412,7 @@ class AppLocalizations {
           'Payment will be charged to your Apple ID account upon confirmation.\nSubscription automatically renews unless cancelled at least 24 hours before the end of the current period.\nYou can manage and cancel subscriptions in your App Store account settings.',
       'debugMode': 'DEBUG mode',
       'debugModeSubtitle':
-          'When on, Export and iCloud work without subscription (internal testing only)',
+          'When on, Export works without subscription (internal testing only)',
     },
   };
 

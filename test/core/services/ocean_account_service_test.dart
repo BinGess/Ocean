@@ -3,6 +3,7 @@ import 'package:mindflow/core/network/ocean_api_client.dart';
 import 'package:mindflow/core/services/icloud_sync_service.dart';
 import 'package:mindflow/core/services/ocean_account_cache_service.dart';
 import 'package:mindflow/core/services/ocean_account_service.dart';
+import 'package:mindflow/core/services/ocean_record_ownership_service.dart';
 import 'package:mindflow/core/services/ocean_sync_service.dart';
 
 void main() {
@@ -185,7 +186,7 @@ void main() {
     await subscription.cancel();
   });
 
-  test('logout clears account cache and notifies account data listeners',
+  test('logout hides account cache and notifies account data listeners',
       () async {
     final api = _FakeAccountApi();
     final syncService = _FakeSyncService();
@@ -204,10 +205,33 @@ void main() {
     await Future<void>.delayed(Duration.zero);
 
     expect(api.logoutCount, 1);
-    expect(cacheService.clearCount, 1);
+    expect(cacheService.hideCount, 1);
+    expect(cacheService.clearCount, 0);
     expect(syncService.restoreSnapshotCount, 0);
     expect(notifications, 1);
     await subscription.cancel();
+  });
+
+  test('logout detaches current account cache back to local ownership',
+      () async {
+    final api = _FakeAccountApi()..loggedInEmail = 'user@example.com';
+    final syncService = _FakeSyncService();
+    final cacheService = _FakeAccountCacheService();
+    final ownershipService = _FakeOwnershipService()
+      ..active = 'user@example.com';
+    final service = OceanAccountService(
+      api: api,
+      syncService: syncService,
+      cacheService: cacheService,
+      refreshService: OceanAccountDataRefreshService(),
+      ownershipService: ownershipService,
+    );
+
+    await service.logout();
+
+    expect(ownershipService.detachCount, 1);
+    expect(ownershipService.clearActiveCount, 1);
+    expect(cacheService.hideCount, 1);
   });
 
   test('restoreSignedInSession restores snapshot only when token exists',
@@ -267,6 +291,19 @@ class _FakeAccountApi implements OceanAccountApi {
 
   @override
   Future<String?> get currentEmail async => loggedInEmail;
+
+  @override
+  Future<String?> get currentUserId async {
+    if (loggedInEmail != null) return loggedInEmail;
+    if (loggedInPhone != null) return 'phone-user';
+    return null;
+  }
+
+  @override
+  Future<String?> get currentPhone async => loggedInPhone;
+
+  @override
+  Future<String?> get currentAccountKey async => loggedInEmail ?? loggedInPhone;
 
   @override
   Future<bool> get isSignedIn async =>
@@ -361,10 +398,37 @@ class _FakeSyncService implements OceanAccountSyncService {
 
 class _FakeAccountCacheService implements OceanAccountCacheService {
   int clearCount = 0;
+  int hideCount = 0;
+
+  @override
+  Future<void> hideAccountCache() async {
+    hideCount += 1;
+  }
 
   @override
   Future<void> clearAccountCache() async {
     clearCount += 1;
+  }
+}
+
+class _FakeOwnershipService extends Fake
+    implements OceanRecordOwnershipService {
+  String? active;
+  int detachCount = 0;
+  int clearActiveCount = 0;
+
+  @override
+  String? get activeAccount => active;
+
+  @override
+  Future<void> detachActiveAccountDataToLocal() async {
+    detachCount += 1;
+  }
+
+  @override
+  Future<void> clearActiveAccount() async {
+    clearActiveCount += 1;
+    active = null;
   }
 }
 

@@ -71,9 +71,8 @@ class _LockScreenState extends State<LockScreen> {
         if (mounted) {
           setState(() {
             _showBiometricButton = true;
-            _biometricIcon = biometricName.contains('Face')
-                ? Icons.face
-                : Icons.fingerprint;
+            _biometricIcon =
+                biometricName.contains('Face') ? Icons.face : Icons.fingerprint;
           });
 
           // 注意：不再自动触发生物识别，由用户手动点击
@@ -175,9 +174,7 @@ class _LockScreenState extends State<LockScreen> {
         if (mounted) {
           setState(() {
             _hasError = true;
-            _errorMessage = _isLockedOut
-                ? '尝试次数过多，请稍后重试'
-                : '密码错误';
+            _errorMessage = _isLockedOut ? '尝试次数过多，请稍后重试' : '密码错误';
             _passcode = '';
           });
         }
@@ -243,7 +240,7 @@ class _LockScreenState extends State<LockScreen> {
             child: const Text(
               '取消',
               style: TextStyle(
-                color: Color(0xFF8B7D6B),
+                color: AppColors.textTertiary,
                 fontSize: 15,
               ),
             ),
@@ -353,9 +350,8 @@ class _LockScreenState extends State<LockScreen> {
               child: PasscodeNumpad(
                 onDigitPressed: _onDigitPressed,
                 onDeletePressed: _onDeletePressed,
-                onBiometricPressed: _showBiometricButton
-                    ? _authenticateWithBiometrics
-                    : null,
+                onBiometricPressed:
+                    _showBiometricButton ? _authenticateWithBiometrics : null,
                 biometricIcon: _biometricIcon,
               ),
             ),
@@ -369,7 +365,7 @@ class _LockScreenState extends State<LockScreen> {
                 '忘记密码？',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Color(0xFF8B7D6B),
+                  color: AppColors.textTertiary,
                 ),
               ),
             ),

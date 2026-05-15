@@ -4,6 +4,7 @@
 import 'dart:convert';
 import '../../core/network/ocean_api_client.dart';
 import '../../core/services/ocean_record_sync_mapper.dart';
+import '../../core/services/ocean_record_ownership_service.dart';
 import '../../domain/entities/record.dart';
 import '../../domain/entities/nvc_analysis.dart';
 import '../../domain/entities/day_aggregation.dart';
@@ -14,10 +15,14 @@ import '../models/record_model.dart';
 class RecordRepositoryImpl implements RecordRepository {
   final HiveDatabase database;
   final OceanRecordsApi? recordsApi;
+  final OceanAccountApi? accountApi;
+  final OceanRecordOwnershipService? ownershipService;
 
   RecordRepositoryImpl({
     required this.database,
     this.recordsApi,
+    this.accountApi,
+    this.ownershipService,
   });
 
   @override
@@ -167,41 +172,66 @@ class RecordRepositoryImpl implements RecordRepository {
         OceanRecordSyncMapper.toServerRecord(record),
       );
       final serverRecord = _recordFromResponse(response);
-      await _cacheRecord(serverRecord);
+      await _cacheRecord(serverRecord, markCurrentAccount: true);
       return serverRecord;
     }
 
     final model = RecordModel.fromEntity(record);
     await database.recordsBox.put(record.id, model);
+    await ownershipService?.markLocal(record.id);
     return model.toEntity();
   }
 
   @override
   Future<Record?> getRecordById(String id) async {
     final model = database.recordsBox.get(id);
-    return model?.toEntity();
+    if (model == null) return null;
+    final ownership = ownershipService;
+    if (ownership != null &&
+        !ownership.isVisible(
+          recordId: id,
+          accountKey: await _currentAccountKeyIfSignedIn(),
+        )) {
+      return null;
+    }
+    return model.toEntity();
   }
 
   @override
   Future<List<Record>> getAllRecords() async {
     if (await _isServerFirstEnabled()) {
-      final response = await recordsApi!.listRecords();
-      final data = response['data'];
-      if (data is List) {
-        final records = <Record>[];
-        for (final item in data) {
-          if (item is! Map) continue;
-          final record = OceanRecordSyncMapper.fromServerRecord(
-            Map<String, dynamic>.from(item),
+      try {
+        final response = await recordsApi!.listRecords();
+        final data = response['data'];
+        if (data is List) {
+          final records = <Record>[];
+          final serverRecordIds = <String>{};
+          for (final item in data) {
+            if (item is! Map) continue;
+            final record = OceanRecordSyncMapper.fromServerRecord(
+              Map<String, dynamic>.from(item),
+            );
+            await _cacheRecord(record, markCurrentAccount: true);
+            records.add(record);
+            serverRecordIds.add(record.id);
+          }
+          records.addAll(
+            await _localRecordsForCurrentView(
+              includeOnlyLocal: true,
+              excludeIds: serverRecordIds,
+            ),
           );
-          await _cacheRecord(record);
-          records.add(record);
+          records.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return records;
         }
+      } catch (_) {
+        final records = await _localRecordsForCurrentView();
+        records.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         return records;
       }
     }
 
-    final models = database.recordsBox.values.toList();
+    final models = await _visibleModels();
     return models.map((m) => m.toEntity()).toList();
   }
 
@@ -209,7 +239,7 @@ class RecordRepositoryImpl implements RecordRepository {
   Future<List<Record>> getRecordsByType(RecordType type) async {
     final typeString = type.toString().split('.').last;
     final models =
-        database.recordsBox.values.where((m) => m.type == typeString).toList();
+        (await _visibleModels()).where((m) => m.type == typeString).toList();
     return models.map((m) => m.toEntity()).toList();
   }
 
@@ -218,7 +248,7 @@ class RecordRepositoryImpl implements RecordRepository {
     DateTime start,
     DateTime end,
   ) async {
-    final models = database.recordsBox.values
+    final models = (await _visibleModels())
         .where((m) =>
             // 使用包含边界的比较：>= start && <= end
             !m.createdAt.isBefore(start) && !m.createdAt.isAfter(end))
@@ -250,12 +280,13 @@ class RecordRepositoryImpl implements RecordRepository {
         OceanRecordSyncMapper.toServerRecord(record),
       );
       final serverRecord = _recordFromResponse(response);
-      await _cacheRecord(serverRecord);
+      await _cacheRecord(serverRecord, markCurrentAccount: true);
       return serverRecord;
     }
 
     final model = RecordModel.fromEntity(record);
     await database.recordsBox.put(record.id, model);
+    await ownershipService?.markLocal(record.id);
     return model.toEntity();
   }
 
@@ -265,6 +296,7 @@ class RecordRepositoryImpl implements RecordRepository {
       await recordsApi!.deleteRecord(id);
       await database.recordsBox.delete(id);
       await database.settingsBox.delete('ocean_sync_deleted_record_$id');
+      await ownershipService?.clearOwner(id);
       return;
     }
 
@@ -300,6 +332,7 @@ class RecordRepositoryImpl implements RecordRepository {
       );
     }
     await database.recordsBox.delete(id);
+    await ownershipService?.clearOwner(id);
   }
 
   Future<bool> _isServerFirstEnabled() async {
@@ -317,8 +350,54 @@ class RecordRepositoryImpl implements RecordRepository {
     );
   }
 
-  Future<void> _cacheRecord(Record record) async {
+  Future<void> _cacheRecord(
+    Record record, {
+    bool markCurrentAccount = false,
+  }) async {
     await database.recordsBox.put(record.id, RecordModel.fromEntity(record));
+    if (!markCurrentAccount) return;
+    final accountKey = await _currentAccountKey();
+    if (accountKey != null && accountKey.isNotEmpty) {
+      await ownershipService?.markAccount(record.id, accountKey);
+    }
+  }
+
+  Future<List<RecordModel>> _visibleModels() async {
+    final accountKey = await _currentAccountKeyIfSignedIn();
+    final ownership = ownershipService;
+    if (ownership == null) return database.recordsBox.values.toList();
+    return database.recordsBox.values
+        .where((model) => ownership.isVisible(
+              recordId: model.id,
+              accountKey: accountKey,
+            ))
+        .toList();
+  }
+
+  Future<List<Record>> _localRecordsForCurrentView({
+    bool includeOnlyLocal = false,
+    Set<String> excludeIds = const {},
+  }) async {
+    final accountKey = await _currentAccountKeyIfSignedIn();
+    final ownership = ownershipService;
+    final models = database.recordsBox.values.where((model) {
+      if (excludeIds.contains(model.id)) return false;
+      if (ownership == null) return true;
+      if (includeOnlyLocal) return ownership.isLocal(model.id);
+      return ownership.isVisible(recordId: model.id, accountKey: accountKey);
+    }).toList();
+    return models.map((model) => model.toEntity()).toList();
+  }
+
+  Future<String?> _currentAccountKeyIfSignedIn() async {
+    if (!await _isServerFirstEnabled()) return null;
+    return _currentAccountKey();
+  }
+
+  Future<String?> _currentAccountKey() async {
+    final api = accountApi ??
+        (recordsApi is OceanAccountApi ? recordsApi as OceanAccountApi : null);
+    return api?.currentAccountKey;
   }
 
   String _recordTypeToApi(RecordType type) {
@@ -350,7 +429,7 @@ class RecordRepositoryImpl implements RecordRepository {
   @override
   Future<List<Record>> searchRecords(String query) async {
     final lowerQuery = query.toLowerCase();
-    final models = database.recordsBox.values
+    final models = (await _visibleModels())
         .where((m) => m.transcription.toLowerCase().contains(lowerQuery))
         .toList();
 

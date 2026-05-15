@@ -1174,7 +1174,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             color: Colors.white.withValues(alpha: 0.82),
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: const Color(0xFFD4B896).withValues(alpha: 0.90),
+              color: AppColors.border.withValues(alpha: 0.90),
               width: 1.5,
             ),
             boxShadow: [
@@ -1213,7 +1213,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               Container(
                 width: 1,
                 height: 21,
-                color: const Color(0xFFD4B896).withValues(alpha: 0.70),
+                color: AppColors.border.withValues(alpha: 0.70),
               ),
               const SizedBox(width: 12),
               Semantics(
@@ -1267,8 +1267,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                             Color(0xFFC96F4A),
                                           ]
                                         : const [
-                                            Color(0xFFCDAA85),
-                                            Color(0xFFC4A57B),
+                                            AppColors.accentLight,
+                                            AppColors.accent,
                                           ],
                                   ),
                                   border: Border.all(
@@ -1387,9 +1387,9 @@ class _HomeBackgroundPalette {
     gradientStops: [0.0, 0.55, 1.0],
     bottomFogColor: Color(0xFFF2EAE0),
     bottomFogMiddleAlpha: 0.50,
-    ringColor: Color(0xFFCDAA85),
+    ringColor: AppColors.accentLight,
     ringAlpha: 0.14,
-    overlayColor: Color(0xFFCDAA85),
+    overlayColor: AppColors.accentLight,
     overlayAlpha: 0.03,
   );
 }

@@ -4,11 +4,8 @@ import 'dart:async';
 
 import '../../../core/di/injection.dart';
 import '../../../core/network/ocean_api_client.dart';
-import '../../../core/services/ocean_account_input_validator.dart';
 import '../../../core/services/ocean_account_service.dart';
 import '../../../core/theme/app_colors.dart';
-
-enum _AccountEntryMode { phone, email }
 
 class AccountEntryScreen extends StatefulWidget {
   const AccountEntryScreen({
@@ -27,15 +24,11 @@ class AccountEntryScreen extends StatefulWidget {
 }
 
 class _AccountEntryScreenState extends State<AccountEntryScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _nicknameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _smsCodeController = TextEditingController();
 
   late final OceanAccountService _accountService;
 
-  _AccountEntryMode _mode = _AccountEntryMode.phone;
   bool _loading = false;
   bool _sendingSms = false;
   int _smsCooldown = 0;
@@ -52,9 +45,6 @@ class _AccountEntryScreenState extends State<AccountEntryScreen> {
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    _nicknameController.dispose();
     _phoneController.dispose();
     _smsCodeController.dispose();
     _smsTimer?.cancel();
@@ -130,47 +120,6 @@ class _AccountEntryScreenState extends State<AccountEntryScreen> {
     });
   }
 
-  Future<void> _login() async {
-    if (_localMigrationRetryAvailable) {
-      await _retryLocalMigration();
-      return;
-    }
-    if (!_ensureAgreementsAccepted()) return;
-    final validation = _validateCredentials();
-    if (validation != null) {
-      setState(() => _message = validation);
-      return;
-    }
-    await _run('正在登录并恢复数据...', () async {
-      await _accountService.login(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-      widget.onComplete();
-    });
-  }
-
-  Future<void> _register() async {
-    if (_localMigrationRetryAvailable) {
-      await _retryLocalMigration();
-      return;
-    }
-    if (!_ensureAgreementsAccepted()) return;
-    final validation = _validateCredentials();
-    if (validation != null) {
-      setState(() => _message = validation);
-      return;
-    }
-    await _run('正在注册并迁移数据...', () async {
-      await _accountService.register(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        nickname: _nicknameController.text.trim(),
-      );
-      widget.onComplete();
-    });
-  }
-
   Future<void> _run(String message, Future<void> Function() task) async {
     if (_loading) return;
     setState(() {
@@ -199,13 +148,6 @@ class _AccountEntryScreenState extends State<AccountEntryScreen> {
       setState(() => _localMigrationRetryAvailable = false);
       widget.onComplete();
     });
-  }
-
-  String? _validateCredentials() {
-    return OceanAccountInputValidator.validateEmailAndPassword(
-      email: _emailController.text,
-      password: _passwordController.text,
-    );
   }
 
   String? _validatePhone() {
@@ -258,104 +200,101 @@ class _AccountEntryScreenState extends State<AccountEntryScreen> {
               padding: const EdgeInsets.all(24),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 520),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      'Ocean 账号',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.72),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 24,
+                        offset: const Offset(0, 10),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      widget.protectLocalData
-                          ? '检测到本机已有记录。登录后会先把这些数据绑定到你的账号并上传保存，以后换设备或重装也能恢复。'
-                          : '登录后会优先从服务端恢复记录；也可以先跳过，继续把数据保存在本地。',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        height: 1.5,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    CupertinoSlidingSegmentedControl<_AccountEntryMode>(
-                      groupValue: _mode,
-                      backgroundColor: Colors.white.withValues(alpha: 0.72),
-                      thumbColor: AppColors.bgCard,
-                      children: const {
-                        _AccountEntryMode.phone: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Text('手机号登录'),
-                        ),
-                        _AccountEntryMode.email: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Text('邮箱登录'),
-                        ),
-                      },
-                      onValueChanged: (value) {
-                        if (_loading || value == null) return;
-                        setState(() {
-                          _mode = value;
-                          _message = null;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 18),
-                    if (_mode == _AccountEntryMode.phone)
-                      _PhoneLoginForm(
-                        phoneController: _phoneController,
-                        codeController: _smsCodeController,
-                        loading: _loading,
-                        sendingSms: _sendingSms,
-                        cooldown: _smsCooldown,
-                        retryMigration: _localMigrationRetryAvailable,
-                        onSendCode: _sendSmsCode,
-                        onLogin: _loginWithSms,
-                      )
-                    else
-                      _EmailLoginForm(
-                        emailController: _emailController,
-                        passwordController: _passwordController,
-                        nicknameController: _nicknameController,
-                        loading: _loading,
-                        retryMigration: _localMigrationRetryAvailable,
-                        onLogin: _login,
-                        onRegister: _register,
-                      ),
-                    const SizedBox(height: 14),
-                    _AgreementConsentRow(
-                      accepted: _agreementsAccepted,
-                      onChanged: _loading
-                          ? null
-                          : (value) {
-                              setState(() {
-                                _agreementsAccepted = value ?? false;
-                                if (_agreementsAccepted &&
-                                    _message == '请先阅读并同意用户协议和隐私政策') {
-                                  _message = null;
-                                }
-                              });
-                            },
-                      onUserAgreementTap: () =>
-                          _openLegalDocument(_LegalDocument.userAgreement),
-                      onPrivacyPolicyTap: () =>
-                          _openLegalDocument(_LegalDocument.privacyPolicy),
-                    ),
-                    const SizedBox(height: 20),
-                    TextButton(
-                      onPressed: _loading ? null : widget.onSkip,
-                      child: const Text('先跳过，使用本地模式'),
-                    ),
-                    if (_message != null) ...[
-                      const SizedBox(height: 16),
-                      _MessageCard(message: _message!, loading: _loading),
                     ],
-                  ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 64,
+                            height: 64,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: AppColors.accent.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: const Icon(
+                              Icons.water_drop_outlined,
+                              color: AppColors.accent,
+                              size: 32,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          widget.protectLocalData
+                              ? '检测到本机已有记录。登录后会先绑定并上传保存，换设备或重装也能恢复。'
+                              : '使用手机号登录后，会从服务端恢复记录；也可以先跳过，继续使用本地模式。',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            height: 1.55,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        _PhoneLoginForm(
+                          phoneController: _phoneController,
+                          codeController: _smsCodeController,
+                          loading: _loading,
+                          sendingSms: _sendingSms,
+                          cooldown: _smsCooldown,
+                          retryMigration: _localMigrationRetryAvailable,
+                          onSendCode: _sendSmsCode,
+                          onLogin: _loginWithSms,
+                        ),
+                        const SizedBox(height: 14),
+                        _AgreementConsentRow(
+                          accepted: _agreementsAccepted,
+                          onChanged: _loading
+                              ? null
+                              : (value) {
+                                  setState(() {
+                                    _agreementsAccepted = value ?? false;
+                                    if (_agreementsAccepted &&
+                                        _message == '请先阅读并同意用户协议和隐私政策') {
+                                      _message = null;
+                                    }
+                                  });
+                                },
+                          onUserAgreementTap: () =>
+                              _openLegalDocument(_LegalDocument.userAgreement),
+                          onPrivacyPolicyTap: () =>
+                              _openLegalDocument(_LegalDocument.privacyPolicy),
+                        ),
+                        const SizedBox(height: 18),
+                        TextButton(
+                          onPressed: _loading ? null : widget.onSkip,
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size.fromHeight(44),
+                            foregroundColor: AppColors.textSecondary,
+                            textStyle: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          child: const Text('先跳过，使用本地模式'),
+                        ),
+                        if (_message != null) ...[
+                          const SizedBox(height: 14),
+                          _MessageCard(message: _message!, loading: _loading),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -563,7 +502,7 @@ const _userAgreementSections = [
   ),
   _LegalSection(
     '账号使用',
-    '您可以使用手机号验证码或邮箱方式登录。请妥善保管账号信息，不得将账号用于违法违规用途。因您主动泄露验证码、密码或设备管理不当导致的损失，由您自行承担。',
+    '您可以使用手机号验证码登录。请妥善保管账号信息，不得将账号用于违法违规用途。因您主动泄露验证码或设备管理不当导致的损失，由您自行承担。',
   ),
   _LegalSection(
     '服务内容',
@@ -622,31 +561,62 @@ class _Input extends StatelessWidget {
   const _Input({
     required this.controller,
     required this.label,
-    this.obscureText = false,
     this.enabled = true,
     this.keyboardType,
+    this.suffix,
   });
 
   final TextEditingController controller;
   final String label;
-  final bool obscureText;
   final bool enabled;
   final TextInputType? keyboardType;
+  final Widget? suffix;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
       enabled: enabled,
-      obscureText: obscureText,
       keyboardType: keyboardType,
+      style: const TextStyle(
+        fontSize: 16,
+        color: AppColors.textPrimary,
+        fontWeight: FontWeight.w500,
+      ),
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: const TextStyle(
+          fontSize: 14,
+          color: AppColors.textSecondary,
+        ),
         filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.86),
+        fillColor: AppColors.bgInput,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        suffixIcon: suffix == null
+            ? null
+            : Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Center(
+                  widthFactor: 1,
+                  child: suffix,
+                ),
+              ),
+        suffixIconConstraints: const BoxConstraints(
+          minWidth: 0,
+          minHeight: 0,
+        ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.borderLight),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.accent, width: 1.2),
         ),
       ),
     );
@@ -686,35 +656,26 @@ class _PhoneLoginForm extends StatelessWidget {
           enabled: !loading && !retryMigration,
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _Input(
-                controller: codeController,
-                label: '验证码',
-                keyboardType: TextInputType.number,
-                enabled: !loading && !retryMigration,
-              ),
+        if (retryMigration)
+          _Input(
+            controller: codeController,
+            label: '验证码',
+            keyboardType: TextInputType.number,
+            enabled: false,
+          )
+        else
+          _Input(
+            controller: codeController,
+            label: '验证码',
+            keyboardType: TextInputType.number,
+            enabled: !loading,
+            suffix: _SmsCodeButton(
+              loading: loading,
+              sendingSms: sendingSms,
+              cooldown: cooldown,
+              onPressed: onSendCode,
             ),
-            const SizedBox(width: 10),
-            if (!retryMigration)
-              SizedBox(
-                height: 52,
-                child: OutlinedButton(
-                  onPressed:
-                      loading || sendingSms || cooldown > 0 ? null : onSendCode,
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: sendingSms
-                      ? const CupertinoActivityIndicator()
-                      : Text(cooldown > 0 ? '${cooldown}s' : '获取验证码'),
-                ),
-              ),
-          ],
-        ),
+          ),
         const SizedBox(height: 20),
         _PrimaryButton(
           label: retryMigration ? '重试上传本机数据' : '登录',
@@ -726,64 +687,49 @@ class _PhoneLoginForm extends StatelessWidget {
   }
 }
 
-class _EmailLoginForm extends StatelessWidget {
-  const _EmailLoginForm({
-    required this.emailController,
-    required this.passwordController,
-    required this.nicknameController,
+class _SmsCodeButton extends StatelessWidget {
+  const _SmsCodeButton({
     required this.loading,
-    required this.retryMigration,
-    required this.onLogin,
-    required this.onRegister,
+    required this.sendingSms,
+    required this.cooldown,
+    required this.onPressed,
   });
 
-  final TextEditingController emailController;
-  final TextEditingController passwordController;
-  final TextEditingController nicknameController;
   final bool loading;
-  final bool retryMigration;
-  final VoidCallback onLogin;
-  final VoidCallback onRegister;
+  final bool sendingSms;
+  final int cooldown;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _Input(
-          controller: emailController,
-          label: '邮箱',
-          keyboardType: TextInputType.emailAddress,
-          enabled: !loading && !retryMigration,
-        ),
-        const SizedBox(height: 12),
-        _Input(
-          controller: passwordController,
-          label: '密码（至少 8 位）',
-          obscureText: true,
-          enabled: !loading && !retryMigration,
-        ),
-        const SizedBox(height: 12),
-        _Input(
-          controller: nicknameController,
-          label: '昵称（注册时可选）',
-          enabled: !loading && !retryMigration,
-        ),
-        const SizedBox(height: 20),
-        _PrimaryButton(
-          label: retryMigration ? '重试上传本机数据' : '登录',
-          loading: loading,
-          onPressed: onLogin,
-        ),
-        if (!retryMigration) ...[
-          const SizedBox(height: 10),
-          _SecondaryButton(
-            label: '注册并进入',
-            loading: loading,
-            onPressed: onRegister,
+    final disabled = loading || sendingSms || cooldown > 0;
+    final label = cooldown > 0 ? '$cooldown秒' : '获取验证码';
+
+    return Semantics(
+      button: true,
+      enabled: !disabled,
+      label: cooldown > 0 ? '$label后可重新获取验证码' : label,
+      child: TextButton(
+        onPressed: disabled ? null : onPressed,
+        style: TextButton.styleFrom(
+          minimumSize: const Size(0, 34),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          foregroundColor: AppColors.accent,
+          disabledForegroundColor: AppColors.textMuted,
+          textStyle: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
           ),
-        ],
-      ],
+        ),
+        child: sendingSms
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CupertinoActivityIndicator(radius: 8),
+              )
+            : Text(label),
+      ),
     );
   }
 }
@@ -804,37 +750,18 @@ class _PrimaryButton extends StatelessWidget {
     return FilledButton(
       onPressed: loading ? null : onPressed,
       style: FilledButton.styleFrom(
-        minimumSize: const Size.fromHeight(52),
+        minimumSize: const Size.fromHeight(54),
         backgroundColor: AppColors.accent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        disabledBackgroundColor: AppColors.accent.withValues(alpha: 0.55),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        textStyle: const TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w700,
+        ),
       ),
       child: loading
           ? const CupertinoActivityIndicator(color: Colors.white)
           : Text(label),
-    );
-  }
-}
-
-class _SecondaryButton extends StatelessWidget {
-  const _SecondaryButton({
-    required this.label,
-    required this.loading,
-    required this.onPressed,
-  });
-
-  final String label;
-  final bool loading;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton(
-      onPressed: loading ? null : onPressed,
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(52),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      child: Text(label),
     );
   }
 }
@@ -850,8 +777,9 @@ class _MessageCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.84),
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.bgInput,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.borderLight),
       ),
       child: Row(
         children: [

@@ -33,6 +33,7 @@ import '../services/quote_update_manager.dart';
 import '../services/daily_summary_service.dart';
 import '../services/icloud_sync_service.dart';
 import '../services/ocean_sync_service.dart';
+import '../services/ocean_record_ownership_service.dart';
 import '../services/ocean_account_cache_service.dart';
 import '../services/ocean_account_service.dart';
 import '../services/ocean_installation_service.dart';
@@ -122,6 +123,10 @@ Future<void> configureDependencies() async {
     () => LocaleService(getIt<HiveDatabase>()),
   );
 
+  getIt.registerLazySingleton<OceanRecordOwnershipService>(
+    () => OceanRecordOwnershipService(getIt<HiveDatabase>()),
+  );
+
   // 豆包远程数据源
   getIt.registerLazySingleton<DoubaoDataSource>(
     () => DoubaoDataSource(
@@ -142,6 +147,8 @@ Future<void> configureDependencies() async {
     () => RecordRepositoryImpl(
       database: getIt<HiveDatabase>(),
       recordsApi: getIt<OceanApiClient>(),
+      accountApi: getIt<OceanApiClient>(),
+      ownershipService: getIt<OceanRecordOwnershipService>(),
     ),
   );
 
@@ -158,6 +165,8 @@ Future<void> configureDependencies() async {
     () => InsightRepositoryImpl(
       database: getIt<HiveDatabase>(),
       userDataApi: getIt<OceanApiClient>(),
+      accountApi: getIt<OceanApiClient>(),
+      ownershipService: getIt<OceanRecordOwnershipService>(),
     ),
   );
 
@@ -189,13 +198,19 @@ Future<void> configureDependencies() async {
       database: getIt<HiveDatabase>(),
       cozeAIService: getIt<CozeAIService>(),
       userDataApi: getIt<OceanApiClient>(),
+      accountApi: getIt<OceanApiClient>(),
+      ownershipService: getIt<OceanRecordOwnershipService>(),
     ),
   );
 
   getIt.registerLazySingleton<OceanSyncService>(
     () => OceanSyncService(
       api: getIt<OceanApiClient>(),
-      dataStore: HiveOceanSyncDataStore(getIt<HiveDatabase>()),
+      dataStore: HiveOceanSyncDataStore(
+        getIt<HiveDatabase>(),
+        ownershipService: getIt<OceanRecordOwnershipService>(),
+        accountApi: getIt<OceanApiClient>(),
+      ),
       stateStore: HiveOceanSyncStateStore(getIt<HiveDatabase>()),
     ),
   );
@@ -215,6 +230,7 @@ Future<void> configureDependencies() async {
       cacheService: getIt<OceanAccountCacheService>(),
       refreshService: getIt<OceanAccountDataRefreshService>(),
       iCloudSyncService: getIt<ICloudSyncService>(),
+      ownershipService: getIt<OceanRecordOwnershipService>(),
     ),
   );
 

@@ -7,12 +7,16 @@ class OceanAuthTokens {
   const OceanAuthTokens({
     required this.accessToken,
     required this.refreshToken,
+    this.userId,
     this.email,
+    this.phone,
   });
 
   final String accessToken;
   final String refreshToken;
+  final String? userId;
   final String? email;
+  final String? phone;
 }
 
 abstract class OceanTokenStore {
@@ -23,7 +27,10 @@ abstract class OceanTokenStore {
 
 abstract class OceanAccountApi {
   Future<bool> get isSignedIn;
+  Future<String?> get currentUserId;
   Future<String?> get currentEmail;
+  Future<String?> get currentPhone;
+  Future<String?> get currentAccountKey;
   Future<OceanAuthTokens> register({
     required String email,
     required String password,
@@ -48,7 +55,9 @@ class OceanSecureTokenStore implements OceanTokenStore {
 
   static const _accessTokenKey = 'ocean_access_token';
   static const _refreshTokenKey = 'ocean_refresh_token';
+  static const _userIdKey = 'ocean_account_user_id';
   static const _emailKey = 'ocean_account_email';
+  static const _phoneKey = 'ocean_account_phone';
 
   final FlutterSecureStorage _storage;
 
@@ -60,7 +69,9 @@ class OceanSecureTokenStore implements OceanTokenStore {
     return OceanAuthTokens(
       accessToken: accessToken,
       refreshToken: refreshToken,
+      userId: await _storage.read(key: _userIdKey),
       email: await _storage.read(key: _emailKey),
+      phone: await _storage.read(key: _phoneKey),
     );
   }
 
@@ -68,11 +79,23 @@ class OceanSecureTokenStore implements OceanTokenStore {
   Future<void> saveTokens(OceanAuthTokens tokens) async {
     await _storage.write(key: _accessTokenKey, value: tokens.accessToken);
     await _storage.write(key: _refreshTokenKey, value: tokens.refreshToken);
+    final userId = tokens.userId;
+    if (userId == null || userId.isEmpty) {
+      await _storage.delete(key: _userIdKey);
+    } else {
+      await _storage.write(key: _userIdKey, value: userId);
+    }
     final email = tokens.email;
     if (email == null || email.isEmpty) {
       await _storage.delete(key: _emailKey);
     } else {
       await _storage.write(key: _emailKey, value: email);
+    }
+    final phone = tokens.phone;
+    if (phone == null || phone.isEmpty) {
+      await _storage.delete(key: _phoneKey);
+    } else {
+      await _storage.write(key: _phoneKey, value: phone);
     }
   }
 
@@ -80,7 +103,9 @@ class OceanSecureTokenStore implements OceanTokenStore {
   Future<void> clear() async {
     await _storage.delete(key: _accessTokenKey);
     await _storage.delete(key: _refreshTokenKey);
+    await _storage.delete(key: _userIdKey);
     await _storage.delete(key: _emailKey);
+    await _storage.delete(key: _phoneKey);
   }
 }
 
@@ -160,8 +185,22 @@ class OceanApiClient
   Future<bool> get isSignedIn async => (await tokenStore.readTokens()) != null;
 
   @override
+  Future<String?> get currentUserId async =>
+      (await tokenStore.readTokens())?.userId;
+
+  @override
   Future<String?> get currentEmail async =>
       (await tokenStore.readTokens())?.email;
+
+  @override
+  Future<String?> get currentPhone async =>
+      (await tokenStore.readTokens())?.phone;
+
+  @override
+  Future<String?> get currentAccountKey async {
+    final tokens = await tokenStore.readTokens();
+    return tokens?.userId ?? tokens?.phone ?? tokens?.email;
+  }
 
   @override
   Future<OceanAuthTokens> register({
@@ -456,13 +495,25 @@ class OceanApiClient
     if (accessToken == null || refreshToken == null) {
       throw const OceanAuthException('Invalid auth response');
     }
+    final user = data?['user'];
+    final userMap = user is Map ? Map<String, dynamic>.from(user) : null;
+    final responseUserId = _emptyToNull(userMap?['id']?.toString());
+    final responseEmail = _emptyToNull(userMap?['email']?.toString());
+    final responsePhone = _emptyToNull(userMap?['phone']?.toString());
     final tokens = OceanAuthTokens(
       accessToken: accessToken,
       refreshToken: refreshToken,
-      email: email,
+      userId: responseUserId,
+      email: responseEmail ?? email,
+      phone: responsePhone,
     );
     await tokenStore.saveTokens(tokens);
     return tokens;
+  }
+
+  String? _emptyToNull(String? value) {
+    final normalized = value?.trim();
+    return normalized == null || normalized.isEmpty ? null : normalized;
   }
 }
 

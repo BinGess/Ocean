@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:mindflow/core/network/ocean_api_client.dart';
+import 'package:mindflow/core/services/ocean_record_ownership_service.dart';
 import 'package:mindflow/data/datasources/local/hive_database.dart';
 import 'package:mindflow/data/models/record_model.dart';
 import 'package:mindflow/data/repositories/record_repository_impl.dart';
@@ -124,6 +125,35 @@ void main() {
     expect(api.deletedIds, ['record-1']);
     expect(database.recordsBox.get('record-1'), isNull);
   });
+
+  test('signed-out local mode still shows cached account-owned records',
+      () async {
+    final database = _FakeHiveDatabase();
+    final ownership = OceanRecordOwnershipService(database);
+    await database.recordsBox.put(
+      'record-1',
+      RecordModel.fromEntity(
+        Record(
+          id: 'record-1',
+          type: RecordType.quickNote,
+          transcription: 'cached account data',
+          createdAt: DateTime.utc(2026, 5, 8, 8),
+          updatedAt: DateTime.utc(2026, 5, 8, 8),
+        ),
+      ),
+    );
+    await ownership.markAccount('record-1', 'user@example.com');
+    await ownership.clearActiveAccount();
+    final repository = RecordRepositoryImpl(
+      database: database,
+      recordsApi: _FakeRecordsApi(signedIn: false),
+      ownershipService: ownership,
+    );
+
+    final records = await repository.getAllRecords();
+
+    expect(records.map((record) => record.id), ['record-1']);
+  });
 }
 
 class _FakeRecordsApi implements OceanRecordsApi {
@@ -211,6 +241,9 @@ class _FakeRecordBox extends Fake implements Box<RecordModel> {
 
 class _FakeSettingsBox extends Fake implements Box<dynamic> {
   final Map<String, dynamic> _store = {};
+
+  @override
+  Iterable<dynamic> get keys => _store.keys;
 
   @override
   dynamic get(dynamic key, {dynamic defaultValue}) {

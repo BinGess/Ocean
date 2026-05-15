@@ -14,6 +14,7 @@ import '../../../core/network/ocean_api_client.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/services/ocean_account_service.dart';
 import '../../../core/services/daily_summary_service.dart';
+import '../../../core/services/ocean_record_ownership_service.dart';
 import '../../../data/datasources/local/hive_database.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../bloc/record/record_bloc.dart';
@@ -33,12 +34,14 @@ class RecordsScreen extends StatefulWidget {
   final VoidCallback? onNavigateToHome;
   final HiveDatabase? database;
   final DailySummaryService? dailySummaryService;
+  final OceanRecordOwnershipService? ownershipService;
 
   const RecordsScreen({
     super.key,
     this.onNavigateToHome,
     this.database,
     this.dailySummaryService,
+    this.ownershipService,
   });
 
   @override
@@ -48,6 +51,7 @@ class RecordsScreen extends StatefulWidget {
 class _RecordsScreenState extends State<RecordsScreen> {
   late final HiveDatabase _database;
   late final DailySummaryService _dailySummaryService;
+  OceanRecordOwnershipService? _ownershipService;
   OceanUserDataApi? _userDataApi;
   final Map<String, String> _dailyMoods = {};
   final Map<String, DailySummary> _dailySummaries = {};
@@ -63,6 +67,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
     _database = widget.database ?? getIt<HiveDatabase>();
     _dailySummaryService =
         widget.dailySummaryService ?? getIt<DailySummaryService>();
+    _ownershipService = widget.ownershipService ??
+        (getIt.isRegistered<OceanRecordOwnershipService>()
+            ? getIt<OceanRecordOwnershipService>()
+            : null);
     _userDataApi =
         getIt.isRegistered<OceanApiClient>() ? getIt<OceanApiClient>() : null;
     _dailySummarySubscription = _dailySummaryService.summaryUpdates.listen((
@@ -102,6 +110,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
     for (int i = 0; i < 30; i++) {
       final date = now.subtract(Duration(days: i));
       final key = getDailyMoodKey(date);
+      final dateKey = key.substring('daily_mood_'.length);
+      if (!_isEntityVisible('daily_mood', dateKey)) continue;
       final imagePath = _database.settingsBox.get(key) as String?;
       if (imagePath != null) {
         _dailyMoods[key] = imagePath;
@@ -309,6 +319,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
           'imagePath': selectedMood.imagePath,
           'clientUpdatedAt': clientUpdatedAt,
         });
+        await _markEntityAccount('daily_mood', dateKey);
+      } else {
+        await _ownershipService?.markEntityLocal('daily_mood', dateKey);
       }
       await _database.settingsBox.put(key, selectedMood.imagePath);
       await _database.settingsBox.put(
@@ -321,6 +334,27 @@ class _RecordsScreenState extends State<RecordsScreen> {
         _dailyMoods[key] = selectedMood.imagePath;
       });
     }
+  }
+
+  bool _isEntityVisible(String entityType, String entityId) {
+    final ownership = _ownershipService;
+    if (ownership == null) return true;
+    return ownership.isEntityVisible(
+      entityType: entityType,
+      entityId: entityId,
+      accountKey: ownership.activeAccount,
+    );
+  }
+
+  Future<void> _markEntityAccount(String entityType, String entityId) async {
+    final api = _userDataApi is OceanAccountApi
+        ? _userDataApi as OceanAccountApi
+        : null;
+    if (api == null) return;
+    final accountKey = await api.currentAccountKey;
+    if (accountKey == null || accountKey.isEmpty) return;
+    await _ownershipService?.markEntityAccount(
+        entityType, entityId, accountKey);
   }
 
   String _getDailyMoodImagePath(DateTime date) {
@@ -538,7 +572,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF0E6),
+              color: AppColors.accentWarm,
               borderRadius: BorderRadius.circular(AppSpacing.xl),
             ),
             child: const Icon(

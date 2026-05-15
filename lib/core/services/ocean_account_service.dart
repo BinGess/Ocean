@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../network/ocean_api_client.dart';
 import 'icloud_sync_service.dart';
 import 'ocean_account_cache_service.dart';
+import 'ocean_record_ownership_service.dart';
 import 'ocean_sync_service.dart';
 
 class OceanAccountDataRefreshService {
@@ -40,21 +41,30 @@ class OceanAccountService {
     required OceanAccountCacheService cacheService,
     required OceanAccountDataRefreshService refreshService,
     ICloudSyncService? iCloudSyncService,
+    OceanRecordOwnershipService? ownershipService,
   })  : _api = api,
         _syncService = syncService,
         _cacheService = cacheService,
         _refreshService = refreshService,
-        _iCloudSyncService = iCloudSyncService;
+        _iCloudSyncService = iCloudSyncService,
+        _ownershipService = ownershipService;
 
   final OceanAccountApi _api;
   final OceanAccountSyncService _syncService;
   final OceanAccountCacheService _cacheService;
   final OceanAccountDataRefreshService _refreshService;
   final ICloudSyncService? _iCloudSyncService;
+  final OceanRecordOwnershipService? _ownershipService;
 
   Future<bool> get isSignedIn => _api.isSignedIn;
 
+  Future<String?> get currentUserId => _api.currentUserId;
+
   Future<String?> get currentEmail => _api.currentEmail;
+
+  Future<String?> get currentPhone => _api.currentPhone;
+
+  Future<String?> get currentAccountKey => _api.currentAccountKey;
 
   Future<OceanAuthTokens> login({
     required String email,
@@ -94,6 +104,7 @@ class OceanAccountService {
 
   Future<bool> restoreSignedInSession() async {
     if (!await _api.isSignedIn) return false;
+    await _syncActiveAccount();
     await _disableICloudBackupForAccountSync('restore signed-in session');
     try {
       await _syncService.restoreSnapshot();
@@ -107,7 +118,9 @@ class OceanAccountService {
 
   Future<void> logout() async {
     await _api.logout();
-    await _cacheService.clearAccountCache();
+    await _ownershipService?.detachActiveAccountDataToLocal();
+    await _ownershipService?.clearActiveAccount();
+    await _cacheService.hideAccountCache();
     _refreshService.notifyChanged();
   }
 
@@ -119,8 +132,15 @@ class OceanAccountService {
   }
 
   Future<void> _trySyncAfterAuth(String action) async {
+    await _syncActiveAccount();
     await _disableICloudBackupForAccountSync(action);
     await _completeLocalMigration(action);
+  }
+
+  Future<void> _syncActiveAccount() async {
+    final accountKey = await _api.currentAccountKey;
+    if (accountKey == null || accountKey.isEmpty) return;
+    await _ownershipService?.setActiveAccount(accountKey);
   }
 
   Future<void> _completeLocalMigration(String action) async {

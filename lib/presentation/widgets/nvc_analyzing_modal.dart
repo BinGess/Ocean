@@ -276,7 +276,7 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
                 child: const Icon(
                   Icons.auto_awesome,
                   size: 32,
-                  color: Color(0xFFC4A57B),
+                  color: AppColors.accent,
                 ),
               );
             },

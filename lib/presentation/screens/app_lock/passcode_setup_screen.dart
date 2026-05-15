@@ -14,6 +14,7 @@ import '../../widgets/app_lock/passcode_dots.dart';
 enum PasscodeSetupMode {
   /// 首次设置密码
   setup,
+
   /// 更改密码
   change,
 }
@@ -47,10 +48,13 @@ class PasscodeSetupScreen extends StatefulWidget {
 enum _SetupStep {
   /// 更改密码时：验证旧密码
   verifyOld,
+
   /// 输入新密码
   enterNew,
+
   /// 确认新密码
   confirmNew,
+
   /// 询问是否启用生物识别
   askBiometric,
 }
@@ -210,13 +214,13 @@ class _PasscodeSetupScreenState extends State<PasscodeSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF6F1),
+      backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFAF6F1),
+        backgroundColor: AppColors.bgPrimary,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Color(0xFF5D4E3C)),
+          icon: const Icon(Icons.close, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(false),
         ),
       ),
@@ -239,7 +243,7 @@ class _PasscodeSetupScreenState extends State<PasscodeSetupScreen> {
           style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF5D4E3C),
+            color: AppColors.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
@@ -249,7 +253,7 @@ class _PasscodeSetupScreenState extends State<PasscodeSetupScreen> {
           _subtitle,
           style: const TextStyle(
             fontSize: 15,
-            color: Color(0xFF8B7D6B),
+            color: AppColors.textTertiary,
           ),
         ),
         const SizedBox(height: 40),
@@ -300,9 +304,8 @@ class _PasscodeSetupScreenState extends State<PasscodeSetupScreen> {
       future: _appLockService.biometricName,
       builder: (context, snapshot) {
         final biometricName = snapshot.data ?? '生物识别';
-        final icon = biometricName.contains('Face')
-            ? Icons.face
-            : Icons.fingerprint;
+        final icon =
+            biometricName.contains('Face') ? Icons.face : Icons.fingerprint;
 
         return Padding(
           padding: const EdgeInsets.all(32),
@@ -315,7 +318,7 @@ class _PasscodeSetupScreenState extends State<PasscodeSetupScreen> {
                 width: 100,
                 height: 100,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFF5EBE0),
+                  color: AppColors.accentLight,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -332,7 +335,7 @@ class _PasscodeSetupScreenState extends State<PasscodeSetupScreen> {
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF5D4E3C),
+                  color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 16),
@@ -343,7 +346,7 @@ class _PasscodeSetupScreenState extends State<PasscodeSetupScreen> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 15,
-                  color: Color(0xFF8B7D6B),
+                  color: AppColors.textTertiary,
                   height: 1.5,
                 ),
               ),
@@ -382,7 +385,7 @@ class _PasscodeSetupScreenState extends State<PasscodeSetupScreen> {
                   '稍后设置',
                   style: TextStyle(
                     fontSize: 15,
-                    color: Color(0xFF8B7D6B),
+                    color: AppColors.textTertiary,
                   ),
                 ),
               ),

@@ -213,7 +213,7 @@ class _InsightsScreenState extends State<InsightsScreen>
               }
 
               if (state.currentReport == null) {
-                return _buildEmptyState(state.errorMessage, l10n);
+                return _buildEmptyState(state, l10n);
               }
 
               return RefreshIndicator(
@@ -259,7 +259,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                 width: 80,
                 height: 80,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFFFF8E7),
+                  color: AppColors.accentWarm,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -349,71 +349,155 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// 空状态
-  Widget _buildEmptyState(String? errorMessage, AppLocalizations l10n) {
+  Widget _buildEmptyState(InsightState state, AppLocalizations l10n) {
+    final weekRange = state.currentWeekRange ??
+        state.weeklyAnalysis?.weekRange ??
+        _getCurrentWeekRangeForDisplay();
+
     return SafeArea(
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: const BoxDecoration(
-                  color: AppColors.accentLight,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.auto_awesome_outlined,
-                  size: 40,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                l10n.noEnoughContent,
-                textAlign: TextAlign.center,
-                style: AppTypography.detailTitle.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                l10n.autoGenerateAfterMore,
-                textAlign: TextAlign.center,
-                style: AppTypography.bodySecondary.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 32),
-              TextButton(
-                onPressed: () {
-                  context
-                      .read<InsightBloc>()
-                      .add(const InsightGenerateCurrentWeek());
-                },
-                style: TextButton.styleFrom(
-                  backgroundColor: AppColors.accentLight,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        l10n.navInsights,
+                        style: AppTypography.pageTitle.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const HistoryReportsScreen(),
+                            ),
+                          );
+                        },
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 6),
+                          minimumSize: const Size(0, 0),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Text(
+                          l10n.viewHistoryReports,
+                          style: AppTypography.sectionSubtle.copyWith(
+                            color: AppColors.textTertiary,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                child: Text(
-                  l10n.regenerate,
-                  style: AppTypography.actionLabel.copyWith(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w500,
+                  const SizedBox(height: 18),
+                  Text(
+                    _formatWeekRange(weekRange),
+                    style: AppTypography.pageMeta.copyWith(
+                      color: AppColors.textSubtle,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '每周洞察报告',
+                    style: AppTypography.pageTitle.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(32, 24, 32, 48),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: const BoxDecoration(
+                      color: AppColors.accentLight,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome_outlined,
+                      size: 40,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    l10n.noEnoughContent,
+                    textAlign: TextAlign.center,
+                    style: AppTypography.detailTitle.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.autoGenerateAfterMore,
+                    textAlign: TextAlign.center,
+                    style: AppTypography.bodySecondary.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  TextButton(
+                    onPressed: () {
+                      context
+                          .read<InsightBloc>()
+                          .add(const InsightGenerateCurrentWeek());
+                    },
+                    style: TextButton.styleFrom(
+                      backgroundColor: AppColors.accentLight,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                    ),
+                    child: Text(
+                      l10n.regenerate,
+                      style: AppTypography.actionLabel.copyWith(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  String _getCurrentWeekRangeForDisplay() {
+    final now = DateTime.now();
+    final monday = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
+    final sunday = monday.add(const Duration(days: 6));
+
+    String format(DateTime date) {
+      return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    }
+
+    return '${format(monday)} ~ ${format(sunday)}';
   }
 
   /// 洞察内容

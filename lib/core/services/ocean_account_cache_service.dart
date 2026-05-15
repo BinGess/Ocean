@@ -6,6 +6,12 @@ class OceanAccountCacheService {
 
   final HiveDatabase _database;
 
+  Future<void> hideAccountCache() async {
+    // Account data remains in Hive as an offline cache. Logged-out views filter
+    // it out via ownership metadata, so logout must not delete user records.
+  }
+
+  @Deprecated('Use hideAccountCache to avoid deleting user data on logout.')
   Future<void> clearAccountCache() async {
     await _database.recordsBox.clear();
     await _database.weeklyInsightsBox.clear();

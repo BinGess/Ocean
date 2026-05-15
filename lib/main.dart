@@ -15,6 +15,7 @@ import 'core/services/app_lock_service.dart';
 import 'core/services/app_entry_flow.dart';
 import 'core/services/icloud_sync_service.dart';
 import 'core/services/ocean_account_service.dart';
+import 'core/services/ocean_record_ownership_service.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/bloc/audio/audio_bloc.dart';
 import 'presentation/bloc/audio/audio_event.dart';
@@ -46,7 +47,8 @@ void main() async {
 
   // 初始化依赖注入
   await configureDependencies();
-  await getIt<ICloudSyncService>().initializeOnLaunch();
+  // iCloud 同步已从用户侧下线；这里主动关闭旧版本可能残留的本地开关。
+  await getIt<ICloudSyncService>().setEnabled(false);
 
   runApp(const MindFlowApp());
 }
@@ -117,7 +119,6 @@ class _AppEntryPointState extends State<AppEntryPoint>
   int _mainGeneration = 0;
 
   final _appLockService = getIt<AppLockService>();
-  final _iCloudSyncService = getIt<ICloudSyncService>();
   final _accountService = getIt<OceanAccountService>();
 
   static const _loginGuideSkippedKey = 'ocean_login_guide_skipped';
@@ -184,7 +185,6 @@ class _AppEntryPointState extends State<AppEntryPoint>
 
   void _onAppBackground() async {
     try {
-      unawaited(_iCloudSyncService.syncNow());
       _appLockService.onAppBackground();
       // 显示隐私遮罩
       final isEnabled = await _appLockService.isEnabled;
@@ -207,7 +207,6 @@ class _AppEntryPointState extends State<AppEntryPoint>
     }
 
     try {
-      unawaited(_iCloudSyncService.refreshFromCloudIfNeeded());
       // 检查是否需要显示锁屏
       final shouldLock = await _appLockService.shouldShowLockScreen();
       if (shouldLock && mounted) {
@@ -386,12 +385,36 @@ class _AppEntryPointState extends State<AppEntryPoint>
   }
 
   bool _hasLocalAccountDataToProtect(HiveDatabase db) {
-    if (db.recordsBox.isNotEmpty ||
-        db.weeklyInsightsBox.isNotEmpty ||
-        db.insightReportsBox.isNotEmpty) {
+    final ownership = getIt.isRegistered<OceanRecordOwnershipService>()
+        ? getIt<OceanRecordOwnershipService>()
+        : null;
+    if (ownership == null) {
+      return db.recordsBox.isNotEmpty ||
+          db.weeklyInsightsBox.isNotEmpty ||
+          db.insightReportsBox.isNotEmpty ||
+          _hasLocalSettingsDataToProtect(db, null);
+    }
+
+    if (db.recordsBox.values.any((record) => ownership.isLocal(record.id)) ||
+        db.weeklyInsightsBox.values.any(
+          (insight) => ownership.isEntityLocal('weekly_insight', insight.id),
+        )) {
       return true;
     }
 
+    for (final rawKey in db.insightReportsBox.keys) {
+      if (ownership.isEntityLocal('insight_report', rawKey.toString())) {
+        return true;
+      }
+    }
+
+    return _hasLocalSettingsDataToProtect(db, ownership);
+  }
+
+  bool _hasLocalSettingsDataToProtect(
+    HiveDatabase db,
+    OceanRecordOwnershipService? ownership,
+  ) {
     for (final rawKey in db.settingsBox.keys) {
       final key = rawKey.toString();
       if (key == 'profile_avatar' ||
@@ -400,13 +423,40 @@ class _AppEntryPointState extends State<AppEntryPoint>
           key.startsWith('daily_mood_') ||
           key.startsWith('daily_summary_')) {
         final value = db.settingsBox.get(rawKey);
-        if (value != null && value.toString().trim().isNotEmpty) {
+        if (value != null &&
+            value.toString().trim().isNotEmpty &&
+            _isLocalSettingKey(key, ownership)) {
           return true;
         }
       }
     }
 
     return false;
+  }
+
+  bool _isLocalSettingKey(
+    String key,
+    OceanRecordOwnershipService? ownership,
+  ) {
+    if (ownership == null) return true;
+    if (key == 'profile_avatar' ||
+        key == 'profile_nickname' ||
+        key == 'profile_signature') {
+      return ownership.isEntityLocal('profile', 'me');
+    }
+    if (key.startsWith('daily_mood_')) {
+      return ownership.isEntityLocal(
+        'daily_mood',
+        key.substring('daily_mood_'.length),
+      );
+    }
+    if (key.startsWith('daily_summary_')) {
+      return ownership.isEntityLocal(
+        'daily_summary',
+        key.substring('daily_summary_'.length),
+      );
+    }
+    return true;
   }
 }
 

@@ -93,8 +93,8 @@ class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
       vsync: this,
       duration: Duration(milliseconds: typingTotalMs),
     );
-    _typingAnimation = IntTween(begin: 0, end: _entryText.length)
-        .animate(CurvedAnimation(
+    _typingAnimation =
+        IntTween(begin: 0, end: _entryText.length).animate(CurvedAnimation(
       parent: _typingController,
       curve: Interval(
         _typingDelayMs / typingTotalMs,
@@ -122,7 +122,8 @@ class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
       );
     }
 
-    _reduceMotion = WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations;
+    _reduceMotion = WidgetsBinding
+        .instance.platformDispatcher.accessibilityFeatures.disableAnimations;
     if (_reduceMotion) {
       _typingController.value = 1.0;
       for (final c in _cardControllers) {
@@ -244,8 +245,8 @@ class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
                       index: 3,
                       card: const _NVCDemoCard(
                         icon: Icons.tips_and_updates_outlined,
-                        iconColor: Color(0xFFC4A57B),
-                        iconBgColor: Color(0xFFFFF8E7),
+                        iconColor: AppColors.accent,
+                        iconBgColor: AppColors.accentWarm,
                         title: '行动 Tips',
                         subtitle: '具体可行的下一步',
                         body: _DemoData.requestText,
@@ -283,8 +284,7 @@ class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: AppColors.accentLight,
               borderRadius: BorderRadius.circular(20),
@@ -305,8 +305,8 @@ class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
               onPressed: _complete,
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.textTertiary,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
@@ -361,8 +361,7 @@ class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
         children: [
           Row(
             children: [
-              Icon(Icons.edit_note_outlined,
-                  size: 16, color: Colors.grey[400]),
+              Icon(Icons.edit_note_outlined, size: 16, color: Colors.grey[400]),
               const SizedBox(width: 6),
               Text(
                 '原始记录',
@@ -378,8 +377,7 @@ class _NVCOnboardingScreenState extends State<NVCOnboardingScreen>
           AnimatedBuilder(
             animation: _typingAnimation,
             builder: (context, _) {
-              final displayed =
-                  _entryText.substring(0, _typingAnimation.value);
+              final displayed = _entryText.substring(0, _typingAnimation.value);
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -524,15 +522,13 @@ class _TypingCursorState extends State<_TypingCursor>
 class _DemoData {
   const _DemoData();
 
-  static const observationText =
-      '在今天下午的项目会议中，我正在发言时被另一位同事打断，我没有机会说完自己的想法。';
+  static const observationText = '在今天下午的项目会议中，我正在发言时被另一位同事打断，我没有机会说完自己的想法。';
 
   static const feelingsText = '烦躁、沮丧、有些委屈';
 
   static const needsText = '被尊重、被倾听、在表达中感到安全';
 
-  static const requestText =
-      '下次开会时，可以和同事提前约定：发言时尽量等对方说完再发表意见。';
+  static const requestText = '下次开会时，可以和同事提前约定：发言时尽量等对方说完再发表意见。';
 }
 
 // ── 只读 NVC 卡片 ─────────────────────────────────────────────────────────────

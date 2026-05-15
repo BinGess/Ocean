@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:mindflow/core/di/injection.dart';
 import 'package:mindflow/core/services/ocean_account_service.dart';
+import 'package:mindflow/core/theme/app_colors.dart';
 import 'package:mindflow/data/datasources/local/hive_database.dart';
 import 'package:mindflow/l10n/app_localizations.dart';
 import 'package:mindflow/presentation/bloc/insight/insight_bloc.dart';
@@ -178,9 +179,19 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.widgetWithText(TextButton, '登录'), findsOneWidget);
+    final loginButtonFinder = find.widgetWithText(TextButton, '登录');
+    expect(loginButtonFinder, findsOneWidget);
+    final loginButton = tester.widget<TextButton>(loginButtonFinder);
+    expect(
+      loginButton.style?.backgroundColor?.resolve(<WidgetState>{}),
+      AppColors.accentLight,
+    );
+    expect(
+      loginButton.style?.foregroundColor?.resolve(<WidgetState>{}),
+      AppColors.textSecondary,
+    );
 
-    await tester.tap(find.widgetWithText(TextButton, '登录'));
+    await tester.tap(loginButtonFinder);
     await tester.pumpAndSettle();
 
     expect(find.text('账号引导测试页'), findsOneWidget);

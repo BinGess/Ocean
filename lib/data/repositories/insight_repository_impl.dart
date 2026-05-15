@@ -4,6 +4,7 @@ library;
 
 import 'dart:convert';
 import '../../core/network/ocean_api_client.dart';
+import '../../core/services/ocean_record_ownership_service.dart';
 import '../../domain/entities/weekly_insight.dart';
 import '../../domain/entities/insight_report.dart';
 import '../../domain/entities/insight_report_cache.dart';
@@ -14,30 +15,41 @@ import '../models/weekly_insight_model.dart';
 class InsightRepositoryImpl implements InsightRepository {
   final HiveDatabase database;
   final OceanUserDataApi? userDataApi;
+  final OceanAccountApi? accountApi;
+  final OceanRecordOwnershipService? ownershipService;
 
   InsightRepositoryImpl({
     required this.database,
     this.userDataApi,
-  });
+    OceanAccountApi? accountApi,
+    this.ownershipService,
+  }) : accountApi = accountApi ??
+            (userDataApi is OceanAccountApi
+                ? userDataApi as OceanAccountApi
+                : null);
 
   @override
   Future<WeeklyInsight> createWeeklyInsight(WeeklyInsight insight) async {
     final model = WeeklyInsightModel.fromEntity(insight);
     await database.weeklyInsightsBox.put(insight.id, model);
+    await _markCurrentOwnerOrLocal('weekly_insight', insight.id);
     return model.toEntity();
   }
 
   @override
   Future<WeeklyInsight?> getWeeklyInsight(String weekRange) async {
     final model = database.weeklyInsightsBox.values
-        .where((m) => m.weekRange == weekRange)
+        .where((m) =>
+            m.weekRange == weekRange && _isVisible('weekly_insight', m.id))
         .firstOrNull;
     return model?.toEntity();
   }
 
   @override
   Future<List<WeeklyInsight>> getAllWeeklyInsights() async {
-    final models = database.weeklyInsightsBox.values.toList();
+    final models = database.weeklyInsightsBox.values
+        .where((model) => _isVisible('weekly_insight', model.id))
+        .toList();
     // 按创建时间降序排序
     models.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return models.map((m) => m.toEntity()).toList();
@@ -45,7 +57,9 @@ class InsightRepositoryImpl implements InsightRepository {
 
   @override
   Future<List<WeeklyInsight>> getRecentInsights({int limit = 4}) async {
-    final models = database.weeklyInsightsBox.values.toList();
+    final models = database.weeklyInsightsBox.values
+        .where((model) => _isVisible('weekly_insight', model.id))
+        .toList();
     models.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     final limitedModels = models.take(limit).toList();
     return limitedModels.map((m) => m.toEntity()).toList();
@@ -55,12 +69,14 @@ class InsightRepositoryImpl implements InsightRepository {
   Future<WeeklyInsight> updateWeeklyInsight(WeeklyInsight insight) async {
     final model = WeeklyInsightModel.fromEntity(insight);
     await database.weeklyInsightsBox.put(insight.id, model);
+    await _markCurrentOwnerOrLocal('weekly_insight', insight.id);
     return model.toEntity();
   }
 
   @override
   Future<void> deleteWeeklyInsight(String id) async {
     await database.weeklyInsightsBox.delete(id);
+    await ownershipService?.clearEntityOwner('weekly_insight', id);
   }
 
   @override
@@ -112,6 +128,7 @@ class InsightRepositoryImpl implements InsightRepository {
 
   @override
   Future<InsightReportCache?> getCachedInsightReport(String weekRange) async {
+    if (!_isVisible('insight_report', weekRange)) return null;
     final raw = database.insightReportsBox.get(weekRange);
     if (raw == null) return null;
 
@@ -151,6 +168,10 @@ class InsightRepositoryImpl implements InsightRepository {
           'clientUpdatedAt': clientUpdatedAt,
         },
       );
+      await _markCurrentOwnerOrLocal('insight_report', report.weekRange);
+    } else {
+      await ownershipService?.markEntityLocal(
+          'insight_report', report.weekRange);
     }
     final payload = {
       'cached_at': resolvedCachedAt.toIso8601String(),
@@ -162,12 +183,17 @@ class InsightRepositoryImpl implements InsightRepository {
   @override
   Future<void> deleteInsightReportCache(String weekRange) async {
     await database.insightReportsBox.delete(weekRange);
+    await ownershipService?.clearEntityOwner('insight_report', weekRange);
   }
 
   @override
   Future<List<InsightReportCache>> getAllCachedInsightReports() async {
     final List<InsightReportCache> results = [];
-    for (final raw in database.insightReportsBox.values) {
+    for (final rawKey in database.insightReportsBox.keys) {
+      final weekRange = rawKey.toString();
+      if (!_isVisible('insight_report', weekRange)) continue;
+      final raw = database.insightReportsBox.get(rawKey);
+      if (raw == null) continue;
       try {
         final data = jsonDecode(raw) as Map<String, dynamic>;
         final cachedAtStr = data['cached_at'] as String?;
@@ -186,5 +212,32 @@ class InsightRepositoryImpl implements InsightRepository {
 
     results.sort((a, b) => b.cachedAt.compareTo(a.cachedAt));
     return results;
+  }
+
+  bool _isVisible(String entityType, String entityId) {
+    final ownership = ownershipService;
+    if (ownership == null) return true;
+    return ownership.isEntityVisible(
+      entityType: entityType,
+      entityId: entityId,
+      accountKey: ownership.activeAccount,
+    );
+  }
+
+  Future<void> _markCurrentOwnerOrLocal(
+    String entityType,
+    String entityId,
+  ) async {
+    final ownership = ownershipService;
+    if (ownership == null) return;
+    final api = accountApi;
+    if (api != null && await api.isSignedIn) {
+      final accountKey = await api.currentAccountKey;
+      if (accountKey != null && accountKey.isNotEmpty) {
+        await ownership.markEntityAccount(entityType, entityId, accountKey);
+        return;
+      }
+    }
+    await ownership.markEntityLocal(entityType, entityId);
   }
 }

@@ -6,6 +6,30 @@ import 'package:mindflow/data/models/record_model.dart';
 import 'package:mindflow/data/models/weekly_insight_model.dart';
 
 void main() {
+  test('hideAccountCache keeps cached account data for ownership filtering',
+      () async {
+    final database = _FakeHiveDatabase();
+    await database.recordsBox.put('record-1', _recordModel('record-1'));
+    await database.weeklyInsightsBox.put('weekly-1', _weeklyInsightModel());
+    await database.insightReportsBox.put('week', '{}');
+    await database.settingsBox.put('profile_nickname', 'Ocean');
+    await database.settingsBox.put('daily_mood_2026-05-08', 'calm.png');
+    await database.settingsBox.put('daily_summary_2026-05-08', '{}');
+    await database.settingsBox.put('ocean_sync_cursor', '9');
+
+    await OceanAccountCacheService(database).hideAccountCache();
+
+    expect(database.recordsBox.values.map((item) => item.id), ['record-1']);
+    expect(database.weeklyInsightsBox.values.map((item) => item.id), [
+      'weekly-1',
+    ]);
+    expect(database.insightReportsBox.values, ['{}']);
+    expect(database.settingsBox.get('profile_nickname'), 'Ocean');
+    expect(database.settingsBox.get('daily_mood_2026-05-08'), 'calm.png');
+    expect(database.settingsBox.get('daily_summary_2026-05-08'), '{}');
+    expect(database.settingsBox.get('ocean_sync_cursor'), '9');
+  });
+
   test('clearAccountCache removes account-scoped data and keeps app settings',
       () async {
     final database = _FakeHiveDatabase();

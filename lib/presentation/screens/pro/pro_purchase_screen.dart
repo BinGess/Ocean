@@ -110,13 +110,6 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
                     description: l10n.proFeatureExportDesc,
                     color: AppColors.accent,
                   ),
-                  const SizedBox(height: 16),
-                  _buildFeatureCard(
-                    icon: Icons.cloud_outlined,
-                    title: l10n.proFeatureICloud,
-                    description: l10n.proFeatureICloudDesc,
-                    color: const Color(0xFF7190A5),
-                  ),
                 ],
               ),
             ),
@@ -137,8 +130,8 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                              Color(0xFF8B8B8B)),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Color(0xFF8B8B8B)),
                         ),
                       ),
                     )

@@ -8,7 +8,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:mindflow/core/di/injection.dart';
 import 'package:mindflow/core/services/ai_auth_service.dart';
-import 'package:mindflow/core/services/icloud_sync_service.dart';
 import 'package:mindflow/core/services/locale_service.dart';
 import 'package:mindflow/core/services/ocean_account_service.dart';
 import 'package:mindflow/core/services/pro_subscription_service.dart';
@@ -55,33 +54,6 @@ class _FakeAIAuthService extends Fake implements AIAuthService {
   void disposeFake() => _controller.close();
 }
 
-class _FakeICloudSyncService extends Fake implements ICloudSyncService {
-  bool enabled = false;
-  bool available = false;
-  final List<bool> setEnabledCalls = [];
-
-  @override
-  Future<bool> get isEnabled async => enabled;
-
-  @override
-  Future<bool> get isAvailable async => available;
-
-  @override
-  Future<void> setEnabled(bool enabled) async {
-    setEnabledCalls.add(enabled);
-    this.enabled = enabled;
-  }
-
-  @override
-  Future<ICloudBackupStatus> getBackupStatus() async {
-    return const ICloudBackupStatus(
-      isAvailable: false,
-      backupExists: false,
-      fileName: 'mindflow_icloud_backup.json',
-    );
-  }
-}
-
 class _FakeProSubscriptionService extends Fake
     implements ProSubscriptionService {
   @override
@@ -93,9 +65,17 @@ class _FakeOceanAccountService extends Fake implements OceanAccountService {
 
   bool signedIn;
   int logoutCount = 0;
+  String? phone = '186****3732';
+  String? email;
 
   @override
   Future<bool> get isSignedIn async => signedIn;
+
+  @override
+  Future<String?> get currentPhone async => phone;
+
+  @override
+  Future<String?> get currentEmail async => email;
 
   @override
   Future<void> logout() async {
@@ -127,17 +107,15 @@ void main() {
   late _FakeHiveDatabase fakeDb;
   late _FakeAIAuthService fakeAIAuthService;
   late _FakeOceanAccountService fakeAccountService;
-  late _FakeICloudSyncService fakeICloudSyncService;
 
   setUp(() {
     fakeDb = _FakeHiveDatabase();
     fakeAIAuthService = _FakeAIAuthService();
     fakeAccountService = _FakeOceanAccountService(signedIn: true);
-    fakeICloudSyncService = _FakeICloudSyncService();
 
     getIt
+      ..registerSingleton<HiveDatabase>(fakeDb)
       ..registerSingleton<AIAuthService>(fakeAIAuthService)
-      ..registerSingleton<ICloudSyncService>(fakeICloudSyncService)
       ..registerSingleton<ProSubscriptionService>(
         _FakeProSubscriptionService(),
       )
@@ -149,14 +127,14 @@ void main() {
     if (getIt.isRegistered<AIAuthService>()) {
       getIt.unregister<AIAuthService>();
     }
-    if (getIt.isRegistered<ICloudSyncService>()) {
-      getIt.unregister<ICloudSyncService>();
-    }
     if (getIt.isRegistered<ProSubscriptionService>()) {
       getIt.unregister<ProSubscriptionService>();
     }
     if (getIt.isRegistered<OceanAccountService>()) {
       getIt.unregister<OceanAccountService>();
+    }
+    if (getIt.isRegistered<HiveDatabase>()) {
+      getIt.unregister<HiveDatabase>();
     }
   });
 
@@ -184,16 +162,66 @@ void main() {
     expect(find.widgetWithText(OutlinedButton, '退出登录'), findsNothing);
   });
 
-  testWidgets('已登录账号时自动关闭并隐藏 iCloud 同步入口', (tester) async {
-    fakeICloudSyncService
-      ..enabled = true
-      ..available = true;
+  testWidgets('设置页不展示 iCloud 同步入口', (tester) async {
+    await tester.pumpWidget(_buildTestable(database: fakeDb));
+    await tester.pumpAndSettle();
+
+    expect(find.text('iCloud 云同步'), findsNothing);
+    expect(find.text('云端备份状态'), findsNothing);
+    expect(find.text('账号同步'), findsNothing);
+  });
+
+  testWidgets('未登录状态下设置页也不展示 iCloud 同步入口', (tester) async {
+    fakeAccountService.signedIn = false;
 
     await tester.pumpWidget(_buildTestable(database: fakeDb));
     await tester.pumpAndSettle();
 
-    expect(fakeICloudSyncService.setEnabledCalls, [false]);
     expect(find.text('iCloud 云同步'), findsNothing);
     expect(find.text('云端备份状态'), findsNothing);
+    expect(find.text('账号同步'), findsNothing);
+  });
+
+  testWidgets('设置页第一组展示账号信息入口并可进入详情', (tester) async {
+    await fakeDb.settingsBox.put('profile_avatar', '鲸');
+    await fakeDb.settingsBox.put('profile_nickname', '大黄鱼');
+    await fakeDb.settingsBox.put('profile_signature', '今天也在认真记录');
+
+    await tester.pumpWidget(_buildTestable(database: fakeDb));
+    await tester.pumpAndSettle();
+
+    expect(find.text('账号'), findsOneWidget);
+    expect(find.text('账号信息'), findsOneWidget);
+    expect(find.text('查看手机号、昵称、头像和签名'), findsOneWidget);
+
+    await tester.tap(find.text('账号信息'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('手机号'), findsOneWidget);
+    expect(find.text('186****3732'), findsOneWidget);
+    expect(find.text('昵称'), findsOneWidget);
+    expect(find.text('大黄鱼'), findsWidgets);
+    expect(find.text('头像'), findsOneWidget);
+    expect(find.text('签名'), findsOneWidget);
+    expect(find.text('今天也在认真记录'), findsWidgets);
+  });
+
+  testWidgets('未登录时账号信息页底部提供登录入口', (tester) async {
+    fakeAccountService.signedIn = false;
+
+    await tester.pumpWidget(_buildTestable(database: fakeDb));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('账号信息'));
+    await tester.pumpAndSettle();
+
+    final loginButtonFinder = find.widgetWithText(FilledButton, '登录');
+    expect(loginButtonFinder, findsOneWidget);
+
+    await tester.tap(loginButtonFinder);
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(TextField, '手机号'), findsOneWidget);
+    expect(find.text('登录 Ocean 账号'), findsNothing);
   });
 }

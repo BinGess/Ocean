@@ -126,7 +126,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          backgroundColor: const Color(0xFFFAF6F1),
+          backgroundColor: AppColors.bgPrimary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -135,7 +135,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF5D4E3C),
+              color: AppColors.textPrimary,
             ),
           ),
           content: Column(
@@ -145,7 +145,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
                 '请输入密码以关闭应用锁',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Color(0xFF8B7D6B),
+                  color: AppColors.textTertiary,
                 ),
               ),
               const SizedBox(height: 20),
@@ -160,7 +160,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
                   errorText: hasError ? '密码错误' : null,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE8DED0)),
+                    borderSide: const BorderSide(color: AppColors.borderLight),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -182,7 +182,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
               child: const Text(
                 '取消',
                 style: TextStyle(
-                  color: Color(0xFF8B7D6B),
+                  color: AppColors.textTertiary,
                   fontSize: 15,
                 ),
               ),
@@ -211,19 +211,20 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF6F1),
+      backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFAF6F1),
+        backgroundColor: AppColors.bgPrimary,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 20, color: Color(0xFF5D4E3C)),
+          icon: const Icon(Icons.arrow_back_ios,
+              size: 20, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
           '应用锁',
           style: TextStyle(
-            color: Color(0xFF5D4E3C),
+            color: AppColors.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -237,7 +238,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5EBE0),
+              color: AppColors.accentLight,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -261,7 +262,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
                     '开启应用锁后，每次打开瞬记都需要验证身份，保护您的隐私安全。',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Color(0xFF5D4E3C),
+                      color: AppColors.textPrimary,
                       height: 1.5,
                     ),
                   ),
@@ -308,8 +309,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
                     value: _isBiometricEnabled,
                     onChanged: _toggleBiometric,
                   ),
-                if (_canUseBiometrics)
-                  const Divider(height: 1, indent: 56),
+                if (_canUseBiometrics) const Divider(height: 1, indent: 56),
 
                 // 自动锁定时间
                 _buildTapTile(
@@ -319,7 +319,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
                     _autoLockDuration.label,
                     style: const TextStyle(
                       fontSize: 14,
-                      color: Color(0xFF8B7D6B),
+                      color: AppColors.textTertiary,
                     ),
                   ),
                   onTap: _selectAutoLockDuration,
@@ -366,7 +366,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: const Color(0xFFF5EBE0),
+              color: AppColors.accentLight,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
@@ -384,7 +384,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
                   title,
                   style: const TextStyle(
                     fontSize: 16,
-                    color: Color(0xFF5D4E3C),
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 if (subtitle != null)
@@ -392,7 +392,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
                     subtitle,
                     style: const TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF8B7D6B),
+                      color: AppColors.textTertiary,
                     ),
                   ),
               ],
@@ -401,7 +401,8 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
           Switch.adaptive(
             value: value,
             onChanged: onChanged,
-            activeColor: AppColors.accent,
+            activeThumbColor: AppColors.accent,
+            activeTrackColor: AppColors.accentLight,
           ),
         ],
       ),
@@ -425,7 +426,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: const Color(0xFFF5EBE0),
+                color: AppColors.accentLight,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -440,7 +441,7 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
                 title,
                 style: const TextStyle(
                   fontSize: 16,
-                  color: Color(0xFF5D4E3C),
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
@@ -470,7 +471,7 @@ class _AutoLockDurationPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFFFAF6F1),
+        color: AppColors.bgPrimary,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
@@ -495,7 +496,7 @@ class _AutoLockDurationPicker extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF5D4E3C),
+                color: AppColors.textPrimary,
               ),
             ),
           ),
@@ -507,7 +508,8 @@ class _AutoLockDurationPicker extends StatelessWidget {
             return InkWell(
               onTap: () => Navigator.of(context).pop(duration),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Row(
                   children: [
                     Expanded(
@@ -517,7 +519,7 @@ class _AutoLockDurationPicker extends StatelessWidget {
                           fontSize: 16,
                           color: isSelected
                               ? AppColors.accent
-                              : const Color(0xFF5D4E3C),
+                              : AppColors.textPrimary,
                           fontWeight:
                               isSelected ? FontWeight.w600 : FontWeight.normal,
                         ),

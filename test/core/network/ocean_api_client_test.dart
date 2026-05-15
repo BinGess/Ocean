@@ -297,7 +297,9 @@ class _MemoryTokenStore implements OceanTokenStore {
 
   String? refreshToken;
 
+  String? userId;
   String? email;
+  String? phone;
 
   @override
   Future<OceanAuthTokens?> readTokens() async {
@@ -307,7 +309,9 @@ class _MemoryTokenStore implements OceanTokenStore {
     return OceanAuthTokens(
       accessToken: access,
       refreshToken: refresh,
+      userId: userId,
       email: email,
+      phone: phone,
     );
   }
 
@@ -315,14 +319,18 @@ class _MemoryTokenStore implements OceanTokenStore {
   Future<void> saveTokens(OceanAuthTokens tokens) async {
     accessToken = tokens.accessToken;
     refreshToken = tokens.refreshToken;
+    userId = tokens.userId;
     email = tokens.email;
+    phone = tokens.phone;
   }
 
   @override
   Future<void> clear() async {
     accessToken = null;
     refreshToken = null;
+    userId = null;
     email = null;
+    phone = null;
   }
 }
 

@@ -446,7 +446,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                           ),
                         ),
                         icon: const Icon(Icons.share_outlined,
-                            size: 22, color: Color(0xFFC4A57B)),
+                            size: 22, color: AppColors.accent),
                         tooltip: '分享',
                       ),
                       const SizedBox(width: 4),
@@ -495,12 +495,12 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                   const Row(
                     children: [
                       Icon(Icons.auto_awesome,
-                          size: 16, color: Color(0xFFC4A57B)),
+                          size: 16, color: AppColors.accent),
                       SizedBox(width: 6),
                       Text(
                         '洞察',
                         style: TextStyle(
-                          color: Color(0xFFC4A57B),
+                          color: AppColors.accent,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
@@ -555,7 +555,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                                 child: Text(
                                   f.feeling,
                                   style: const TextStyle(
-                                    color: Color(0xFF5D4E3C),
+                                    color: AppColors.textPrimary,
                                     fontSize: 13,
                                     fontWeight: FontWeight.w500,
                                   ),

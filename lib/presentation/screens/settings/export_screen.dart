@@ -111,7 +111,7 @@ class _ExportScreenState extends State<ExportScreen>
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF6F1),
+      backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -236,7 +236,7 @@ class _ExportScreenState extends State<ExportScreen>
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: const Color(0xFFF8F6F3),
+                color: AppColors.bgInput,
                 borderRadius: BorderRadius.circular(24),
               ),
               child: const Icon(
@@ -282,7 +282,7 @@ class _ExportScreenState extends State<ExportScreen>
         style: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF8B7D6B),
+          color: AppColors.textTertiary,
         ),
       ),
     );
@@ -338,10 +338,10 @@ class _ExportScreenState extends State<ExportScreen>
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFF8F6F3),
+                color: AppColors.bgInput,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: const Color(0xFF8B7D6B), size: 20),
+              child: Icon(icon, color: AppColors.textTertiary, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -439,13 +439,10 @@ class _ExportScreenState extends State<ExportScreen>
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color:
-                selected ? AppColors.accent : const Color(0xFFF8F6F3),
+            color: selected ? AppColors.accent : AppColors.bgInput,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selected
-                  ? AppColors.accent
-                  : const Color(0xFFE8E4DF),
+              color: selected ? AppColors.accent : const Color(0xFFE8E4DF),
             ),
           ),
           child: Column(
@@ -453,7 +450,7 @@ class _ExportScreenState extends State<ExportScreen>
               Icon(
                 icon,
                 size: 22,
-                color: selected ? Colors.white : const Color(0xFF8B7D6B),
+                color: selected ? Colors.white : AppColors.textTertiary,
               ),
               const SizedBox(height: 6),
               Text(
@@ -509,8 +506,7 @@ class _ExportScreenState extends State<ExportScreen>
               const SizedBox(width: 8),
               _buildRangeChip(_DateRange.month, l10n.exportRange30Days),
               const SizedBox(width: 8),
-              _buildRangeChip(
-                  _DateRange.threeMonths, l10n.exportRange3Months),
+              _buildRangeChip(_DateRange.threeMonths, l10n.exportRange3Months),
               const SizedBox(width: 8),
               _buildRangeChip(_DateRange.all, l10n.exportRangeAll),
             ],
@@ -531,13 +527,10 @@ class _ExportScreenState extends State<ExportScreen>
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color:
-                selected ? AppColors.accent : const Color(0xFFF8F6F3),
+            color: selected ? AppColors.accent : AppColors.bgInput,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: selected
-                  ? AppColors.accent
-                  : const Color(0xFFE8E4DF),
+              color: selected ? AppColors.accent : const Color(0xFFE8E4DF),
             ),
           ),
           child: Center(
@@ -563,13 +556,10 @@ class _ExportScreenState extends State<ExportScreen>
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         decoration: BoxDecoration(
-          color:
-              isCustom ? AppColors.accent : const Color(0xFFF8F6F3),
+          color: isCustom ? AppColors.accent : AppColors.bgInput,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isCustom
-                ? AppColors.accent
-                : const Color(0xFFE8E4DF),
+            color: isCustom ? AppColors.accent : const Color(0xFFE8E4DF),
           ),
         ),
         child: Row(
@@ -578,7 +568,7 @@ class _ExportScreenState extends State<ExportScreen>
             Icon(
               Icons.date_range,
               size: 16,
-              color: isCustom ? Colors.white : const Color(0xFF8B7D6B),
+              color: isCustom ? Colors.white : AppColors.textTertiary,
             ),
             const SizedBox(width: 6),
             Text(
@@ -645,14 +635,14 @@ class _ExportScreenState extends State<ExportScreen>
           Row(
             children: [
               const Icon(Icons.preview_outlined,
-                  size: 18, color: Color(0xFF8B7D6B)),
+                  size: 18, color: AppColors.textTertiary),
               const SizedBox(width: 6),
               Text(
                 l10n.exportPreview,
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF8B7D6B),
+                  color: AppColors.textTertiary,
                 ),
               ),
             ],
@@ -768,10 +758,9 @@ class _ExportScreenState extends State<ExportScreen>
         children: [
           // 模拟文件标题栏
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: const BoxDecoration(
-              color: Color(0xFFF8F6F3),
+              color: AppColors.bgInput,
               border: Border(
                 bottom: BorderSide(color: Color(0xFFE8E4DF), width: 0.5),
               ),
@@ -785,7 +774,7 @@ class _ExportScreenState extends State<ExportScreen>
                           ? Icons.table_chart_outlined
                           : Icons.data_object,
                   size: 15,
-                  color: const Color(0xFF8B7D6B),
+                  color: AppColors.textTertiary,
                 ),
                 const SizedBox(width: 6),
                 Text(
@@ -793,7 +782,7 @@ class _ExportScreenState extends State<ExportScreen>
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF8B7D6B),
+                    color: AppColors.textTertiary,
                   ),
                 ),
                 const Spacer(),
@@ -826,8 +815,7 @@ class _ExportScreenState extends State<ExportScreen>
                 style: TextStyle(
                   fontSize: 11.5,
                   height: 1.6,
-                  fontFamily:
-                      _format == ExportFormat.json ? 'monospace' : null,
+                  fontFamily: _format == ExportFormat.json ? 'monospace' : null,
                   color: const Color(0xFF4A4A4A),
                 ),
               ),
@@ -1013,7 +1001,7 @@ class _ExportScreenState extends State<ExportScreen>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8F6F3),
+                    color: AppColors.bgInput,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
@@ -1025,7 +1013,7 @@ class _ExportScreenState extends State<ExportScreen>
                                 ? Icons.table_chart_outlined
                                 : Icons.data_object,
                         size: 18,
-                        color: const Color(0xFF8B7D6B),
+                        color: AppColors.textTertiary,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -1130,8 +1118,7 @@ class _ExportScreenState extends State<ExportScreen>
       _updateProgress(0.1);
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
-      List<Record> records =
-          _includeRecords ? _filterByDate(_allRecords) : [];
+      List<Record> records = _includeRecords ? _filterByDate(_allRecords) : [];
       List<InsightReportCache> insights =
           _includeInsights ? _filterInsightsByDate(_allInsights) : [];
 
@@ -1206,8 +1193,7 @@ class _ExportScreenState extends State<ExportScreen>
     if (range == null) return caches;
     return caches
         .where((c) =>
-            !c.cachedAt.isBefore(range.start) &&
-            !c.cachedAt.isAfter(range.end))
+            !c.cachedAt.isBefore(range.start) && !c.cachedAt.isAfter(range.end))
         .toList();
   }
 
@@ -1236,8 +1222,8 @@ class _ExportScreenState extends State<ExportScreen>
         if (_customStart != null && _customEnd != null) {
           return DateTimeRange(
             start: _customStart!,
-            end: DateTime(_customEnd!.year, _customEnd!.month,
-                _customEnd!.day, 23, 59, 59),
+            end: DateTime(_customEnd!.year, _customEnd!.month, _customEnd!.day,
+                23, 59, 59),
           );
         }
         return null;
@@ -1316,8 +1302,7 @@ class _ExportScreenState extends State<ExportScreen>
       SnackBar(
         content: Text(message),
         behavior: SnackBarBehavior.floating,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       ),
     );
