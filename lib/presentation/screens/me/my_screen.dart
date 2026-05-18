@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:async';
 
 import '../../../core/di/injection.dart';
+import '../../../core/network/ocean_api_client.dart';
+import '../../../core/services/ocean_account_service.dart';
+import '../../../core/services/ocean_record_ownership_service.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/datasources/local/hive_database.dart';
 import '../../../l10n/app_localizations.dart';
@@ -9,6 +13,7 @@ import '../../bloc/insight/insight_bloc.dart';
 import '../../bloc/insight/insight_event.dart';
 import '../../bloc/insight/insight_state.dart';
 import '../../widgets/insights/weekly_analysis_section.dart';
+import '../account/account_entry_screen.dart';
 import '../pro/pro_purchase_screen.dart';
 import '../settings/settings_screen.dart';
 
@@ -17,10 +22,12 @@ class MyScreen extends StatefulWidget {
     super.key,
     this.proScreenBuilder,
     this.settingsScreenBuilder,
+    this.accountScreenBuilder,
   });
 
   final WidgetBuilder? proScreenBuilder;
   final WidgetBuilder? settingsScreenBuilder;
+  final WidgetBuilder? accountScreenBuilder;
 
   @override
   State<MyScreen> createState() => _MyScreenState();
@@ -28,22 +35,67 @@ class MyScreen extends StatefulWidget {
 
 class _MyScreenState extends State<MyScreen> {
   late final HiveDatabase _database;
+  OceanUserDataApi? _userDataApi;
+  OceanAccountService? _accountService;
+  OceanRecordOwnershipService? _ownershipService;
   String? _avatar;
   String? _nickname;
   String? _signature;
+  bool _signedIn = false;
+  StreamSubscription<void>? _accountDataSubscription;
 
   @override
   void initState() {
     super.initState();
     _database = getIt<HiveDatabase>();
+    _userDataApi =
+        getIt.isRegistered<OceanApiClient>() ? getIt<OceanApiClient>() : null;
+    _accountService = getIt.isRegistered<OceanAccountService>()
+        ? getIt<OceanAccountService>()
+        : null;
+    _ownershipService = getIt.isRegistered<OceanRecordOwnershipService>()
+        ? getIt<OceanRecordOwnershipService>()
+        : null;
     _loadProfile();
+    _loadAccountState();
+    if (getIt.isRegistered<OceanAccountDataRefreshService>()) {
+      _accountDataSubscription =
+          getIt<OceanAccountDataRefreshService>().changes.listen((_) {
+        if (!mounted) return;
+        _reloadProfileAndAccountState();
+      });
+    }
     context.read<InsightBloc>().add(const InsightLoadCurrentWeek());
   }
 
+  @override
+  void dispose() {
+    _accountDataSubscription?.cancel();
+    super.dispose();
+  }
+
   void _loadProfile() {
+    if (!_isEntityVisible('profile', 'me')) {
+      _avatar = null;
+      _nickname = null;
+      _signature = null;
+      return;
+    }
     _avatar = _database.settingsBox.get('profile_avatar') as String?;
     _nickname = _database.settingsBox.get('profile_nickname') as String?;
     _signature = _database.settingsBox.get('profile_signature') as String?;
+  }
+
+  Future<void> _loadAccountState() async {
+    final service = _accountService;
+    final signedIn = service != null && await service.isSignedIn;
+    if (!mounted) return;
+    setState(() => _signedIn = signedIn);
+  }
+
+  Future<void> _reloadProfileAndAccountState() async {
+    _loadProfile();
+    await _loadAccountState();
   }
 
   Future<void> _onRefresh() async {
@@ -59,16 +111,65 @@ class _MyScreenState extends State<MyScreen> {
     final normalizedNickname = nickname.trim();
     final normalizedSignature = signature.trim();
 
-    await _database.settingsBox.put('profile_avatar', normalizedAvatar);
-    await _database.settingsBox.put('profile_nickname', normalizedNickname);
-    await _database.settingsBox.put('profile_signature', normalizedSignature);
+    final clientUpdatedAt = DateTime.now().toUtc().toIso8601String();
+    var avatarToCache = normalizedAvatar;
+    var nicknameToCache = normalizedNickname;
+    var signatureToCache = normalizedSignature;
+
+    final api = _userDataApi;
+    if (api != null && await api.isSignedIn) {
+      final response = await api.updateProfile({
+        'avatar': normalizedAvatar,
+        'nickname': normalizedNickname,
+        'signature': normalizedSignature,
+        'clientUpdatedAt': clientUpdatedAt,
+      });
+      final data = response['data'];
+      if (data is Map) {
+        avatarToCache = data['avatar']?.toString() ?? '';
+        nicknameToCache = data['nickname']?.toString() ?? '';
+        signatureToCache = data['signature']?.toString() ?? '';
+      }
+      await _markEntityAccount('profile', 'me');
+    } else {
+      await _ownershipService?.markEntityLocal('profile', 'me');
+    }
+
+    await _database.settingsBox.put('profile_avatar', avatarToCache);
+    await _database.settingsBox.put('profile_nickname', nicknameToCache);
+    await _database.settingsBox.put('profile_signature', signatureToCache);
+    await _database.settingsBox.put(
+      'ocean_sync_updated_at_profile_me',
+      clientUpdatedAt,
+    );
 
     if (!mounted) return;
     setState(() {
-      _avatar = normalizedAvatar;
-      _nickname = normalizedNickname;
-      _signature = normalizedSignature;
+      _avatar = avatarToCache;
+      _nickname = nicknameToCache;
+      _signature = signatureToCache;
     });
+  }
+
+  bool _isEntityVisible(String entityType, String entityId) {
+    final ownership = _ownershipService;
+    if (ownership == null) return true;
+    return ownership.isEntityVisible(
+      entityType: entityType,
+      entityId: entityId,
+      accountKey: ownership.activeAccount,
+    );
+  }
+
+  Future<void> _markEntityAccount(String entityType, String entityId) async {
+    final api = _userDataApi is OceanAccountApi
+        ? _userDataApi as OceanAccountApi
+        : null;
+    if (api == null) return;
+    final accountKey = await api.currentAccountKey;
+    if (accountKey == null || accountKey.isEmpty) return;
+    await _ownershipService?.markEntityAccount(
+        entityType, entityId, accountKey);
   }
 
   Future<void> _showEditProfileDialog(AppLocalizations l10n) async {
@@ -117,6 +218,20 @@ class _MyScreenState extends State<MyScreen> {
     );
   }
 
+  Future<void> _openAccountScreen() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: widget.accountScreenBuilder ??
+            (_) => AccountEntryScreen(
+                  onComplete: () => Navigator.of(context).pop(),
+                  onSkip: () => Navigator.of(context).pop(),
+                ),
+      ),
+    );
+    if (!mounted) return;
+    await _reloadProfileAndAccountState();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -149,7 +264,9 @@ class _MyScreenState extends State<MyScreen> {
                         nickname: _profileNickname(l10n),
                         signature: _profileSignature(l10n),
                         l10n: l10n,
+                        signedIn: _signedIn,
                         onEdit: () => _showEditProfileDialog(l10n),
+                        onLogin: _openAccountScreen,
                       ),
                     ),
                     if (state.weeklyAnalysis != null)
@@ -424,96 +541,125 @@ class _ProfileHeader extends StatelessWidget {
     required this.nickname,
     required this.signature,
     required this.l10n,
+    required this.signedIn,
     required this.onEdit,
+    required this.onLogin,
   });
 
   final String avatar;
   final String nickname;
   final String signature;
   final AppLocalizations l10n;
+  final bool signedIn;
   final VoidCallback onEdit;
+  final VoidCallback onLogin;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Semantics(
-        button: true,
-        label: l10n.editProfile,
-        child: InkWell(
-          onTap: onEdit,
-          borderRadius: BorderRadius.circular(24),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                Container(
-                  width: 72,
-                  height: 72,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        AppColors.accentWarm,
-                        AppColors.accentLight,
-                      ],
-                    ),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      width: 3,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.textSecondary.withValues(alpha: 0.08),
-                        blurRadius: 18,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    avatar,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.pageTitle.copyWith(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        children: [
+          Expanded(
+            child: Semantics(
+              button: true,
+              label: l10n.editProfile,
+              child: InkWell(
+                onTap: onEdit,
+                borderRadius: BorderRadius.circular(24),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
                     children: [
-                      Text(
-                        nickname,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.pageTitle.copyWith(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w600,
+                      Container(
+                        width: 72,
+                        height: 72,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppColors.accentWarm,
+                              AppColors.accentLight,
+                            ],
+                          ),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            width: 3,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.textSecondary
+                                  .withValues(alpha: 0.08),
+                              blurRadius: 18,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          avatar,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.pageTitle.copyWith(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        signature,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.bodySecondary.copyWith(
-                          color: AppColors.textMuted,
-                          height: 1.35,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              nickname,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.pageTitle.copyWith(
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              signature,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.bodySecondary.copyWith(
+                                color: AppColors.textMuted,
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+          if (!signedIn) ...[
+            const SizedBox(width: 12),
+            TextButton.icon(
+              onPressed: onLogin,
+              icon: const Icon(Icons.login_rounded, size: 18),
+              label: const Text('登录'),
+              style: TextButton.styleFrom(
+                minimumSize: const Size(76, 44),
+                foregroundColor: AppColors.textSecondary,
+                backgroundColor: AppColors.accentLight,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                side: const BorderSide(color: AppColors.borderLight),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -644,9 +790,12 @@ class _WeeklyAnalysisPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final message =
+        isLoading ? l10n.generatingInsight : l10n.myWeeklyUnavailable;
+
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(20),
@@ -658,36 +807,136 @@ class _WeeklyAnalysisPlaceholder extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: AppColors.accentWarm,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: isLoading
-                ? const Padding(
-                    padding: EdgeInsets.all(8),
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.accent,
-                    ),
-                  )
-                : const Icon(
-                    Icons.insights_outlined,
-                    size: 18,
-                    color: AppColors.accent,
-                  ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              isLoading ? l10n.generatingInsight : l10n.myWeeklyUnavailable,
-              style: AppTypography.bodySecondary.copyWith(
-                color: AppColors.textMuted,
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.accentWarm,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: isLoading
+                    ? const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.accent,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.insights_outlined,
+                        size: 18,
+                        color: AppColors.accent,
+                      ),
               ),
+              const SizedBox(width: 12),
+              Text(
+                '本周概览',
+                style: AppTypography.sectionTitle.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Row(
+            children: [
+              Expanded(
+                child: _WeeklyPlaceholderMetricTile(
+                  label: '记录数',
+                  value: '--',
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: _WeeklyPlaceholderMetricTile(
+                  label: '活跃天数',
+                  value: '--',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Row(
+            children: [
+              Expanded(
+                child: _WeeklyPlaceholderMetricTile(
+                  label: '高峰时段',
+                  value: '暂无',
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: _WeeklyPlaceholderMetricTile(
+                  label: '最密集日',
+                  value: '暂无',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: AppTypography.sectionSubtle.copyWith(
+              color: AppColors.textSecondary,
+              height: 1.45,
+            ),
+          ),
+          if (!isLoading) ...[
+            const SizedBox(height: 6),
+            Text(
+              l10n.myWeeklyEmptyHint,
+              style: AppTypography.sectionSubtle.copyWith(
+                color: AppColors.textMuted,
+                height: 1.45,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _WeeklyPlaceholderMetricTile extends StatelessWidget {
+  const _WeeklyPlaceholderMetricTile({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.bgCardSecondary.withValues(alpha: 0.74),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.borderLight.withValues(alpha: 0.72),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: AppTypography.sectionSubtle.copyWith(
+              color: AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: AppTypography.pageTitle.copyWith(
+              fontSize: 18,
+              color: AppColors.textTertiary.withValues(alpha: 0.64),
             ),
           ),
         ],

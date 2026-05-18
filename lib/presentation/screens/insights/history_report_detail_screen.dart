@@ -17,13 +17,14 @@ class HistoryReportDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF6F1),
+      backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 20, color: Color(0xFF2C2C2C)),
+          icon: const Icon(Icons.arrow_back_ios,
+              size: 20, color: Color(0xFF2C2C2C)),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -51,7 +52,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
                 margin: const EdgeInsets.only(right: 16),
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF5EBE0),
+                  color: AppColors.accentLight,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -80,7 +81,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF5D4E3C),
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     if (cachedAt != null)
@@ -142,7 +143,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8E7),
+                  color: AppColors.accentWarm,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -157,7 +158,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF5D4E3C),
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
@@ -168,7 +169,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
             style: const TextStyle(
               fontSize: 15,
               height: 1.8,
-              color: Color(0xFF5D4E3C),
+              color: AppColors.textPrimary,
             ),
           ),
         ],
@@ -215,7 +216,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF5D4E3C),
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
@@ -243,7 +244,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
             style: const TextStyle(
               fontSize: 14,
               height: 1.6,
-              color: Color(0xFF5D4E3C),
+              color: AppColors.textPrimary,
               fontStyle: FontStyle.italic,
             ),
           ),
@@ -294,7 +295,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8E7),
+                  color: AppColors.accentWarm,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -309,7 +310,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF5D4E3C),
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
@@ -339,7 +340,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
           style: const TextStyle(
             fontSize: 15,
             height: 1.8,
-            color: Color(0xFF5D4E3C),
+            color: AppColors.textPrimary,
           ),
         ));
       }
@@ -365,7 +366,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
         style: const TextStyle(
           fontSize: 15,
           height: 1.8,
-          color: Color(0xFF5D4E3C),
+          color: AppColors.textPrimary,
         ),
       ));
     }
@@ -399,7 +400,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF8E7),
+                  color: AppColors.accentWarm,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -414,7 +415,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF5D4E3C),
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
@@ -448,7 +449,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
             style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF5D4E3C),
+              color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
@@ -457,7 +458,7 @@ class HistoryReportDetailScreen extends StatelessWidget {
             style: const TextStyle(
               fontSize: 14,
               height: 1.6,
-              color: Color(0xFF8B7D6B),
+              color: AppColors.textTertiary,
             ),
           ),
         ],
@@ -496,4 +497,3 @@ class HistoryReportDetailScreen extends StatelessWidget {
     }
   }
 }
-

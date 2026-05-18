@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'account_info_screen.dart';
 import 'about_screen.dart';
 import 'export_screen.dart';
 import '../app_lock/app_lock_settings_screen.dart';
@@ -11,10 +12,9 @@ import '../../widgets/ai_auth_dialog.dart';
 import '../../bloc/locale/locale_bloc.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
-import '../../../core/services/icloud_sync_service.dart';
+import '../../../core/services/ocean_account_service.dart';
 import '../../../core/services/pro_subscription_service.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../data/datasources/local/hive_database.dart';
 import '../../../l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -26,23 +26,22 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _aiAuthEnabled = false;
-  bool _iCloudSyncEnabled = false;
-  bool _iCloudAvailable = false;
-  bool _iCloudStatusLoading = false;
-  ICloudBackupStatus? _iCloudBackupStatus;
-  bool _showOnboardingAlways = false;
+  bool _signedIn = false;
+  bool _logoutLoading = false;
   late final AIAuthService _aiAuthService;
-  late final ICloudSyncService _iCloudSyncService;
+  OceanAccountService? _accountService;
   StreamSubscription? _authSubscription;
+  StreamSubscription<void>? _accountDataSubscription;
 
   @override
   void initState() {
     super.initState();
     _aiAuthService = getIt<AIAuthService>();
-    _iCloudSyncService = getIt<ICloudSyncService>();
+    _accountService = getIt.isRegistered<OceanAccountService>()
+        ? getIt<OceanAccountService>()
+        : null;
     _loadAIAuthStatus();
-    _loadICloudStatus();
-    _loadOnboardingAlwaysSetting();
+    _loadAccountStatus();
 
     // 监听授权状态变化
     _authSubscription = _aiAuthService.authStateStream.listen((enabled) {
@@ -50,11 +49,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
         setState(() => _aiAuthEnabled = enabled);
       }
     });
+    if (getIt.isRegistered<OceanAccountDataRefreshService>()) {
+      _accountDataSubscription =
+          getIt<OceanAccountDataRefreshService>().changes.listen((_) {
+        _loadAccountStatus();
+      });
+    }
   }
 
   @override
   void dispose() {
     _authSubscription?.cancel();
+    _accountDataSubscription?.cancel();
     super.dispose();
   }
 
@@ -65,41 +71,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _loadICloudStatus() async {
-    if (mounted) {
-      setState(() => _iCloudStatusLoading = true);
-    }
-
-    final enabled = await _iCloudSyncService.isEnabled;
-    final available = await _iCloudSyncService.isAvailable;
-    final backupStatus = await _iCloudSyncService.getBackupStatus();
-    if (mounted) {
-      setState(() {
-        _iCloudSyncEnabled = enabled;
-        _iCloudAvailable = available;
-        _iCloudBackupStatus = backupStatus;
-        _iCloudStatusLoading = false;
-      });
-    }
-  }
-
-  Future<void> _loadOnboardingAlwaysSetting() async {
-    try {
-      final db = getIt<HiveDatabase>();
-      final value =
-          db.settingsBox.get('show_onboarding_always', defaultValue: false);
-      if (mounted) {
-        setState(() => _showOnboardingAlways = value == true);
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _handleOnboardingAlwaysToggle(bool value) async {
-    try {
-      final db = getIt<HiveDatabase>();
-      await db.settingsBox.put('show_onboarding_always', value);
-      setState(() => _showOnboardingAlways = value);
-    } catch (_) {}
+  Future<void> _loadAccountStatus() async {
+    final service = _accountService;
+    final signedIn = service != null && await service.isSignedIn;
+    if (!mounted) return;
+    setState(() => _signedIn = signedIn);
   }
 
   @override
@@ -130,6 +106,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // 账号分组
+          _buildSectionHeader('账号'),
+          const SizedBox(height: 8),
+          _buildNavItem(
+            title: '账号信息',
+            subtitle: _signedIn ? '查看手机号、昵称、头像和签名' : '当前未登录',
+            icon: Icons.account_circle_outlined,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AccountInfoScreen()),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+
           // 安全与隐私分组
           _buildSectionHeader(l10n.securityAndPrivacy),
           const SizedBox(height: 8),
@@ -174,34 +165,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               }
             },
           ),
-          const SizedBox(height: 12),
-          _buildSwitchItem(
-            title: l10n.iCloudSync,
-            subtitle: _iCloudAvailable
-                ? l10n.iCloudSyncSubtitle
-                : l10n.iCloudSyncUnavailable,
-            icon: Icons.cloud_outlined,
-            value: _iCloudSyncEnabled,
-            onChanged: (value) => _handleICloudSyncToggle(value),
-            proRequired: true,
-          ),
-          if (_iCloudAvailable) ...[
-            const SizedBox(height: 8),
-            _buildICloudStatusCard(l10n),
-          ],
           const SizedBox(height: 16),
 
           // 其他分组
           _buildSectionHeader(l10n.other),
           const SizedBox(height: 8),
-          _buildSwitchItem(
-            title: l10n.showOnboardingAlways,
-            subtitle: l10n.showOnboardingAlwaysSubtitle,
-            icon: Icons.waving_hand_outlined,
-            value: _showOnboardingAlways,
-            onChanged: _handleOnboardingAlwaysToggle,
-          ),
-          const SizedBox(height: 12),
           _buildLanguageItem(context, l10n),
           const SizedBox(height: 12),
           _buildNavItem(
@@ -215,6 +183,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (mounted) setState(() {});
             },
           ),
+          if (_signedIn) ...[
+            const SizedBox(height: 24),
+            _buildLogoutButton(),
+          ],
+          const SizedBox(height: 28),
         ],
       ),
     );
@@ -255,7 +228,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8F6F3),
+                    color: AppColors.bgInput,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(Icons.language,
@@ -432,7 +405,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFF8F6F3),
+                color: AppColors.bgInput,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: AppColors.textSecondary),
@@ -475,6 +448,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required IconData icon,
     required bool value,
     required ValueChanged<bool> onChanged,
+    bool enabled = true,
     bool proRequired = false,
   }) {
     final needsPro =
@@ -507,7 +481,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFF8F6F3),
+                color: AppColors.bgInput,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: AppColors.textSecondary),
@@ -543,7 +517,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               CupertinoSwitch(
                 value: value,
                 activeTrackColor: AppColors.accent,
-                onChanged: onChanged,
+                onChanged: enabled ? onChanged : null,
               ),
           ],
         ),
@@ -551,95 +525,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildICloudStatusCard(AppLocalizations l10n) {
-    final status = _iCloudBackupStatus;
-    final subtitle = _iCloudStatusLoading
-        ? l10n.iCloudBackupChecking
-        : _formatICloudBackupStatus(l10n, status);
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFBFAF8),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFEDE8DF)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            status?.backupExists == true
-                ? Icons.cloud_done_outlined
-                : Icons.cloud_queue_outlined,
-            size: 20,
-            color: AppColors.accent,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.iCloudBackupStatusTitle,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    height: 1.4,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+  Widget _buildLogoutButton() {
+    return OutlinedButton.icon(
+      onPressed: _logoutLoading ? null : _confirmAndLogout,
+      icon: _logoutLoading
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.logout_rounded, size: 20),
+      label: Text(_logoutLoading ? '正在退出...' : '退出登录'),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(50),
+        foregroundColor: const Color(0xFFB95045),
+        side: const BorderSide(color: Color(0xFFE9C9C4)),
+        backgroundColor: const Color(0xFFFFFBFA),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        textStyle: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
-  }
-
-  String _formatICloudBackupStatus(
-    AppLocalizations l10n,
-    ICloudBackupStatus? status,
-  ) {
-    if (status == null) return l10n.iCloudBackupChecking;
-    if (!status.backupExists) return l10n.iCloudBackupNotFound;
-
-    final syncedAt = status.exportedAt == null
-        ? l10n.iCloudBackupTimeUnknown
-        : _formatDateTime(status.exportedAt!);
-    final size = _formatFileSize(status.fileSizeBytes);
-
-    return '${l10n.iCloudBackupLastSynced}: $syncedAt\n'
-        '${l10n.iCloudBackupContent}: ${status.recordCount} ${l10n.iCloudBackupRecords}, '
-        '${status.weeklyInsightCount} ${l10n.iCloudBackupWeeklyInsights}, '
-        '${status.insightReportCount} ${l10n.iCloudBackupReports}\n'
-        '${l10n.iCloudBackupFile}: ${status.fileName} · $size';
-  }
-
-  String _formatDateTime(DateTime value) {
-    final local = value.toLocal();
-    final month = local.month.toString().padLeft(2, '0');
-    final day = local.day.toString().padLeft(2, '0');
-    final hour = local.hour.toString().padLeft(2, '0');
-    final minute = local.minute.toString().padLeft(2, '0');
-    return '${local.year}/$month/$day $hour:$minute';
-  }
-
-  String _formatFileSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) {
-      final kb = bytes / 1024;
-      return '${kb.toStringAsFixed(kb >= 10 ? 0 : 1)} KB';
-    }
-    final mb = bytes / (1024 * 1024);
-    return '${mb.toStringAsFixed(mb >= 10 ? 0 : 1)} MB';
   }
 
   /// 处理AI授权开关切换
@@ -661,39 +572,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _handleICloudSyncToggle(bool value) async {
-    final l10n = AppLocalizations.of(context)!;
-
-    if (value && !_iCloudAvailable) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.iCloudSyncUnavailable)),
-      );
-      return;
-    }
-
-    try {
-      await _iCloudSyncService.setEnabled(value);
-      if (!mounted) return;
-      setState(() {
-        _iCloudSyncEnabled = value;
-      });
-      await _loadICloudStatus();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            value ? l10n.iCloudSyncEnabled : l10n.iCloudSyncDisabled,
+  Future<void> _confirmAndLogout() async {
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('确认退出登录？'),
+        content: const Text('退出后会清除本机账号缓存；重新登录后，可从服务端恢复该账号的数据。'),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
           ),
-        ),
-      );
-    } catch (_) {
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('退出登录'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final service = _accountService;
+    if (service == null) return;
+
+    setState(() => _logoutLoading = true);
+    try {
+      await service.logout();
       if (!mounted) return;
-      setState(() {
-        _iCloudSyncEnabled = false;
-      });
+      await _loadAccountStatus();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.iCloudSyncFailed)),
+        const SnackBar(content: Text('已退出登录')),
       );
+    } finally {
+      if (mounted) {
+        setState(() => _logoutLoading = false);
+      }
     }
   }
 

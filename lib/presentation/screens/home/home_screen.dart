@@ -33,11 +33,11 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   String? _completedAudioPath;
   // 用户编辑后的转写文本 - 用于NVC分析确认页面回显
   String? _editedTranscription;
+  DateTime? _selectedRecordDateTime;
   List<Quote> _quotes = [];
   bool _quotesLoaded = false;
   int _currentQuoteIndex = 0;
@@ -84,9 +84,6 @@ class _HomeScreenState extends State<HomeScreen>
     // 这里仅作为备用检查，确保权限状态正确
     _checkAndRequestPermission();
 
-    // 加载文案数据
-    _loadQuotes();
-
     // 初始化脉冲动画控制器 - 强化膨胀效果
     _pulseController = AnimationController(
       vsync: this,
@@ -99,6 +96,9 @@ class _HomeScreenState extends State<HomeScreen>
       vsync: this,
       duration: const Duration(milliseconds: 560),
     );
+
+    // 加载文案数据必须在动画控制器初始化之后启动。
+    _loadQuotes();
   }
 
   void _syncRecordEntryPulse(bool isRecording) {
@@ -175,7 +175,10 @@ class _HomeScreenState extends State<HomeScreen>
 
     final quoteIndex =
         _positiveModulo(_currentQuoteIndex + offset, _quotes.length);
-    return _normalizeQuoteText(_quotes[quoteIndex].content);
+    final languageCode = Localizations.localeOf(context).languageCode;
+    return _normalizeQuoteText(
+      _quotes[quoteIndex].localizedContent(languageCode),
+    );
   }
 
   double _lyricScrollProgress() {
@@ -263,15 +266,20 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             Transform.translate(
               offset: Offset(0, -rowHeight * (1 + progress)),
-              child: Column(
-                children: List.generate(5, (index) {
-                  final relativePosition = (index - 2) - progress;
-                  return _buildLyricQuoteLine(
-                    text: _quoteTextForOffset(index - 2),
-                    relativePosition: relativePosition,
-                    rowHeight: rowHeight,
-                  );
-                }),
+              child: OverflowBox(
+                alignment: Alignment.topCenter,
+                minHeight: rowHeight * 5,
+                maxHeight: rowHeight * 5,
+                child: Column(
+                  children: List.generate(5, (index) {
+                    final relativePosition = (index - 2) - progress;
+                    return _buildLyricQuoteLine(
+                      text: _quoteTextForOffset(index - 2),
+                      relativePosition: relativePosition,
+                      rowHeight: rowHeight,
+                    );
+                  }),
+                ),
               ),
             ),
           ],
@@ -390,6 +398,7 @@ class _HomeScreenState extends State<HomeScreen>
     setState(() {
       _completedAudioPath = audioPath;
       _editedTranscription = null; // 清除上次编辑的转写文本
+      _selectedRecordDateTime = null;
     });
     // 清除上次错误记录，允许新的错误被处理
     _lastHandledError = null;
@@ -451,7 +460,8 @@ class _HomeScreenState extends State<HomeScreen>
       ).then((result) {
         if (result != null && _completedAudioPath != null) {
           _handleProcessingModeSelected(result.mode,
-              editedTranscription: result.transcription);
+              editedTranscription: result.transcription,
+              selectedDateTime: result.selectedDateTime);
         }
       });
     }
@@ -474,7 +484,8 @@ class _HomeScreenState extends State<HomeScreen>
     ).then((result) {
       if (result != null && _completedAudioPath != null) {
         _handleProcessingModeSelected(result.mode,
-            editedTranscription: result.transcription);
+            editedTranscription: result.transcription,
+            selectedDateTime: result.selectedDateTime);
       }
     });
   }
@@ -531,8 +542,11 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  void _handleProcessingModeSelected(ProcessingMode mode,
-      {String? editedTranscription}) async {
+  void _handleProcessingModeSelected(
+    ProcessingMode mode, {
+    String? editedTranscription,
+    DateTime? selectedDateTime,
+  }) async {
     if (_completedAudioPath == null) return;
 
     // 优先使用用户编辑后的转写文本，其次流式转写，最后RecordBloc的转写
@@ -541,9 +555,12 @@ class _HomeScreenState extends State<HomeScreen>
     final recordTranscription = context.read<RecordBloc>().state.transcription;
     final transcription =
         editedTranscription ?? streamTranscription ?? recordTranscription;
+    final effectiveSelectedDateTime =
+        selectedDateTime ?? _selectedRecordDateTime ?? DateTime.now();
 
     // 保存编辑后的转写文本，用于NVC分析确认页面回显
     _editedTranscription = transcription;
+    _selectedRecordDateTime = effectiveSelectedDateTime;
 
     switch (mode) {
       case ProcessingMode.onlyRecord:
@@ -572,6 +589,7 @@ class _HomeScreenState extends State<HomeScreen>
                 audioPath: _completedAudioPath!,
                 mode: mode,
                 transcription: transcription,
+                createdAt: effectiveSelectedDateTime,
               ),
             );
         // _clearCompletedAudio(); // 移至 BlocListener 处理
@@ -607,6 +625,7 @@ class _HomeScreenState extends State<HomeScreen>
                   mode: mode,
                   transcription: transcription,
                   selectedMoods: moods,
+                  createdAt: effectiveSelectedDateTime,
                 ),
               );
           // _clearCompletedAudio(); // 移至 BlocListener 处理
@@ -684,6 +703,7 @@ class _HomeScreenState extends State<HomeScreen>
                   audioPath: _completedAudioPath!,
                   mode: ProcessingMode.onlyRecord,
                   transcription: transcription,
+                  createdAt: effectiveSelectedDateTime,
                 ),
               );
           // _clearCompletedAudio(); // 移至 BlocListener 处理
@@ -696,6 +716,7 @@ class _HomeScreenState extends State<HomeScreen>
     setState(() {
       _completedAudioPath = null;
       _editedTranscription = null;
+      _selectedRecordDateTime = null;
     });
     _lastHandledTranscriptionError = null;
   }
@@ -716,9 +737,9 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void dispose() {
+    _quoteAutoSwitchTimer?.cancel();
     _pulseController.dispose();
     _quoteTransitionController.dispose();
-    _quoteAutoSwitchTimer?.cancel();
     super.dispose();
   }
 
@@ -859,6 +880,7 @@ class _HomeScreenState extends State<HomeScreen>
                           context: context,
                           initialAnalysis: recordState.nvcAnalysis!,
                           transcription: transcription,
+                          initialDateTime: _selectedRecordDateTime,
                           onRevert: () {
                             _handleProcessingModeSelected(
                                 ProcessingMode.onlyRecord);
@@ -1160,7 +1182,7 @@ class _HomeScreenState extends State<HomeScreen>
             color: Colors.white.withValues(alpha: 0.82),
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: const Color(0xFFD4B896).withValues(alpha: 0.90),
+              color: AppColors.border.withValues(alpha: 0.90),
               width: 1.5,
             ),
             boxShadow: [
@@ -1199,7 +1221,7 @@ class _HomeScreenState extends State<HomeScreen>
               Container(
                 width: 1,
                 height: 21,
-                color: const Color(0xFFD4B896).withValues(alpha: 0.70),
+                color: AppColors.border.withValues(alpha: 0.70),
               ),
               const SizedBox(width: 12),
               Semantics(
@@ -1253,8 +1275,8 @@ class _HomeScreenState extends State<HomeScreen>
                                             Color(0xFFC96F4A),
                                           ]
                                         : const [
-                                            Color(0xFFCDAA85),
-                                            Color(0xFFC4A57B),
+                                            AppColors.accentLight,
+                                            AppColors.accent,
                                           ],
                                   ),
                                   border: Border.all(
@@ -1373,9 +1395,9 @@ class _HomeBackgroundPalette {
     gradientStops: [0.0, 0.55, 1.0],
     bottomFogColor: Color(0xFFF2EAE0),
     bottomFogMiddleAlpha: 0.50,
-    ringColor: Color(0xFFCDAA85),
+    ringColor: AppColors.accentLight,
     ringAlpha: 0.14,
-    overlayColor: Color(0xFFCDAA85),
+    overlayColor: AppColors.accentLight,
     overlayAlpha: 0.03,
   );
 }

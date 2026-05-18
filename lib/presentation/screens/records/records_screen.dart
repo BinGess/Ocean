@@ -10,8 +10,11 @@ import 'package:intl/intl.dart';
 import '../../../domain/entities/record.dart';
 import '../../../domain/entities/daily_summary.dart';
 import '../../../core/di/injection.dart';
+import '../../../core/network/ocean_api_client.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/services/ocean_account_service.dart';
 import '../../../core/services/daily_summary_service.dart';
+import '../../../core/services/ocean_record_ownership_service.dart';
 import '../../../data/datasources/local/hive_database.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../bloc/record/record_bloc.dart';
@@ -21,16 +24,24 @@ import '../../widgets/nvc_confirmation_modal.dart';
 import '../../widgets/daily_mood_picker.dart';
 import '../record_detail/record_detail_screen.dart';
 
+const emptyRecordsGuidanceItems = [
+  '可以用语音或文字记下一段想法、情绪、梦境或片刻观察。',
+  '记录变多后，这里会按日期整理出时间线和每日心情概览。',
+  '未登录时数据保存在本机；登录后会自动迁移并备份到服务端。',
+];
+
 class RecordsScreen extends StatefulWidget {
   final VoidCallback? onNavigateToHome;
   final HiveDatabase? database;
   final DailySummaryService? dailySummaryService;
+  final OceanRecordOwnershipService? ownershipService;
 
   const RecordsScreen({
     super.key,
     this.onNavigateToHome,
     this.database,
     this.dailySummaryService,
+    this.ownershipService,
   });
 
   @override
@@ -40,11 +51,14 @@ class RecordsScreen extends StatefulWidget {
 class _RecordsScreenState extends State<RecordsScreen> {
   late final HiveDatabase _database;
   late final DailySummaryService _dailySummaryService;
+  OceanRecordOwnershipService? _ownershipService;
+  OceanUserDataApi? _userDataApi;
   final Map<String, String> _dailyMoods = {};
   final Map<String, DailySummary> _dailySummaries = {};
   final Set<String> _generatingSummaries = {};
   bool _isRefreshingDailySummary = false;
   StreamSubscription<DailySummaryUpdate>? _dailySummarySubscription;
+  StreamSubscription<void>? _accountDataSubscription;
   String? _lastDailySummarySyncSignature;
 
   @override
@@ -53,6 +67,12 @@ class _RecordsScreenState extends State<RecordsScreen> {
     _database = widget.database ?? getIt<HiveDatabase>();
     _dailySummaryService =
         widget.dailySummaryService ?? getIt<DailySummaryService>();
+    _ownershipService = widget.ownershipService ??
+        (getIt.isRegistered<OceanRecordOwnershipService>()
+            ? getIt<OceanRecordOwnershipService>()
+            : null);
+    _userDataApi =
+        getIt.isRegistered<OceanApiClient>() ? getIt<OceanApiClient>() : null;
     _dailySummarySubscription = _dailySummaryService.summaryUpdates.listen((
       update,
     ) {
@@ -62,6 +82,13 @@ class _RecordsScreenState extends State<RecordsScreen> {
         _generatingSummaries.remove(update.key);
       });
     });
+    if (getIt.isRegistered<OceanAccountDataRefreshService>()) {
+      _accountDataSubscription =
+          getIt<OceanAccountDataRefreshService>().changes.listen((_) {
+        if (!mounted) return;
+        _reloadAccountScopedData();
+      });
+    }
     _loadRecords();
     _loadDailyMoods();
   }
@@ -69,6 +96,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
   @override
   void dispose() {
     _dailySummarySubscription?.cancel();
+    _accountDataSubscription?.cancel();
     super.dispose();
   }
 
@@ -77,16 +105,27 @@ class _RecordsScreenState extends State<RecordsScreen> {
   }
 
   void _loadDailyMoods() {
+    _dailyMoods.clear();
     final now = DateTime.now();
     for (int i = 0; i < 30; i++) {
       final date = now.subtract(Duration(days: i));
       final key = getDailyMoodKey(date);
+      final dateKey = key.substring('daily_mood_'.length);
+      if (!_isEntityVisible('daily_mood', dateKey)) continue;
       final imagePath = _database.settingsBox.get(key) as String?;
       if (imagePath != null) {
         _dailyMoods[key] = imagePath;
       }
     }
     if (mounted) setState(() {});
+  }
+
+  void _reloadAccountScopedData() {
+    _dailySummaries.clear();
+    _generatingSummaries.clear();
+    _lastDailySummarySyncSignature = null;
+    _loadDailyMoods();
+    _loadRecords();
   }
 
   /// 加载日总结并在需要时触发生成
@@ -272,13 +311,50 @@ class _RecordsScreenState extends State<RecordsScreen> {
     );
 
     if (selectedMood != null) {
+      final dateKey = key.substring('daily_mood_'.length);
+      final clientUpdatedAt = DateTime.now().toUtc().toIso8601String();
+      final api = _userDataApi;
+      if (api != null && await api.isSignedIn) {
+        await api.updateDailyMood(dateKey, {
+          'imagePath': selectedMood.imagePath,
+          'clientUpdatedAt': clientUpdatedAt,
+        });
+        await _markEntityAccount('daily_mood', dateKey);
+      } else {
+        await _ownershipService?.markEntityLocal('daily_mood', dateKey);
+      }
       await _database.settingsBox.put(key, selectedMood.imagePath);
+      await _database.settingsBox.put(
+        'ocean_sync_updated_at_daily_mood_$dateKey',
+        clientUpdatedAt,
+      );
       // 标记用户已手动设置心情，防止 AI 覆盖
       await _dailySummaryService.markUserOverridden(date);
       setState(() {
         _dailyMoods[key] = selectedMood.imagePath;
       });
     }
+  }
+
+  bool _isEntityVisible(String entityType, String entityId) {
+    final ownership = _ownershipService;
+    if (ownership == null) return true;
+    return ownership.isEntityVisible(
+      entityType: entityType,
+      entityId: entityId,
+      accountKey: ownership.activeAccount,
+    );
+  }
+
+  Future<void> _markEntityAccount(String entityType, String entityId) async {
+    final api = _userDataApi is OceanAccountApi
+        ? _userDataApi as OceanAccountApi
+        : null;
+    if (api == null) return;
+    final accountKey = await api.currentAccountKey;
+    if (accountKey == null || accountKey.isEmpty) return;
+    await _ownershipService?.markEntityAccount(
+        entityType, entityId, accountKey);
   }
 
   String _getDailyMoodImagePath(DateTime date) {
@@ -496,7 +572,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF0E6),
+              color: AppColors.accentWarm,
               borderRadius: BorderRadius.circular(AppSpacing.xl),
             ),
             child: const Icon(
@@ -892,26 +968,132 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   Widget _buildEmptyState() {
     final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.xxxl),
-      child: Center(
-        child: Column(
-          children: [
-            Icon(
-              Icons.edit_note,
-              size: 48,
-              color: AppColors.textMuted.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              l10n.noRecords,
-              style: TextStyle(
-                fontSize: 15.0,
-                color: AppColors.textMuted.withValues(alpha: 0.5),
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: AppSpacing.lg, bottom: AppSpacing.xxl),
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+      decoration: BoxDecoration(
+        color: AppColors.bgCard.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.borderLight.withValues(alpha: 0.9),
+          width: 0.8,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.035),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.edit_note_rounded,
+                  size: 28,
+                  color: AppColors.accent,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.noRecords,
+                      style: AppTypography.sectionTitle.copyWith(
+                        fontSize: 18,
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '先留下一点点痕迹，Ocean 会慢慢帮你看见情绪和需要的线索。',
+                      style: AppTypography.bodySecondary.copyWith(
+                        fontSize: 13,
+                        height: 1.55,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          ...emptyRecordsGuidanceItems.map(_buildEmptyGuidanceRow),
+          const SizedBox(height: 18),
+          if (widget.onNavigateToHome != null)
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: widget.onNavigateToHome,
+                icon: const Icon(Icons.radio_button_checked_rounded, size: 18),
+                label: const Text('去记录此刻'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  textStyle: AppTypography.actionLabel.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyGuidanceRow(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 22,
+            height: 22,
+            margin: const EdgeInsets.only(top: 1),
+            decoration: BoxDecoration(
+              color: AppColors.bgCardSecondary,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: const Icon(
+              Icons.check_rounded,
+              size: 14,
+              color: AppColors.accent,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: AppTypography.bodySecondary.copyWith(
+                fontSize: 13,
+                height: 1.45,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -919,10 +1101,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
   Map<DateTime, List<Record>> _groupRecordsByDate(List<Record> records) {
     final grouped = <DateTime, List<Record>>{};
     for (var record in records) {
+      final localCreatedAt = record.createdAt.toLocal();
       final date = DateTime(
-        record.createdAt.year,
-        record.createdAt.month,
-        record.createdAt.day,
+        localCreatedAt.year,
+        localCreatedAt.month,
+        localCreatedAt.day,
       );
       if (!grouped.containsKey(date)) {
         grouped[date] = [];
@@ -963,7 +1146,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
   }
 
   String _formatTime(DateTime time) {
-    return DateFormat('HH:mm').format(time);
+    return DateFormat('HH:mm').format(time.toLocal());
   }
 
   /// 统一清洗标签：

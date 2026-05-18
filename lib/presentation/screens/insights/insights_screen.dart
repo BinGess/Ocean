@@ -14,6 +14,7 @@ import '../../bloc/record/record_state.dart';
 import '../../widgets/ai_auth_dialog.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ai_auth_service.dart';
+import '../../../core/services/ocean_account_service.dart';
 import 'history_reports_screen.dart';
 import '../share/share_insight_screen.dart';
 import '../settings/settings_screen.dart';
@@ -30,6 +31,7 @@ class _InsightsScreenState extends State<InsightsScreen>
   late AnimationController _refreshController;
   bool _isRefreshing = false;
   StreamSubscription? _authSubscription;
+  StreamSubscription<void>? _accountDataSubscription;
   String? _lastHandledRecordId;
 
   @override
@@ -50,6 +52,14 @@ class _InsightsScreenState extends State<InsightsScreen>
         context.read<InsightBloc>().add(const InsightLoadCurrentWeek());
       }
     });
+    if (getIt.isRegistered<OceanAccountDataRefreshService>()) {
+      _accountDataSubscription =
+          getIt<OceanAccountDataRefreshService>().changes.listen((_) {
+        if (mounted) {
+          context.read<InsightBloc>().add(const InsightAccountDataChanged());
+        }
+      });
+    }
   }
 
   /// 强制刷新洞察
@@ -111,6 +121,7 @@ class _InsightsScreenState extends State<InsightsScreen>
   @override
   void dispose() {
     _authSubscription?.cancel();
+    _accountDataSubscription?.cancel();
     _refreshController.dispose();
     super.dispose();
   }
@@ -202,7 +213,7 @@ class _InsightsScreenState extends State<InsightsScreen>
               }
 
               if (state.currentReport == null) {
-                return _buildEmptyState(state.errorMessage, l10n);
+                return _buildEmptyState(state, l10n);
               }
 
               return RefreshIndicator(
@@ -248,7 +259,7 @@ class _InsightsScreenState extends State<InsightsScreen>
                 width: 80,
                 height: 80,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFFFF8E7),
+                  color: AppColors.accentWarm,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -338,71 +349,121 @@ class _InsightsScreenState extends State<InsightsScreen>
   }
 
   /// 空状态
-  Widget _buildEmptyState(String? errorMessage, AppLocalizations l10n) {
+  Widget _buildEmptyState(InsightState state, AppLocalizations l10n) {
+    final weekRange = state.currentWeekRange ??
+        state.weeklyAnalysis?.weekRange ??
+        _getCurrentWeekRangeForDisplay();
+
     return SafeArea(
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: const BoxDecoration(
-                  color: AppColors.accentLight,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.auto_awesome_outlined,
-                  size: 40,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                l10n.noEnoughContent,
-                textAlign: TextAlign.center,
-                style: AppTypography.detailTitle.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                l10n.autoGenerateAfterMore,
-                textAlign: TextAlign.center,
-                style: AppTypography.bodySecondary.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 32),
-              TextButton(
-                onPressed: () {
-                  context
-                      .read<InsightBloc>()
-                      .add(const InsightGenerateCurrentWeek());
-                },
-                style: TextButton.styleFrom(
-                  backgroundColor: AppColors.accentLight,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _formatWeekRange(weekRange),
+                    style: AppTypography.pageMeta.copyWith(
+                      color: AppColors.textSubtle,
+                    ),
                   ),
-                ),
-                child: Text(
-                  l10n.regenerate,
-                  style: AppTypography.actionLabel.copyWith(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w500,
+                  const SizedBox(height: 8),
+                  Text(
+                    '每周洞察报告',
+                    style: AppTypography.pageTitle.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(32, 24, 32, 48),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: const BoxDecoration(
+                      color: AppColors.accentLight,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome_outlined,
+                      size: 40,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    l10n.noEnoughContent,
+                    textAlign: TextAlign.center,
+                    style: AppTypography.detailTitle.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.autoGenerateAfterMore,
+                    textAlign: TextAlign.center,
+                    style: AppTypography.bodySecondary.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  TextButton(
+                    onPressed: () {
+                      context
+                          .read<InsightBloc>()
+                          .add(const InsightGenerateCurrentWeek());
+                    },
+                    style: TextButton.styleFrom(
+                      backgroundColor: AppColors.accentLight,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                    ),
+                    child: Text(
+                      l10n.regenerate,
+                      style: AppTypography.actionLabel.copyWith(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  String _getCurrentWeekRangeForDisplay() {
+    final now = DateTime.now();
+    final monday = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
+    final sunday = monday.add(const Duration(days: 6));
+
+    String format(DateTime date) {
+      return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    }
+
+    return '${format(monday)} ~ ${format(sunday)}';
   }
 
   /// 洞察内容

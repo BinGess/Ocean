@@ -25,6 +25,11 @@ class InsightLoadCurrentWeek extends InsightEvent {
   const InsightLoadCurrentWeek();
 }
 
+/// 账号数据发生变化，清空内存态后重新从本地缓存加载
+class InsightAccountDataChanged extends InsightEvent {
+  const InsightAccountDataChanged();
+}
+
 /// 生成指定周洞察
 class InsightGenerateForWeek extends InsightEvent {
   final String weekRange;

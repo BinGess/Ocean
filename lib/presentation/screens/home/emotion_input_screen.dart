@@ -17,6 +17,7 @@ import '../../widgets/ai_auth_dialog.dart';
 import '../../widgets/nvc_analyzing_modal.dart';
 import '../../widgets/nvc_confirmation_modal.dart';
 import '../../widgets/nvc_error_dialog.dart';
+import '../../widgets/record_date_time_picker.dart';
 import '../settings/settings_screen.dart';
 
 enum _PendingSubmitAction {
@@ -42,6 +43,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
   final TextEditingController _textController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   late final AnimationController _recordingFxController;
+  AudioBloc? _audioBloc;
 
   bool _didAutoStartRecording = false;
   bool _requestedAutoPermission = false;
@@ -54,6 +56,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
   String _voicePrefixText = '';
   String? _latestAudioPath;
   String? _lastAudioError;
+  DateTime _selectedDateTime = DateTime.now();
   _PendingSubmitAction _pendingSubmitAction = _PendingSubmitAction.none;
 
   AppLocalizations get _l10n => AppLocalizations.of(context)!;
@@ -73,10 +76,16 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _audioBloc = context.read<AudioBloc>();
+  }
+
+  @override
   void dispose() {
-    final audioState = context.read<AudioBloc>().state;
-    if (audioState.isRecording) {
-      context.read<AudioBloc>().add(const AudioCancelRecording());
+    final audioState = _audioBloc?.state;
+    if (audioState?.isRecording == true) {
+      _audioBloc?.add(const AudioCancelRecording());
     }
     _textController.dispose();
     _focusNode.dispose();
@@ -181,8 +190,24 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
             audioPath: _latestAudioPath,
             mode: ProcessingMode.onlyRecord,
             transcription: text,
+            createdAt: _selectedDateTime,
           ),
         );
+  }
+
+  Future<void> _pickRecordDateTime() async {
+    final pickedDateTime = await showRecordDateTimePicker(
+      context: context,
+      initialDateTime: _selectedDateTime,
+    );
+
+    if (pickedDateTime == null || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _selectedDateTime = pickedDateTime;
+    });
   }
 
   void _showAnalyzingModal(String transcription) {
@@ -287,7 +312,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
             mode: ProcessingMode.withNVC,
             transcription: text,
             nvcAnalysis: analysis,
-            createdAt: createdAt,
+            createdAt: createdAt ?? _selectedDateTime,
           ),
         );
   }
@@ -405,6 +430,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
         context: context,
         initialAnalysis: recordState.nvcAnalysis!,
         transcription: _inputText,
+        initialDateTime: _selectedDateTime,
         onRevert: _submitOnlyRecord,
       ).then((result) {
         if (!mounted || result == null) return;
@@ -484,13 +510,36 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                         color: Color(0xFF3F3B37),
                       ),
                     ),
-                    Text(
-                      _l10n.emotionInputTitle,
-                      style: AppTypography.pageTitle.copyWith(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF36312D),
-                        letterSpacing: -0.1,
+                    Expanded(
+                      child: Text(
+                        _l10n.emotionInputTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.pageTitle.copyWith(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF36312D),
+                          letterSpacing: -0.1,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _pickRecordDateTime,
+                      tooltip: _l10n.recordPickSaveDateTooltip,
+                      style: IconButton.styleFrom(
+                        fixedSize: const Size(40, 40),
+                        backgroundColor: const Color(0xFFECE6DE),
+                        foregroundColor: const Color(0xFF8F6B4D),
+                        shape: const CircleBorder(
+                          side: BorderSide(
+                            color: Color(0xFFCFC4B5),
+                            width: 0.9,
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(
+                        Icons.calendar_month_rounded,
+                        size: 19,
                       ),
                     ),
                   ],

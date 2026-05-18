@@ -37,17 +37,31 @@ class _QuoteCardState extends State<QuoteCard>
     );
   }
 
-  String _categoryLabel(QuoteCategory category) {
-    return {
-      QuoteCategory.mindfulness: '正念',
-      QuoteCategory.selfCompassion: '自我同情',
-      QuoteCategory.stoicism: '斯多葛派',
-      QuoteCategory.nvc: 'NVC',
-    }[category]!;
+  String _categoryLabel(QuoteCategory category, String languageCode) {
+    final labels = languageCode == 'en'
+        ? {
+            QuoteCategory.mindfulness: 'Mindfulness',
+            QuoteCategory.selfCompassion: 'Self-compassion',
+            QuoteCategory.stoicism: 'Stoicism',
+            QuoteCategory.nvc: 'NVC',
+          }
+        : {
+            QuoteCategory.mindfulness: '正念',
+            QuoteCategory.selfCompassion: '自我同情',
+            QuoteCategory.stoicism: '斯多葛派',
+            QuoteCategory.nvc: 'NVC',
+          };
+    return labels[category]!;
+  }
+
+  String _hintText(String languageCode) {
+    return languageCode == 'en' ? 'Tap to switch' : '点击文案切换 →';
   }
 
   @override
   Widget build(BuildContext context) {
+    final languageCode = Localizations.localeOf(context).languageCode;
+
     return GestureDetector(
       onTap: widget.onNext,
       child: Container(
@@ -60,15 +74,15 @@ class _QuoteCardState extends State<QuoteCard>
               child: FadeTransition(
                 opacity: _breathingAnimation,
                 child: Text(
-                  widget.quote.content,
+                  widget.quote.localizedContent(languageCode),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 22,  // 优化：从24调整为22，更好的屏幕适配
+                    fontSize: 22, // 优化：从24调整为22，更好的屏幕适配
                     height: 1.8,
-                    fontFamily: 'Georgia',  // 衬线字体
+                    fontFamily: 'Georgia', // 衬线字体
                     fontWeight: FontWeight.w400,
                     color: AppColors.textSecondary,
-                    letterSpacing: 0.3,  // 优化：微调字距
+                    letterSpacing: 0.3, // 优化：微调字距
                   ),
                 ),
               ),
@@ -90,7 +104,7 @@ class _QuoteCardState extends State<QuoteCard>
               widget.quote.author,
               style: const TextStyle(
                 fontSize: 12,
-                fontFamily: 'Helvetica',  // 无衬线字体
+                fontFamily: 'Helvetica', // 无衬线字体
                 fontWeight: FontWeight.w500,
                 color: Color(0xFFA89F97),
                 letterSpacing: 2.0,
@@ -100,12 +114,12 @@ class _QuoteCardState extends State<QuoteCard>
             const SizedBox(height: 48),
 
             // 分类标签
-            _buildCategoryBadge(),
+            _buildCategoryBadge(languageCode),
 
             const SizedBox(height: 16),
 
             // 提示：点击切换
-            _buildHintText(),
+            _buildHintText(languageCode),
           ],
         ),
       ),
@@ -113,7 +127,7 @@ class _QuoteCardState extends State<QuoteCard>
   }
 
   /// 分类标签
-  Widget _buildCategoryBadge() {
+  Widget _buildCategoryBadge(String languageCode) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: const BoxDecoration(
@@ -121,7 +135,7 @@ class _QuoteCardState extends State<QuoteCard>
         borderRadius: BorderRadius.all(Radius.circular(12)),
       ),
       child: Text(
-        _categoryLabel(widget.quote.category),
+        _categoryLabel(widget.quote.category, languageCode),
         style: const TextStyle(
           fontSize: 11,
           color: AppColors.accent,
@@ -133,9 +147,9 @@ class _QuoteCardState extends State<QuoteCard>
   }
 
   /// 提示文字
-  Widget _buildHintText() {
+  Widget _buildHintText(String languageCode) {
     return Text(
-      '点击文案切换 →',
+      _hintText(languageCode),
       style: TextStyle(
         fontSize: 12,
         color: Colors.grey[400],

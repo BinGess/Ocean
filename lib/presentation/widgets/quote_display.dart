@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:ui' as ui;
 import '../../domain/entities/quote.dart';
 import '../../core/theme/app_typography.dart';
+import '../../l10n/app_localizations.dart';
 
 /// 简洁的文案展示组件 - 仅显示文案内容和作者，不显示标签/指示器/提示
 class QuoteDisplay extends StatefulWidget {
@@ -85,9 +86,11 @@ class _QuoteDisplayState extends State<QuoteDisplay>
   @override
   Widget build(BuildContext context) {
     if (widget.quotes.isEmpty) {
+      final l10n = AppLocalizations.of(context) ??
+          AppLocalizations(Localizations.localeOf(context));
       return Center(
         child: Text(
-          '暂无文案数据',
+          l10n.quoteEmptyData,
           style: AppTypography.recordHint.copyWith(
             letterSpacing: 0.3,
             color: const Color(0xFF8F7760),

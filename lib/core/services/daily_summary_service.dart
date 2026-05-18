@@ -10,10 +10,15 @@ import '../../domain/entities/daily_summary.dart';
 import '../../domain/entities/record.dart';
 import '../../data/datasources/local/hive_database.dart';
 import '../network/coze_ai_service.dart';
+import '../network/ocean_api_client.dart';
+import 'ocean_record_ownership_service.dart';
 
 class DailySummaryService {
   final HiveDatabase _database;
   final CozeAIService _cozeAIService;
+  final OceanUserDataApi? _userDataApi;
+  final OceanAccountApi? _accountApi;
+  final OceanRecordOwnershipService? _ownershipService;
 
   /// 防抖计时器（按日期隔离，避免不同日期相互取消）
   final Map<String, Timer> _debounceTimers = {};
@@ -30,8 +35,17 @@ class DailySummaryService {
   DailySummaryService({
     required HiveDatabase database,
     required CozeAIService cozeAIService,
+    OceanUserDataApi? userDataApi,
+    OceanAccountApi? accountApi,
+    OceanRecordOwnershipService? ownershipService,
   })  : _database = database,
-        _cozeAIService = cozeAIService;
+        _cozeAIService = cozeAIService,
+        _userDataApi = userDataApi,
+        _accountApi = accountApi ??
+            (userDataApi is OceanAccountApi
+                ? userDataApi as OceanAccountApi
+                : null),
+        _ownershipService = ownershipService;
 
   Stream<DailySummaryUpdate> get summaryUpdates =>
       _summaryUpdatesController.stream;
@@ -42,6 +56,8 @@ class DailySummaryService {
   /// 返回 DailySummary，如果不存在则返回 null
   DailySummary? getDailySummary(DateTime date) {
     final key = getDailySummaryKey(date);
+    final dateKey = key.substring('daily_summary_'.length);
+    if (!_isVisible('daily_summary', dateKey)) return null;
     final jsonStr = _database.settingsBox.get(key) as String?;
 
     if (jsonStr == null || jsonStr.isEmpty) {
@@ -61,14 +77,40 @@ class DailySummaryService {
   Future<void> _saveDailySummary(DailySummary summary) async {
     final key = getDailySummaryKey(summary.date);
     final jsonStr = jsonEncode(summary.toJson());
+    final dateKey = key.substring('daily_summary_'.length);
+    final clientUpdatedAt = DateTime.now().toUtc().toIso8601String();
+    final api = _userDataApi;
+    if (api != null && await api.isSignedIn) {
+      await api.updateDailySummary(dateKey, {
+        'moodWord': summary.moodWord,
+        'oneSentence': summary.oneSentence,
+        'score': summary.score,
+        'recordCount': summary.recordCount,
+        'generatedAt': summary.generatedAt.toUtc().toIso8601String(),
+        'userOverridden': summary.userOverridden,
+        'clientUpdatedAt': clientUpdatedAt,
+      });
+      await _markAccount('daily_summary', dateKey);
+    } else {
+      await _ownershipService?.markEntityLocal('daily_summary', dateKey);
+    }
     await _database.settingsBox.put(key, jsonStr);
+    await _database.settingsBox.put(
+      'ocean_sync_updated_at_daily_summary_$dateKey',
+      clientUpdatedAt,
+    );
     debugPrint('DailySummaryService: 已保存日总结 (${summary.date})');
   }
 
   /// 删除某天的日总结缓存
   Future<void> deleteDailySummary(DateTime date) async {
     final key = getDailySummaryKey(date);
+    final dateKey = key.substring('daily_summary_'.length);
     await _database.settingsBox.delete(key);
+    await _database.settingsBox.delete(
+      'ocean_sync_updated_at_daily_summary_$dateKey',
+    );
+    await _ownershipService?.clearEntityOwner('daily_summary', dateKey);
     debugPrint('DailySummaryService: 已删除日总结 ($date)');
   }
 
@@ -242,9 +284,10 @@ class DailySummaryService {
 
   /// 格式化记录时间
   String _formatRecordTime(DateTime time) {
+    final localTime = time.toLocal();
     final weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-    final weekDay = weekDays[time.weekday - 1];
-    return '${DateFormat('yyyy-MM-dd').format(time)} $weekDay ${DateFormat('HH:mm').format(time)}';
+    final weekDay = weekDays[localTime.weekday - 1];
+    return '${DateFormat('yyyy-MM-dd').format(localTime)} $weekDay ${DateFormat('HH:mm').format(localTime)}';
   }
 
   /// 清理资源
@@ -254,6 +297,30 @@ class DailySummaryService {
     }
     _debounceTimers.clear();
     _summaryUpdatesController.close();
+  }
+
+  bool _isVisible(String entityType, String entityId) {
+    final ownership = _ownershipService;
+    if (ownership == null) return true;
+    final accountKey = _cachedAccountKey;
+    return ownership.isEntityVisible(
+      entityType: entityType,
+      entityId: entityId,
+      accountKey: accountKey,
+    );
+  }
+
+  String? get _cachedAccountKey {
+    return _ownershipService?.activeAccount;
+  }
+
+  Future<void> _markAccount(String entityType, String entityId) async {
+    final accountApi = _accountApi;
+    if (accountApi == null) return;
+    final accountKey = await accountApi.currentAccountKey;
+    if (accountKey == null || accountKey.isEmpty) return;
+    await _ownershipService?.markEntityAccount(
+        entityType, entityId, accountKey);
   }
 }
 

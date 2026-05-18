@@ -32,6 +32,7 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     // 注册事件处理器
     on<InsightGenerateCurrentWeek>(_onGenerateCurrentWeek);
     on<InsightLoadCurrentWeek>(_onLoadCurrentWeek);
+    on<InsightAccountDataChanged>(_onAccountDataChanged);
     on<InsightGenerateForWeek>(_onGenerateForWeek);
     on<InsightLoadList>(_onLoadList);
     on<InsightUpdatePatternFeedback>(_onUpdatePatternFeedback);
@@ -113,6 +114,14 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     debugPrint('🔄 InsightBloc: 无本地缓存，重新生成洞察');
     // 缓存无效，触发生成
     add(const InsightGenerateCurrentWeek());
+  }
+
+  Future<void> _onAccountDataChanged(
+    InsightAccountDataChanged event,
+    Emitter<InsightState> emit,
+  ) async {
+    emit(InsightState.initial());
+    add(const InsightLoadCurrentWeek());
   }
 
   /// 生成当前周洞察（使用新的洞察报告 API，强制刷新）

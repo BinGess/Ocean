@@ -117,9 +117,9 @@ class AppTheme {
 
       // SnackBar 主题 - 使用温暖的米色调
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: const Color(0xFF5D4E3C),  // 深褐色背景
+        backgroundColor: const Color(0xFF5D4E3C), // 深褐色背景
         contentTextStyle: const TextStyle(
-          color: Color(0xFFFAF6F1),  // 浅米白文字
+          color: Color(0xFFFAF6F1), // 浅米白文字
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),

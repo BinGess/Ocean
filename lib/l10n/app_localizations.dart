@@ -30,6 +30,7 @@ class AppLocalizations {
       'profileNickname': 'MindFlow 用户',
       'profileSubtitle': '慢慢记录，也慢慢理解自己',
       'myWeeklyUnavailable': '记录更多内容后，这里会出现本周概览',
+      'myWeeklyEmptyHint': '继续记录几次情绪后，会自动汇总记录数、活跃天数和高峰时段。',
       'editProfile': '编辑个人信息',
       'profileAvatar': '头像',
       'profileNicknameLabel': '昵称',
@@ -64,6 +65,8 @@ class AppLocalizations {
       'iCloudBackupFile': '备份文件',
       'iCloudBackupTimeUnknown': '时间未知',
       'other': '其他',
+      'showOnboardingAlways': '每次展示新手引导',
+      'showOnboardingAlwaysSubtitle': '开启后每次进入应用都会展示新手引导',
       'about': '关于',
       'aboutSubtitle': '应用信息与隐私协议',
       'language': '语言',
@@ -130,6 +133,19 @@ class AppLocalizations {
       'emotionEmptyInputCannotSave': '输入内容为空，无法保存',
       'emotionFinishingRecording': '正在结束录音...',
       'emotionTranscriptionManualFallback': '转写失败，请手动补充内容后再试',
+      'recordSaveDate': '保存日期',
+      'recordPickSaveDateTooltip': '选择保存日期',
+      'processingRecordingCompleted': '录音完成',
+      'processingTranscribing': '正在转写中...',
+      'processingManualInputRequired': '请先输入内容',
+      'processingTranscriptionFailedHint': '转写失败，请手动输入内容...',
+      'processingEditTranscriptionHint': '点击编辑转写内容...',
+      'processingSelectMode': '选择处理方式',
+      'processingNVCAnalysis': 'NVC 分析',
+      'processingNVCDescription': '完整的情绪分析',
+      'processingOnlyRecord': '仅记录文本',
+      'processingOnlyRecordDescription': '不做进一步分析',
+      'quoteEmptyData': '暂无文案数据',
       'homeGreetingMorning': '早上好',
       'homeGreetingAfternoon': '下午好',
       'homeGreetingEvening': '晚上好',
@@ -189,7 +205,7 @@ class AppLocalizations {
       'proMembership': 'Pro 会员',
       'proPrice': '¥1/月',
       'proPurchaseTitle': '升级为 Pro 会员',
-      'proPurchaseSubtitle': '解锁全部高级功能，让记录更完整',
+      'proPurchaseSubtitle': '解锁数据导出能力，随时备份和迁移记录',
       'proFeatureExport': '导出所有记录',
       'proFeatureExportDesc': '将你的情绪记录导出为 JSON 文件，随时备份和迁移数据',
       'proFeatureICloud': 'iCloud 云同步',
@@ -208,7 +224,7 @@ class AppLocalizations {
       'proSubscriptionNote':
           '订阅将通过您的 Apple ID 账户确认购买。\n订阅会自动续订，除非您在当前订阅期结束前至少24小时关闭自动续订。\n您可以在 App Store 账户设置中管理和取消订阅。',
       'debugMode': 'DEBUG 模式',
-      'debugModeSubtitle': '开启后无需订阅即可使用导出与 iCloud（仅供内部测试）',
+      'debugModeSubtitle': '开启后无需订阅即可使用导出（仅供内部测试）',
     },
     'en': {
       'appTitle': 'MindFlow',
@@ -220,6 +236,8 @@ class AppLocalizations {
       'profileSubtitle': 'Keep noticing, one entry at a time',
       'myWeeklyUnavailable':
           'Your weekly overview will appear here after more records',
+      'myWeeklyEmptyHint':
+          'Keep recording a few more moments to unlock record count, active days, and peak times.',
       'editProfile': 'Edit profile',
       'profileAvatar': 'Avatar',
       'profileNicknameLabel': 'Nickname',
@@ -257,6 +275,9 @@ class AppLocalizations {
       'iCloudBackupFile': 'Backup file',
       'iCloudBackupTimeUnknown': 'Unknown time',
       'other': 'Other',
+      'showOnboardingAlways': 'Show onboarding every time',
+      'showOnboardingAlwaysSubtitle':
+          'Show the onboarding guide every time you open the app',
       'about': 'About',
       'aboutSubtitle': 'App info and privacy policy',
       'language': 'Language',
@@ -328,6 +349,20 @@ class AppLocalizations {
       'emotionFinishingRecording': 'Finishing recording...',
       'emotionTranscriptionManualFallback':
           'Transcription failed. Add your text manually and try again',
+      'recordSaveDate': 'Save Date',
+      'recordPickSaveDateTooltip': 'Choose save date',
+      'processingRecordingCompleted': 'Recording Complete',
+      'processingTranscribing': 'Transcribing...',
+      'processingManualInputRequired': 'Please enter some content first',
+      'processingTranscriptionFailedHint':
+          'Transcription failed. Enter the text manually...',
+      'processingEditTranscriptionHint': 'Tap to edit transcript...',
+      'processingSelectMode': 'Choose how to save',
+      'processingNVCAnalysis': 'NVC Analysis',
+      'processingNVCDescription': 'Full emotion analysis',
+      'processingOnlyRecord': 'Save Text Only',
+      'processingOnlyRecordDescription': 'No further analysis',
+      'quoteEmptyData': 'No quote data yet',
       'homeGreetingMorning': 'Good morning',
       'homeGreetingAfternoon': 'Good afternoon',
       'homeGreetingEvening': 'Good evening',
@@ -389,7 +424,7 @@ class AppLocalizations {
       'proPrice': '¥1/mo',
       'proPurchaseTitle': 'Upgrade to Pro',
       'proPurchaseSubtitle':
-          'Unlock all premium features for a complete experience',
+          'Unlock data export for backup and migration whenever you need it',
       'proFeatureExport': 'Export All Records',
       'proFeatureExportDesc':
           'Export your emotion records as JSON files for backup and migration',
@@ -412,7 +447,7 @@ class AppLocalizations {
           'Payment will be charged to your Apple ID account upon confirmation.\nSubscription automatically renews unless cancelled at least 24 hours before the end of the current period.\nYou can manage and cancel subscriptions in your App Store account settings.',
       'debugMode': 'DEBUG mode',
       'debugModeSubtitle':
-          'When on, Export and iCloud work without subscription (internal testing only)',
+          'When on, Export works without subscription (internal testing only)',
     },
   };
 
@@ -431,6 +466,7 @@ class AppLocalizations {
   String get profileNickname => _translate('profileNickname');
   String get profileSubtitle => _translate('profileSubtitle');
   String get myWeeklyUnavailable => _translate('myWeeklyUnavailable');
+  String get myWeeklyEmptyHint => _translate('myWeeklyEmptyHint');
   String get editProfile => _translate('editProfile');
   String get profileAvatar => _translate('profileAvatar');
   String get profileNicknameLabel => _translate('profileNicknameLabel');
@@ -544,6 +580,25 @@ class AppLocalizations {
       _translate('emotionFinishingRecording');
   String get emotionTranscriptionManualFallback =>
       _translate('emotionTranscriptionManualFallback');
+  String get recordSaveDate => _translate('recordSaveDate');
+  String get recordPickSaveDateTooltip =>
+      _translate('recordPickSaveDateTooltip');
+  String get processingRecordingCompleted =>
+      _translate('processingRecordingCompleted');
+  String get processingTranscribing => _translate('processingTranscribing');
+  String get processingManualInputRequired =>
+      _translate('processingManualInputRequired');
+  String get processingTranscriptionFailedHint =>
+      _translate('processingTranscriptionFailedHint');
+  String get processingEditTranscriptionHint =>
+      _translate('processingEditTranscriptionHint');
+  String get processingSelectMode => _translate('processingSelectMode');
+  String get processingNVCAnalysis => _translate('processingNVCAnalysis');
+  String get processingNVCDescription => _translate('processingNVCDescription');
+  String get processingOnlyRecord => _translate('processingOnlyRecord');
+  String get processingOnlyRecordDescription =>
+      _translate('processingOnlyRecordDescription');
+  String get quoteEmptyData => _translate('quoteEmptyData');
   String get homeGreetingMorning => _translate('homeGreetingMorning');
   String get homeGreetingAfternoon => _translate('homeGreetingAfternoon');
   String get homeGreetingEvening => _translate('homeGreetingEvening');

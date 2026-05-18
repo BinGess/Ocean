@@ -24,6 +24,7 @@ import '../../data/datasources/remote/doubao_datasource.dart';
 import '../network/doubao_asr_client.dart';
 import '../network/doubao_llm_client.dart';
 import '../network/coze_ai_service.dart';
+import '../network/ocean_api_client.dart';
 import '../constants/app_constants.dart';
 import '../services/app_lock_service.dart';
 import '../services/ai_auth_service.dart';
@@ -31,6 +32,11 @@ import '../services/quote_preloader.dart';
 import '../services/quote_update_manager.dart';
 import '../services/daily_summary_service.dart';
 import '../services/icloud_sync_service.dart';
+import '../services/ocean_sync_service.dart';
+import '../services/ocean_record_ownership_service.dart';
+import '../services/ocean_account_cache_service.dart';
+import '../services/ocean_account_service.dart';
+import '../services/ocean_installation_service.dart';
 import '../services/pro_subscription_service.dart';
 import '../../presentation/bloc/audio/audio_bloc.dart';
 import '../../presentation/bloc/record/record_bloc.dart';
@@ -62,6 +68,16 @@ Future<void> configureDependencies() async {
     () => CozeAIService(),
   );
 
+  getIt.registerLazySingleton<OceanTokenStore>(
+    () => OceanSecureTokenStore(),
+  );
+
+  getIt.registerLazySingleton<OceanApiClient>(
+    () => OceanApiClient(
+      tokenStore: getIt<OceanTokenStore>(),
+    ),
+  );
+
   // ===== Services =====
 
   // 应用锁服务
@@ -84,6 +100,13 @@ Future<void> configureDependencies() async {
   await hiveDatabase.init();
   getIt.registerSingleton<HiveDatabase>(hiveDatabase);
 
+  final oceanInstallationService = OceanInstallationService(
+    database: hiveDatabase,
+    tokenStore: getIt<OceanTokenStore>(),
+  );
+  await oceanInstallationService.reconcileInstallState();
+  getIt.registerSingleton<OceanInstallationService>(oceanInstallationService);
+
   final iCloudSyncService = ICloudSyncService(
     database: hiveDatabase,
   );
@@ -98,6 +121,10 @@ Future<void> configureDependencies() async {
   // 语言服务
   getIt.registerLazySingleton<LocaleService>(
     () => LocaleService(getIt<HiveDatabase>()),
+  );
+
+  getIt.registerLazySingleton<OceanRecordOwnershipService>(
+    () => OceanRecordOwnershipService(getIt<HiveDatabase>()),
   );
 
   // 豆包远程数据源
@@ -119,6 +146,9 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<RecordRepository>(
     () => RecordRepositoryImpl(
       database: getIt<HiveDatabase>(),
+      recordsApi: getIt<OceanApiClient>(),
+      accountApi: getIt<OceanApiClient>(),
+      ownershipService: getIt<OceanRecordOwnershipService>(),
     ),
   );
 
@@ -134,6 +164,9 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<InsightRepository>(
     () => InsightRepositoryImpl(
       database: getIt<HiveDatabase>(),
+      userDataApi: getIt<OceanApiClient>(),
+      accountApi: getIt<OceanApiClient>(),
+      ownershipService: getIt<OceanRecordOwnershipService>(),
     ),
   );
 
@@ -164,6 +197,40 @@ Future<void> configureDependencies() async {
     () => DailySummaryService(
       database: getIt<HiveDatabase>(),
       cozeAIService: getIt<CozeAIService>(),
+      userDataApi: getIt<OceanApiClient>(),
+      accountApi: getIt<OceanApiClient>(),
+      ownershipService: getIt<OceanRecordOwnershipService>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<OceanSyncService>(
+    () => OceanSyncService(
+      api: getIt<OceanApiClient>(),
+      dataStore: HiveOceanSyncDataStore(
+        getIt<HiveDatabase>(),
+        ownershipService: getIt<OceanRecordOwnershipService>(),
+        accountApi: getIt<OceanApiClient>(),
+      ),
+      stateStore: HiveOceanSyncStateStore(getIt<HiveDatabase>()),
+    ),
+  );
+
+  getIt.registerLazySingleton<OceanAccountCacheService>(
+    () => OceanAccountCacheService(getIt<HiveDatabase>()),
+  );
+
+  getIt.registerLazySingleton<OceanAccountDataRefreshService>(
+    () => OceanAccountDataRefreshService(),
+  );
+
+  getIt.registerLazySingleton<OceanAccountService>(
+    () => OceanAccountService(
+      api: getIt<OceanApiClient>(),
+      syncService: getIt<OceanSyncService>(),
+      cacheService: getIt<OceanAccountCacheService>(),
+      refreshService: getIt<OceanAccountDataRefreshService>(),
+      iCloudSyncService: getIt<ICloudSyncService>(),
+      ownershipService: getIt<OceanRecordOwnershipService>(),
     ),
   );
 

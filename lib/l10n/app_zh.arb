@@ -25,6 +25,9 @@
   "myWeeklyUnavailable": "记录更多内容后，这里会出现本周概览",
   "@myWeeklyUnavailable": {"description": "My page weekly overview empty state"},
 
+  "myWeeklyEmptyHint": "继续记录几次情绪后，会自动汇总记录数、活跃天数和高峰时段。",
+  "@myWeeklyEmptyHint": {"description": "My page weekly overview empty state guidance"},
+
   "editProfile": "编辑个人信息",
   "@editProfile": {"description": "Edit profile action and dialog title"},
 
