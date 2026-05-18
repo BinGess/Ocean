@@ -790,9 +790,12 @@ class _WeeklyAnalysisPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final message =
+        isLoading ? l10n.generatingInsight : l10n.myWeeklyUnavailable;
+
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(20),
@@ -804,36 +807,136 @@ class _WeeklyAnalysisPlaceholder extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: AppColors.accentWarm,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: isLoading
-                ? const Padding(
-                    padding: EdgeInsets.all(8),
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.accent,
-                    ),
-                  )
-                : const Icon(
-                    Icons.insights_outlined,
-                    size: 18,
-                    color: AppColors.accent,
-                  ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              isLoading ? l10n.generatingInsight : l10n.myWeeklyUnavailable,
-              style: AppTypography.bodySecondary.copyWith(
-                color: AppColors.textMuted,
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.accentWarm,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: isLoading
+                    ? const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.accent,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.insights_outlined,
+                        size: 18,
+                        color: AppColors.accent,
+                      ),
               ),
+              const SizedBox(width: 12),
+              Text(
+                '本周概览',
+                style: AppTypography.sectionTitle.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Row(
+            children: [
+              Expanded(
+                child: _WeeklyPlaceholderMetricTile(
+                  label: '记录数',
+                  value: '--',
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: _WeeklyPlaceholderMetricTile(
+                  label: '活跃天数',
+                  value: '--',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Row(
+            children: [
+              Expanded(
+                child: _WeeklyPlaceholderMetricTile(
+                  label: '高峰时段',
+                  value: '暂无',
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: _WeeklyPlaceholderMetricTile(
+                  label: '最密集日',
+                  value: '暂无',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: AppTypography.sectionSubtle.copyWith(
+              color: AppColors.textSecondary,
+              height: 1.45,
+            ),
+          ),
+          if (!isLoading) ...[
+            const SizedBox(height: 6),
+            Text(
+              l10n.myWeeklyEmptyHint,
+              style: AppTypography.sectionSubtle.copyWith(
+                color: AppColors.textMuted,
+                height: 1.45,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _WeeklyPlaceholderMetricTile extends StatelessWidget {
+  const _WeeklyPlaceholderMetricTile({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.bgCardSecondary.withValues(alpha: 0.74),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.borderLight.withValues(alpha: 0.72),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: AppTypography.sectionSubtle.copyWith(
+              color: AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: AppTypography.pageTitle.copyWith(
+              fontSize: 18,
+              color: AppColors.textTertiary.withValues(alpha: 0.64),
             ),
           ),
         ],

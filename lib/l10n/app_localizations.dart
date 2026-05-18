@@ -30,6 +30,7 @@ class AppLocalizations {
       'profileNickname': 'MindFlow 用户',
       'profileSubtitle': '慢慢记录，也慢慢理解自己',
       'myWeeklyUnavailable': '记录更多内容后，这里会出现本周概览',
+      'myWeeklyEmptyHint': '继续记录几次情绪后，会自动汇总记录数、活跃天数和高峰时段。',
       'editProfile': '编辑个人信息',
       'profileAvatar': '头像',
       'profileNicknameLabel': '昵称',
@@ -235,6 +236,8 @@ class AppLocalizations {
       'profileSubtitle': 'Keep noticing, one entry at a time',
       'myWeeklyUnavailable':
           'Your weekly overview will appear here after more records',
+      'myWeeklyEmptyHint':
+          'Keep recording a few more moments to unlock record count, active days, and peak times.',
       'editProfile': 'Edit profile',
       'profileAvatar': 'Avatar',
       'profileNicknameLabel': 'Nickname',
@@ -463,6 +466,7 @@ class AppLocalizations {
   String get profileNickname => _translate('profileNickname');
   String get profileSubtitle => _translate('profileSubtitle');
   String get myWeeklyUnavailable => _translate('myWeeklyUnavailable');
+  String get myWeeklyEmptyHint => _translate('myWeeklyEmptyHint');
   String get editProfile => _translate('editProfile');
   String get profileAvatar => _translate('profileAvatar');
   String get profileNicknameLabel => _translate('profileNicknameLabel');

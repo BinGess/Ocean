@@ -9,6 +9,7 @@
   "profileNickname": "MindFlow User",
   "profileSubtitle": "Keep noticing, one entry at a time",
   "myWeeklyUnavailable": "Your weekly overview will appear here after more records",
+  "myWeeklyEmptyHint": "Keep recording a few more moments to unlock record count, active days, and peak times.",
   "editProfile": "Edit profile",
   "profileAvatar": "Avatar",
   "profileNicknameLabel": "Nickname",

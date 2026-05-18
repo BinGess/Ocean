@@ -27,7 +27,7 @@ void main() {
     }
   });
 
-  testWidgets('empty insights state keeps page and weekly report context',
+  testWidgets('empty insights state shows only week range and report title',
       (tester) async {
     await tester.pumpWidget(
       _buildTestable(
@@ -41,7 +41,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('洞察'), findsOneWidget);
+    expect(find.text('洞察'), findsNothing);
     expect(find.text('5月11日 - 5月17日'), findsOneWidget);
     expect(find.text('每周洞察报告'), findsOneWidget);
     expect(find.text('本周没有足够的内容生成洞察'), findsOneWidget);

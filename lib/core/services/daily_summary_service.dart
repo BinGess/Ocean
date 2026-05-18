@@ -284,9 +284,10 @@ class DailySummaryService {
 
   /// 格式化记录时间
   String _formatRecordTime(DateTime time) {
+    final localTime = time.toLocal();
     final weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-    final weekDay = weekDays[time.weekday - 1];
-    return '${DateFormat('yyyy-MM-dd').format(time)} $weekDay ${DateFormat('HH:mm').format(time)}';
+    final weekDay = weekDays[localTime.weekday - 1];
+    return '${DateFormat('yyyy-MM-dd').format(localTime)} $weekDay ${DateFormat('HH:mm').format(localTime)}';
   }
 
   /// 清理资源

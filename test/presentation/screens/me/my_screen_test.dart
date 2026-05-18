@@ -165,6 +165,22 @@ void main() {
     expect(find.text('设置测试页'), findsOneWidget);
   });
 
+  testWidgets('我的页本周概览缺省态保留概览骨架和引导信息', (tester) async {
+    await tester.pumpWidget(_buildTestable(insightBloc: fakeInsightBloc));
+    await tester.pump();
+
+    expect(find.text('本周概览'), findsOneWidget);
+    expect(find.text('记录数'), findsOneWidget);
+    expect(find.text('活跃天数'), findsOneWidget);
+    expect(find.text('高峰时段'), findsOneWidget);
+    expect(find.text('最密集日'), findsOneWidget);
+    expect(find.text('记录更多内容后，这里会出现本周概览'), findsOneWidget);
+    expect(
+      find.text('继续记录几次情绪后，会自动汇总记录数、活跃天数和高峰时段。'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('未登录时我的页顶部提供登录入口并跳转账号引导页', (tester) async {
     getIt.registerSingleton<OceanAccountService>(
       _FakeOceanAccountService(signedIn: false),

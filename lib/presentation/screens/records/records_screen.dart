@@ -1101,10 +1101,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
   Map<DateTime, List<Record>> _groupRecordsByDate(List<Record> records) {
     final grouped = <DateTime, List<Record>>{};
     for (var record in records) {
+      final localCreatedAt = record.createdAt.toLocal();
       final date = DateTime(
-        record.createdAt.year,
-        record.createdAt.month,
-        record.createdAt.day,
+        localCreatedAt.year,
+        localCreatedAt.month,
+        localCreatedAt.day,
       );
       if (!grouped.containsKey(date)) {
         grouped[date] = [];
@@ -1145,7 +1146,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
   }
 
   String _formatTime(DateTime time) {
-    return DateFormat('HH:mm').format(time);
+    return DateFormat('HH:mm').format(time.toLocal());
   }
 
   /// 统一清洗标签：

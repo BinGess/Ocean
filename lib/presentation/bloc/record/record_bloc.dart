@@ -252,7 +252,8 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
   }
 
   DateTime _normalizeDate(DateTime date) {
-    return DateTime(date.year, date.month, date.day);
+    final local = date.toLocal();
+    return DateTime(local.year, local.month, local.day);
   }
 
   /// 加载记录列表
