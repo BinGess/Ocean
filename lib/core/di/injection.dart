@@ -7,6 +7,7 @@ import '../../domain/repositories/audio_repository.dart';
 import '../../domain/repositories/record_repository.dart';
 import '../../domain/repositories/ai_repository.dart';
 import '../../domain/repositories/insight_repository.dart';
+import '../../domain/repositories/sarah_letter_repository.dart';
 import '../../domain/usecases/create_quick_note_usecase.dart';
 import '../../domain/usecases/get_records_usecase.dart';
 import '../../domain/usecases/update_record_usecase.dart';
@@ -14,13 +15,20 @@ import '../../domain/usecases/generate_weekly_insight_usecase.dart';
 import '../../domain/usecases/generate_insight_report_usecase.dart';
 import '../../domain/usecases/build_weekly_analysis_usecase.dart';
 import '../../domain/usecases/get_weekly_insights_usecase.dart';
+import '../../domain/usecases/get_sarah_letters_usecase.dart';
+import '../../domain/usecases/ensure_welcome_letter_usecase.dart';
+import '../../domain/usecases/mark_sarah_letter_read_usecase.dart';
+import '../../domain/usecases/migrate_legacy_insights_to_sarah_letters_usecase.dart';
+import '../../domain/usecases/request_sarah_weekly_letter_usecase.dart';
 import '../../data/repositories/audio_repository_impl.dart';
 import '../../data/repositories/record_repository_impl.dart';
 import '../../data/repositories/ai_repository_impl.dart';
 import '../../data/repositories/insight_repository_impl.dart';
+import '../../data/repositories/sarah_letter_repository_impl.dart';
 import '../../data/repositories/quotes_repository.dart';
 import '../../data/datasources/local/hive_database.dart';
 import '../../data/datasources/remote/doubao_datasource.dart';
+import '../../data/datasources/remote/sarah_letter_remote_datasource.dart';
 import '../network/doubao_asr_client.dart';
 import '../network/doubao_llm_client.dart';
 import '../network/coze_ai_service.dart';
@@ -41,6 +49,7 @@ import '../services/pro_subscription_service.dart';
 import '../../presentation/bloc/audio/audio_bloc.dart';
 import '../../presentation/bloc/record/record_bloc.dart';
 import '../../presentation/bloc/insight/insight_bloc.dart';
+import '../../presentation/bloc/sarah/sarah_bloc.dart';
 import '../../presentation/bloc/locale/locale_bloc.dart';
 import '../services/locale_service.dart';
 
@@ -135,6 +144,12 @@ Future<void> configureDependencies() async {
     ),
   );
 
+  getIt.registerLazySingleton<SarahLetterRemoteDataSource>(
+    () => SarahLetterRemoteDataSource(
+      api: getIt<OceanApiClient>(),
+    ),
+  );
+
   // ===== Repositories =====
 
   // 音频仓储
@@ -167,6 +182,13 @@ Future<void> configureDependencies() async {
       userDataApi: getIt<OceanApiClient>(),
       accountApi: getIt<OceanApiClient>(),
       ownershipService: getIt<OceanRecordOwnershipService>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<SarahLetterRepository>(
+    () => SarahLetterRepositoryImpl(
+      database: getIt<HiveDatabase>(),
+      remoteDataSource: getIt<SarahLetterRemoteDataSource>(),
     ),
   );
 
@@ -288,6 +310,37 @@ Future<void> configureDependencies() async {
     ),
   );
 
+  getIt.registerLazySingleton<GetSarahLettersUseCase>(
+    () => GetSarahLettersUseCase(
+      repository: getIt<SarahLetterRepository>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<EnsureWelcomeLetterUseCase>(
+    () => EnsureWelcomeLetterUseCase(
+      repository: getIt<SarahLetterRepository>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<MigrateLegacyInsightsToSarahLettersUseCase>(
+    () => MigrateLegacyInsightsToSarahLettersUseCase(
+      insightRepository: getIt<InsightRepository>(),
+      sarahLetterRepository: getIt<SarahLetterRepository>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<MarkSarahLetterReadUseCase>(
+    () => MarkSarahLetterReadUseCase(
+      repository: getIt<SarahLetterRepository>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<RequestSarahWeeklyLetterUseCase>(
+    () => RequestSarahWeeklyLetterUseCase(
+      repository: getIt<SarahLetterRepository>(),
+    ),
+  );
+
   // ===== BLoCs =====
 
   // 音频 BLoC（工厂模式，每次创建新实例）
@@ -320,6 +373,20 @@ Future<void> configureDependencies() async {
       buildWeeklyAnalysisUseCase: getIt<BuildWeeklyAnalysisUseCase>(),
       insightRepository: getIt<InsightRepository>(),
       aiAuthService: getIt<AIAuthService>(),
+    ),
+  );
+
+  getIt.registerFactory<SarahBloc>(
+    () => SarahBloc(
+      getLettersUseCase: getIt<GetSarahLettersUseCase>(),
+      ensureWelcomeLetterUseCase: getIt<EnsureWelcomeLetterUseCase>(),
+      refreshLegacyInsightsUseCase: () async {
+        await getIt<OceanSyncService>().restoreSnapshot();
+      },
+      migrateLegacyInsightsUseCase:
+          getIt<MigrateLegacyInsightsToSarahLettersUseCase>().call,
+      requestWeeklyLetterUseCase: getIt<RequestSarahWeeklyLetterUseCase>(),
+      markReadUseCase: getIt<MarkSarahLetterReadUseCase>(),
     ),
   );
 

@@ -10,8 +10,8 @@
   "navHome": "瞬记",
   "@navHome": {"description": "Navigation tab - Home/Quick record"},
 
-  "navInsights": "洞察",
-  "@navInsights": {"description": "Navigation tab - Insights"},
+  "navInsights": "Sarah",
+  "@navInsights": {"description": "Navigation tab - Sarah letters"},
 
   "navMe": "我的",
   "@navMe": {"description": "Navigation tab - Me/Profile"},

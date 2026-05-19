@@ -507,11 +507,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
         children: [
           Text(
             l10n.dailyRecords,
-            style: AppTypography.pageTitle.copyWith(
-              color: AppColors.textPrimary,
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-            ),
+            style: AppTypography.tabPageTitle,
           ),
           Material(
             color: Colors.transparent,

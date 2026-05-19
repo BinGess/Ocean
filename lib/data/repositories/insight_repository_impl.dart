@@ -135,13 +135,14 @@ class InsightRepositoryImpl implements InsightRepository {
     try {
       final data = jsonDecode(raw) as Map<String, dynamic>;
       final cachedAtStr = data['cached_at'] as String?;
-      final reportJson = data['report'] as Map<String, dynamic>?;
-      if (cachedAtStr == null || reportJson == null) return null;
+      final rawReport = data['report'];
+      if (cachedAtStr == null || rawReport == null) return null;
 
       final cachedAt = DateTime.tryParse(cachedAtStr);
       if (cachedAt == null) return null;
 
-      final report = InsightReport.fromJson(reportJson);
+      final report = _parseCachedInsightReport(rawReport, cachedAt: cachedAt);
+      if (report == null) return null;
       return InsightReportCache(report: report, cachedAt: cachedAt);
     } catch (_) {
       return null;
@@ -197,13 +198,14 @@ class InsightRepositoryImpl implements InsightRepository {
       try {
         final data = jsonDecode(raw) as Map<String, dynamic>;
         final cachedAtStr = data['cached_at'] as String?;
-        final reportJson = data['report'] as Map<String, dynamic>?;
-        if (cachedAtStr == null || reportJson == null) continue;
+        final rawReport = data['report'];
+        if (cachedAtStr == null || rawReport == null) continue;
 
         final cachedAt = DateTime.tryParse(cachedAtStr);
         if (cachedAt == null) continue;
 
-        final report = InsightReport.fromJson(reportJson);
+        final report = _parseCachedInsightReport(rawReport, cachedAt: cachedAt);
+        if (report == null) continue;
         results.add(InsightReportCache(report: report, cachedAt: cachedAt));
       } catch (_) {
         // 忽略解析失败的缓存
@@ -239,5 +241,94 @@ class InsightRepositoryImpl implements InsightRepository {
       }
     }
     await ownership.markEntityLocal(entityType, entityId);
+  }
+
+  InsightReport? _parseCachedInsightReport(
+    Object rawReport, {
+    required DateTime cachedAt,
+  }) {
+    try {
+      final reportJson = _asMap(rawReport);
+      if (reportJson == null) return null;
+      return InsightReport.fromJson(
+        _normalizeInsightReportJson(reportJson, cachedAt: cachedAt),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Map<String, dynamic> _normalizeInsightReportJson(
+    Map<String, dynamic> json, {
+    required DateTime cachedAt,
+  }) {
+    final weekRange =
+        _readString(json, const ['week_range', 'weekRange']) ?? '';
+    final pattern = _asMap(_read(json, const [
+          'pattern_hypothesis',
+          'patternHypothesis',
+        ])) ??
+        const <String, dynamic>{};
+
+    return {
+      ...json,
+      'id': _readString(json, const ['id']) ??
+          'report_${weekRange.replaceAll(RegExp(r'[^0-9A-Za-z]+'), '_')}',
+      'report_type':
+          _readString(json, const ['report_type', 'reportType']) ?? '每周洞察报告',
+      'emotion_overview': _asMap(_read(json, const [
+            'emotion_overview',
+            'emotionOverview',
+          ])) ??
+          const {'summary': ''},
+      'high_frequency_emotions': _readList(json, const [
+        'high_frequency_emotions',
+        'highFrequencyEmotions',
+      ]),
+      'pattern_hypothesis': {
+        ...pattern,
+        'text': _readString(pattern, const ['text']) ?? '',
+        'highlight_tags': _readList(pattern, const [
+          'highlight_tags',
+          'highlightTags',
+        ]),
+      },
+      'action_suggestions': _readList(json, const [
+        'action_suggestions',
+        'actionSuggestions',
+      ]),
+      'week_range': weekRange,
+      'created_at': _readString(json, const ['created_at', 'createdAt']) ??
+          cachedAt.toIso8601String(),
+      'record_count': _read(json, const ['record_count', 'recordCount']),
+    };
+  }
+
+  Object? _read(Map<String, dynamic> json, List<String> keys) {
+    for (final key in keys) {
+      if (json.containsKey(key)) return json[key];
+    }
+    return null;
+  }
+
+  String? _readString(Map<String, dynamic> json, List<String> keys) {
+    final value = _read(json, keys);
+    return value?.toString();
+  }
+
+  List<dynamic> _readList(Map<String, dynamic> json, List<String> keys) {
+    final value = _read(json, keys);
+    if (value is List) return value;
+    return const [];
+  }
+
+  Map<String, dynamic>? _asMap(Object? value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    if (value is String && value.trim().isNotEmpty) {
+      final decoded = jsonDecode(value);
+      if (decoded is Map) return Map<String, dynamic>.from(decoded);
+    }
+    return null;
   }
 }

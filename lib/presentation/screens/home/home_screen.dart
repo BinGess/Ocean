@@ -1084,15 +1084,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Expanded(
             child: Text(
               greeting,
-              style: AppTypography.homeGreeting.copyWith(
-                fontSize: 34,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF353F49),
-                height: 1.05,
-                letterSpacing: -0.45,
-                fontFamily: AppTypography.sansFamily,
-                fontFamilyFallback: const ['PingFang SC', 'Roboto'],
-              ),
+              style: AppTypography.tabPageTitle,
             ),
           ),
         ],

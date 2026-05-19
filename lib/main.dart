@@ -21,10 +21,13 @@ import 'presentation/bloc/audio/audio_bloc.dart';
 import 'presentation/bloc/audio/audio_event.dart';
 import 'presentation/bloc/record/record_bloc.dart';
 import 'presentation/bloc/insight/insight_bloc.dart';
+import 'presentation/bloc/sarah/sarah_bloc.dart';
+import 'presentation/bloc/sarah/sarah_event.dart';
+import 'presentation/bloc/sarah/sarah_state.dart';
 import 'presentation/bloc/locale/locale_bloc.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/records/records_screen.dart';
-import 'presentation/screens/insights/insights_screen.dart';
+import 'presentation/screens/sarah/sarah_screen.dart';
 import 'presentation/screens/me/my_screen.dart';
 import 'presentation/screens/splash/splash_screen.dart';
 import 'presentation/screens/onboarding/nvc_onboarding_screen.dart';
@@ -69,6 +72,9 @@ class MindFlowApp extends StatelessWidget {
         ),
         BlocProvider(
           create: (context) => getIt<InsightBloc>(),
+        ),
+        BlocProvider(
+          create: (context) => getIt<SarahBloc>(),
         ),
         BlocProvider(
           create: (context) => getIt<LocaleBloc>()..add(const LocaleLoad()),
@@ -486,7 +492,7 @@ class _MainNavigationState extends State<MainNavigation> {
         },
       ), // 记录
       const HomeScreen(), // 首页（录音）
-      const InsightsScreen(), // 洞察
+      const SarahScreen(), // Sarah
       const MyScreen(), // 我的
     ];
   }
@@ -541,11 +547,18 @@ class _MainNavigationState extends State<MainNavigation> {
                       ),
                     ),
                     Expanded(
-                      child: _buildNavItem(
-                        index: 2,
-                        icon: Icons.auto_awesome_outlined,
-                        activeIcon: Icons.auto_awesome,
-                        label: l10n.navInsights,
+                      child: BlocBuilder<SarahBloc, SarahState>(
+                        buildWhen: (previous, current) =>
+                            previous.unreadCount != current.unreadCount,
+                        builder: (context, state) {
+                          return _buildNavItem(
+                            index: 2,
+                            icon: Icons.auto_awesome_outlined,
+                            activeIcon: Icons.auto_awesome,
+                            label: l10n.navInsights,
+                            showBadge: state.unreadCount > 0,
+                          );
+                        },
                       ),
                     ),
                     Expanded(
@@ -571,9 +584,10 @@ class _MainNavigationState extends State<MainNavigation> {
     required IconData icon,
     required IconData activeIcon,
     required String label,
+    bool showBadge = false,
   }) {
     final isActive = _currentIndex == index;
-    final color = isActive ? AppColors.accent : AppColors.textSecondary;
+    final color = isActive ? const Color(0xFF8A7655) : const Color(0xFFC0B8AC);
 
     return Semantics(
       button: true,
@@ -586,6 +600,9 @@ class _MainNavigationState extends State<MainNavigation> {
             setState(() {
               _currentIndex = index;
             });
+            if (index == 2) {
+              context.read<SarahBloc>().add(const SarahLoadRequested());
+            }
           },
           child: Container(
             alignment: Alignment.center,
@@ -594,10 +611,28 @@ class _MainNavigationState extends State<MainNavigation> {
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  isActive ? activeIcon : icon,
-                  size: 26,
-                  color: color,
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(
+                      isActive ? activeIcon : icon,
+                      size: 26,
+                      color: color,
+                    ),
+                    if (showBadge)
+                      Positioned(
+                        top: -2,
+                        right: -5,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFD45E35),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(

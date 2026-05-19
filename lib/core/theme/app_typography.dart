@@ -136,6 +136,16 @@ class AppTypography {
     fontFamilyFallback: _sansFallback,
   );
 
+  static const TextStyle tabPageTitle = TextStyle(
+    fontSize: 30,
+    fontWeight: FontWeight.w700,
+    height: 1.12,
+    letterSpacing: 0,
+    color: AppColors.textPrimary,
+    fontFamily: sansFamily,
+    fontFamilyFallback: _sansFallback,
+  );
+
   static const TextStyle pageMeta = TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.w500,

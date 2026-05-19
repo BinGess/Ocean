@@ -431,19 +431,33 @@ class HiveOceanSyncDataStore implements OceanSyncDataStore {
 
   @override
   Future<void> upsertInsightReport(Map<String, dynamic> report) async {
-    final periodKey = report['periodKey']?.toString();
+    final periodKey = _readString(
+      report,
+      const ['periodKey', 'period_key', 'weekRange', 'week_range'],
+    );
     if (_isBlank(periodKey)) return;
-    final payload = report['report'];
-    if (payload is! Map) return;
+    final payload = _readMap(report['report'] ?? report['payload']) ??
+        _extractTopLevelInsightReport(report);
+    if (payload == null) return;
+    final cachedAt = _readString(
+          report,
+          const [
+            'cachedAt',
+            'cached_at',
+            'clientUpdatedAt',
+            'client_updated_at'
+          ],
+        ) ??
+        DateTime.now().toUtc().toIso8601String();
     final raw = {
-      'cached_at': report['cachedAt'],
-      'report': Map<String, dynamic>.from(payload),
+      'cached_at': cachedAt,
+      'report': payload,
     };
     await _database.insightReportsBox.put(periodKey!, jsonEncode(raw));
     await _saveUpdatedAt(
       'insight_report',
       periodKey,
-      report['clientUpdatedAt']?.toString(),
+      _readString(report, const ['clientUpdatedAt', 'client_updated_at']),
     );
     await _markEntityAccount('insight_report', periodKey);
   }
@@ -884,8 +898,13 @@ class OceanSyncService implements OceanAccountSyncService {
         }
         return 'daily_mood';
       case 'insight_report':
-        final periodType = payload['periodType']?.toString() ?? 'weekly';
-        final periodKey = payload['periodKey']?.toString();
+        final periodType =
+            _readString(payload, const ['periodType', 'period_type']) ??
+                'weekly';
+        final periodKey = _readString(
+          payload,
+          const ['periodKey', 'period_key', 'weekRange', 'week_range'],
+        );
         if (periodKey == null || periodKey.isEmpty) return null;
         if (payload['deletedAt'] != null) {
           await _dataStore.deleteInsightReport(periodType, periodKey);
@@ -947,4 +966,43 @@ class _EntityChangeCounts {
         break;
     }
   }
+}
+
+String? _readString(Map<String, dynamic> data, List<String> keys) {
+  for (final key in keys) {
+    if (!data.containsKey(key)) continue;
+    final value = data[key];
+    if (value == null) continue;
+    final text = value.toString();
+    if (text.trim().isEmpty) continue;
+    return text;
+  }
+  return null;
+}
+
+Map<String, dynamic>? _readMap(Object? value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) return Map<String, dynamic>.from(value);
+  if (value is String && value.trim().isNotEmpty) {
+    final decoded = jsonDecode(value);
+    if (decoded is Map) return Map<String, dynamic>.from(decoded);
+  }
+  return null;
+}
+
+Map<String, dynamic>? _extractTopLevelInsightReport(Map<String, dynamic> item) {
+  final hasInsightFields = item.containsKey('emotion_overview') ||
+      item.containsKey('emotionOverview') ||
+      item.containsKey('pattern_hypothesis') ||
+      item.containsKey('patternHypothesis');
+  if (!hasInsightFields) return null;
+  return Map<String, dynamic>.from(item)
+    ..remove('periodType')
+    ..remove('period_type')
+    ..remove('periodKey')
+    ..remove('period_key')
+    ..remove('cachedAt')
+    ..remove('cached_at')
+    ..remove('clientUpdatedAt')
+    ..remove('client_updated_at');
 }

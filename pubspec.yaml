@@ -97,6 +97,7 @@ flutter:
   # 资源文件
   assets:
     - assets/images/
+    - assets/images/sarah/
     - assets/images/moods/
     - assets/data/
     - assets/fonts/
