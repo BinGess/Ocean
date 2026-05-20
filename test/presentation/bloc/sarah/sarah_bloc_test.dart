@@ -129,6 +129,42 @@ void main() {
     expect(state.letters.map((letter) => letter.id), ['welcome']);
     expect(state.totalCount, 1);
   });
+
+  test('load exposes ensured welcome when refreshed list is still empty',
+      () async {
+    final welcome = _letter(
+      id: 'welcome',
+      type: LetterType.welcome,
+      createdAt: DateTime(2026, 5, 18),
+      isRead: false,
+    );
+    final repository = _FakeSarahLetterRepository(
+      syncedLetters: const [],
+      welcomeLetter: welcome,
+      cacheWelcomeOnEnsure: false,
+    );
+    final bloc = SarahBloc(
+      getLettersUseCase: GetSarahLettersUseCase(repository: repository),
+      ensureWelcomeLetterUseCase:
+          EnsureWelcomeLetterUseCase(repository: repository),
+      refreshLegacyInsightsUseCase: () async {},
+      migrateLegacyInsightsUseCase: () async => const [],
+      requestWeeklyLetterUseCase:
+          RequestSarahWeeklyLetterUseCase(repository: repository),
+      markReadUseCase: MarkSarahLetterReadUseCase(repository: repository),
+      now: () => DateTime(2026, 5, 20),
+    );
+    addTearDown(bloc.close);
+
+    bloc.add(const SarahLoadRequested());
+    final state = await bloc.stream.firstWhere(
+      (state) => state.status == SarahStatus.success,
+    );
+
+    expect(repository.didEnsureWelcome, isTrue);
+    expect(state.letters.map((letter) => letter.id), ['welcome']);
+    expect(state.totalCount, 1);
+  });
 }
 
 SarahLetter _letter({
@@ -185,12 +221,14 @@ class _FakeSarahLetterRepository implements SarahLetterRepository {
     this.welcomeLetter,
     this.generatedLetter,
     this.weeklyGenerationError,
+    this.cacheWelcomeOnEnsure = true,
   });
 
   List<SarahLetter> syncedLetters;
   final SarahLetter? welcomeLetter;
   final SarahLetter? generatedLetter;
   final Object? weeklyGenerationError;
+  final bool cacheWelcomeOnEnsure;
   bool didEnsureWelcome = false;
   bool didRequestWeekly = false;
   final List<String> markedReadIds = [];
@@ -202,7 +240,7 @@ class _FakeSarahLetterRepository implements SarahLetterRepository {
   Future<SarahLetter?> ensureWelcomeLetter() async {
     didEnsureWelcome = true;
     final letter = welcomeLetter;
-    if (letter != null) {
+    if (letter != null && cacheWelcomeOnEnsure) {
       syncedLetters = [
         letter,
         ...syncedLetters.where((item) => item.id != letter.id),

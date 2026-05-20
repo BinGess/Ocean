@@ -31,7 +31,8 @@ void main() {
       expect(letters.single.isRead, isFalse);
     });
 
-    test('requests weekly generation from backend without Coze credentials', () async {
+    test('requests weekly generation from backend without Coze credentials',
+        () async {
       final api = _FakeSarahLettersApi(
         weeklyResponse: {
           'letter': {
@@ -58,6 +59,29 @@ void main() {
         'weekEnd': '2026-05-24T00:00:00.000Z',
       });
       expect(letter?.id, 'weekly-1');
+    });
+
+    test('maps ensured welcome letter from backend response', () async {
+      final api = _FakeSarahLettersApi(
+        welcomeResponse: {
+          'letter': {
+            'id': 'welcome-1',
+            'type': 'welcome',
+            'createdAt': '2026-05-18T09:00:00.000Z',
+            'content': '嗨，\n\n我是 Sarah。\n\nSarah',
+            'previewText': '我是 Sarah。',
+            'illustrationIndex': 1,
+            'isRead': false,
+          },
+        },
+      );
+      final dataSource = SarahLetterRemoteDataSource(api: api);
+
+      final letter = await dataSource.ensureWelcomeLetter();
+
+      expect(letter?.id, 'welcome-1');
+      expect(letter?.type, LetterType.welcome);
+      expect(letter?.resolvedPreviewText, '我是 Sarah。');
     });
 
     test('accepts snake case fields and data wrappers from backend', () async {
@@ -97,10 +121,12 @@ void main() {
 class _FakeSarahLettersApi implements OceanSarahLettersApi {
   _FakeSarahLettersApi({
     this.listResponse = const {'letters': []},
+    this.welcomeResponse = const {},
     this.weeklyResponse = const {},
   });
 
   final Map<String, dynamic> listResponse;
+  final Map<String, dynamic> welcomeResponse;
   final Map<String, dynamic> weeklyResponse;
   Map<String, dynamic>? lastWeeklyPayload;
 
@@ -108,7 +134,8 @@ class _FakeSarahLettersApi implements OceanSarahLettersApi {
   Future<Map<String, dynamic>> listSarahLetters() async => listResponse;
 
   @override
-  Future<Map<String, dynamic>> ensureSarahWelcomeLetter() async => const {};
+  Future<Map<String, dynamic>> ensureSarahWelcomeLetter() async =>
+      welcomeResponse;
 
   @override
   Future<Map<String, dynamic>> migrateLegacySarahLetters(

@@ -39,20 +39,34 @@ class SarahBloc extends Bloc<SarahEvent, SarahState> {
     SarahLoadRequested event,
     Emitter<SarahState> emit,
   ) async {
-    emit(state.copyWith(status: SarahStatus.loading));
+    // Only show the loading spinner on the very first load.
+    // Subsequent visits silently refresh while keeping the cached letters visible.
+    if (state.letters.isEmpty) {
+      emit(state.copyWith(status: SarahStatus.loading));
+    }
 
     final errors = <Object>[];
-    await _tryRun(getLettersUseCase.call, errors);
+    final initialLetters =
+        await _tryRun(getLettersUseCase.call, errors) ?? state.letters;
     await _tryRun(refreshLegacyInsightsUseCase, errors);
-    await _tryRun(ensureWelcomeLetterUseCase.call, errors);
-    await _tryRun(migrateLegacyInsightsUseCase, errors);
-    await _tryRun(_requestWeeklyLetterIfUseful, errors);
+    final welcomeLetter =
+        await _tryRun(ensureWelcomeLetterUseCase.call, errors);
+    final migratedLetters =
+        await _tryRun(migrateLegacyInsightsUseCase, errors) ?? const [];
+    final weeklyLetter = await _tryRun(_requestWeeklyLetterIfUseful, errors);
 
     final letters =
-        await _tryRun(getLettersUseCase.call, errors) ?? state.letters;
+        await _tryRun(getLettersUseCase.call, errors) ?? initialLetters;
     emit(state.copyWith(
       status: SarahStatus.success,
-      letters: _sorted(letters),
+      letters: _mergeLetters(
+        letters,
+        [
+          if (welcomeLetter != null) welcomeLetter,
+          ...migratedLetters,
+          if (weeklyLetter != null) weeklyLetter,
+        ],
+      ),
       errorMessage: errors.isEmpty ? null : errors.first.toString(),
     ));
   }
@@ -69,7 +83,7 @@ class SarahBloc extends Bloc<SarahEvent, SarahState> {
     ));
   }
 
-  Future<void> _requestWeeklyLetterIfUseful() async {
+  Future<SarahLetter?> _requestWeeklyLetterIfUseful() async {
     final current = now();
     final weekStart = DateTime(
       current.year,
@@ -78,10 +92,21 @@ class SarahBloc extends Bloc<SarahEvent, SarahState> {
     ).subtract(Duration(days: current.weekday - 1));
     final weekEnd = weekStart.add(const Duration(days: 6));
 
-    await requestWeeklyLetterUseCase(
+    return requestWeeklyLetterUseCase(
       weekStart: weekStart,
       weekEnd: weekEnd,
     );
+  }
+
+  List<SarahLetter> _mergeLetters(
+    List<SarahLetter> primary,
+    List<SarahLetter> fallback,
+  ) {
+    final mergedById = <String, SarahLetter>{
+      for (final letter in primary) letter.id: letter,
+      for (final letter in fallback) letter.id: letter,
+    };
+    return _sorted(mergedById.values.toList());
   }
 
   List<SarahLetter> _sorted(List<SarahLetter> letters) {

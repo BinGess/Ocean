@@ -34,7 +34,22 @@ class _SarahScreenState extends State<SarahScreen> {
       backgroundColor: _SarahColors.page,
       body: SafeArea(
         bottom: false,
-        child: BlocBuilder<SarahBloc, SarahState>(
+        child: BlocConsumer<SarahBloc, SarahState>(
+          // Auto-expand the latest letter the first time letters load
+          listenWhen: (previous, current) =>
+              previous.letters.isEmpty && current.letters.isNotEmpty,
+          listener: (context, state) {
+            final latest = state.weeklyLetter ??
+                (state.pastLetters.isNotEmpty ? state.pastLetters.first : null);
+            if (latest != null) {
+              setState(() => _expandedLetterIds.add(latest.id));
+              if (!latest.isRead) {
+                context
+                    .read<SarahBloc>()
+                    .add(SarahLetterRead(letterId: latest.id));
+              }
+            }
+          },
           builder: (context, state) {
             if (state.status == SarahStatus.loading && state.letters.isEmpty) {
               return const Center(
@@ -44,34 +59,54 @@ class _SarahScreenState extends State<SarahScreen> {
               );
             }
 
+            // The featured (newest) letter: weeklyLetter if present,
+            // otherwise the first past letter.
+            final featured =
+                state.weeklyLetter ?? state.pastLetters.firstOrNull;
+
+            // Archive = everything that isn't the featured letter.
+            // When weeklyLetter exists, pastLetters are already the archive.
+            // When it doesn't, skip the first past letter (shown as featured).
+            final archive = state.weeklyLetter != null
+                ? state.pastLetters
+                : (state.pastLetters.length > 1
+                    ? state.pastLetters.sublist(1)
+                    : <SarahLetter>[]);
+
             return CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
+                // ── Header ──────────────────────────────────────────
                 SliverToBoxAdapter(
                   child: _SarahHeader(totalCount: state.totalCount),
                 ),
-                if (state.weeklyLetter != null) ...[
-                  const SliverToBoxAdapter(
-                    child: _SectionTitle(title: '本周来信'),
-                  ),
+
+                // ── Featured letter (always first, no section label) ─
+                if (featured != null) ...[
+                  if (state.weeklyLetter != null)
+                    // Keep "本周来信" label only when there's a real weekly letter
+                    const SliverToBoxAdapter(
+                      child: _SectionTitle(title: '本周来信'),
+                    ),
                   SliverToBoxAdapter(
                     child: _CurrentWeekLetterCard(
-                      letter: state.weeklyLetter!,
-                      isExpanded:
-                          _expandedLetterIds.contains(state.weeklyLetter!.id),
-                      onToggle: () => _toggleLetter(state.weeklyLetter!),
+                      letter: featured,
+                      isExpanded: _expandedLetterIds.contains(featured.id),
+                      onToggle: () => _toggleLetter(featured),
                     ),
                   ),
                 ],
-                if (state.pastLetters.isNotEmpty) ...[
+
+                // ── "往期信件" divider + archive ─────────────────────
+                if (archive.isNotEmpty) ...[
                   const SliverToBoxAdapter(
                     child: _SectionTitle(title: '往期信件', centered: true),
                   ),
                   SliverList.separated(
-                    itemCount: state.pastLetters.length,
+                    itemCount: archive.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 14),
                     itemBuilder: (context, index) {
-                      final letter = state.pastLetters[index];
+                      final letter = archive[index];
                       return _PastLetterTile(
                         letter: letter,
                         isExpanded: _expandedLetterIds.contains(letter.id),
@@ -80,6 +115,7 @@ class _SarahScreenState extends State<SarahScreen> {
                     },
                   ),
                 ],
+
                 const SliverToBoxAdapter(child: SizedBox(height: 40)),
               ],
             );
@@ -242,57 +278,34 @@ class _PastLetterTile extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onToggle,
-      child: _LetterPaper(
-        letter: letter,
-        expanded: isExpanded,
-        compact: !isExpanded,
-        margin: const EdgeInsets.fromLTRB(28, 0, 28, 0),
-        child: isExpanded
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _LetterDate(letter: letter),
-                  const SizedBox(height: 18),
-                  _LetterBody(letter: letter, expanded: true),
-                  const SizedBox(height: 8),
-                  _ToggleText(
-                    expanded: true,
-                    expandText: '展开',
-                    onTap: onToggle,
-                  ),
-                ],
-              )
-            : Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _LetterDate(letter: letter, compact: true),
-                        const SizedBox(height: 7),
-                        Text(
-                          letter.resolvedPreviewText,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.bodyPrimary.copyWith(
-                            color: _SarahColors.ink,
-                            fontSize: 17,
-                            height: 1.35,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    '展开',
-                    style: AppTypography.actionLabel.copyWith(
-                      color: _SarahColors.active,
-                      fontSize: 15,
-                    ),
-                  ),
-                ],
+      child: Semantics(
+        button: true,
+        label: isExpanded ? '收起 Sarah 信件' : '展开 Sarah 信件',
+        // Same visual layout as _CurrentWeekLetterCard — illustration +
+        // date + multi-line body + toggle button, no compact mode.
+        child: _LetterPaper(
+          letter: letter,
+          expanded: isExpanded,
+          margin: const EdgeInsets.fromLTRB(28, 0, 28, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _LetterDate(letter: letter),
+              SizedBox(height: isExpanded ? 18 : 22),
+              _LetterBody(
+                letter: letter,
+                expanded: isExpanded,
+                maxLines: 4,
               ),
+              const SizedBox(height: 8),
+              _ToggleText(
+                expanded: isExpanded,
+                expandText: '查看全部',
+                onTap: onToggle,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -304,14 +317,12 @@ class _LetterPaper extends StatelessWidget {
     required this.child,
     required this.margin,
     this.expanded = false,
-    this.compact = false,
   });
 
   final SarahLetter letter;
   final Widget child;
   final EdgeInsets margin;
   final bool expanded;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -320,39 +331,39 @@ class _LetterPaper extends StatelessWidget {
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF9F8F78).withValues(alpha: 0.16),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
+            color: const Color(0xFF9C8260).withValues(alpha: 0.13),
+            blurRadius: 16,
+            offset: const Offset(0, 5),
+            spreadRadius: -4,
+          ),
+          BoxShadow(
+            color: const Color(0xFF9C8260).withValues(alpha: 0.07),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Stack(
         children: [
           CustomPaint(
-            painter: _PaperPainter(compact: compact),
+            painter: const _PaperPainter(),
             child: Stack(
               children: [
-                if (!compact)
-                  Positioned(
-                    top: 28,
-                    right: 12,
-                    child: IgnorePointer(
-                      child: Opacity(
-                        opacity: 0.28,
-                        child: _SarahIllustration(
-                          letter: letter,
-                          size: 128,
-                        ),
+                Positioned(
+                  top: 28,
+                  right: 14,
+                  child: IgnorePointer(
+                    child: Opacity(
+                      opacity: 0.42,
+                      child: _SarahIllustration(
+                        letter: letter,
+                        size: 120,
                       ),
                     ),
                   ),
+                ),
                 Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    compact ? 44 : 54,
-                    compact ? 25 : 34,
-                    26,
-                    compact ? 24 : 30,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(48, 34, 26, 30),
                   child: child,
                 ),
               ],
@@ -369,7 +380,7 @@ class _LetterPaper extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: _SarahColors.unread,
                   shape: BoxShape.circle,
-                  border: Border.all(color: _SarahColors.active, width: 1),
+                  border: Border.all(color: _SarahColors.paper, width: 1.5),
                 ),
               ),
             ),
@@ -427,13 +438,9 @@ class _LetterBody extends StatelessWidget {
 }
 
 class _LetterDate extends StatelessWidget {
-  const _LetterDate({
-    required this.letter,
-    this.compact = false,
-  });
+  const _LetterDate({required this.letter});
 
   final SarahLetter letter;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -441,8 +448,10 @@ class _LetterDate extends StatelessWidget {
       _formatLetterDate(letter),
       style: AppTypography.pageMeta.copyWith(
         color: _SarahColors.mutedGold,
-        fontSize: compact ? 16 : 17,
+        fontSize: 17,
         fontFamily: AppTypography.serifFamily,
+        fontWeight: FontWeight.w600,
+        height: 1.35,
       ),
     );
   }
@@ -451,9 +460,11 @@ class _LetterDate extends StatelessWidget {
     final start = letter.weekStart;
     final end = letter.weekEnd;
     if (start != null && end != null && letter.type != LetterType.welcome) {
-      return '${DateFormat('M月d日').format(start)} - ${DateFormat('M月d日').format(end)}';
+      // e.g. "25.5.18 - 5.24"
+      return '${DateFormat('yy.M.d').format(start)} - ${DateFormat('M.d').format(end)}';
     }
-    return '${DateFormat('yyyy年M月d日').format(letter.createdAt)}，${_weekday(letter.createdAt)}';
+    // e.g. "26.5.20 周三"
+    return '${DateFormat('yy.M.d').format(letter.createdAt)} ${_weekday(letter.createdAt)}';
   }
 
   String _weekday(DateTime date) {
@@ -479,14 +490,30 @@ class _ToggleText extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Text(
-          expanded ? '收起' : expandText,
-          style: AppTypography.actionLabel.copyWith(
-            color: _SarahColors.active,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+        padding: const EdgeInsets.fromLTRB(0, 8, 0, 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              expanded ? '收起' : expandText,
+              style: AppTypography.actionLabel.copyWith(
+                color: _SarahColors.active,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 3),
+            AnimatedRotation(
+              turns: expanded ? 0.5 : 0,
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              child: const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                size: 18,
+                color: _SarahColors.active,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -520,60 +547,115 @@ class _SarahIllustration extends StatelessWidget {
 }
 
 class _PaperPainter extends CustomPainter {
-  _PaperPainter({required this.compact});
-
-  final bool compact;
+  const _PaperPainter();
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paper = Paint()..color = Colors.white;
+    final paper = Paint()
+      ..color = _SarahColors.paper
+      ..isAntiAlias = true;
     canvas.drawRect(Offset.zero & size, paper);
 
     final topPaint = Paint()
       ..shader = const LinearGradient(
-        colors: [Color(0xFFF8F2E8), Colors.white],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, 18));
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, 18), topPaint);
+        colors: [Color(0xFFF8EDD8), _SarahColors.paper],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, 24));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, 24), topPaint);
+
+    _drawPaperFibers(canvas, size);
+    _drawSoftTopEdge(canvas, size);
 
     final linePaint = Paint()
-      ..color = _SarahColors.rule
-      ..strokeWidth = 0.7;
-    for (double y = 30; y < size.height; y += 26) {
+      ..color = _SarahColors.rule.withValues(alpha: 0.78)
+      ..strokeWidth = 0.48
+      ..isAntiAlias = true;
+    final lastRuleY = size.height - 30;
+    for (double y = 30; y < lastRuleY; y += 26) {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), linePaint);
     }
 
     final marginPaint = Paint()
-      ..color = _SarahColors.marginLine
-      ..strokeWidth = 1;
+      ..color = _SarahColors.marginLine.withValues(alpha: 0.52)
+      ..strokeWidth = 0.65
+      ..isAntiAlias = true;
     canvas.drawLine(
-      const Offset(38, 0),
-      Offset(38, size.height),
+      const Offset(30, 4),
+      Offset(30, size.height - 8),
       marginPaint,
     );
 
+    // Use transparent paper color (not Colors.transparent which is transparent BLACK
+    // and causes dark fringe artifacts during gradient interpolation)
     final foldPaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          Colors.transparent,
-          const Color(0xFFE5D9C7).withValues(alpha: compact ? 0.18 : 0.28),
+          const Color(0x00FFFDF8), // transparent paper white — no black tint
+          const Color(0xFFF8F0E3).withValues(alpha: 0.13),
         ],
-      ).createShader(Rect.fromLTWH(0, size.height - 18, size.width, 18));
+      ).createShader(Rect.fromLTWH(0, size.height - 24, size.width, 24));
     canvas.drawRect(
-        Rect.fromLTWH(0, size.height - 18, size.width, 18), foldPaint);
+        Rect.fromLTWH(0, size.height - 24, size.width, 24), foldPaint);
+
+    _drawSoftBottomEdge(canvas, size);
 
     final border = Paint()
-      ..color = const Color(0xFFE8DFD1)
+      ..color = _SarahColors.paperBorder.withValues(alpha: 0.58)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.8;
-    canvas.drawRect(Offset.zero & size, border);
+      ..strokeWidth = 0.45
+      ..isAntiAlias = true;
+    final path = Path()
+      ..moveTo(0.5, size.height - 3)
+      ..lineTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width - 0.5, size.height - 3);
+    canvas.drawPath(path, border);
+  }
+
+  void _drawPaperFibers(Canvas canvas, Size size) {
+    final fiberPaint = Paint()
+      ..color = _SarahColors.paperFiber.withValues(alpha: 0.10)
+      ..strokeWidth = 0.38
+      ..strokeCap = StrokeCap.round;
+    const count = 46;
+    for (var i = 0; i < count; i += 1) {
+      final x = ((i * 47) % size.width).toDouble();
+      final y = 12 + ((i * 31) % (size.height - 24)).toDouble();
+      final length = 4 + (i % 5).toDouble();
+      canvas.drawLine(Offset(x, y), Offset(x + length, y + 0.25), fiberPaint);
+    }
+  }
+
+  void _drawSoftTopEdge(Canvas canvas, Size size) {
+    final edgePaint = Paint()
+      ..color = _SarahColors.paperEdge.withValues(alpha: 0.18)
+      ..strokeWidth = 0.55;
+    for (double x = 0; x < size.width; x += 8) {
+      final dip = ((x ~/ 8) % 3) * 0.35;
+      canvas.drawLine(Offset(x, 0.5 + dip), Offset(x + 5, 0.7), edgePaint);
+    }
+  }
+
+  void _drawSoftBottomEdge(Canvas canvas, Size size) {
+    // Only warm highlights at the bottom edge — no dark fibers that create shadow artifacts
+    final highlightPaint = Paint()
+      ..color = const Color(0xFFFFFCF5).withValues(alpha: 0.88)
+      ..strokeWidth = 0.6
+      ..isAntiAlias = true;
+
+    for (double x = 0; x < size.width; x += 9) {
+      final lift = ((x ~/ 9) % 4) * 0.28;
+      canvas.drawLine(
+        Offset(x, size.height - 3.4 + lift),
+        Offset(x + 6, size.height - 3.1),
+        highlightPaint,
+      );
+    }
   }
 
   @override
-  bool shouldRepaint(covariant _PaperPainter oldDelegate) {
-    return oldDelegate.compact != compact;
-  }
+  bool shouldRepaint(covariant _PaperPainter oldDelegate) => false;
 }
 
 class _SarahPlaceholderPainter extends CustomPainter {
@@ -606,11 +688,15 @@ class _SarahPlaceholderPainter extends CustomPainter {
 
 class _SarahColors {
   static const page = Color(0xFFF5F0E8);
+  static const paper = Color(0xFFFFFDF8);
   static const active = Color(0xFF8A7655);
   static const mutedGold = Color(0xFFA18E6B);
   static const ink = Color(0xFF2E2A22);
   static const line = Color(0xFFD9CDBB);
-  static const rule = Color(0xFFECE7DF);
-  static const marginLine = Color(0xFFE6A08A);
+  static const rule = Color(0xFFBFAE9C); // deeper warm tan for visible ruled lines
+  static const marginLine = Color(0xFFECC6BA);
+  static const paperBorder = Color(0xFFEDE4D7);
+  static const paperFiber = Color(0xFFCDBFA8);
+  static const paperEdge = Color(0xFFD8C9B3);
   static const unread = Color(0xFFD45E35);
 }

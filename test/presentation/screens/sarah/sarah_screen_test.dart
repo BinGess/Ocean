@@ -111,6 +111,68 @@ void main() {
     expect(find.text('From Sarah'), findsOneWidget);
     expect(find.text('共 2 封信'), findsOneWidget);
   });
+
+  testWidgets('letter papers avoid hard drop shadows', (tester) async {
+    final bloc = _FakeSarahBloc(
+      SarahState(
+        status: SarahStatus.success,
+        letters: [
+          _letter(
+            id: 'legacy',
+            type: LetterType.legacy,
+            createdAt: DateTime(2026, 5, 4),
+            previewText: '那个关于截止日前夜的记录，让我想...',
+            content: '嗨，\n\n那个关于截止日前夜的记录，让我想起你当时很需要支持。\n\nSarah',
+            isRead: true,
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(_buildTestable(bloc));
+    await tester.pump();
+
+    final decoratedContainers = tester.widgetList<Container>(
+      find.byType(Container),
+    );
+    final shadowedContainers = decoratedContainers.where((container) {
+      final decoration = container.decoration;
+      return decoration is BoxDecoration &&
+          (decoration.boxShadow?.isNotEmpty ?? false);
+    });
+
+    expect(shadowedContainers, isEmpty);
+  });
+
+  testWidgets('collapsed letter preview uses quiet paper-note typography',
+      (tester) async {
+    final bloc = _FakeSarahBloc(
+      SarahState(
+        status: SarahStatus.success,
+        letters: [
+          _letter(
+            id: 'legacy',
+            type: LetterType.legacy,
+            createdAt: DateTime(2026, 5, 4),
+            previewText: '那个关于截止日前夜的记录，让我想...',
+            content: '嗨，\n\n那个关于截止日前夜的记录，让我想起你当时很需要支持。\n\nSarah',
+            isRead: true,
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(_buildTestable(bloc));
+    await tester.pump();
+
+    final preview = tester.widget<Text>(
+      find.byKey(const ValueKey('sarah-preview-legacy')),
+    );
+
+    expect(preview.style?.fontSize, 15);
+    expect(preview.style?.fontWeight, FontWeight.w400);
+    expect(preview.style?.fontFamily, 'Songti SC');
+  });
 }
 
 Widget _buildTestable(SarahBloc bloc) {
