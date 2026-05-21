@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/entities/sarah_letter.dart';
+import '../../../domain/usecases/delete_sarah_letter_usecase.dart';
 import '../../../domain/usecases/ensure_welcome_letter_usecase.dart';
 import '../../../domain/usecases/get_sarah_letters_usecase.dart';
 import '../../../domain/usecases/mark_sarah_letter_read_usecase.dart';
@@ -20,11 +21,13 @@ class SarahBloc extends Bloc<SarahEvent, SarahState> {
     required this.migrateLegacyInsightsUseCase,
     required this.requestWeeklyLetterUseCase,
     required this.markReadUseCase,
+    required this.deleteLetterUseCase,
     SarahNowProvider? now,
   })  : now = now ?? DateTime.now,
         super(SarahState.initial()) {
     on<SarahLoadRequested>(_onLoadRequested);
     on<SarahLetterRead>(_onLetterRead);
+    on<SarahLetterDeleteRequested>(_onLetterDeleteRequested);
   }
 
   final GetSarahLettersUseCase getLettersUseCase;
@@ -33,6 +36,7 @@ class SarahBloc extends Bloc<SarahEvent, SarahState> {
   final MigrateLegacyInsightsRunner migrateLegacyInsightsUseCase;
   final RequestSarahWeeklyLetterUseCase requestWeeklyLetterUseCase;
   final MarkSarahLetterReadUseCase markReadUseCase;
+  final DeleteSarahLetterUseCase deleteLetterUseCase;
   final SarahNowProvider now;
 
   Future<void> _onLoadRequested(
@@ -81,6 +85,19 @@ class SarahBloc extends Bloc<SarahEvent, SarahState> {
       status: SarahStatus.success,
       letters: _sorted(letters),
     ));
+  }
+
+  Future<void> _onLetterDeleteRequested(
+    SarahLetterDeleteRequested event,
+    Emitter<SarahState> emit,
+  ) async {
+    // Optimistic removal — UI reflects the change immediately
+    final updated =
+        state.letters.where((l) => l.id != event.letterId).toList();
+    emit(state.copyWith(status: SarahStatus.success, letters: updated));
+
+    // Persist: local is synchronous, remote is best-effort
+    await _tryRun(() => deleteLetterUseCase(event.letterId), []);
   }
 
   Future<SarahLetter?> _requestWeeklyLetterIfUseful() async {

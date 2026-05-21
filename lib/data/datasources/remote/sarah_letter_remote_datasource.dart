@@ -43,6 +43,10 @@ class SarahLetterRemoteDataSource {
     return _letterFromResponse(response);
   }
 
+  Future<void> deleteLetter(String id) async {
+    await api.deleteSarahLetter(id);
+  }
+
   List<SarahLetter> _lettersFromResponse(Map<String, dynamic> response) {
     final rawLetters = _readPayload(response, 'letters');
     if (rawLetters is! List) return const [];

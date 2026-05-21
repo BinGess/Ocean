@@ -93,6 +93,7 @@ class _SarahScreenState extends State<SarahScreen> {
                       letter: featured,
                       isExpanded: _expandedLetterIds.contains(featured.id),
                       onToggle: () => _toggleLetter(featured),
+                      onDelete: () => _showDeleteSheet(context, featured),
                     ),
                   ),
                 ],
@@ -111,6 +112,7 @@ class _SarahScreenState extends State<SarahScreen> {
                         letter: letter,
                         isExpanded: _expandedLetterIds.contains(letter.id),
                         onToggle: () => _toggleLetter(letter),
+                        onDelete: () => _showDeleteSheet(context, letter),
                       );
                     },
                   ),
@@ -121,6 +123,22 @@ class _SarahScreenState extends State<SarahScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+
+  void _showDeleteSheet(BuildContext context, SarahLetter letter) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _DeleteLetterSheet(
+        letter: letter,
+        onConfirm: () {
+          Navigator.of(context).pop();
+          context
+              .read<SarahBloc>()
+              .add(SarahLetterDeleteRequested(letterId: letter.id));
+        },
       ),
     );
   }
@@ -228,35 +246,40 @@ class _CurrentWeekLetterCard extends StatelessWidget {
     required this.letter,
     required this.isExpanded,
     required this.onToggle,
+    required this.onDelete,
   });
 
   final SarahLetter letter;
   final bool isExpanded;
   final VoidCallback onToggle;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
-    return _LetterPaper(
-      letter: letter,
-      expanded: isExpanded,
-      margin: const EdgeInsets.fromLTRB(28, 0, 28, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _LetterDate(letter: letter),
-          const SizedBox(height: 22),
-          _LetterBody(
-            letter: letter,
-            expanded: isExpanded,
-            maxLines: 4,
-          ),
-          const SizedBox(height: 8),
-          _ToggleText(
-            expanded: isExpanded,
-            expandText: '查看全部',
-            onTap: onToggle,
-          ),
-        ],
+    return GestureDetector(
+      onLongPress: onDelete,
+      child: _LetterPaper(
+        letter: letter,
+        expanded: isExpanded,
+        margin: const EdgeInsets.fromLTRB(28, 0, 28, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _LetterDate(letter: letter),
+            const SizedBox(height: 22),
+            _LetterBody(
+              letter: letter,
+              expanded: isExpanded,
+              maxLines: 4,
+            ),
+            const SizedBox(height: 8),
+            _ToggleText(
+              expanded: isExpanded,
+              expandText: '查看全部',
+              onTap: onToggle,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -267,17 +290,20 @@ class _PastLetterTile extends StatelessWidget {
     required this.letter,
     required this.isExpanded,
     required this.onToggle,
+    required this.onDelete,
   });
 
   final SarahLetter letter;
   final bool isExpanded;
   final VoidCallback onToggle;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onToggle,
+      onLongPress: onDelete,
       child: Semantics(
         button: true,
         label: isExpanded ? '收起 Sarah 信件' : '展开 Sarah 信件',
@@ -457,14 +483,43 @@ class _LetterDate extends StatelessWidget {
   }
 
   String _formatLetterDate(SarahLetter letter) {
-    final start = letter.weekStart;
-    final end = letter.weekEnd;
-    if (start != null && end != null && letter.type != LetterType.welcome) {
-      // e.g. "25.5.18 - 5.24"
-      return '${DateFormat('yy.M.d').format(start)} - ${DateFormat('M.d').format(end)}';
+    if (letter.type != LetterType.welcome) {
+      final range = _resolvePeriodRange(letter);
+      return '${DateFormat('yy.M.d').format(range.start)} - ${DateFormat('M.d').format(range.end)}';
     }
     // e.g. "26.5.20 周三"
     return '${DateFormat('yy.M.d').format(letter.createdAt)} ${_weekday(letter.createdAt)}';
+  }
+
+  DateTimeRange _resolvePeriodRange(SarahLetter letter) {
+    final start = letter.weekStart;
+    final end = letter.weekEnd;
+    if (start != null && end != null) {
+      return DateTimeRange(start: start, end: end);
+    }
+    if (start != null) {
+      return DateTimeRange(
+        start: start,
+        end: start.add(const Duration(days: 6)),
+      );
+    }
+    if (end != null) {
+      return DateTimeRange(
+        start: end.subtract(const Duration(days: 6)),
+        end: end,
+      );
+    }
+
+    final fallbackStart = _weekStartFor(letter.createdAt);
+    return DateTimeRange(
+      start: fallbackStart,
+      end: fallbackStart.add(const Duration(days: 6)),
+    );
+  }
+
+  DateTime _weekStartFor(DateTime date) {
+    final day = DateTime(date.year, date.month, date.day);
+    return day.subtract(Duration(days: day.weekday - DateTime.monday));
   }
 
   String _weekday(DateTime date) {
@@ -686,6 +741,173 @@ class _SarahPlaceholderPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
+// ── Delete confirmation bottom sheet ────────────────────────────────────────
+
+class _DeleteLetterSheet extends StatelessWidget {
+  const _DeleteLetterSheet({
+    required this.letter,
+    required this.onConfirm,
+  });
+
+  final SarahLetter letter;
+  final VoidCallback onConfirm;
+
+  @override
+  Widget build(BuildContext context) {
+    final dateLabel = _buildDateLabel();
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 32),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAF6EF),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── Drag handle ─────────────────────────────────────────────
+          Container(
+            margin: const EdgeInsets.only(top: 12, bottom: 4),
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: _SarahColors.line,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          // ── Letter info ──────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 4),
+            child: Column(
+              children: [
+                const Text(
+                  '删除这封信',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: _SarahColors.ink,
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  dateLabel,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: _SarahColors.mutedGold,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  '删除后无法恢复，本地和服务端记录都将被清除。',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    color: Color(0x802E2A22), // ink @ 50%
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 18),
+          Divider(height: 1, color: _SarahColors.line.withValues(alpha: 0.6)),
+
+          // ── Delete action ────────────────────────────────────────────
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onConfirm,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              alignment: Alignment.center,
+              child: const Text(
+                '删除',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFFD44C3C),
+                ),
+              ),
+            ),
+          ),
+
+          Divider(height: 1, color: _SarahColors.line.withValues(alpha: 0.6)),
+
+          // ── Cancel ───────────────────────────────────────────────────
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => Navigator.of(context).pop(),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              alignment: Alignment.center,
+              child: const Text(
+                '取消',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w500,
+                  color: _SarahColors.active,
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 4),
+        ],
+      ),
+    );
+  }
+
+  String _buildDateLabel() {
+    if (letter.type != LetterType.welcome) {
+      final range = _resolvePeriodRange();
+      return '${DateFormat('yy.M.d').format(range.start)} - ${DateFormat('M.d').format(range.end)}';
+    }
+
+    const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    final wd = weekdays[letter.createdAt.weekday - 1];
+    return '${DateFormat('yy.M.d').format(letter.createdAt)} $wd';
+  }
+
+  DateTimeRange _resolvePeriodRange() {
+    final start = letter.weekStart;
+    final end = letter.weekEnd;
+    if (start != null && end != null) {
+      return DateTimeRange(start: start, end: end);
+    }
+    if (start != null) {
+      return DateTimeRange(
+        start: start,
+        end: start.add(const Duration(days: 6)),
+      );
+    }
+    if (end != null) {
+      return DateTimeRange(
+        start: end.subtract(const Duration(days: 6)),
+        end: end,
+      );
+    }
+
+    final day = DateTime(
+      letter.createdAt.year,
+      letter.createdAt.month,
+      letter.createdAt.day,
+    );
+    final fallbackStart =
+        day.subtract(Duration(days: day.weekday - DateTime.monday));
+    return DateTimeRange(
+      start: fallbackStart,
+      end: fallbackStart.add(const Duration(days: 6)),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _SarahColors {
   static const page = Color(0xFFF5F0E8);
   static const paper = Color(0xFFFFFDF8);
@@ -693,7 +915,8 @@ class _SarahColors {
   static const mutedGold = Color(0xFFA18E6B);
   static const ink = Color(0xFF2E2A22);
   static const line = Color(0xFFD9CDBB);
-  static const rule = Color(0xFFBFAE9C); // deeper warm tan for visible ruled lines
+  static const rule =
+      Color(0xFFBFAE9C); // deeper warm tan for visible ruled lines
   static const marginLine = Color(0xFFECC6BA);
   static const paperBorder = Color(0xFFEDE4D7);
   static const paperFiber = Color(0xFFCDBFA8);

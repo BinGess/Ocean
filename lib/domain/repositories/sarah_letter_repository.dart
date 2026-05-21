@@ -24,5 +24,7 @@ abstract class SarahLetterRepository {
 
   Future<void> markRead(String id);
 
+  Future<void> deleteLetter(String id);
+
   Future<int> getLocalUnreadCount();
 }

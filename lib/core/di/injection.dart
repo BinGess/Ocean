@@ -16,6 +16,7 @@ import '../../domain/usecases/generate_insight_report_usecase.dart';
 import '../../domain/usecases/build_weekly_analysis_usecase.dart';
 import '../../domain/usecases/get_weekly_insights_usecase.dart';
 import '../../domain/usecases/get_sarah_letters_usecase.dart';
+import '../../domain/usecases/delete_sarah_letter_usecase.dart';
 import '../../domain/usecases/ensure_welcome_letter_usecase.dart';
 import '../../domain/usecases/mark_sarah_letter_read_usecase.dart';
 import '../../domain/usecases/migrate_legacy_insights_to_sarah_letters_usecase.dart';
@@ -341,6 +342,12 @@ Future<void> configureDependencies() async {
     ),
   );
 
+  getIt.registerLazySingleton<DeleteSarahLetterUseCase>(
+    () => DeleteSarahLetterUseCase(
+      repository: getIt<SarahLetterRepository>(),
+    ),
+  );
+
   // ===== BLoCs =====
 
   // 音频 BLoC（工厂模式，每次创建新实例）
@@ -387,6 +394,7 @@ Future<void> configureDependencies() async {
           getIt<MigrateLegacyInsightsToSarahLettersUseCase>().call,
       requestWeeklyLetterUseCase: getIt<RequestSarahWeeklyLetterUseCase>(),
       markReadUseCase: getIt<MarkSarahLetterReadUseCase>(),
+      deleteLetterUseCase: getIt<DeleteSarahLetterUseCase>(),
     ),
   );
 

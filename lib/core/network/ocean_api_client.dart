@@ -170,6 +170,8 @@ abstract class OceanSarahLettersApi {
     String id,
     Map<String, dynamic> data,
   );
+
+  Future<void> deleteSarahLetter(String id);
 }
 
 class OceanApiClient
@@ -540,6 +542,15 @@ class OceanApiClient
       ),
     );
     return Map<String, dynamic>.from(response.data ?? const {});
+  }
+
+  @override
+  Future<void> deleteSarahLetter(String id) async {
+    await _authorizedRequest<dynamic>(
+      () => _dio.delete<dynamic>(
+        '/sarah/letters/${Uri.encodeComponent(id)}',
+      ),
+    );
   }
 
   Future<Response<T>> _authorizedRequest<T>(

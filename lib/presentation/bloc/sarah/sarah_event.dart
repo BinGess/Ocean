@@ -21,3 +21,12 @@ class SarahLetterRead extends SarahEvent {
   @override
   List<Object?> get props => [letterId];
 }
+
+class SarahLetterDeleteRequested extends SarahEvent {
+  const SarahLetterDeleteRequested({required this.letterId});
+
+  final String letterId;
+
+  @override
+  List<Object?> get props => [letterId];
+}

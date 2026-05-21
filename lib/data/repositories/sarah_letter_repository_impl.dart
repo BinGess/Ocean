@@ -122,6 +122,20 @@ class SarahLetterRepositoryImpl implements SarahLetterRepository {
   }
 
   @override
+  Future<void> deleteLetter(String id) async {
+    // Remove from local storage first (immediate, never fails)
+    await database.sarahLettersBox.delete(id);
+
+    // Best-effort server delete — ignore failures so offline still works
+    try {
+      await remoteDataSource?.deleteLetter(id);
+    } catch (_) {
+      // Server delete failed; local is already removed. The server copy
+      // will become orphaned until the next full sync reconciles it.
+    }
+  }
+
+  @override
   Future<int> getLocalUnreadCount() async {
     return database.sarahLettersBox.values
         .where((model) => !model.isRead)

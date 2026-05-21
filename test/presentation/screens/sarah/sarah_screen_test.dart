@@ -173,6 +173,69 @@ void main() {
     expect(preview.style?.fontWeight, FontWeight.w400);
     expect(preview.style?.fontFamily, 'Songti SC');
   });
+
+  testWidgets('formats period letters as ranges and welcome as single day',
+      (tester) async {
+    final bloc = _FakeSarahBloc(
+      SarahState(
+        status: SarahStatus.success,
+        letters: [
+          _letter(
+            id: 'weekly',
+            type: LetterType.weekly,
+            createdAt: DateTime(2026, 5, 20),
+            content: '嗨，\n\n这是一封周信。\n\nSarah',
+            isRead: true,
+          ),
+          _letter(
+            id: 'legacy',
+            type: LetterType.legacy,
+            createdAt: DateTime(2026, 5, 4),
+            weekStart: DateTime(2026, 4, 27),
+            weekEnd: DateTime(2026, 5, 3),
+            previewText: '旧周报迁移信。',
+            content: '嗨，\n\n旧周报迁移信。\n\nSarah',
+            isRead: true,
+          ),
+          _letter(
+            id: 'welcome',
+            type: LetterType.welcome,
+            createdAt: DateTime(2026, 5, 20),
+            previewText: '我是 Sarah。',
+            content: '嗨，\n\n我是 Sarah。\n\nSarah',
+            isRead: true,
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(_buildTestable(bloc));
+    await tester.pump();
+
+    expect(find.text('26.5.18 - 5.24'), findsOneWidget);
+    expect(find.text('26.4.27 - 5.3'), findsOneWidget);
+
+    final welcomeBloc = _FakeSarahBloc(
+      SarahState(
+        status: SarahStatus.success,
+        letters: [
+          _letter(
+            id: 'welcome',
+            type: LetterType.welcome,
+            createdAt: DateTime(2026, 5, 20),
+            previewText: '我是 Sarah。',
+            content: '嗨，\n\n我是 Sarah。\n\nSarah',
+            isRead: true,
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(_buildTestable(welcomeBloc));
+    await tester.pump();
+
+    expect(find.text('26.5.20 周三'), findsOneWidget);
+  });
 }
 
 Widget _buildTestable(SarahBloc bloc) {
@@ -197,6 +260,8 @@ SarahLetter _letter({
   required LetterType type,
   required DateTime createdAt,
   required String content,
+  DateTime? weekStart,
+  DateTime? weekEnd,
   String? previewText,
   bool isRead = false,
 }) {
@@ -204,6 +269,8 @@ SarahLetter _letter({
     id: id,
     type: type,
     createdAt: createdAt,
+    weekStart: weekStart,
+    weekEnd: weekEnd,
     content: content,
     previewText: previewText,
     illustrationIndex: 1,
