@@ -288,4 +288,7 @@ class _NoopSarahLettersApi implements OceanSarahLettersApi {
   ) async {
     return const {};
   }
+
+  @override
+  Future<void> deleteSarahLetter(String id) async {}
 }

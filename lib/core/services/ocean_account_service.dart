@@ -42,12 +42,14 @@ class OceanAccountService {
     required OceanAccountDataRefreshService refreshService,
     ICloudSyncService? iCloudSyncService,
     OceanRecordOwnershipService? ownershipService,
+    Future<void> Function()? clearLocalData,
   })  : _api = api,
         _syncService = syncService,
         _cacheService = cacheService,
         _refreshService = refreshService,
         _iCloudSyncService = iCloudSyncService,
-        _ownershipService = ownershipService;
+        _ownershipService = ownershipService,
+        _clearLocalData = clearLocalData ?? (() async {});
 
   final OceanAccountApi _api;
   final OceanAccountSyncService _syncService;
@@ -55,6 +57,7 @@ class OceanAccountService {
   final OceanAccountDataRefreshService _refreshService;
   final ICloudSyncService? _iCloudSyncService;
   final OceanRecordOwnershipService? _ownershipService;
+  final Future<void> Function() _clearLocalData;
 
   Future<bool> get isSignedIn => _api.isSignedIn;
 
@@ -119,6 +122,17 @@ class OceanAccountService {
   Future<void> logout() async {
     await _api.logout();
     await _ownershipService?.detachActiveAccountDataToLocal();
+    await _ownershipService?.clearActiveAccount();
+    await _cacheService.hideAccountCache();
+    _refreshService.notifyChanged();
+  }
+
+  /// Permanently deletes the account on the server, wipes all local data,
+  /// and clears auth tokens. Throws on server error (so the caller can
+  /// show an error message before proceeding).
+  Future<void> deleteAccount() async {
+    await _api.deleteAccount();
+    await _clearLocalData();
     await _ownershipService?.clearActiveAccount();
     await _cacheService.hideAccountCache();
     _refreshService.notifyChanged();

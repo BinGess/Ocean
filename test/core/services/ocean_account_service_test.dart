@@ -330,6 +330,12 @@ class _FakeAccountApi implements OceanAccountApi {
   }
 
   @override
+  Future<void> deleteAccount() async {
+    loggedInEmail = null;
+    loggedInPhone = null;
+  }
+
+  @override
   Future<void> sendSmsCode({required String phone}) async {
     smsCodeSentTo = phone;
   }

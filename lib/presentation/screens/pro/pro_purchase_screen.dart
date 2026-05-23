@@ -1,9 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/pro_subscription_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
+
+const _privacyPolicyUrl =
+    'https://lucky-geranium-802.notion.site/Shunji-2fe407f7a70180c79746dbc59ad9a19d?pvs=74';
+const _termsOfUseUrl =
+    'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 
 class ProPurchaseScreen extends StatefulWidget {
   const ProPurchaseScreen({super.key});
@@ -145,8 +151,8 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
                         ),
                       ),
                     ),
-            // 订阅说明
-            if (!isPro)
+            // 订阅说明 + 隐私政策/使用条款链接
+            if (!isPro) ...[
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
@@ -160,6 +166,47 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
                   ),
                 ),
               ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () => _openUrl(_privacyPolicyUrl),
+                      child: Text(
+                        l10n.proPrivacyPolicy,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF8B8B8B),
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        '·',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFFCCCCCC),
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => _openUrl(_termsOfUseUrl),
+                      child: Text(
+                        l10n.proTermsOfUse,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF8B8B8B),
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
           ],
         ),
@@ -372,6 +419,13 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   Future<void> _handleSubscribe() async {

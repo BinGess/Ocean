@@ -71,4 +71,7 @@ class _FakeSarahLetterRepository implements SarahLetterRepository {
   Future<List<SarahLetter>> migrateLegacyLetters(List<SarahLetter> letters) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<void> deleteLetter(String id) async {}
 }

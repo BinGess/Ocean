@@ -3,6 +3,7 @@ import 'package:mindflow/domain/entities/sarah_letter.dart';
 import 'package:mindflow/domain/repositories/sarah_letter_repository.dart';
 import 'package:mindflow/domain/usecases/ensure_welcome_letter_usecase.dart';
 import 'package:mindflow/domain/usecases/get_sarah_letters_usecase.dart';
+import 'package:mindflow/domain/usecases/delete_sarah_letter_usecase.dart';
 import 'package:mindflow/domain/usecases/mark_sarah_letter_read_usecase.dart';
 import 'package:mindflow/domain/usecases/request_sarah_weekly_letter_usecase.dart';
 import 'package:mindflow/presentation/bloc/sarah/sarah_bloc.dart';
@@ -42,6 +43,7 @@ void main() {
       requestWeeklyLetterUseCase:
           RequestSarahWeeklyLetterUseCase(repository: repository),
       markReadUseCase: MarkSarahLetterReadUseCase(repository: repository),
+      deleteLetterUseCase: DeleteSarahLetterUseCase(repository: repository),
       now: () => DateTime(2026, 5, 24),
     );
     addTearDown(bloc.close);
@@ -79,6 +81,7 @@ void main() {
       requestWeeklyLetterUseCase:
           RequestSarahWeeklyLetterUseCase(repository: repository),
       markReadUseCase: MarkSarahLetterReadUseCase(repository: repository),
+      deleteLetterUseCase: DeleteSarahLetterUseCase(repository: repository),
       now: () => DateTime(2026, 5, 20),
     );
     addTearDown(bloc.close);
@@ -117,6 +120,7 @@ void main() {
       requestWeeklyLetterUseCase:
           RequestSarahWeeklyLetterUseCase(repository: repository),
       markReadUseCase: MarkSarahLetterReadUseCase(repository: repository),
+      deleteLetterUseCase: DeleteSarahLetterUseCase(repository: repository),
       now: () => DateTime(2026, 5, 20),
     );
     addTearDown(bloc.close);
@@ -152,6 +156,7 @@ void main() {
       requestWeeklyLetterUseCase:
           RequestSarahWeeklyLetterUseCase(repository: repository),
       markReadUseCase: MarkSarahLetterReadUseCase(repository: repository),
+      deleteLetterUseCase: DeleteSarahLetterUseCase(repository: repository),
       now: () => DateTime(2026, 5, 20),
     );
     addTearDown(bloc.close);
@@ -296,4 +301,9 @@ class _FakeSarahLetterRepository implements SarahLetterRepository {
   @override
   Future<int> getLocalUnreadCount() async =>
       syncedLetters.where((letter) => !letter.isRead).length;
+
+  @override
+  Future<void> deleteLetter(String id) async {
+    syncedLetters = syncedLetters.where((l) => l.id != id).toList();
+  }
 }

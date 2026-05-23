@@ -254,6 +254,7 @@ Future<void> configureDependencies() async {
       refreshService: getIt<OceanAccountDataRefreshService>(),
       iCloudSyncService: getIt<ICloudSyncService>(),
       ownershipService: getIt<OceanRecordOwnershipService>(),
+      clearLocalData: () => getIt<HiveDatabase>().clearAll(),
     ),
   );
 

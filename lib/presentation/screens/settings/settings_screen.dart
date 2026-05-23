@@ -28,6 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _aiAuthEnabled = false;
   bool _signedIn = false;
   bool _logoutLoading = false;
+  bool _deleteAccountLoading = false;
   late final AIAuthService _aiAuthService;
   OceanAccountService? _accountService;
   StreamSubscription? _authSubscription;
@@ -186,6 +187,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           if (_signedIn) ...[
             const SizedBox(height: 24),
             _buildLogoutButton(),
+            const SizedBox(height: 12),
+            _buildDeleteAccountButton(l10n),
           ],
           const SizedBox(height: 28),
         ],
@@ -608,6 +611,80 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } finally {
       if (mounted) {
         setState(() => _logoutLoading = false);
+      }
+    }
+  }
+
+  Widget _buildDeleteAccountButton(AppLocalizations l10n) {
+    return OutlinedButton.icon(
+      onPressed: _deleteAccountLoading ? null : () => _confirmAndDeleteAccount(l10n),
+      icon: _deleteAccountLoading
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.delete_forever_rounded, size: 20),
+      label: Text(_deleteAccountLoading ? '正在删除...' : l10n.deleteAccount),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(50),
+        foregroundColor: const Color(0xFF8B1A10),
+        side: const BorderSide(color: Color(0xFFE9B8B4)),
+        backgroundColor: const Color(0xFFFFF8F7),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        textStyle: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmAndDeleteAccount(AppLocalizations l10n) async {
+    // First confirmation
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: Text(l10n.deleteAccountConfirmTitle),
+        content: Text(l10n.deleteAccountConfirmMessage),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.deleteAccountButton),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final service = _accountService;
+    if (service == null) return;
+
+    setState(() => _deleteAccountLoading = true);
+    try {
+      await service.deleteAccount();
+      if (!mounted) return;
+      await _loadAccountStatus();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.deleteAccountSuccess)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.deleteAccountFailed)),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _deleteAccountLoading = false);
       }
     }
   }

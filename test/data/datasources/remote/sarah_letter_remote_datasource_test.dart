@@ -163,4 +163,7 @@ class _FakeSarahLettersApi implements OceanSarahLettersApi {
   ) async {
     return {'letter': data};
   }
+
+  @override
+  Future<void> deleteSarahLetter(String id) async {}
 }

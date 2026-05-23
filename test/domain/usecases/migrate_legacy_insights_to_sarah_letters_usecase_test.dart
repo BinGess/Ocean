@@ -210,4 +210,7 @@ class _FakeSarahLetterRepository implements SarahLetterRepository {
 
   @override
   Future<int> getLocalUnreadCount() async => 0;
+
+  @override
+  Future<void> deleteLetter(String id) async {}
 }

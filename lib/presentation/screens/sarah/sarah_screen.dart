@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/di/injection.dart';
+import '../../../core/services/ocean_account_service.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../domain/entities/sarah_letter.dart';
 import '../../bloc/sarah/sarah_bloc.dart';
@@ -17,6 +21,7 @@ class SarahScreen extends StatefulWidget {
 
 class _SarahScreenState extends State<SarahScreen> {
   final Set<String> _expandedLetterIds = {};
+  StreamSubscription<void>? _accountDataSubscription;
 
   @override
   void initState() {
@@ -26,6 +31,20 @@ class _SarahScreenState extends State<SarahScreen> {
         context.read<SarahBloc>().add(const SarahLoadRequested());
       }
     });
+    // Re-sync letters whenever account state changes (login, logout, deletion).
+    if (getIt.isRegistered<OceanAccountDataRefreshService>()) {
+      _accountDataSubscription =
+          getIt<OceanAccountDataRefreshService>().changes.listen((_) {
+        if (!mounted) return;
+        context.read<SarahBloc>().add(const SarahLoadRequested());
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _accountDataSubscription?.cancel();
+    super.dispose();
   }
 
   @override

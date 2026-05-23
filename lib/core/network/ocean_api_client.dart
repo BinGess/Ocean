@@ -46,6 +46,7 @@ abstract class OceanAccountApi {
     required String code,
   });
   Future<void> logout();
+  Future<void> deleteAccount();
 }
 
 class OceanSecureTokenStore implements OceanTokenStore {
@@ -330,6 +331,14 @@ class OceanApiClient
         // Local logout must still clear tokens when the remote session is gone.
       }
     }
+    await tokenStore.clear();
+  }
+
+  @override
+  Future<void> deleteAccount() async {
+    await _authorizedRequest<dynamic>(
+      () => _dio.delete<dynamic>('/auth/account'),
+    );
     await tokenStore.clear();
   }
 
