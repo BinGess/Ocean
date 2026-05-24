@@ -8,6 +8,7 @@ import '../../core/services/ocean_record_ownership_service.dart';
 import '../../domain/entities/weekly_insight.dart';
 import '../../domain/entities/insight_report.dart';
 import '../../domain/entities/insight_report_cache.dart';
+import '../../domain/entities/weekly_analysis.dart';
 import '../../domain/repositories/insight_repository.dart';
 import '../datasources/local/hive_database.dart';
 import '../models/weekly_insight_model.dart';
@@ -17,12 +18,14 @@ class InsightRepositoryImpl implements InsightRepository {
   final OceanUserDataApi? userDataApi;
   final OceanAccountApi? accountApi;
   final OceanRecordOwnershipService? ownershipService;
+  final OceanAnalysisApi? analysisApi;
 
   InsightRepositoryImpl({
     required this.database,
     this.userDataApi,
     OceanAccountApi? accountApi,
     this.ownershipService,
+    this.analysisApi,
   }) : accountApi = accountApi ??
             (userDataApi is OceanAccountApi
                 ? userDataApi as OceanAccountApi
@@ -330,5 +333,26 @@ class InsightRepositoryImpl implements InsightRepository {
       if (decoded is Map) return Map<String, dynamic>.from(decoded);
     }
     return null;
+  }
+
+  @override
+  Future<WeeklyAnalysis?> fetchServerWeeklyAnalysis({
+    required String startDate,
+    required String endDate,
+  }) async {
+    final api = analysisApi;
+    if (api == null) return null;
+
+    try {
+      final data = await api.getWeeklyAnalysis(
+        startDate: startDate,
+        endDate: endDate,
+      );
+      return WeeklyAnalysis.fromServerJson(data);
+    } on OceanApiException catch (e) {
+      // 服务端 404 = 本周无记录，返回 null 让调用方决定降级策略
+      if (e.statusCode == 404) return null;
+      rethrow;
+    }
   }
 }

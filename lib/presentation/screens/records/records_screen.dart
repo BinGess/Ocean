@@ -582,7 +582,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
             errorMessage ?? l10n.loadFailed,
             textAlign: TextAlign.center,
             style: AppTypography.bodySecondary.copyWith(
-              fontSize: 15,
               color: AppColors.textTertiary,
             ),
           ),
@@ -612,8 +611,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   l10n.retry,
                   style: AppTypography.actionLabel.copyWith(
                     color: Colors.white,
-                    fontSize: 15.0,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -679,7 +676,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
             final index = entry.key;
             final record = entry.value;
             final isLast = index == records.length - 1;
-            return _buildTimelineItem(record, isLast);
+            return _buildTimelineItem(
+              record,
+              isLast,
+              isSingle: records.length == 1,
+            );
           }),
       ],
     );
@@ -835,13 +836,18 @@ class _RecordsScreenState extends State<RecordsScreen> {
   }
 
   /// 构建时间轴样式的单条记录
-  Widget _buildTimelineItem(Record record, bool isLast) {
+  Widget _buildTimelineItem(
+    Record record,
+    bool isLast, {
+    bool isSingle = false,
+  }) {
     final moodTags = _normalizeMoodTags(record.moods);
     final hasMoods = moodTags.isNotEmpty;
 
     return IntrinsicHeight(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            isSingle ? CrossAxisAlignment.center : CrossAxisAlignment.start,
         children: [
           // 左侧时间轴
           SizedBox(
@@ -913,10 +919,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
                       if (record.transcription.isNotEmpty)
                         Text(
                           record.transcription,
-                          style: const TextStyle(
-                            fontSize: 15.0,
-                            color: AppColors.textPrimary,
-                            height: 1.6,
+                          style: AppTypography.bodyPrimary.copyWith(
+                            fontSize: 15,
+                            color: AppColors.textSecondary,
                           ),
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
@@ -1047,7 +1052,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   textStyle: AppTypography.actionLabel.copyWith(
-                    fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),
                 ),

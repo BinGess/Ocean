@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_typography.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/di/injection.dart';
@@ -113,21 +113,17 @@ class _ExportScreenState extends State<ExportScreen>
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.bgCard,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios,
-              size: 20, color: Color(0xFF2C2C2C)),
+              size: 20, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           l10n.export,
-          style: const TextStyle(
-            color: Color(0xFF2C2C2C),
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
+          style: AppTypography.modalTitle,
         ),
         centerTitle: true,
       ),
@@ -156,10 +152,7 @@ class _ExportScreenState extends State<ExportScreen>
           const SizedBox(height: 16),
           Text(
             l10n.exportLoadingData,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF8B8B8B),
-            ),
+            style: AppTypography.pageMeta.copyWith(color: AppColors.textMuted),
           ),
         ],
       ),
@@ -248,19 +241,14 @@ class _ExportScreenState extends State<ExportScreen>
             const SizedBox(height: 20),
             Text(
               l10n.exportEmptyTitle,
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF2C2C2C),
-              ),
+              style: AppTypography.detailTitle,
             ),
             const SizedBox(height: 8),
             Text(
               l10n.exportEmptySubtitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF8B8B8B),
+              style: AppTypography.pageMeta.copyWith(
+                color: AppColors.textMuted,
                 height: 1.5,
               ),
             ),
@@ -350,22 +338,20 @@ class _ExportScreenState extends State<ExportScreen>
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                    style: AppTypography.sectionTitle.copyWith(
                       color: enabled
-                          ? const Color(0xFF2C2C2C)
-                          : const Color(0xFFB0B0B0),
+                          ? AppColors.textPrimary
+                          : AppColors.borderLight,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(
+                    style: AppTypography.chipLabel.copyWith(
                       fontSize: 12,
                       color: enabled
-                          ? const Color(0xFF8B8B8B)
-                          : const Color(0xFFCCCCCC),
+                          ? AppColors.textMuted
+                          : AppColors.border,
                     ),
                   ),
                 ],
@@ -455,20 +441,19 @@ class _ExportScreenState extends State<ExportScreen>
               const SizedBox(height: 6),
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 13,
+                style: AppTypography.sectionSubtle.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: selected ? Colors.white : const Color(0xFF5C5C5C),
+                  color: selected ? Colors.white : AppColors.textSubtle,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 _formatDescription(format),
-                style: TextStyle(
+                style: AppTypography.chipLabel.copyWith(
                   fontSize: 10,
                   color: selected
                       ? Colors.white.withValues(alpha: 0.8)
-                      : const Color(0xFFAAAAAA),
+                      : AppColors.textMuted,
                 ),
               ),
             ],
@@ -536,10 +521,9 @@ class _ExportScreenState extends State<ExportScreen>
           child: Center(
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: 13,
+              style: AppTypography.sectionSubtle.copyWith(
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                color: selected ? Colors.white : const Color(0xFF5C5C5C),
+                color: selected ? Colors.white : AppColors.textSubtle,
               ),
             ),
           ),
@@ -575,10 +559,9 @@ class _ExportScreenState extends State<ExportScreen>
               isCustom && _customStart != null && _customEnd != null
                   ? '${_fmtShortDate(_customStart!)} ~ ${_fmtShortDate(_customEnd!)}'
                   : l10n.exportCustomRange,
-              style: TextStyle(
-                fontSize: 13,
+              style: AppTypography.sectionSubtle.copyWith(
                 fontWeight: isCustom ? FontWeight.w600 : FontWeight.w500,
-                color: isCustom ? Colors.white : const Color(0xFF5C5C5C),
+                color: isCustom ? Colors.white : AppColors.textSubtle,
               ),
             ),
           ],
@@ -604,7 +587,7 @@ class _ExportScreenState extends State<ExportScreen>
               primary: AppColors.accent,
               onPrimary: Colors.white,
               surface: Colors.white,
-              onSurface: Color(0xFF2C2C2C),
+              onSurface: AppColors.textPrimary,
             ),
           ),
           child: child!,
@@ -680,16 +663,14 @@ class _ExportScreenState extends State<ExportScreen>
           width: 72,
           child: Text(
             label,
-            style: const TextStyle(fontSize: 13, color: Color(0xFF8B8B8B)),
+            style: AppTypography.sectionSubtle.copyWith(color: AppColors.textMuted),
           ),
         ),
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF2C2C2C),
+            style: AppTypography.sectionSubtle.copyWith(
+              color: AppColors.textPrimary,
             ),
           ),
         ),
@@ -834,9 +815,9 @@ class _ExportScreenState extends State<ExportScreen>
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.bgCard,
         border: Border(
-          top: BorderSide(color: Color(0xFFEEEEEE), width: 0.5),
+          top: BorderSide(color: AppColors.borderLight, width: 0.5),
         ),
       ),
       child: SafeArea(
@@ -861,10 +842,7 @@ class _ExportScreenState extends State<ExportScreen>
                   ),
                   child: Text(
                     l10n.exportButton,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: AppTypography.actionLabel,
                   ),
                 ),
         ),
@@ -911,9 +889,7 @@ class _ExportScreenState extends State<ExportScreen>
                 const SizedBox(width: 10),
                 Text(
                   l10n.exportExporting((_exportProgress * 100).toInt()),
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                  style: AppTypography.actionLabel.copyWith(
                     color: Colors.white,
                   ),
                 ),
@@ -945,7 +921,7 @@ class _ExportScreenState extends State<ExportScreen>
         return Container(
           margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.bgCard,
             borderRadius: BorderRadius.circular(24),
           ),
           child: SafeArea(
@@ -977,10 +953,8 @@ class _ExportScreenState extends State<ExportScreen>
                 // 标题
                 Text(
                   l10n.exportSuccess,
-                  style: const TextStyle(
+                  style: AppTypography.detailTitle.copyWith(
                     fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF2C2C2C),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -988,9 +962,8 @@ class _ExportScreenState extends State<ExportScreen>
                 // 摘要
                 Text(
                   l10n.exportDone(recordCount, insightCount),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF8B8B8B),
+                  style: AppTypography.pageMeta.copyWith(
+                    color: AppColors.textMuted,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1019,18 +992,18 @@ class _ExportScreenState extends State<ExportScreen>
                       Expanded(
                         child: Text(
                           file.path.split('/').last,
-                          style: const TextStyle(
+                          style: AppTypography.chipLabel.copyWith(
                             fontSize: 12,
-                            color: Color(0xFF5C5C5C),
+                            color: AppColors.textSubtle,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       Text(
                         _fileSizeString(file),
-                        style: const TextStyle(
+                        style: AppTypography.chipLabel.copyWith(
                           fontSize: 11,
-                          color: Color(0xFF8B8B8B),
+                          color: AppColors.textMuted,
                         ),
                       ),
                     ],

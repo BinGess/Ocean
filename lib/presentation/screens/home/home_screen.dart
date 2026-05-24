@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../../domain/entities/record.dart';
 import '../../../domain/entities/quote.dart';
 import '../../bloc/audio/audio_bloc.dart';
@@ -52,6 +53,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // 防止错误弹窗重复显示
   bool _isShowingErrorDialog = false;
+  // 防止NVC确认弹窗重复显示（分析完成后BLoC可能多次触发）
+  bool _isShowingNVCConfirmation = false;
   // 记录上次处理的错误消息，避免重复处理同一个错误
   String? _lastHandledError;
   String? _lastHandledTranscriptionError;
@@ -547,16 +550,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     String? editedTranscription,
     DateTime? selectedDateTime,
   }) async {
-    if (_completedAudioPath == null) return;
-
     // 优先使用用户编辑后的转写文本，其次流式转写，最后RecordBloc的转写
+    final audioPath = _completedAudioPath;
     final audioState = context.read<AudioBloc>().state;
     final streamTranscription = audioState.realtimeTranscription;
     final recordTranscription = context.read<RecordBloc>().state.transcription;
-    final transcription =
-        editedTranscription ?? streamTranscription ?? recordTranscription;
+    final transcription = (editedTranscription ??
+            streamTranscription ??
+            recordTranscription)
+        ?.trim();
     final effectiveSelectedDateTime =
         selectedDateTime ?? _selectedRecordDateTime ?? DateTime.now();
+
+    if (audioPath == null && (transcription == null || transcription.isEmpty)) {
+      return;
+    }
 
     // 保存编辑后的转写文本，用于NVC分析确认页面回显
     _editedTranscription = transcription;
@@ -586,7 +594,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         );
         context.read<RecordBloc>().add(
               RecordCreateQuickNote(
-                audioPath: _completedAudioPath!,
+                audioPath: audioPath,
                 mode: mode,
                 transcription: transcription,
                 createdAt: effectiveSelectedDateTime,
@@ -621,7 +629,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           );
           context.read<RecordBloc>().add(
                 RecordCreateQuickNote(
-                  audioPath: _completedAudioPath!,
+                  audioPath: audioPath,
                   mode: mode,
                   transcription: transcription,
                   selectedMoods: moods,
@@ -700,7 +708,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           );
           context.read<RecordBloc>().add(
                 RecordCreateQuickNote(
-                  audioPath: _completedAudioPath!,
+                  audioPath: audioPath,
                   mode: ProcessingMode.onlyRecord,
                   transcription: transcription,
                   createdAt: effectiveSelectedDateTime,
@@ -740,6 +748,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _quoteAutoSwitchTimer?.cancel();
     _pulseController.dispose();
     _quoteTransitionController.dispose();
+    // 页面销毁时确保解除防息屏，避免残留
+    WakelockPlus.disable();
     super.dispose();
   }
 
@@ -829,6 +839,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             BlocListener<AudioBloc, AudioState>(
               listener: (context, audioState) {
                 _syncRecordEntryPulse(audioState.isRecording);
+                // 录音中或转写处理中，保持屏幕常亮；其余状态恢复正常息屏
+                final needsWakelock =
+                    audioState.isRecording || audioState.isProcessing;
+                WakelockPlus.toggle(enable: needsWakelock);
                 final isCurrentRoute =
                     ModalRoute.of(context)?.isCurrent ?? false;
                 if (!isCurrentRoute) return;
@@ -856,18 +870,32 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               },
               child: BlocListener<RecordBloc, RecordState>(
                 listener: (context, recordState) {
-                  final isCurrentRoute =
-                      ModalRoute.of(context)?.isCurrent ?? false;
-                  if (!isCurrentRoute) return;
+                  // ── NVC分析完成 ───────────────────────────────────────────
+                  // 注意：此处不能先检查 isCurrentRoute。
+                  // NVCAnalyzingModal 用 showModalBottomSheet 展示，会把一个新路由
+                  // 压栈，导致 home 路由 isCurrent == false。若先检查会直接 return，
+                  // 分析动画弹窗永远不会关闭。
+                  //
+                  // 必须检查 _completedAudioPath != null，否则当用户从
+                  // EmotionInputScreen 触发 NVC 时，HomeScreen 的 BlocListener
+                  // 也会响应同一个 analyzed 状态，错误地 pop 掉 EmotionInputScreen
+                  // 弹出的 NVCConfirmationModal，导致记录无法保存。
                   if (recordState.isAnalyzed &&
-                      recordState.nvcAnalysis != null) {
+                      recordState.nvcAnalysis != null &&
+                      _completedAudioPath != null) {
+                    // 用标志位防止 BLoC 多次触发时重复弹出确认页
+                    if (_isShowingNVCConfirmation) return;
+                    _isShowingNVCConfirmation = true;
+
                     WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted) return;
                       // 先关闭分析加载动画弹窗
                       if (Navigator.of(context).canPop()) {
                         Navigator.of(context).pop();
                       }
-
-                      if (ModalRoute.of(context)?.isCurrent ?? false) {
+                      // 再等一帧让路由栈更新完成，再显示确认弹窗
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!mounted) return;
                         final messenger = ScaffoldMessenger.of(context);
                         final recordBloc = context.read<RecordBloc>();
                         // 优先使用用户编辑后的转写文本，其次流式转写，最后RecordBloc的转写
@@ -886,9 +914,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 ProcessingMode.onlyRecord);
                           },
                         ).then((result) {
-                          if (result?.action == NVCModalAction.confirm &&
-                              result?.analysis != null &&
-                              _completedAudioPath != null) {
+                          _isShowingNVCConfirmation = false;
+                          final modalResult = result;
+                          final confirmedAnalysis = modalResult?.analysis;
+                          final effectiveTranscription = transcription.trim();
+                          if (modalResult != null &&
+                              modalResult.action == NVCModalAction.confirm &&
+                              confirmedAnalysis != null &&
+                              effectiveTranscription.isNotEmpty) {
                             messenger.showSnackBar(
                               SnackBar(
                                 content: Row(
@@ -912,15 +945,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             );
                             recordBloc.add(
                               RecordCreateQuickNote(
-                                audioPath: _completedAudioPath!,
+                                audioPath: _completedAudioPath,
                                 mode: ProcessingMode.withNVC,
-                                transcription: transcription,
-                                nvcAnalysis: result!.analysis,
-                                createdAt: result.selectedDateTime,
+                                transcription: effectiveTranscription,
+                                nvcAnalysis: confirmedAnalysis,
+                                createdAt: modalResult.selectedDateTime,
                               ),
                             );
-                            _clearCompletedAudio();
-                          } else if (result?.action == NVCModalAction.delete) {
+                          } else if (modalResult?.action ==
+                              NVCModalAction.delete) {
                             // 用户选择了删除，清理音频文件
                             messenger.showSnackBar(
                               SnackBar(
@@ -939,9 +972,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             _clearCompletedAudio();
                           }
                         });
-                      }
+                      });
                     });
+                    return;
                   }
+
+                  // 其他处理需要 home 路由处于栈顶（非 NVC 分析分支）
+                  final isCurrentRoute =
+                      ModalRoute.of(context)?.isCurrent ?? false;
+                  if (!isCurrentRoute) return;
 
                   // 处理AI授权请求
                   if (recordState.status == RecordStatus.needsAIAuth) {
@@ -1024,6 +1063,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
                   if (recordState.isSuccess &&
                       recordState.latestRecord != null) {
+                    if (_completedAudioPath != null ||
+                        _editedTranscription != null ||
+                        _selectedRecordDateTime != null) {
+                      _clearCompletedAudio();
+                    }
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Row(

@@ -183,6 +183,7 @@ Future<void> configureDependencies() async {
       userDataApi: getIt<OceanApiClient>(),
       accountApi: getIt<OceanApiClient>(),
       ownershipService: getIt<OceanRecordOwnershipService>(),
+      analysisApi: getIt<OceanApiClient>(),
     ),
   );
 

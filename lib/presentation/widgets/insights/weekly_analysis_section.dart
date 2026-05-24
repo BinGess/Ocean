@@ -260,10 +260,10 @@ class _SwipeableTagStatsCardState extends State<_SwipeableTagStatsCard> {
     final maxItems = pages
         .map((page) => page.$2.length)
         .fold<int>(0, (max, count) => count > max ? count : max);
-    final rowHeight = widget.compact ? 70 : 72;
+    final rowHeight = widget.compact ? 70 : 76; // 略增高以容纳 vsLastWeek badge
     final baseHeight = widget.compact ? 32 : 40;
     final minHeight = widget.compact ? 124 : 140;
-    final maxHeight = widget.compact ? 280 : 320;
+    final maxHeight = widget.compact ? 380 : 430; // 支持最多 5 条
     final pageHeight = (maxItems * rowHeight + baseHeight)
         .clamp(minHeight, maxHeight)
         .toDouble();
@@ -370,18 +370,18 @@ class _TagStatsPage extends StatelessWidget {
         color: const Color(0xFFFAF8F5),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (items.isEmpty)
-            Text(
+      child: items.isEmpty
+          ? Text(
               '暂无足够标签',
               style: AppTypography.bodySecondary.copyWith(
                 color: AppColors.textSubtle,
               ),
             )
-          else
-            ...items.asMap().entries.map(
+          : SingleChildScrollView(
+              physics: const NeverScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: items.asMap().entries.map(
                   (entry) => Padding(
                     padding: EdgeInsets.only(
                       bottom: entry.key == items.length - 1
@@ -394,9 +394,9 @@ class _TagStatsPage extends StatelessWidget {
                       compact: compact,
                     ),
                   ),
-                ),
-        ],
-      ),
+                ).toList(),
+              ),
+            ),
     );
   }
 }
@@ -426,7 +426,7 @@ class _TagStatRow extends StatelessWidget {
         border: Border.all(color: AppColors.borderLight),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             width: 28,
@@ -457,14 +457,66 @@ class _TagStatRow extends StatelessWidget {
                     height: 1.45,
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  '${item.count} 次 · ${item.percentage.round()}%',
-                  style: AppTypography.sectionSubtle.copyWith(
-                    color: AppColors.textMuted,
-                  ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Text(
+                      '${item.count} 次 · ${item.percentage.toStringAsFixed(1)}%',
+                      style: AppTypography.sectionSubtle.copyWith(
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                    if (item.avgIntensity != null) ...[
+                      Text(
+                        ' · 强度 ${item.avgIntensity!.toStringAsFixed(1)}',
+                        style: AppTypography.sectionSubtle.copyWith(
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
+            ),
+          ),
+          if (item.vsLastWeek != null && item.vsLastWeek != 0)
+            _VsLastWeekBadge(delta: item.vsLastWeek!),
+        ],
+      ),
+    );
+  }
+}
+
+class _VsLastWeekBadge extends StatelessWidget {
+  const _VsLastWeekBadge({required this.delta});
+
+  final int delta;
+
+  @override
+  Widget build(BuildContext context) {
+    final isUp = delta > 0;
+    final color = isUp ? const Color(0xFFE8543A) : const Color(0xFF4CAF7D);
+    final icon = isUp ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded;
+    final label = isUp ? '+$delta' : '$delta';
+
+    return Container(
+      margin: const EdgeInsets.only(left: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10, color: color),
+          const SizedBox(width: 2),
+          Text(
+            label,
+            style: AppTypography.sectionSubtle.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
             ),
           ),
         ],

@@ -89,13 +89,15 @@ class RecordModel extends HiveObject {
   factory RecordModel.fromEntity(Record entity) {
     return RecordModel(
       id: entity.id,
-      type: entity.type.toString().split('.').last,
+      type: _recordTypeToJson(entity.type),
       transcription: entity.transcription,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       audioUrl: entity.audioUrl,
       duration: entity.duration,
-      processingMode: entity.processingMode?.toString().split('.').last,
+      processingMode: entity.processingMode == null
+          ? null
+          : _processingModeToJson(entity.processingMode!),
       moods: entity.moods,
       needs: entity.needs,
       nvc: entity.nvc != null
@@ -197,6 +199,28 @@ class RecordModel extends HiveObject {
         return ProcessingMode.withNVC;
       default:
         return ProcessingMode.onlyRecord;
+    }
+  }
+
+  static String _recordTypeToJson(RecordType type) {
+    switch (type) {
+      case RecordType.quickNote:
+        return 'quick_note';
+      case RecordType.journal:
+        return 'journal';
+      case RecordType.weekly:
+        return 'weekly';
+    }
+  }
+
+  static String _processingModeToJson(ProcessingMode mode) {
+    switch (mode) {
+      case ProcessingMode.onlyRecord:
+        return 'only_record';
+      case ProcessingMode.withMood:
+        return 'with_mood';
+      case ProcessingMode.withNVC:
+        return 'with_nvc';
     }
   }
 

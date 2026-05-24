@@ -191,8 +191,26 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
   }
 
   Future<WeeklyAnalysis?> _buildAnalysisForCurrentWeek(String weekRange) async {
+    final params = GenerateInsightReportParams.forCurrentWeek();
+
+    // 1. 优先从服务端获取（更准确的统计）
     try {
-      final params = GenerateInsightReportParams.forCurrentWeek();
+      final startDate = _formatDate(params.startDate);
+      final endDate = _formatDate(params.endDate);
+      final serverAnalysis = await insightRepository.fetchServerWeeklyAnalysis(
+        startDate: startDate,
+        endDate: endDate,
+      );
+      if (serverAnalysis != null) {
+        debugPrint('✅ InsightBloc: 使用服务端周分析数据');
+        return serverAnalysis;
+      }
+    } catch (e) {
+      debugPrint('⚠️ InsightBloc: 服务端分析失败，降级到本地计算: $e');
+    }
+
+    // 2. 降级：本地计算（离线 / 未登录 / 服务端异常）
+    try {
       return await buildWeeklyAnalysisUseCase(
         BuildWeeklyAnalysisParams(
           weekRange: weekRange,
@@ -203,6 +221,13 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     } catch (_) {
       return null;
     }
+  }
+
+  /// 将 DateTime 格式化为 YYYY-MM-DD 字符串
+  static String _formatDate(DateTime date) {
+    return '${date.year}-'
+        '${date.month.toString().padLeft(2, '0')}-'
+        '${date.day.toString().padLeft(2, '0')}';
   }
 
   /// 生成指定周洞察

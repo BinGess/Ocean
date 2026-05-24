@@ -295,8 +295,9 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
   void _saveWithNVCAnalysis(
     NVCAnalysis analysis, {
     DateTime? createdAt,
+    String? transcription,
   }) {
-    final text = _inputText;
+    final text = (transcription ?? _inputText).trim();
     if (text.isEmpty) {
       _showHint(_l10n.emotionEmptyInputCannotSave);
       return;
@@ -305,6 +306,11 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
     setState(() {
       _isSubmittingRecord = true;
     });
+    _showHint(
+      _l10n.homeSavingRecord,
+      icon: Icons.hourglass_empty,
+      iconColor: AppColors.warning,
+    );
 
     context.read<RecordBloc>().add(
           RecordCreateQuickNote(
@@ -426,10 +432,11 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
         _isAnalyzingNVC) {
       _hideAnalyzingModal();
       setState(() => _isAnalyzingNVC = false);
+      final analyzedText = _inputText;
       NVCConfirmationModal.show(
         context: context,
         initialAnalysis: recordState.nvcAnalysis!,
-        transcription: _inputText,
+        transcription: analyzedText,
         initialDateTime: _selectedDateTime,
         onRevert: _submitOnlyRecord,
       ).then((result) {
@@ -439,6 +446,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
           _saveWithNVCAnalysis(
             result.analysis!,
             createdAt: result.selectedDateTime,
+            transcription: analyzedText,
           );
         }
       });

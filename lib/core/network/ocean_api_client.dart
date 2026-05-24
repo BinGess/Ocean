@@ -153,6 +153,23 @@ abstract class OceanUserDataApi {
   });
 }
 
+abstract class OceanAnalysisApi {
+  /// 获取周分析数据
+  /// [startDate] / [endDate] 格式 YYYY-MM-DD，由客户端按本地时区计算
+  Future<Map<String, dynamic>> getWeeklyAnalysis({
+    required String startDate,
+    required String endDate,
+  });
+
+  /// 获取情绪长期趋势
+  Future<Map<String, dynamic>> getEmotionTrend({
+    required String startDate,
+    required String endDate,
+    String granularity = 'week',
+    int topN = 5,
+  });
+}
+
 abstract class OceanSarahLettersApi {
   Future<Map<String, dynamic>> listSarahLetters();
 
@@ -181,7 +198,8 @@ class OceanApiClient
         OceanSyncApi,
         OceanRecordsApi,
         OceanUserDataApi,
-        OceanSarahLettersApi {
+        OceanSarahLettersApi,
+        OceanAnalysisApi {
   OceanApiClient({
     required this.tokenStore,
     Dio? dio,
@@ -560,6 +578,46 @@ class OceanApiClient
         '/sarah/letters/${Uri.encodeComponent(id)}',
       ),
     );
+  }
+
+  // ── Analysis API ──────────────────────────────────────────────────────────
+
+  @override
+  Future<Map<String, dynamic>> getWeeklyAnalysis({
+    required String startDate,
+    required String endDate,
+  }) async {
+    final response = await _authorizedRequest<Map<String, dynamic>>(
+      () => _dio.get<Map<String, dynamic>>(
+        '/api/v1/analysis/weekly',
+        queryParameters: {
+          'start_date': startDate,
+          'end_date': endDate,
+        },
+      ),
+    );
+    return Map<String, dynamic>.from(response.data ?? const {});
+  }
+
+  @override
+  Future<Map<String, dynamic>> getEmotionTrend({
+    required String startDate,
+    required String endDate,
+    String granularity = 'week',
+    int topN = 5,
+  }) async {
+    final response = await _authorizedRequest<Map<String, dynamic>>(
+      () => _dio.get<Map<String, dynamic>>(
+        '/api/v1/analysis/emotion-trend',
+        queryParameters: {
+          'start_date': startDate,
+          'end_date': endDate,
+          'granularity': granularity,
+          'top_n': topN,
+        },
+      ),
+    );
+    return Map<String, dynamic>.from(response.data ?? const {});
   }
 
   Future<Response<T>> _authorizedRequest<T>(

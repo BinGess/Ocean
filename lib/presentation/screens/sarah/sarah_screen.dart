@@ -291,10 +291,8 @@ class _CurrentWeekLetterCard extends StatelessWidget {
               expanded: isExpanded,
               maxLines: 4,
             ),
-            const SizedBox(height: 8),
-            _ToggleText(
+            _ToggleArrow(
               expanded: isExpanded,
-              expandText: '查看全部',
               onTap: onToggle,
             ),
           ],
@@ -342,10 +340,8 @@ class _PastLetterTile extends StatelessWidget {
                 expanded: isExpanded,
                 maxLines: 4,
               ),
-              const SizedBox(height: 8),
-              _ToggleText(
+              _ToggleArrow(
                 expanded: isExpanded,
-                expandText: '查看全部',
                 onTap: onToggle,
               ),
             ],
@@ -398,17 +394,14 @@ class _LetterPaper extends StatelessWidget {
                   top: 28,
                   right: 14,
                   child: IgnorePointer(
-                    child: Opacity(
-                      opacity: 0.42,
-                      child: _SarahIllustration(
-                        letter: letter,
-                        size: 120,
-                      ),
+                    child: _SarahIllustration(
+                      letter: letter,
+                      size: 88,
                     ),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(48, 34, 26, 30),
+                  padding: const EdgeInsets.fromLTRB(48, 34, 26, 18),
                   child: child,
                 ),
               ],
@@ -547,47 +540,34 @@ class _LetterDate extends StatelessWidget {
   }
 }
 
-class _ToggleText extends StatelessWidget {
-  const _ToggleText({
+class _ToggleArrow extends StatelessWidget {
+  const _ToggleArrow({
     required this.expanded,
-    required this.expandText,
     required this.onTap,
   });
 
   final bool expanded;
-  final String expandText;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(0, 8, 0, 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              expanded ? '收起' : expandText,
-              style: AppTypography.actionLabel.copyWith(
-                color: _SarahColors.active,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+    return Align(
+      alignment: Alignment.centerRight,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 6, 0, 2),
+          child: AnimatedRotation(
+            turns: expanded ? 0.5 : 0,
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            child: const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 22,
+              color: _SarahColors.active,
             ),
-            const SizedBox(width: 3),
-            AnimatedRotation(
-              turns: expanded ? 0.5 : 0,
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOutCubic,
-              child: const Icon(
-                Icons.keyboard_arrow_down_rounded,
-                size: 18,
-                color: _SarahColors.active,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

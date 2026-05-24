@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/di/injection.dart';
 import '../../../domain/entities/insight_report_cache.dart';
 import '../../../domain/repositories/insight_repository.dart';
@@ -94,9 +94,9 @@ class _HistoryReportsScreenState extends State<HistoryReportsScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.bgCard,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE6E0D8)),
+          border: Border.all(color: AppColors.divider),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -113,18 +113,16 @@ class _HistoryReportsScreenState extends State<HistoryReportsScreen> {
                 Expanded(
                   child: Text(
                     title,
-                    style: const TextStyle(
+                    style: AppTypography.detailTitle.copyWith(
                       fontSize: 18,
-                      fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
                     ),
                   ),
                 ),
                 Text(
                   timeText,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF8B8B8B),
+                  style: AppTypography.timeLabel.copyWith(
+                    color: AppColors.textMuted,
                   ),
                 ),
               ],
@@ -134,9 +132,8 @@ class _HistoryReportsScreenState extends State<HistoryReportsScreen> {
               summary,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF6B6B6B),
+              style: AppTypography.pageMeta.copyWith(
+                color: AppColors.textSecondary,
                 height: 1.5,
               ),
             ),

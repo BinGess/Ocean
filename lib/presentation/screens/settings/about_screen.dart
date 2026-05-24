@@ -4,7 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/pro_subscription_service.dart';
@@ -95,7 +95,7 @@ class _AboutScreenState extends State<AboutScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -119,26 +119,21 @@ class _AboutScreenState extends State<AboutScreen> {
           const SizedBox(height: 12),
           const Text(
             AppConstants.appName,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
+            style: AppTypography.modalTitle,
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             '情绪觉察日记 · 基于非暴力沟通（NVC）',
-            style: TextStyle(
-              fontSize: 13,
-              color: Color(0xFF8B8B8B),
+            style: AppTypography.sectionSubtle.copyWith(
+              color: AppColors.textMuted,
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             '版本号 ${AppConstants.appVersion}',
-            style: TextStyle(
+            style: AppTypography.chipLabel.copyWith(
               fontSize: 12,
-              color: Color(0xFFB0B0B0),
+              color: AppColors.textMuted,
             ),
           ),
           const SizedBox(height: 16),
@@ -168,18 +163,16 @@ class _AboutScreenState extends State<AboutScreen> {
                     children: [
                       Text(
                         l10n.debugMode,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                        style: AppTypography.sectionTitle.copyWith(
                           color: AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         l10n.debugModeSubtitle,
-                        style: const TextStyle(
+                        style: AppTypography.chipLabel.copyWith(
                           fontSize: 12,
-                          color: Color(0xFF8B8B8B),
+                          color: AppColors.textMuted,
                           height: 1.35,
                         ),
                       ),
@@ -214,26 +207,20 @@ class _AboutScreenState extends State<AboutScreen> {
           children: [
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF4A4A4A),
-                fontWeight: FontWeight.w500,
+              style: AppTypography.pageMeta.copyWith(
+                color: AppColors.textSecondary,
               ),
             ),
             const Spacer(),
             Text(
               value,
-              style: TextStyle(
-                fontSize: 14,
-                color: onTap == null
-                    ? const Color(0xFF8B8B8B)
-                    : const Color(0xFF5A9FD4),
-                fontWeight: FontWeight.w500,
+              style: AppTypography.pageMeta.copyWith(
+                color: onTap == null ? AppColors.textMuted : AppColors.primary,
               ),
             ),
             if (onTap != null) ...[
               const SizedBox(width: 6),
-              const Icon(Icons.chevron_right, size: 18, color: Color(0xFFB0B0B0)),
+              const Icon(Icons.chevron_right, size: 18, color: AppColors.border),
             ],
           ],
         ),

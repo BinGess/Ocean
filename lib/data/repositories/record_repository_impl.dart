@@ -1,6 +1,7 @@
 // 记录仓储实现
 // 使用 Hive 进行本地存储
 
+import 'dart:async';
 import 'dart:convert';
 import '../../core/network/ocean_api_client.dart';
 import '../../core/services/ocean_record_sync_mapper.dart';
@@ -17,12 +18,14 @@ class RecordRepositoryImpl implements RecordRepository {
   final OceanRecordsApi? recordsApi;
   final OceanAccountApi? accountApi;
   final OceanRecordOwnershipService? ownershipService;
+  final Duration serverCreateTimeout;
 
   RecordRepositoryImpl({
     required this.database,
     this.recordsApi,
     this.accountApi,
     this.ownershipService,
+    this.serverCreateTimeout = const Duration(seconds: 3),
   });
 
   @override
@@ -168,18 +171,21 @@ class RecordRepositoryImpl implements RecordRepository {
 
   Future<Record> _createRecord(Record record) async {
     if (await _isServerFirstEnabled()) {
-      final response = await recordsApi!.createRecord(
-        OceanRecordSyncMapper.toServerRecord(record),
-      );
-      final serverRecord = _recordFromResponse(response);
-      await _cacheRecord(serverRecord, markCurrentAccount: true);
-      return serverRecord;
+      try {
+        final response = await recordsApi!
+            .createRecord(
+              OceanRecordSyncMapper.toServerRecord(record),
+            )
+            .timeout(serverCreateTimeout);
+        final serverRecord = _recordFromResponse(response);
+        await _cacheRecord(serverRecord, markCurrentAccount: true);
+        return serverRecord;
+      } catch (_) {
+        return _cacheLocalRecord(record, markCurrentAccount: true);
+      }
     }
 
-    final model = RecordModel.fromEntity(record);
-    await database.recordsBox.put(record.id, model);
-    await ownershipService?.markLocal(record.id);
-    return model.toEntity();
+    return _cacheLocalRecord(record);
   }
 
   @override
@@ -360,6 +366,25 @@ class RecordRepositoryImpl implements RecordRepository {
     if (accountKey != null && accountKey.isNotEmpty) {
       await ownershipService?.markAccount(record.id, accountKey);
     }
+  }
+
+  Future<Record> _cacheLocalRecord(
+    Record record, {
+    bool markCurrentAccount = false,
+  }) async {
+    final model = RecordModel.fromEntity(record);
+    await database.recordsBox.put(record.id, model);
+
+    if (markCurrentAccount) {
+      final accountKey = await _currentAccountKey();
+      if (accountKey != null && accountKey.isNotEmpty) {
+        await ownershipService?.markAccount(record.id, accountKey);
+        return model.toEntity();
+      }
+    }
+
+    await ownershipService?.markLocal(record.id);
+    return model.toEntity();
   }
 
   Future<List<RecordModel>> _visibleModels() async {

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/ocean_account_service.dart';
 import '../../../core/services/ocean_record_ownership_service.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../data/datasources/local/hive_database.dart';
 import '../../../l10n/app_localizations.dart';
 import '../account/account_entry_screen.dart';
@@ -254,7 +254,7 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
               avatar,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 28),
+              style: AppTypography.pageTitle.copyWith(fontSize: 28),
             ),
           ),
           const SizedBox(width: 14),

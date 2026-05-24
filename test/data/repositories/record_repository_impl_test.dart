@@ -1,10 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'dart:async';
+
 import 'package:hive/hive.dart';
 import 'package:mindflow/core/network/ocean_api_client.dart';
 import 'package:mindflow/core/services/ocean_record_ownership_service.dart';
 import 'package:mindflow/data/datasources/local/hive_database.dart';
 import 'package:mindflow/data/models/record_model.dart';
 import 'package:mindflow/data/repositories/record_repository_impl.dart';
+import 'package:mindflow/domain/entities/nvc_analysis.dart';
 import 'package:mindflow/domain/entities/record.dart';
 
 void main() {
@@ -59,6 +62,62 @@ void main() {
     expect(record.transcription, 'guest record');
     expect(database.recordsBox.get(record.id)?.audioUrl,
         '/private/local/audio.wav');
+  });
+
+  test('createQuickNote falls back to local cache when server create fails',
+      () async {
+    final database = _FakeHiveDatabase();
+    final api = _FakeRecordsApi(signedIn: true)
+      ..createError = Exception('server rejected nvc payload');
+    final ownership = OceanRecordOwnershipService(database);
+    await ownership.setActiveAccount('user@example.com');
+    final repository = RecordRepositoryImpl(
+      database: database,
+      recordsApi: api,
+      accountApi: _FakeAccountApi(accountKey: 'user@example.com'),
+      ownershipService: ownership,
+    );
+
+    final record = await repository.createQuickNote(
+      transcription: 'nvc record',
+      processingMode: ProcessingMode.withNVC,
+      moods: const ['焦虑'],
+      needs: const ['支持'],
+      nvc: _nvcAnalysis(),
+      createdAt: DateTime.utc(2026, 5, 24, 8),
+    );
+
+    expect(api.createdRecords.single['processingMode'], 'with_nvc');
+    expect(record.transcription, 'nvc record');
+    expect(record.processingMode, ProcessingMode.withNVC);
+    expect(record.nvc?.observation, '今天项目发布卡住了');
+    expect(database.recordsBox.get(record.id)?.nvc, isNotNull);
+    expect(
+      ownership.isVisible(recordId: record.id, accountKey: 'user@example.com'),
+      isTrue,
+    );
+  });
+
+  test('createQuickNote falls back locally when server create stalls',
+      () async {
+    final database = _FakeHiveDatabase();
+    final api = _FakeRecordsApi(signedIn: true)..stallCreate = true;
+    final repository = RecordRepositoryImpl(
+      database: database,
+      recordsApi: api,
+      serverCreateTimeout: const Duration(milliseconds: 1),
+    );
+
+    final record = await repository.createQuickNote(
+      transcription: 'nvc record during slow network',
+      processingMode: ProcessingMode.withNVC,
+      nvc: _nvcAnalysis(),
+      createdAt: DateTime.utc(2026, 5, 24, 8),
+    );
+
+    expect(record.transcription, 'nvc record during slow network');
+    expect(record.processingMode, ProcessingMode.withNVC);
+    expect(database.recordsBox.get(record.id), isNotNull);
   });
 
   test('updateRecord uses server first when signed in and refreshes cache',
@@ -165,6 +224,8 @@ class _FakeRecordsApi implements OceanRecordsApi {
   final List<String> deletedIds = [];
   Map<String, dynamic> createResponse = const {};
   Map<String, dynamic> updateResponse = const {};
+  Object? createError;
+  bool stallCreate = false;
 
   @override
   Future<bool> get isSignedIn async => signedIn;
@@ -172,6 +233,9 @@ class _FakeRecordsApi implements OceanRecordsApi {
   @override
   Future<Map<String, dynamic>> createRecord(Map<String, dynamic> record) async {
     createdRecords.add(record);
+    final error = createError;
+    if (error != null) throw error;
+    if (stallCreate) return Completer<Map<String, dynamic>>().future;
     return createResponse;
   }
 
@@ -197,6 +261,82 @@ class _FakeRecordsApi implements OceanRecordsApi {
     updatedRecords.add(_UpdatedRecord(id, record));
     return Future.value(updateResponse);
   }
+}
+
+class _FakeAccountApi implements OceanAccountApi {
+  _FakeAccountApi({required this.accountKey});
+
+  final String accountKey;
+
+  @override
+  Future<String?> get currentAccountKey async => accountKey;
+
+  @override
+  Future<String?> get currentEmail async => accountKey;
+
+  @override
+  Future<String?> get currentPhone async => null;
+
+  @override
+  Future<String?> get currentUserId async => accountKey;
+
+  @override
+  Future<bool> get isSignedIn async => true;
+
+  @override
+  Future<OceanAuthTokens> login({
+    required String email,
+    required String password,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<OceanAuthTokens> loginWithSms({
+    required String phone,
+    required String code,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> logout() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<OceanAuthTokens> register({
+    required String email,
+    required String password,
+    String? nickname,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> sendSmsCode({required String phone}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> deleteAccount() {
+    throw UnimplementedError();
+  }
+}
+
+NVCAnalysis _nvcAnalysis() {
+  return NVCAnalysis(
+    observation: '今天项目发布卡住了',
+    feelings: const [
+      Feeling(feeling: '焦虑', intensity: IntensityLevel.high),
+    ],
+    needs: const [
+      Need(need: '支持', reason: '希望有人一起定位问题'),
+    ],
+    request: '先把保存问题修好',
+    insight: '你正在尝试把压力变成清晰的下一步。',
+    analyzedAt: DateTime.utc(2026, 5, 24, 8, 5),
+  );
 }
 
 class _UpdatedRecord {

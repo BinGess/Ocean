@@ -11,6 +11,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        locale: const Locale('zh'),
         home: Scaffold(
           body: NVCConfirmationModal(
             initialAnalysis: NVCAnalysis(
@@ -37,7 +38,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('3月22日·上午10:30'));
+    await tester.tap(find.byIcon(Icons.expand_more_rounded).first);
     await tester.pumpAndSettle();
 
     expect(find.byType(CupertinoDatePicker), findsOneWidget);
