@@ -28,9 +28,12 @@ class _SarahScreenState extends State<SarahScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<SarahBloc>().add(const SarahLoadRequested());
-      }
+      if (!mounted) return;
+      final bloc = context.read<SarahBloc>();
+      // BLoC 是全局单例，再次进入页面时已有缓存信件，
+      // listenWhen (empty→non-empty) 不会再触发，需在此手动展开第一封
+      _expandFirstLetter(bloc.state);
+      bloc.add(const SarahLoadRequested());
     });
     // Re-sync letters whenever account state changes (login, logout, deletion).
     if (getIt.isRegistered<OceanAccountDataRefreshService>()) {
@@ -39,6 +42,19 @@ class _SarahScreenState extends State<SarahScreen> {
         if (!mounted) return;
         context.read<SarahBloc>().add(const SarahLoadRequested());
       });
+    }
+  }
+
+  /// 展开第一封信（featured letter）并标记已读。
+  /// 在 initState 和 BlocConsumer listener 中共用，保证进入页面始终默认展开。
+  void _expandFirstLetter(SarahState state) {
+    final latest = state.weeklyLetter ??
+        (state.pastLetters.isNotEmpty ? state.pastLetters.first : null);
+    if (latest == null) return;
+    if (_expandedLetterIds.contains(latest.id)) return; // 已展开，不重复处理
+    setState(() => _expandedLetterIds.add(latest.id));
+    if (!latest.isRead) {
+      context.read<SarahBloc>().add(SarahLetterRead(letterId: latest.id));
     }
   }
 
@@ -65,21 +81,11 @@ class _SarahScreenState extends State<SarahScreen> {
       body: SafeArea(
         bottom: false,
         child: BlocConsumer<SarahBloc, SarahState>(
-          // Auto-expand the latest letter the first time letters load
+          // 首次加载（冷启动 BLoC 为空 → 收到信件）时自动展开第一封。
+          // 再次进入页面时 BLoC 已有缓存，由 initState 里的 _expandFirstLetter 负责。
           listenWhen: (previous, current) =>
               previous.letters.isEmpty && current.letters.isNotEmpty,
-          listener: (context, state) {
-            final latest = state.weeklyLetter ??
-                (state.pastLetters.isNotEmpty ? state.pastLetters.first : null);
-            if (latest != null) {
-              setState(() => _expandedLetterIds.add(latest.id));
-              if (!latest.isRead) {
-                context
-                    .read<SarahBloc>()
-                    .add(SarahLetterRead(letterId: latest.id));
-              }
-            }
-          },
+          listener: (context, state) => _expandFirstLetter(state),
           builder: (context, state) {
             if (state.status == SarahStatus.loading && state.letters.isEmpty) {
               return const Center(

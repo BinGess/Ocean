@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/entities/sarah_letter.dart';
@@ -48,26 +49,24 @@ class SarahBloc extends Bloc<SarahEvent, SarahState> {
     // 1. 拉取服务端最新信件（包含服务端 cron 已生成的最新周报）
     final initialLetters =
         await _tryRun(getLettersUseCase.call, errors) ?? state.letters;
+    debugPrint('[SarahBloc] step1 initialLetters=${initialLetters.length}');
     // 2. 刷新旧版洞察数据（历史兼容）
     await _tryRun(refreshLegacyInsightsUseCase, errors);
-    // 3. 确保欢迎信存在（仅首次，本地已有则跳过）
-    final welcomeLetter =
-        await _tryRun(ensureWelcomeLetterUseCase.call, errors);
-    // 4. 迁移旧版洞察为 Sarah 信件（历史兼容）
+    // 3. 确保欢迎信存在（仅首次，本地已有则跳过）；结果写入本地缓存，步骤5会读到
+    await _tryRun(ensureWelcomeLetterUseCase.call, errors);
+    // 4. 迁移旧版洞察为 Sarah 信件（历史兼容）；服务端接受的信件写入本地缓存，步骤5会读到
     final migratedLetters =
         await _tryRun(migrateLegacyInsightsUseCase, errors) ?? const [];
-    // 5. 再次拉取，合并本步骤中可能新增的欢迎信/迁移信
+    debugPrint('[SarahBloc] step4 migratedLetters=${migratedLetters.length}');
+    // 5. 再次拉取——欢迎信和迁移信已在上面各步骤中 upsert 到本地缓存，
+    //    因此这次拉取的结果已经包含它们，无需额外 merge。
+    //    直接信任这次拉取的结果；若拉取失败则退回步骤1的快照。
     final letters =
         await _tryRun(getLettersUseCase.call, errors) ?? initialLetters;
+    debugPrint('[SarahBloc] step5 letters=${letters.length}, errors=${errors.length}');
     emit(state.copyWith(
       status: SarahStatus.success,
-      letters: _mergeLetters(
-        letters,
-        [
-          if (welcomeLetter != null) welcomeLetter,
-          ...migratedLetters,
-        ],
-      ),
+      letters: _sorted(letters),
       errorMessage: errors.isEmpty ? null : errors.first.toString(),
     ));
   }
@@ -95,17 +94,6 @@ class SarahBloc extends Bloc<SarahEvent, SarahState> {
 
     // Persist: local is synchronous, remote is best-effort
     await _tryRun(() => deleteLetterUseCase(event.letterId), []);
-  }
-
-  List<SarahLetter> _mergeLetters(
-    List<SarahLetter> primary,
-    List<SarahLetter> fallback,
-  ) {
-    final mergedById = <String, SarahLetter>{
-      for (final letter in primary) letter.id: letter,
-      for (final letter in fallback) letter.id: letter,
-    };
-    return _sorted(mergedById.values.toList());
   }
 
   List<SarahLetter> _sorted(List<SarahLetter> letters) {

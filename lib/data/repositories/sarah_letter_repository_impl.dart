@@ -1,8 +1,11 @@
+import 'package:flutter/foundation.dart';
+
 import '../../domain/entities/sarah_letter.dart';
 import '../../domain/repositories/sarah_letter_repository.dart';
 import '../datasources/local/hive_database.dart';
 import '../datasources/remote/sarah_letter_remote_datasource.dart';
 import '../models/sarah_letter_model.dart';
+import '../../core/network/ocean_api_client.dart';
 
 class SarahLetterRepositoryImpl implements SarahLetterRepository {
   SarahLetterRepositoryImpl({
@@ -30,6 +33,7 @@ class SarahLetterRepositoryImpl implements SarahLetterRepository {
     try {
       final localBeforeSync = await getLocalLetters();
       final letters = await remote.fetchLetters();
+      debugPrint('[SarahRepo] fetchLetters=${letters.length}, localBefore=${localBeforeSync.length}');
       if (letters.isEmpty && localBeforeSync.isNotEmpty) {
         // 服务端返回空列表时保守地保留本地数据，避免因网络抖动误删
         return localBeforeSync;
@@ -39,7 +43,13 @@ class SarahLetterRepositoryImpl implements SarahLetterRepository {
       // - 仅对 isRead 做本地优先合并，防止离线已读状态被服务端覆盖回退
       await replaceLocalLetters(_reconcileWithLocal(letters, localBeforeSync));
       return getLocalLetters();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[SarahRepo] syncRemoteLetters failed: $e');
+      // 鉴权失败（Token 过期）不应静默降级到本地缓存：
+      // 本地缓存可能是旧数据，用户需要重新登录才能看到最新内容。
+      // 向上抛出让 SarahBloc → 上层 UI 可以感知并提示用户。
+      if (e is OceanAuthException) rethrow;
+      if (e is OceanApiException && e.statusCode == 401) rethrow;
       return getLocalLetters();
     }
   }
@@ -67,8 +77,15 @@ class SarahLetterRepositoryImpl implements SarahLetterRepository {
       List<SarahLetter> letters) async {
     if (letters.isEmpty) return const [];
 
-    final migrated =
-        await remoteDataSource?.migrateLegacyLetters(letters) ?? letters;
+    // No remote data source → nothing to migrate to.
+    // Do NOT fall back to the original `letters` list: those are locally-generated
+    // UUIDs that have never been accepted by the server, and writing them to the
+    // local cache would create ghost entries that survive subsequent syncs.
+    final remote = remoteDataSource;
+    if (remote == null) return const [];
+
+    final migrated = await remote.migrateLegacyLetters(letters);
+    debugPrint('[SarahRepo] migrateLegacyLetters: sent=${letters.length}, returned=${migrated.length}');
     for (final letter in migrated) {
       await upsertLocalLetter(letter);
     }
