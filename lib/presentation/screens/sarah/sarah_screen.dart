@@ -48,6 +48,16 @@ class _SarahScreenState extends State<SarahScreen> {
     super.dispose();
   }
 
+  /// 下拉刷新：发起加载并等待 Bloc 完成，让 RefreshIndicator 知道何时收起
+  Future<void> _onRefresh() async {
+    final bloc = context.read<SarahBloc>();
+    bloc.add(const SarahLoadRequested());
+    // 等到 Bloc 发出 success / error 状态后，RefreshIndicator 才会自动收起
+    await bloc.stream.firstWhere(
+      (s) => s.status == SarahStatus.success || s.status == SarahStatus.error,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -93,53 +103,58 @@ class _SarahScreenState extends State<SarahScreen> {
                     ? state.pastLetters.sublist(1)
                     : <SarahLetter>[]);
 
-            return CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                // ── Header ──────────────────────────────────────────
-                SliverToBoxAdapter(
-                  child: _SarahHeader(totalCount: state.totalCount),
-                ),
-
-                // ── Featured letter (always first, no section label) ─
-                if (featured != null) ...[
-                  if (state.weeklyLetter != null)
-                    // Keep "本周来信" label only when there's a real weekly letter
-                    const SliverToBoxAdapter(
-                      child: _SectionTitle(title: '本周来信'),
-                    ),
+            return RefreshIndicator(
+              onRefresh: _onRefresh,
+              color: _SarahColors.active,
+              backgroundColor: _SarahColors.paper,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  // ── Header ──────────────────────────────────────────
                   SliverToBoxAdapter(
-                    child: _CurrentWeekLetterCard(
-                      letter: featured,
-                      isExpanded: _expandedLetterIds.contains(featured.id),
-                      onToggle: () => _toggleLetter(featured),
-                      onDelete: () => _showDeleteSheet(context, featured),
+                    child: _SarahHeader(totalCount: state.totalCount),
+                  ),
+
+                  // ── Featured letter (always first, no section label) ─
+                  if (featured != null) ...[
+                    if (state.weeklyLetter != null)
+                      // Keep "本周来信" label only when there's a real weekly letter
+                      const SliverToBoxAdapter(
+                        child: _SectionTitle(title: '本周来信'),
+                      ),
+                    SliverToBoxAdapter(
+                      child: _CurrentWeekLetterCard(
+                        letter: featured,
+                        isExpanded: _expandedLetterIds.contains(featured.id),
+                        onToggle: () => _toggleLetter(featured),
+                        onDelete: () => _showDeleteSheet(context, featured),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
 
-                // ── "往期信件" divider + archive ─────────────────────
-                if (archive.isNotEmpty) ...[
-                  const SliverToBoxAdapter(
-                    child: _SectionTitle(title: '往期信件', centered: true),
-                  ),
-                  SliverList.separated(
-                    itemCount: archive.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 14),
-                    itemBuilder: (context, index) {
-                      final letter = archive[index];
-                      return _PastLetterTile(
-                        letter: letter,
-                        isExpanded: _expandedLetterIds.contains(letter.id),
-                        onToggle: () => _toggleLetter(letter),
-                        onDelete: () => _showDeleteSheet(context, letter),
-                      );
-                    },
-                  ),
-                ],
+                  // ── "往期信件" divider + archive ─────────────────────
+                  if (archive.isNotEmpty) ...[
+                    const SliverToBoxAdapter(
+                      child: _SectionTitle(title: '往期信件', centered: true),
+                    ),
+                    SliverList.separated(
+                      itemCount: archive.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 14),
+                      itemBuilder: (context, index) {
+                        final letter = archive[index];
+                        return _PastLetterTile(
+                          letter: letter,
+                          isExpanded: _expandedLetterIds.contains(letter.id),
+                          onToggle: () => _toggleLetter(letter),
+                          onDelete: () => _showDeleteSheet(context, letter),
+                        );
+                      },
+                    ),
+                  ],
 
-                const SliverToBoxAdapter(child: SizedBox(height: 40)),
-              ],
+                  const SliverToBoxAdapter(child: SizedBox(height: 40)),
+                ],
+              ),
             );
           },
         ),
