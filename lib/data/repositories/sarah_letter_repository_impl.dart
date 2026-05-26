@@ -31,10 +31,13 @@ class SarahLetterRepositoryImpl implements SarahLetterRepository {
       final localBeforeSync = await getLocalLetters();
       final letters = await remote.fetchLetters();
       if (letters.isEmpty && localBeforeSync.isNotEmpty) {
+        // 服务端返回空列表时保守地保留本地数据，避免因网络抖动误删
         return localBeforeSync;
       }
-      await replaceLocalLetters(
-          _mergeRemoteWithLocal(letters, localBeforeSync));
+      // 以服务端列表为权威，完全替换本地缓存：
+      // - 服务端不再返回的信件（已被删除）会随 replaceLocalLetters 清除
+      // - 仅对 isRead 做本地优先合并，防止离线已读状态被服务端覆盖回退
+      await replaceLocalLetters(_reconcileWithLocal(letters, localBeforeSync));
       return getLocalLetters();
     } catch (_) {
       return getLocalLetters();
@@ -136,14 +139,25 @@ class SarahLetterRepositoryImpl implements SarahLetterRepository {
         .length;
   }
 
-  List<SarahLetter> _mergeRemoteWithLocal(
+  /// 以服务端数据为权威，全量替换本地缓存。
+  ///
+  /// 唯一例外：若本地已将某封信标记为已读，但服务端还未同步该状态
+  /// （例如 markRead 在网络故障期间失败），则保留本地的已读状态，
+  /// 避免用户看到"已读又变未读"的倒退。
+  List<SarahLetter> _reconcileWithLocal(
     List<SarahLetter> remote,
     List<SarahLetter> local,
   ) {
-    final mergedById = <String, SarahLetter>{
-      for (final letter in local) letter.id: letter,
-      for (final letter in remote) letter.id: letter,
+    final localById = <String, SarahLetter>{
+      for (final l in local) l.id: l,
     };
-    return mergedById.values.toList()..sort(SarahLetter.newestFirst);
+    return remote.map((remoteLetter) {
+      final localLetter = localById[remoteLetter.id];
+      if (localLetter != null && localLetter.isRead && !remoteLetter.isRead) {
+        return remoteLetter.copyWith(isRead: true);
+      }
+      return remoteLetter;
+    }).toList()
+      ..sort(SarahLetter.newestFirst);
   }
 }
