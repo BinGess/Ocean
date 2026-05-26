@@ -155,29 +155,6 @@ void main() {
     ]);
   });
 
-  test('caches generated weekly letter returned by backend', () async {
-    final generated = _letter(
-      id: 'weekly-generated',
-      createdAt: DateTime(2026, 5, 24),
-      isRead: false,
-    );
-    repository = SarahLetterRepositoryImpl(
-      database: database,
-      remoteDataSource: _FakeRemoteDataSource(
-        fetchLettersResult: const [],
-        weeklyGenerationResult: generated,
-      ),
-    );
-
-    final letter = await repository.requestWeeklyGeneration(
-      weekStart: DateTime(2026, 5, 18),
-      weekEnd: DateTime(2026, 5, 24),
-    );
-
-    expect(letter?.id, 'weekly-generated');
-    expect((await repository.getLocalLetters()).single.id, 'weekly-generated');
-  });
-
   test('marks read through backend and caches returned letter', () async {
     final unread = _letter(
       id: 'weekly',
@@ -231,13 +208,11 @@ class _FakeRemoteDataSource extends SarahLetterRemoteDataSource {
   _FakeRemoteDataSource({
     required this.fetchLettersResult,
     this.fetchError,
-    this.weeklyGenerationResult,
     this.markReadResult,
   }) : super(api: _NoopSarahLettersApi());
 
   final List<SarahLetter> fetchLettersResult;
   final Object? fetchError;
-  final SarahLetter? weeklyGenerationResult;
   final SarahLetter? markReadResult;
 
   @override
@@ -245,14 +220,6 @@ class _FakeRemoteDataSource extends SarahLetterRemoteDataSource {
     final error = fetchError;
     if (error != null) throw error;
     return fetchLettersResult;
-  }
-
-  @override
-  Future<SarahLetter?> requestWeeklyGeneration({
-    required DateTime weekStart,
-    required DateTime weekEnd,
-  }) async {
-    return weeklyGenerationResult;
   }
 
   @override
@@ -270,14 +237,6 @@ class _NoopSarahLettersApi implements OceanSarahLettersApi {
   Future<Map<String, dynamic>> migrateLegacySarahLetters(
     List<Map<String, dynamic>> letters,
   ) async {
-    return const {};
-  }
-
-  @override
-  Future<Map<String, dynamic>> generateSarahWeeklyLetter({
-    required DateTime weekStart,
-    required DateTime weekEnd,
-  }) async {
     return const {};
   }
 

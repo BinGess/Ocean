@@ -5,26 +5,23 @@ import '../../../domain/usecases/delete_sarah_letter_usecase.dart';
 import '../../../domain/usecases/ensure_welcome_letter_usecase.dart';
 import '../../../domain/usecases/get_sarah_letters_usecase.dart';
 import '../../../domain/usecases/mark_sarah_letter_read_usecase.dart';
-import '../../../domain/usecases/request_sarah_weekly_letter_usecase.dart';
 import 'sarah_event.dart';
 import 'sarah_state.dart';
 
 typedef MigrateLegacyInsightsRunner = Future<List<SarahLetter>> Function();
 typedef RefreshLegacyInsightsRunner = Future<void> Function();
-typedef SarahNowProvider = DateTime Function();
 
+// 周报由服务端 cron 任务（每周日 20:00 CST）自动生成，
+// 客户端只负责拉取展示，不再主动触发生成。
 class SarahBloc extends Bloc<SarahEvent, SarahState> {
   SarahBloc({
     required this.getLettersUseCase,
     required this.ensureWelcomeLetterUseCase,
     required this.refreshLegacyInsightsUseCase,
     required this.migrateLegacyInsightsUseCase,
-    required this.requestWeeklyLetterUseCase,
     required this.markReadUseCase,
     required this.deleteLetterUseCase,
-    SarahNowProvider? now,
-  })  : now = now ?? DateTime.now,
-        super(SarahState.initial()) {
+  }) : super(SarahState.initial()) {
     on<SarahLoadRequested>(_onLoadRequested);
     on<SarahLetterRead>(_onLetterRead);
     on<SarahLetterDeleteRequested>(_onLetterDeleteRequested);
@@ -34,10 +31,8 @@ class SarahBloc extends Bloc<SarahEvent, SarahState> {
   final EnsureWelcomeLetterUseCase ensureWelcomeLetterUseCase;
   final RefreshLegacyInsightsRunner refreshLegacyInsightsUseCase;
   final MigrateLegacyInsightsRunner migrateLegacyInsightsUseCase;
-  final RequestSarahWeeklyLetterUseCase requestWeeklyLetterUseCase;
   final MarkSarahLetterReadUseCase markReadUseCase;
   final DeleteSarahLetterUseCase deleteLetterUseCase;
-  final SarahNowProvider now;
 
   Future<void> _onLoadRequested(
     SarahLoadRequested event,
@@ -50,15 +45,18 @@ class SarahBloc extends Bloc<SarahEvent, SarahState> {
     }
 
     final errors = <Object>[];
+    // 1. 拉取服务端最新信件（包含服务端 cron 已生成的最新周报）
     final initialLetters =
         await _tryRun(getLettersUseCase.call, errors) ?? state.letters;
+    // 2. 刷新旧版洞察数据（历史兼容）
     await _tryRun(refreshLegacyInsightsUseCase, errors);
+    // 3. 确保欢迎信存在（仅首次，本地已有则跳过）
     final welcomeLetter =
         await _tryRun(ensureWelcomeLetterUseCase.call, errors);
+    // 4. 迁移旧版洞察为 Sarah 信件（历史兼容）
     final migratedLetters =
         await _tryRun(migrateLegacyInsightsUseCase, errors) ?? const [];
-    final weeklyLetter = await _tryRun(_requestWeeklyLetterIfUseful, errors);
-
+    // 5. 再次拉取，合并本步骤中可能新增的欢迎信/迁移信
     final letters =
         await _tryRun(getLettersUseCase.call, errors) ?? initialLetters;
     emit(state.copyWith(
@@ -68,7 +66,6 @@ class SarahBloc extends Bloc<SarahEvent, SarahState> {
         [
           if (welcomeLetter != null) welcomeLetter,
           ...migratedLetters,
-          if (weeklyLetter != null) weeklyLetter,
         ],
       ),
       errorMessage: errors.isEmpty ? null : errors.first.toString(),
@@ -98,21 +95,6 @@ class SarahBloc extends Bloc<SarahEvent, SarahState> {
 
     // Persist: local is synchronous, remote is best-effort
     await _tryRun(() => deleteLetterUseCase(event.letterId), []);
-  }
-
-  Future<SarahLetter?> _requestWeeklyLetterIfUseful() async {
-    final current = now();
-    final weekStart = DateTime(
-      current.year,
-      current.month,
-      current.day,
-    ).subtract(Duration(days: current.weekday - 1));
-    final weekEnd = weekStart.add(const Duration(days: 6));
-
-    return requestWeeklyLetterUseCase(
-      weekStart: weekStart,
-      weekEnd: weekEnd,
-    );
   }
 
   List<SarahLetter> _mergeLetters(

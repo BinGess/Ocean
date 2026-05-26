@@ -27,17 +27,6 @@ class SarahLetterRemoteDataSource {
     return _lettersFromResponse(response);
   }
 
-  Future<SarahLetter?> requestWeeklyGeneration({
-    required DateTime weekStart,
-    required DateTime weekEnd,
-  }) async {
-    final response = await api.generateSarahWeeklyLetter(
-      weekStart: weekStart,
-      weekEnd: weekEnd,
-    );
-    return _letterFromResponse(response);
-  }
-
   Future<SarahLetter?> markRead(String id) async {
     final response = await api.updateSarahLetter(id, {'isRead': true});
     return _letterFromResponse(response);

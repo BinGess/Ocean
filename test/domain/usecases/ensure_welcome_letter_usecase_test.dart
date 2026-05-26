@@ -42,14 +42,6 @@ class _FakeSarahLetterRepository implements SarahLetterRepository {
   Future<List<SarahLetter>> syncRemoteLetters() async => const [];
 
   @override
-  Future<SarahLetter?> requestWeeklyGeneration({
-    required DateTime weekStart,
-    required DateTime weekEnd,
-  }) async {
-    return null;
-  }
-
-  @override
   Future<void> replaceLocalLetters(List<SarahLetter> letters) async {}
 
   @override

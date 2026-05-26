@@ -9,15 +9,11 @@ import '../../../l10n/app_localizations.dart';
 import '../../bloc/insight/insight_bloc.dart';
 import '../../bloc/insight/insight_state.dart';
 import '../../bloc/insight/insight_event.dart';
-import '../../bloc/record/record_bloc.dart';
-import '../../bloc/record/record_state.dart';
-import '../../widgets/ai_auth_dialog.dart';
+import '../../widgets/insights/weekly_analysis_section.dart';
 import '../../../core/di/injection.dart';
-import '../../../core/services/ai_auth_service.dart';
 import '../../../core/services/ocean_account_service.dart';
 import 'history_reports_screen.dart';
 import '../share/share_insight_screen.dart';
-import '../settings/settings_screen.dart';
 
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({super.key});
@@ -30,9 +26,7 @@ class _InsightsScreenState extends State<InsightsScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _refreshController;
   bool _isRefreshing = false;
-  StreamSubscription? _authSubscription;
   StreamSubscription<void>? _accountDataSubscription;
-  String? _lastHandledRecordId;
 
   @override
   void initState() {
@@ -44,14 +38,6 @@ class _InsightsScreenState extends State<InsightsScreen>
       duration: const Duration(milliseconds: 900),
     );
 
-    // 监听授权状态变化，当用户在启动弹窗中同意授权后自动刷新
-    _authSubscription =
-        getIt<AIAuthService>().authStateStream.listen((isAuthorized) {
-      if (isAuthorized && mounted) {
-        // 授权状态变为已授权，重新加载洞察
-        context.read<InsightBloc>().add(const InsightLoadCurrentWeek());
-      }
-    });
     if (getIt.isRegistered<OceanAccountDataRefreshService>()) {
       _accountDataSubscription =
           getIt<OceanAccountDataRefreshService>().changes.listen((_) {
@@ -62,7 +48,7 @@ class _InsightsScreenState extends State<InsightsScreen>
     }
   }
 
-  /// 强制刷新洞察
+  /// 下拉刷新：重新从服务端拉取数据分析
   Future<void> _onRefresh() async {
     if (_isRefreshing) return;
     setState(() => _isRefreshing = true);
@@ -72,55 +58,8 @@ class _InsightsScreenState extends State<InsightsScreen>
         );
   }
 
-  /// 处理AI授权请求
-  Future<void> _handleAIAuthRequest(BuildContext context) async {
-    final result = await AIAuthDialog.show(context: context);
-    if (!mounted) return;
-
-    if (result == true) {
-      // 用户同意授权
-      await getIt<AIAuthService>().grant();
-      if (!mounted) return;
-
-      // 重新触发洞察生成
-      this.context.read<InsightBloc>().add(const InsightGenerateCurrentWeek());
-    } else {
-      // 用户拒绝授权
-      _showAuthDeniedGuidance(this.context);
-    }
-  }
-
-  /// 显示拒绝授权引导
-  void _showAuthDeniedGuidance(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.info_outline, color: AppColors.warning),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(l10n.aiNeedsAuthSnackbar),
-            ),
-          ],
-        ),
-        duration: const Duration(seconds: 4),
-        action: SnackBarAction(
-          label: l10n.goToSettings,
-          textColor: AppColors.accent,
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
   @override
   void dispose() {
-    _authSubscription?.cancel();
     _accountDataSubscription?.cancel();
     _refreshController.dispose();
     super.dispose();
@@ -141,34 +80,11 @@ class _InsightsScreenState extends State<InsightsScreen>
         ),
         child: MultiBlocListener(
           listeners: [
-            BlocListener<RecordBloc, RecordState>(
-              listener: (context, state) {
-                final latestRecord = state.latestRecord;
-                if (state.status != RecordStatus.success ||
-                    latestRecord == null) {
-                  return;
-                }
-
-                if (_lastHandledRecordId == latestRecord.id) {
-                  return;
-                }
-                _lastHandledRecordId = latestRecord.id;
-
-                if (_isInCurrentWeek(latestRecord.createdAt)) {
-                  context.read<InsightBloc>().add(
-                        const InsightGenerateCurrentWeek(
-                          preserveCurrentContent: true,
-                        ),
-                      );
-                }
-              },
-            ),
             BlocListener<InsightBloc, InsightState>(
               listener: (context, state) {
                 if (_isRefreshing &&
                     (state.status == InsightStatus.success ||
-                        state.status == InsightStatus.error ||
-                        state.status == InsightStatus.needsAIAuth)) {
+                        state.status == InsightStatus.error)) {
                   _refreshController.stop();
                   _refreshController.reset();
                   if (mounted) {
@@ -185,26 +101,12 @@ class _InsightsScreenState extends State<InsightsScreen>
                             Text(state.errorMessage ?? l10n.refreshFailed)),
                   );
                 }
-
-                if (state.status == InsightStatus.needsAIAuth &&
-                    state.currentReport != null) {
-                  final l10n = AppLocalizations.of(context)!;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.aiAuthExpired)),
-                  );
-                }
-                // 注：needsAIAuth 状态不再自动弹窗，而是通过UI引导用户手动触发
               },
             ),
           ],
           child: BlocBuilder<InsightBloc, InsightState>(
             builder: (context, state) {
               final l10n = AppLocalizations.of(context)!;
-              // 无内容且需要AI授权时显示友好引导
-              if (state.status == InsightStatus.needsAIAuth &&
-                  state.currentReport == null) {
-                return _buildAIAuthPromptState(l10n);
-              }
 
               if ((state.status == InsightStatus.loading ||
                       state.status == InsightStatus.generating) &&
@@ -229,93 +131,6 @@ class _InsightsScreenState extends State<InsightsScreen>
                 ),
               );
             },
-          ),
-        ),
-      ),
-    );
-  }
-
-  bool _isInCurrentWeek(DateTime date) {
-    final now = DateTime.now();
-    final monday = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: now.weekday - 1));
-    final sunday = monday.add(const Duration(days: 7));
-    return !date.isBefore(monday) && date.isBefore(sunday);
-  }
-
-  /// AI授权引导状态
-  Widget _buildAIAuthPromptState(AppLocalizations l10n) {
-    return SafeArea(
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: const BoxDecoration(
-                  color: AppColors.accentWarm,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.psychology_outlined,
-                  size: 40,
-                  color: AppColors.accent,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                l10n.enableSmartInsights,
-                textAlign: TextAlign.center,
-                style: AppTypography.modalTitle.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                l10n.enableSmartInsightsDesc,
-                textAlign: TextAlign.center,
-                style: AppTypography.bodySecondary.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 32),
-              FilledButton(
-                onPressed: () => _handleAIAuthRequest(context),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                ),
-                child: Text(
-                  l10n.enableNow,
-                  style: AppTypography.modalButtonPrimary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                  );
-                },
-                child: Text(
-                  l10n.learnMore,
-                  style: AppTypography.modalCaption.copyWith(
-                    color: AppColors.textTertiary,
-                  ),
-                ),
-              ),
-            ],
           ),
         ),
       ),
@@ -348,7 +163,7 @@ class _InsightsScreenState extends State<InsightsScreen>
     );
   }
 
-  /// 空状态
+  /// 空状态（无本周洞察报告时展示）
   Widget _buildEmptyState(InsightState state, AppLocalizations l10n) {
     final weekRange = state.currentWeekRange ??
         state.weeklyAnalysis?.weekRange ??
@@ -358,6 +173,7 @@ class _InsightsScreenState extends State<InsightsScreen>
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
+          // 标题区
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
@@ -382,69 +198,76 @@ class _InsightsScreenState extends State<InsightsScreen>
               ),
             ),
           ),
-          SliverFillRemaining(
-            hasScrollBody: false,
+
+          // 本周数据分析（如果有）
+          if (state.weeklyAnalysis != null)
+            SliverToBoxAdapter(
+              child: WeeklyAnalysisSection(
+                analysis: state.weeklyAnalysis!,
+              ),
+            ),
+
+          // 等待服务端生成提示
+          SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(32, 24, 32, 48),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: const BoxDecoration(
-                      color: AppColors.accentLight,
-                      shape: BoxShape.circle,
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.bgCard,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
                     ),
-                    child: const Icon(
-                      Icons.auto_awesome_outlined,
-                      size: 40,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    l10n.noEnoughContent,
-                    textAlign: TextAlign.center,
-                    style: AppTypography.detailTitle.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    l10n.autoGenerateAfterMore,
-                    textAlign: TextAlign.center,
-                    style: AppTypography.bodySecondary.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  TextButton(
-                    onPressed: () {
-                      context
-                          .read<InsightBloc>()
-                          .add(const InsightGenerateCurrentWeek());
-                    },
-                    style: TextButton.styleFrom(
-                      backgroundColor: AppColors.accentLight,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.accentLight,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.auto_awesome_outlined,
+                        size: 20,
+                        color: AppColors.primary,
                       ),
                     ),
-                    child: Text(
-                      l10n.regenerate,
-                      style: AppTypography.actionLabel.copyWith(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w500,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '本周洞察报告将于周日晚自动生成',
+                            style: AppTypography.bodyPrimary.copyWith(
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '坚持记录，Sarah 会在每周日 20:00 为你生成专属分析。',
+                            style: AppTypography.bodySecondary.copyWith(
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
       ),
     );

@@ -313,26 +313,39 @@ class _RecordsScreenState extends State<RecordsScreen> {
     if (selectedMood != null) {
       final dateKey = key.substring('daily_mood_'.length);
       final clientUpdatedAt = DateTime.now().toUtc().toIso8601String();
-      final api = _userDataApi;
-      if (api != null && await api.isSignedIn) {
-        await api.updateDailyMood(dateKey, {
-          'imagePath': selectedMood.imagePath,
-          'clientUpdatedAt': clientUpdatedAt,
-        });
-        await _markEntityAccount('daily_mood', dateKey);
-      } else {
-        await _ownershipService?.markEntityLocal('daily_mood', dateKey);
-      }
+
+      // ① 先写本地：无论网络如何，UI 立即生效
       await _database.settingsBox.put(key, selectedMood.imagePath);
       await _database.settingsBox.put(
         'ocean_sync_updated_at_daily_mood_$dateKey',
         clientUpdatedAt,
       );
       // 标记用户已手动设置心情，防止 AI 覆盖
-      await _dailySummaryService.markUserOverridden(date);
+      try {
+        await _dailySummaryService.markUserOverridden(date);
+      } catch (e) {
+        debugPrint('RecordsScreen: markUserOverridden 失败（已忽略）: $e');
+      }
       setState(() {
         _dailyMoods[key] = selectedMood.imagePath;
       });
+
+      // ② best-effort 同步服务端，失败不影响本地状态
+      final api = _userDataApi;
+      if (api != null && await api.isSignedIn) {
+        try {
+          await api.updateDailyMood(dateKey, {
+            'imagePath': selectedMood.imagePath,
+            'clientUpdatedAt': clientUpdatedAt,
+          });
+          await _markEntityAccount('daily_mood', dateKey);
+        } catch (e) {
+          debugPrint('RecordsScreen: 同步心情到服务端失败（已忽略）: $e');
+          await _ownershipService?.markEntityLocal('daily_mood', dateKey);
+        }
+      } else {
+        await _ownershipService?.markEntityLocal('daily_mood', dateKey);
+      }
     }
   }
 

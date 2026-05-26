@@ -179,11 +179,6 @@ abstract class OceanSarahLettersApi {
     List<Map<String, dynamic>> letters,
   );
 
-  Future<Map<String, dynamic>> generateSarahWeeklyLetter({
-    required DateTime weekStart,
-    required DateTime weekEnd,
-  });
-
   Future<Map<String, dynamic>> updateSarahLetter(
     String id,
     Map<String, dynamic> data,
@@ -535,23 +530,6 @@ class OceanApiClient
       () => _dio.post<Map<String, dynamic>>(
         '/sarah/letters/migrate-legacy',
         data: {'letters': letters},
-      ),
-    );
-    return Map<String, dynamic>.from(response.data ?? const {});
-  }
-
-  @override
-  Future<Map<String, dynamic>> generateSarahWeeklyLetter({
-    required DateTime weekStart,
-    required DateTime weekEnd,
-  }) async {
-    final response = await _authorizedRequest<Map<String, dynamic>>(
-      () => _dio.post<Map<String, dynamic>>(
-        '/sarah/letters/generate-weekly',
-        data: {
-          'weekStart': weekStart.toUtc().toIso8601String(),
-          'weekEnd': weekEnd.toUtc().toIso8601String(),
-        },
       ),
     );
     return Map<String, dynamic>.from(response.data ?? const {});

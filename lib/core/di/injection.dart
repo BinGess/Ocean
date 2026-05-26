@@ -11,8 +11,6 @@ import '../../domain/repositories/sarah_letter_repository.dart';
 import '../../domain/usecases/create_quick_note_usecase.dart';
 import '../../domain/usecases/get_records_usecase.dart';
 import '../../domain/usecases/update_record_usecase.dart';
-import '../../domain/usecases/generate_weekly_insight_usecase.dart';
-import '../../domain/usecases/generate_insight_report_usecase.dart';
 import '../../domain/usecases/build_weekly_analysis_usecase.dart';
 import '../../domain/usecases/get_weekly_insights_usecase.dart';
 import '../../domain/usecases/get_sarah_letters_usecase.dart';
@@ -20,7 +18,8 @@ import '../../domain/usecases/delete_sarah_letter_usecase.dart';
 import '../../domain/usecases/ensure_welcome_letter_usecase.dart';
 import '../../domain/usecases/mark_sarah_letter_read_usecase.dart';
 import '../../domain/usecases/migrate_legacy_insights_to_sarah_letters_usecase.dart';
-import '../../domain/usecases/request_sarah_weekly_letter_usecase.dart';
+// request_sarah_weekly_letter_usecase 已不再由客户端自动调用；
+// 周报生成改由服务端 cron 任务负责（每周日 20:00 CST）。
 import '../../data/repositories/audio_repository_impl.dart';
 import '../../data/repositories/record_repository_impl.dart';
 import '../../data/repositories/ai_repository_impl.dart';
@@ -283,22 +282,9 @@ Future<void> configureDependencies() async {
     ),
   );
 
-  // 生成周洞察（旧版）
-  getIt.registerLazySingleton<GenerateWeeklyInsightUseCase>(
-    () => GenerateWeeklyInsightUseCase(
-      recordRepository: getIt<RecordRepository>(),
-      aiRepository: getIt<AIRepository>(),
-      insightRepository: getIt<InsightRepository>(),
-    ),
-  );
-
-  // 生成洞察报告（新版 - 使用 Coze 智能体）
-  getIt.registerLazySingleton<GenerateInsightReportUseCase>(
-    () => GenerateInsightReportUseCase(
-      recordRepository: getIt<RecordRepository>(),
-      aiRepository: getIt<AIRepository>(),
-    ),
-  );
+  // 周报生成已迁移至服务端 cron（每周日 20:00 CST），客户端不再注册本地生成 UseCase：
+  // - GenerateWeeklyInsightUseCase（旧版）已移除
+  // - GenerateInsightReportUseCase（Coze 智能体版）已移除
 
   getIt.registerLazySingleton<BuildWeeklyAnalysisUseCase>(
     () => BuildWeeklyAnalysisUseCase(
@@ -338,12 +324,6 @@ Future<void> configureDependencies() async {
     ),
   );
 
-  getIt.registerLazySingleton<RequestSarahWeeklyLetterUseCase>(
-    () => RequestSarahWeeklyLetterUseCase(
-      repository: getIt<SarahLetterRepository>(),
-    ),
-  );
-
   getIt.registerLazySingleton<DeleteSarahLetterUseCase>(
     () => DeleteSarahLetterUseCase(
       repository: getIt<SarahLetterRepository>(),
@@ -376,12 +356,9 @@ Future<void> configureDependencies() async {
   // 洞察 BLoC
   getIt.registerFactory<InsightBloc>(
     () => InsightBloc(
-      generateWeeklyInsightUseCase: getIt<GenerateWeeklyInsightUseCase>(),
-      generateInsightReportUseCase: getIt<GenerateInsightReportUseCase>(),
       getWeeklyInsightsUseCase: getIt<GetWeeklyInsightsUseCase>(),
       buildWeeklyAnalysisUseCase: getIt<BuildWeeklyAnalysisUseCase>(),
       insightRepository: getIt<InsightRepository>(),
-      aiAuthService: getIt<AIAuthService>(),
     ),
   );
 
@@ -394,7 +371,6 @@ Future<void> configureDependencies() async {
       },
       migrateLegacyInsightsUseCase:
           getIt<MigrateLegacyInsightsToSarahLettersUseCase>().call,
-      requestWeeklyLetterUseCase: getIt<RequestSarahWeeklyLetterUseCase>(),
       markReadUseCase: getIt<MarkSarahLetterReadUseCase>(),
       deleteLetterUseCase: getIt<DeleteSarahLetterUseCase>(),
     ),

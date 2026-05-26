@@ -15,6 +15,7 @@ import '../../../core/services/ai_auth_service.dart';
 import '../../../core/services/ocean_account_service.dart';
 import '../../../core/services/pro_subscription_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/datasources/local/hive_database.dart';
 import '../../../l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -29,6 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _signedIn = false;
   bool _logoutLoading = false;
   bool _deleteAccountLoading = false;
+  bool _clearLocalDataLoading = false;
   late final AIAuthService _aiAuthService;
   OceanAccountService? _accountService;
   StreamSubscription? _authSubscription;
@@ -166,6 +168,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               }
             },
           ),
+          const SizedBox(height: 12),
+          _buildClearLocalDataItem(),
           const SizedBox(height: 16),
 
           // 其他分组
@@ -526,6 +530,127 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  // ── 清除本地数据 ───────────────────────────────────────────────────────────
+
+  Widget _buildClearLocalDataItem() {
+    return InkWell(
+      onTap: _clearLocalDataLoading ? null : _confirmAndClearLocalData,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF1EF),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: _clearLocalDataLoading
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFFB95045),
+                      ),
+                    )
+                  : const Icon(
+                      Icons.delete_sweep_outlined,
+                      color: Color(0xFFB95045),
+                    ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _clearLocalDataLoading ? '正在清除...' : '清除本地所有数据',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFB95045),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    '删除本机缓存的记录、信件等全部数据',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Color(0xFFB95045)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmAndClearLocalData() async {
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('清除本地所有数据？'),
+        content: const Text(
+          '此操作将删除本机缓存的日记记录、Sarah 信件、洞察报告等全部本地数据。\n\n'
+          '如果已登录，重新打开 App 后可从服务端恢复；'
+          '如果未登录，数据将无法找回。',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('清除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _clearLocalDataLoading = true);
+    try {
+      await getIt<HiveDatabase>().clearAll();
+      if (!mounted) return;
+      // 返回上一级，让主页重新加载空状态
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('本地数据已清除'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('清除失败，请重试')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _clearLocalDataLoading = false);
+      }
+    }
   }
 
   Widget _buildLogoutButton() {

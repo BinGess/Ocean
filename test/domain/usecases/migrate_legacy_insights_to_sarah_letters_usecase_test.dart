@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mindflow/domain/entities/insight_report.dart';
 import 'package:mindflow/domain/entities/insight_report_cache.dart';
 import 'package:mindflow/domain/entities/sarah_letter.dart';
+import 'package:mindflow/domain/entities/weekly_analysis.dart';
 import 'package:mindflow/domain/entities/weekly_insight.dart';
 import 'package:mindflow/domain/repositories/insight_repository.dart';
 import 'package:mindflow/domain/repositories/sarah_letter_repository.dart';
@@ -164,6 +165,14 @@ class _FakeInsightRepository implements InsightRepository {
   Future<void> deleteInsightReportCache(String weekRange) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<WeeklyAnalysis?> fetchServerWeeklyAnalysis({
+    required String startDate,
+    required String endDate,
+  }) {
+    throw UnimplementedError();
+  }
 }
 
 class _FakeSarahLetterRepository implements SarahLetterRepository {
@@ -184,14 +193,6 @@ class _FakeSarahLetterRepository implements SarahLetterRepository {
 
   @override
   Future<List<SarahLetter>> syncRemoteLetters() async => const [];
-
-  @override
-  Future<SarahLetter?> requestWeeklyGeneration({
-    required DateTime weekStart,
-    required DateTime weekEnd,
-  }) async {
-    return null;
-  }
 
   @override
   Future<void> replaceLocalLetters(List<SarahLetter> letters) async {}

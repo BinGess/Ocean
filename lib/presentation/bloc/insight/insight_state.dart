@@ -9,10 +9,9 @@ import '../../../domain/entities/weekly_analysis.dart';
 enum InsightStatus {
   initial, // 初始状态
   loading, // 加载中
-  generating, // 生成中
+  generating, // 生成中（刷新分析数据）
   success, // 成功
   error, // 错误
-  needsAIAuth, // 需要AI授权
 }
 
 class InsightState extends Equatable {

@@ -11,6 +11,7 @@ import '../../../domain/entities/sarah_letter.dart';
 import '../../bloc/sarah/sarah_bloc.dart';
 import '../../bloc/sarah/sarah_event.dart';
 import '../../bloc/sarah/sarah_state.dart';
+import 'sarah_about_screen.dart';
 
 class SarahScreen extends StatefulWidget {
   const SarahScreen({super.key});
@@ -207,6 +208,23 @@ class _SarahHeader extends StatelessWidget {
                     color: _SarahColors.mutedGold,
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 2),
+              // ── 说明页入口 ──────────────────────────────
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: GestureDetector(
+                  onTap: () => SarahAboutScreen.show(context),
+                  behavior: HitTestBehavior.opaque,
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.help_outline_rounded,
+                      size: 19,
+                      color: _SarahColors.mutedGold,
+                    ),
                   ),
                 ),
               ),

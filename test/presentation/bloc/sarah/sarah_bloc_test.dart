@@ -5,20 +5,30 @@ import 'package:mindflow/domain/usecases/ensure_welcome_letter_usecase.dart';
 import 'package:mindflow/domain/usecases/get_sarah_letters_usecase.dart';
 import 'package:mindflow/domain/usecases/delete_sarah_letter_usecase.dart';
 import 'package:mindflow/domain/usecases/mark_sarah_letter_read_usecase.dart';
-import 'package:mindflow/domain/usecases/request_sarah_weekly_letter_usecase.dart';
 import 'package:mindflow/presentation/bloc/sarah/sarah_bloc.dart';
 import 'package:mindflow/presentation/bloc/sarah/sarah_event.dart';
 import 'package:mindflow/presentation/bloc/sarah/sarah_state.dart';
 
+// 注意：周报不再由客户端触发生成，而是由服务端 cron（每周日 20:00 CST）
+// 生成后推送到数据库，客户端通过 syncRemoteLetters 拉取展示。
+
+// 当前自然周的周一 00:00（本地时间）——用于所有需要 weekStart 落在「本周」的测试
+DateTime _thisMonday() {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day - (now.weekday - 1));
+}
+
 void main() {
-  test('load syncs welcome migration weekly request and exposes letter groups',
-      () async {
+  test('load syncs letters and exposes correct letter groups', () async {
+    // weekStart = 本周一，createdAt 故意设为「旧日期」，
+    // 验证分类以 weekStart 为准、而非 createdAt（覆盖补发/迁移场景）
+    final thisMonday = _thisMonday();
     final weekly = _letter(
       id: 'weekly',
       type: LetterType.weekly,
-      createdAt: DateTime(2026, 5, 24),
-      weekStart: DateTime(2026, 5, 18),
-      weekEnd: DateTime(2026, 5, 24),
+      createdAt: DateTime(2026, 5, 10), // 旧的生成时间，无关分类
+      weekStart: thisMonday,             // 本周 → 「本周来信」
+      weekEnd: thisMonday.add(const Duration(days: 6, hours: 20)),
     );
     final legacy = _letter(
       id: 'legacy',
@@ -30,22 +40,10 @@ void main() {
     );
     final repository = _FakeSarahLetterRepository(
       syncedLetters: [weekly, legacy],
-      generatedLetter: weekly,
     );
     final legacyRefresh = _FakeLegacyRefreshUseCase();
     final migration = _FakeMigrationUseCase(legacyRefresh: legacyRefresh);
-    final bloc = SarahBloc(
-      getLettersUseCase: GetSarahLettersUseCase(repository: repository),
-      ensureWelcomeLetterUseCase:
-          EnsureWelcomeLetterUseCase(repository: repository),
-      refreshLegacyInsightsUseCase: legacyRefresh.call,
-      migrateLegacyInsightsUseCase: migration.call,
-      requestWeeklyLetterUseCase:
-          RequestSarahWeeklyLetterUseCase(repository: repository),
-      markReadUseCase: MarkSarahLetterReadUseCase(repository: repository),
-      deleteLetterUseCase: DeleteSarahLetterUseCase(repository: repository),
-      now: () => DateTime(2026, 5, 24),
-    );
+    final bloc = _makeBloc(repository, legacyRefresh, migration);
     addTearDown(bloc.close);
 
     bloc.add(const SarahLoadRequested());
@@ -55,7 +53,6 @@ void main() {
 
     expect(repository.didEnsureWelcome, isTrue);
     expect(legacyRefresh.didRun, isTrue);
-    expect(repository.didRequestWeekly, isTrue);
     expect(migration.didRun, isTrue);
     expect(legacyRefresh.completedBeforeMigration, isTrue);
     expect(state.weeklyLetter?.id, 'weekly');
@@ -72,18 +69,7 @@ void main() {
       isRead: false,
     );
     final repository = _FakeSarahLetterRepository(syncedLetters: [unread]);
-    final bloc = SarahBloc(
-      getLettersUseCase: GetSarahLettersUseCase(repository: repository),
-      ensureWelcomeLetterUseCase:
-          EnsureWelcomeLetterUseCase(repository: repository),
-      refreshLegacyInsightsUseCase: () async {},
-      migrateLegacyInsightsUseCase: () async => const [],
-      requestWeeklyLetterUseCase:
-          RequestSarahWeeklyLetterUseCase(repository: repository),
-      markReadUseCase: MarkSarahLetterReadUseCase(repository: repository),
-      deleteLetterUseCase: DeleteSarahLetterUseCase(repository: repository),
-      now: () => DateTime(2026, 5, 20),
-    );
+    final bloc = _makeBloc(repository);
     addTearDown(bloc.close);
 
     bloc.add(const SarahLoadRequested());
@@ -99,30 +85,18 @@ void main() {
     expect(state.letters.single.isRead, isTrue);
   });
 
-  test('load keeps welcome letter when weekly generation fails', () async {
-    final welcome = _letter(
-      id: 'welcome',
-      type: LetterType.welcome,
-      createdAt: DateTime(2026, 5, 18),
-      isRead: false,
+  test('load shows synced letters even when ensure welcome fails', () async {
+    // 欢迎信接口失败时，sync 到的信件依然正常展示
+    final weekly = _letter(
+      id: 'weekly',
+      type: LetterType.weekly,
+      createdAt: DateTime(2026, 5, 24),
     );
     final repository = _FakeSarahLetterRepository(
-      syncedLetters: const [],
-      welcomeLetter: welcome,
-      weeklyGenerationError: Exception('weekly unavailable'),
+      syncedLetters: [weekly],
+      welcomeError: Exception('network error'),
     );
-    final bloc = SarahBloc(
-      getLettersUseCase: GetSarahLettersUseCase(repository: repository),
-      ensureWelcomeLetterUseCase:
-          EnsureWelcomeLetterUseCase(repository: repository),
-      refreshLegacyInsightsUseCase: () async {},
-      migrateLegacyInsightsUseCase: () async => const [],
-      requestWeeklyLetterUseCase:
-          RequestSarahWeeklyLetterUseCase(repository: repository),
-      markReadUseCase: MarkSarahLetterReadUseCase(repository: repository),
-      deleteLetterUseCase: DeleteSarahLetterUseCase(repository: repository),
-      now: () => DateTime(2026, 5, 20),
-    );
+    final bloc = _makeBloc(repository);
     addTearDown(bloc.close);
 
     bloc.add(const SarahLoadRequested());
@@ -130,12 +104,38 @@ void main() {
       (state) => state.status == SarahStatus.success,
     );
 
-    expect(state.letters.map((letter) => letter.id), ['welcome']);
+    expect(state.letters.map((letter) => letter.id), ['weekly']);
     expect(state.totalCount, 1);
   });
 
-  test('load exposes ensured welcome when refreshed list is still empty',
-      () async {
+  test('backfilled letter with last-week weekStart goes to pastLetters', () async {
+    // 重现 bug：服务端补发一封上周的信，createdAt = 今天（最新），
+    // 错误的旧逻辑会把它认成「本周来信」；正确逻辑应放入往期。
+    final lastMonday = _thisMonday().subtract(const Duration(days: 7));
+    final backfilled = _letter(
+      id: 'backfilled',
+      type: LetterType.weekly,
+      createdAt: DateTime.now(), // 今天刚补发
+      weekStart: lastMonday,     // 但覆盖的是上周
+      weekEnd: lastMonday.add(const Duration(days: 6, hours: 20)),
+    );
+    final repository = _FakeSarahLetterRepository(syncedLetters: [backfilled]);
+    final bloc = _makeBloc(repository);
+    addTearDown(bloc.close);
+
+    bloc.add(const SarahLoadRequested());
+    final state = await bloc.stream.firstWhere(
+      (state) => state.status == SarahStatus.success,
+    );
+
+    // 补发信 weekStart = 上周 → 不能显示为「本周来信」
+    expect(state.weeklyLetter, isNull);
+    // 应出现在往期列表里
+    expect(state.pastLetters.map((l) => l.id), ['backfilled']);
+  });
+
+  test('load exposes ensured welcome when sync returns empty', () async {
+    // 新用户首次加载：sync 返回空，欢迎信由 ensureWelcome 创建
     final welcome = _letter(
       id: 'welcome',
       type: LetterType.welcome,
@@ -147,18 +147,7 @@ void main() {
       welcomeLetter: welcome,
       cacheWelcomeOnEnsure: false,
     );
-    final bloc = SarahBloc(
-      getLettersUseCase: GetSarahLettersUseCase(repository: repository),
-      ensureWelcomeLetterUseCase:
-          EnsureWelcomeLetterUseCase(repository: repository),
-      refreshLegacyInsightsUseCase: () async {},
-      migrateLegacyInsightsUseCase: () async => const [],
-      requestWeeklyLetterUseCase:
-          RequestSarahWeeklyLetterUseCase(repository: repository),
-      markReadUseCase: MarkSarahLetterReadUseCase(repository: repository),
-      deleteLetterUseCase: DeleteSarahLetterUseCase(repository: repository),
-      now: () => DateTime(2026, 5, 20),
-    );
+    final bloc = _makeBloc(repository);
     addTearDown(bloc.close);
 
     bloc.add(const SarahLoadRequested());
@@ -170,6 +159,26 @@ void main() {
     expect(state.letters.map((letter) => letter.id), ['welcome']);
     expect(state.totalCount, 1);
   });
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+SarahBloc _makeBloc(
+  _FakeSarahLetterRepository repository, [
+  _FakeLegacyRefreshUseCase? legacyRefresh,
+  _FakeMigrationUseCase? migration,
+]) {
+  final refresh = legacyRefresh ?? _FakeLegacyRefreshUseCase();
+  final migrate = migration ?? _FakeMigrationUseCase();
+  return SarahBloc(
+    getLettersUseCase: GetSarahLettersUseCase(repository: repository),
+    ensureWelcomeLetterUseCase:
+        EnsureWelcomeLetterUseCase(repository: repository),
+    refreshLegacyInsightsUseCase: refresh.call,
+    migrateLegacyInsightsUseCase: migrate.call,
+    markReadUseCase: MarkSarahLetterReadUseCase(repository: repository),
+    deleteLetterUseCase: DeleteSarahLetterUseCase(repository: repository),
+  );
 }
 
 SarahLetter _letter({
@@ -192,6 +201,8 @@ SarahLetter _letter({
   );
 }
 
+// ── Fakes ─────────────────────────────────────────────────────────────────────
+
 class _FakeLegacyRefreshUseCase {
   bool didRun = false;
   bool completedBeforeMigration = false;
@@ -203,9 +214,8 @@ class _FakeLegacyRefreshUseCase {
 }
 
 class _FakeMigrationUseCase {
-  _FakeMigrationUseCase({
-    _FakeLegacyRefreshUseCase? legacyRefresh,
-  }) : _legacyRefresh = legacyRefresh;
+  _FakeMigrationUseCase({_FakeLegacyRefreshUseCase? legacyRefresh})
+      : _legacyRefresh = legacyRefresh;
 
   final _FakeLegacyRefreshUseCase? _legacyRefresh;
   bool didRun = false;
@@ -224,18 +234,15 @@ class _FakeSarahLetterRepository implements SarahLetterRepository {
   _FakeSarahLetterRepository({
     required this.syncedLetters,
     this.welcomeLetter,
-    this.generatedLetter,
-    this.weeklyGenerationError,
+    this.welcomeError,
     this.cacheWelcomeOnEnsure = true,
   });
 
   List<SarahLetter> syncedLetters;
   final SarahLetter? welcomeLetter;
-  final SarahLetter? generatedLetter;
-  final Object? weeklyGenerationError;
+  final Object? welcomeError;
   final bool cacheWelcomeOnEnsure;
   bool didEnsureWelcome = false;
-  bool didRequestWeekly = false;
   final List<String> markedReadIds = [];
 
   @override
@@ -244,6 +251,8 @@ class _FakeSarahLetterRepository implements SarahLetterRepository {
   @override
   Future<SarahLetter?> ensureWelcomeLetter() async {
     didEnsureWelcome = true;
+    final error = welcomeError;
+    if (error != null) throw error;
     final letter = welcomeLetter;
     if (letter != null && cacheWelcomeOnEnsure) {
       syncedLetters = [
@@ -255,22 +264,10 @@ class _FakeSarahLetterRepository implements SarahLetterRepository {
   }
 
   @override
-  Future<SarahLetter?> requestWeeklyGeneration({
-    required DateTime weekStart,
-    required DateTime weekEnd,
-  }) async {
-    didRequestWeekly = true;
-    final error = weeklyGenerationError;
-    if (error != null) throw error;
-    return generatedLetter;
-  }
-
-  @override
   Future<void> markRead(String id) async {
     markedReadIds.add(id);
     syncedLetters = syncedLetters
-        .map((letter) =>
-            letter.id == id ? letter.copyWith(isRead: true) : letter)
+        .map((l) => l.id == id ? l.copyWith(isRead: true) : l)
         .toList();
   }
 
@@ -279,9 +276,8 @@ class _FakeSarahLetterRepository implements SarahLetterRepository {
 
   @override
   Future<List<SarahLetter>> migrateLegacyLetters(
-      List<SarahLetter> letters) async {
-    return letters;
-  }
+          List<SarahLetter> letters) async =>
+      letters;
 
   @override
   Future<void> replaceLocalLetters(List<SarahLetter> letters) async {
@@ -290,7 +286,7 @@ class _FakeSarahLetterRepository implements SarahLetterRepository {
 
   @override
   Future<SarahLetter?> getLocalLetter(String id) async =>
-      syncedLetters.where((letter) => letter.id == id).firstOrNull;
+      syncedLetters.where((l) => l.id == id).firstOrNull;
 
   @override
   Future<void> upsertLocalLetter(SarahLetter letter) async {}
@@ -300,7 +296,7 @@ class _FakeSarahLetterRepository implements SarahLetterRepository {
 
   @override
   Future<int> getLocalUnreadCount() async =>
-      syncedLetters.where((letter) => !letter.isRead).length;
+      syncedLetters.where((l) => !l.isRead).length;
 
   @override
   Future<void> deleteLetter(String id) async {

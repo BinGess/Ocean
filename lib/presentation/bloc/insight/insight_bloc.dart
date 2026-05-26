@@ -1,39 +1,32 @@
 // 洞察 BLoC
-// 管理周洞察的生成、查询、反馈等操作
+// 管理周数据分析的加载与刷新。
+// 周报内容（InsightReport）由服务端 cron 任务每周日 20:00 CST 自动生成，
+// 客户端不再主动调用任何本地 AI 生成接口。
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/entities/weekly_analysis.dart';
-import '../../../domain/usecases/generate_weekly_insight_usecase.dart';
-import '../../../domain/usecases/generate_insight_report_usecase.dart';
 import '../../../domain/usecases/get_weekly_insights_usecase.dart';
 import '../../../domain/usecases/build_weekly_analysis_usecase.dart';
+import '../../../domain/usecases/generate_insight_report_usecase.dart'
+    show GenerateInsightReportParams;
 import '../../../domain/repositories/insight_repository.dart';
-import '../../../core/services/ai_auth_service.dart';
 import 'insight_event.dart';
 import 'insight_state.dart';
 
 class InsightBloc extends Bloc<InsightEvent, InsightState> {
-  final GenerateWeeklyInsightUseCase generateWeeklyInsightUseCase;
-  final GenerateInsightReportUseCase generateInsightReportUseCase;
   final GetWeeklyInsightsUseCase getWeeklyInsightsUseCase;
   final BuildWeeklyAnalysisUseCase buildWeeklyAnalysisUseCase;
   final InsightRepository insightRepository;
-  final AIAuthService aiAuthService;
 
   InsightBloc({
-    required this.generateWeeklyInsightUseCase,
-    required this.generateInsightReportUseCase,
     required this.getWeeklyInsightsUseCase,
     required this.buildWeeklyAnalysisUseCase,
     required this.insightRepository,
-    required this.aiAuthService,
   }) : super(InsightState.initial()) {
-    // 注册事件处理器
     on<InsightGenerateCurrentWeek>(_onGenerateCurrentWeek);
     on<InsightLoadCurrentWeek>(_onLoadCurrentWeek);
     on<InsightAccountDataChanged>(_onAccountDataChanged);
-    on<InsightGenerateForWeek>(_onGenerateForWeek);
     on<InsightLoadList>(_onLoadList);
     on<InsightUpdatePatternFeedback>(_onUpdatePatternFeedback);
     on<InsightUpdateExperimentStatus>(_onUpdateExperimentStatus);
@@ -43,7 +36,6 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
   /// 获取当前周的周范围字符串
   String _getCurrentWeekRange() {
     final now = DateTime.now();
-    // 计算本周一
     final weekday = now.weekday;
     final monday = now.subtract(Duration(days: weekday - 1));
     final sunday = monday.add(const Duration(days: 6));
@@ -64,10 +56,9 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     final currentWeekRange = _getCurrentWeekRange();
     final analysis = await _buildAnalysisForCurrentWeek(currentWeekRange);
 
-    // 检查缓存是否有效
+    // 内存缓存有效时直接使用
     if (state.isCacheValid(currentWeekRange)) {
-      debugPrint('📦 InsightBloc: 使用缓存的洞察报告 (${state.lastFetchTime})');
-      // 缓存有效，直接返回成功状态（保持现有数据）
+      debugPrint('📦 InsightBloc: 使用内存缓存 (${state.lastFetchTime})');
       if (state.status != InsightStatus.success) {
         emit(state.copyWith(
           status: InsightStatus.success,
@@ -77,12 +68,12 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
       return;
     }
 
-    // 检查本地持久化缓存（同一周的缓存整周有效，同一次安装内不重复请求）
+    // 读取本地持久化缓存（同周有效，不重复网络请求）
     try {
       final cached =
           await insightRepository.getCachedInsightReport(currentWeekRange);
       if (cached != null) {
-        debugPrint('💾 InsightBloc: 使用本地缓存洞察报告 (${cached.cachedAt}, 本周有效)');
+        debugPrint('💾 InsightBloc: 使用本地缓存 (${cached.cachedAt})');
         emit(state.copyWith(
           status: InsightStatus.success,
           currentReport: cached.report,
@@ -97,23 +88,15 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
       // 缓存读取失败不影响主流程
     }
 
-    // 检查AI授权状态 - 未授权时显示友好引导（不自动弹窗）
-    final isAuthorized = await aiAuthService.isAuthorized;
-    if (!isAuthorized) {
-      debugPrint('InsightBloc: 无缓存且未授权AI，显示授权引导');
-      emit(state.copyWith(
-        status: analysis != null
-            ? InsightStatus.success
-            : InsightStatus.needsAIAuth,
-        weeklyAnalysis: analysis,
-        clearReport: analysis == null,
-      ));
-      return; // 显示引导页面，等待用户手动操作
-    }
-
-    debugPrint('🔄 InsightBloc: 无本地缓存，重新生成洞察');
-    // 缓存无效，触发生成
-    add(const InsightGenerateCurrentWeek());
+    // 无本地缓存：展示可用的数据分析，报告内容留空等服务端生成
+    debugPrint('ℹ️ InsightBloc: 无本周报告缓存，展示数据分析');
+    emit(state.copyWith(
+      status: InsightStatus.success,
+      weeklyAnalysis: analysis,
+      clearReport: true,
+      currentWeekRange: currentWeekRange,
+      progressMessage: null,
+    ));
   }
 
   Future<void> _onAccountDataChanged(
@@ -124,76 +107,34 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     add(const InsightLoadCurrentWeek());
   }
 
-  /// 生成当前周洞察（使用新的洞察报告 API，强制刷新）
+  /// 强制刷新当前周的数据分析（下拉刷新触发）
+  /// 注：不再调用本地 AI；服务端已通过 cron 任务接管报告生成。
   Future<void> _onGenerateCurrentWeek(
     InsightGenerateCurrentWeek event,
     Emitter<InsightState> emit,
   ) async {
-    // 1. 检查AI授权状态
-    final isAuthorized = await aiAuthService.isAuthorized;
-    if (!isAuthorized) {
-      debugPrint('InsightBloc: 需要AI授权');
-      emit(state.copyWith(
-        status: InsightStatus.needsAIAuth,
-        clearReport: !event.preserveCurrentContent,
-      ));
-      return; // 显示引导页面，等待用户授权
-    }
-
-    // 2. 已授权，继续生成逻辑
     final currentWeekRange = _getCurrentWeekRange();
-    final analysis = await _buildAnalysisForCurrentWeek(currentWeekRange);
 
     emit(state.copyWith(
       status: InsightStatus.generating,
-      progressMessage: '正在分析本周记录...',
-      weeklyAnalysis: analysis,
-      clearReport: !event.preserveCurrentContent,
+      progressMessage: '正在刷新数据...',
     ));
 
-    try {
-      final params = GenerateInsightReportParams.forCurrentWeek();
+    final analysis = await _buildAnalysisForCurrentWeek(currentWeekRange);
 
-      // 更新进度
-      emit(state.copyWith(
-        status: InsightStatus.generating,
-        progressMessage: '正在生成洞察报告...',
-      ));
-
-      debugPrint('🔮 InsightBloc: 开始生成洞察报告');
-      final report = await generateInsightReportUseCase(params);
-      debugPrint('✅ InsightBloc: 洞察报告生成成功');
-
-      // 持久化缓存
-      try {
-        await insightRepository.saveInsightReportCache(report);
-      } catch (_) {
-        // 缓存写入失败不影响主流程
-      }
-
-      emit(state.copyWith(
-        status: InsightStatus.success,
-        currentReport: report,
-        weeklyAnalysis: analysis,
-        lastFetchTime: DateTime.now(),
-        currentWeekRange: currentWeekRange,
-        progressMessage: null,
-      ));
-    } catch (e) {
-      debugPrint('❌ InsightBloc: 洞察生成失败: $e');
-      emit(state.copyWith(
-        status: analysis != null ? InsightStatus.success : InsightStatus.error,
-        weeklyAnalysis: analysis,
-        errorMessage: e.toString(),
-        progressMessage: null,
-      ));
-    }
+    emit(state.copyWith(
+      status: InsightStatus.success,
+      weeklyAnalysis: analysis,
+      currentWeekRange: currentWeekRange,
+      lastFetchTime: DateTime.now(),
+      progressMessage: null,
+    ));
   }
 
   Future<WeeklyAnalysis?> _buildAnalysisForCurrentWeek(String weekRange) async {
     final params = GenerateInsightReportParams.forCurrentWeek();
 
-    // 1. 优先从服务端获取（更准确的统计）
+    // 优先从服务端获取（更准确的统计）
     try {
       final startDate = _formatDate(params.startDate);
       final endDate = _formatDate(params.endDate);
@@ -209,7 +150,7 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
       debugPrint('⚠️ InsightBloc: 服务端分析失败，降级到本地计算: $e');
     }
 
-    // 2. 降级：本地计算（离线 / 未登录 / 服务端异常）
+    // 降级：本地计算（离线 / 未登录 / 服务端异常）
     try {
       return await buildWeeklyAnalysisUseCase(
         BuildWeeklyAnalysisParams(
@@ -223,51 +164,13 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     }
   }
 
-  /// 将 DateTime 格式化为 YYYY-MM-DD 字符串
   static String _formatDate(DateTime date) {
     return '${date.year}-'
         '${date.month.toString().padLeft(2, '0')}-'
         '${date.day.toString().padLeft(2, '0')}';
   }
 
-  /// 生成指定周洞察
-  Future<void> _onGenerateForWeek(
-    InsightGenerateForWeek event,
-    Emitter<InsightState> emit,
-  ) async {
-    emit(state.copyWith(
-      status: InsightStatus.generating,
-      progressMessage: '正在分析记录...',
-    ));
-
-    try {
-      final params = GenerateWeeklyInsightParams(
-        weekRange: event.weekRange,
-        startDate: event.startDate,
-        endDate: event.endDate,
-      );
-
-      final insight = await generateWeeklyInsightUseCase(params);
-
-      // 将新洞察添加到列表
-      final updatedInsights = [insight, ...state.insights];
-
-      emit(state.copyWith(
-        status: InsightStatus.success,
-        insights: updatedInsights,
-        currentInsight: insight,
-        progressMessage: null,
-      ));
-    } catch (e) {
-      emit(state.copyWith(
-        status: InsightStatus.error,
-        errorMessage: e.toString(),
-        progressMessage: null,
-      ));
-    }
-  }
-
-  /// 加载洞察列表
+  /// 加载洞察列表（历史记录）
   Future<void> _onLoadList(
     InsightLoadList event,
     Emitter<InsightState> emit,
@@ -291,7 +194,6 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     }
   }
 
-  /// 更新模式反馈
   Future<void> _onUpdatePatternFeedback(
     InsightUpdatePatternFeedback event,
     Emitter<InsightState> emit,
@@ -302,8 +204,6 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
         event.patternId,
         event.feedback,
       );
-
-      // TODO: 更新本地状态中的洞察
       emit(state.copyWith(status: InsightStatus.success));
     } catch (e) {
       emit(state.copyWith(
@@ -313,7 +213,6 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     }
   }
 
-  /// 更新微实验状态
   Future<void> _onUpdateExperimentStatus(
     InsightUpdateExperimentStatus event,
     Emitter<InsightState> emit,
@@ -324,7 +223,6 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
         event.experimentId,
         event.status,
       );
-
       emit(state.copyWith(status: InsightStatus.success));
     } catch (e) {
       emit(state.copyWith(
@@ -334,7 +232,6 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     }
   }
 
-  /// 更新微实验反馈
   Future<void> _onUpdateExperimentFeedback(
     InsightUpdateExperimentFeedback event,
     Emitter<InsightState> emit,
@@ -345,7 +242,6 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
         event.experimentId,
         event.feedback,
       );
-
       emit(state.copyWith(status: InsightStatus.success));
     } catch (e) {
       emit(state.copyWith(

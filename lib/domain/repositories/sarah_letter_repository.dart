@@ -7,11 +7,6 @@ abstract class SarahLetterRepository {
 
   Future<SarahLetter?> ensureWelcomeLetter();
 
-  Future<SarahLetter?> requestWeeklyGeneration({
-    required DateTime weekStart,
-    required DateTime weekEnd,
-  });
-
   Future<List<SarahLetter>> migrateLegacyLetters(List<SarahLetter> letters);
 
   Future<void> replaceLocalLetters(List<SarahLetter> letters);

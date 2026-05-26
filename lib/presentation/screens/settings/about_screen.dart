@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_typography.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/di/injection.dart';
+import '../../../core/network/ocean_api_client.dart';
 import '../../../core/services/pro_subscription_service.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -23,6 +25,8 @@ class _AboutScreenState extends State<AboutScreen> {
   Timer? _tapResetTimer;
   late bool _showDebugSection;
   late bool _debugModeEnabled;
+  // 彩蛋：UID（null = 加载中，'' = 未登录）
+  String? _userId;
 
   @override
   void initState() {
@@ -30,6 +34,12 @@ class _AboutScreenState extends State<AboutScreen> {
     _proService = getIt<ProSubscriptionService>();
     _showDebugSection = _proService.debugMenuUnlocked;
     _debugModeEnabled = _proService.isDebugModeEnabled;
+    if (_showDebugSection) _loadUserId();
+  }
+
+  Future<void> _loadUserId() async {
+    final id = await getIt<OceanApiClient>().currentUserId;
+    if (mounted) setState(() => _userId = id ?? '');
   }
 
   @override
@@ -47,6 +57,7 @@ class _AboutScreenState extends State<AboutScreen> {
       _logoTapCount = 0;
       unawaited(_proService.setDebugMenuUnlocked(true));
       setState(() => _showDebugSection = true);
+      _loadUserId();
       return;
     }
     _tapResetTimer = Timer(const Duration(milliseconds: 1200), () {
@@ -153,6 +164,10 @@ class _AboutScreenState extends State<AboutScreen> {
           if (_showDebugSection) ...[
             const SizedBox(height: 16),
             const Divider(height: 1),
+            const SizedBox(height: 4),
+            _buildUidRow(),
+            const SizedBox(height: 4),
+            const Divider(height: 1),
             const SizedBox(height: 12),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,6 +201,61 @@ class _AboutScreenState extends State<AboutScreen> {
                   onChanged: _onDebugModeChanged,
                 ),
               ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUidRow() {
+    final uid = _userId;
+    final isEmpty = uid == null || uid.isEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          Text(
+            'UID',
+            style: AppTypography.pageMeta.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const Spacer(),
+          if (uid == null)
+            const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(strokeWidth: 1.5),
+            )
+          else
+            Text(
+              isEmpty ? '未登录' : uid,
+              style: AppTypography.pageMeta.copyWith(
+                color: isEmpty ? AppColors.textMuted : AppColors.textPrimary,
+                fontFamily: isEmpty ? null : 'Courier',
+                fontSize: 13,
+              ),
+            ),
+          if (!isEmpty) ...[
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: uid));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('UID 已复制'),
+                    duration: Duration(seconds: 1),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+              child: const Icon(
+                Icons.copy_rounded,
+                size: 16,
+                color: AppColors.textMuted,
+              ),
             ),
           ],
         ],

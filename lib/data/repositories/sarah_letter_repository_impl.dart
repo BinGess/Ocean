@@ -43,22 +43,16 @@ class SarahLetterRepositoryImpl implements SarahLetterRepository {
 
   @override
   Future<SarahLetter?> ensureWelcomeLetter() async {
-    final letter = await remoteDataSource?.ensureWelcomeLetter();
-    if (letter != null) {
-      await upsertLocalLetter(letter);
+    // _onLoadRequested 中 syncRemoteLetters() 总在此方法前执行，
+    // 因此服务端已有的 welcome 信件此时必然已同步到本地。
+    // 如果本地已有 welcome 信件，直接跳过——不再调用服务端，
+    // 避免服务端每次创建新 ID 的 welcome 信件造成重复。
+    final existing = await getLocalLetters();
+    if (existing.any((l) => l.type == LetterType.welcome)) {
+      return null;
     }
-    return letter;
-  }
 
-  @override
-  Future<SarahLetter?> requestWeeklyGeneration({
-    required DateTime weekStart,
-    required DateTime weekEnd,
-  }) async {
-    final letter = await remoteDataSource?.requestWeeklyGeneration(
-      weekStart: weekStart,
-      weekEnd: weekEnd,
-    );
+    final letter = await remoteDataSource?.ensureWelcomeLetter();
     if (letter != null) {
       await upsertLocalLetter(letter);
     }
