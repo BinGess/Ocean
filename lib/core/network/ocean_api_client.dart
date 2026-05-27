@@ -197,6 +197,7 @@ class OceanApiClient
         OceanAnalysisApi {
   OceanApiClient({
     required this.tokenStore,
+    this.onSessionExpired,
     Dio? dio,
     String? baseUrl,
   }) : _dio = dio ??
@@ -216,6 +217,11 @@ class OceanApiClient
   }
 
   final OceanTokenStore tokenStore;
+
+  /// Refresh Token 失效时的回调（由 DI 层注入）。
+  /// 在回调触发前，tokenStore 已被清空，isSignedIn 已变为 false。
+  final void Function()? onSessionExpired;
+
   final Dio _dio;
 
   @override
@@ -607,7 +613,16 @@ class OceanApiClient
       return await request();
     } on DioException catch (error) {
       if (error.response?.statusCode == 401 && !hasRetried) {
-        await refresh();
+        try {
+          await refresh();
+        } catch (_) {
+          // Refresh Token 也已失效：
+          // 1. 清除本地凭证，让 isSignedIn 立即返回 false
+          // 2. 异步通知上层 UI session 已过期（microtask 确保不在同步调用栈内触发 setState）
+          await tokenStore.clear();
+          Future.microtask(() => onSessionExpired?.call());
+          rethrow;
+        }
         return _authorizedRequest(request, hasRetried: true);
       }
       throw OceanApiException.fromDio(error);

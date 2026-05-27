@@ -142,10 +142,12 @@ void main() {
       createdAt: DateTime(2026, 5, 18),
       isRead: false,
     );
+    // cacheWelcomeOnEnsure defaults to true —— 模拟真实 repo 行为：
+    // ensureWelcomeLetter 内部调用 upsertLocalLetter，信件写入本地缓存，
+    // 步骤5再次 syncRemoteLetters 时即可读到。
     final repository = _FakeSarahLetterRepository(
       syncedLetters: const [],
       welcomeLetter: welcome,
-      cacheWelcomeOnEnsure: false,
     );
     final bloc = _makeBloc(repository);
     addTearDown(bloc.close);

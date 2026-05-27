@@ -84,6 +84,13 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<OceanApiClient>(
     () => OceanApiClient(
       tokenStore: getIt<OceanTokenStore>(),
+      // Refresh Token 失效时：通知全局 session-expiry 事件流，
+      // AppEntryPoint 会监听并弹出提示引导用户重新登录。
+      onSessionExpired: () {
+        if (getIt.isRegistered<OceanAccountDataRefreshService>()) {
+          getIt<OceanAccountDataRefreshService>().notifySessionExpired();
+        }
+      },
     ),
   );
 

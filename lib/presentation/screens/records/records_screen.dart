@@ -405,15 +405,15 @@ class _RecordsScreenState extends State<RecordsScreen> {
           SnackBar(content: Text(l10n.recordDeleted)),
         );
       }
-      _loadRecords();
+      // RecordUpdate / RecordDelete 已直接更新 bloc 状态，无需再次全量加载
     } else {
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => RecordDetailScreen(record: record),
         ),
       );
-      if (!mounted) return;
-      _loadRecords();
+      // 详情页内的编辑/删除操作已通过 RecordBloc dispatch 实时更新列表，
+      // 返回后无需重新加载，避免不必要的 loading 闪烁
     }
   }
 
@@ -867,6 +867,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
             width: 48,
             child: Column(
               children: [
+                // 单条记录时：上方 Spacer 与下方 Spacer 等分，使时间+圆点垂直居中
+                // 多条记录时：顶部对齐，保持时间轴连接线的视觉连续性
+                if (isSingle) const Spacer(),
                 // 时间
                 Text(
                   _formatTime(record.createdAt),
@@ -884,7 +887,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     shape: BoxShape.circle,
                   ),
                 ),
-                // 连接线
+                // 连接线（非最后一条）or 底部留白
                 if (!isLast)
                   Expanded(
                     child: Container(
@@ -894,6 +897,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
                       color: AppColors.divider,
                     ),
                   )
+                else if (isSingle)
+                  const Spacer()
                 else
                   const SizedBox(height: AppSpacing.sm),
               ],
@@ -932,10 +937,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                       if (record.transcription.isNotEmpty)
                         Text(
                           record.transcription,
-                          style: AppTypography.bodyPrimary.copyWith(
-                            fontSize: 15,
-                            color: AppColors.textSecondary,
-                          ),
+                          style: AppTypography.detailBody,
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                         ),

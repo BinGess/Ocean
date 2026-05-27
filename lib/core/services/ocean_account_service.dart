@@ -11,7 +11,13 @@ import 'ocean_sync_service.dart';
 class OceanAccountDataRefreshService {
   final StreamController<void> _controller = StreamController<void>.broadcast();
 
+  /// 通用数据变化（登录、退出、账号切换等）
   Stream<void> get changes => _controller.stream;
+
+  /// Token 过期导致的 session 失效事件（独立于 changes，便于 UI 定向响应）
+  final StreamController<void> _sessionExpiredController =
+      StreamController<void>.broadcast();
+  Stream<void> get sessionExpired => _sessionExpiredController.stream;
 
   void notifyChanged() {
     if (!_controller.isClosed) {
@@ -19,8 +25,17 @@ class OceanAccountDataRefreshService {
     }
   }
 
+  /// Token 刷新失败，session 已强制失效。同时触发 changes，让各页面也感知到。
+  void notifySessionExpired() {
+    if (!_sessionExpiredController.isClosed) {
+      _sessionExpiredController.add(null);
+    }
+    notifyChanged();
+  }
+
   void dispose() {
     _controller.close();
+    _sessionExpiredController.close();
   }
 }
 
@@ -161,7 +176,11 @@ class OceanAccountService {
     var localMigrationSucceeded = true;
     Object? localMigrationError;
     try {
-      await _syncService.pushAllLocalData();
+      // 整体限时 60 秒：防止 _pushLocalDataInSmallBatches 按记录逐条上传
+      // 时每条都等待超时，导致界面长时间卡在"正在登录并恢复数据..."。
+      await _syncService.pushAllLocalData().timeout(
+        const Duration(seconds: 60),
+      );
     } catch (error) {
       localMigrationSucceeded = false;
       localMigrationError = error;
@@ -176,7 +195,9 @@ class OceanAccountService {
     }
 
     try {
-      await _syncService.restoreSnapshot();
+      await _syncService.restoreSnapshot().timeout(
+        const Duration(seconds: 30),
+      );
     } catch (error) {
       debugPrint(
           'OceanAccountService: $action snapshot restore failed: $error');

@@ -5,7 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class AppConstants {
   // 应用信息
   static const String appName = '瞬记';
-  static const String appVersion = '1.4';
+  static const String appVersion = '1.5';
 
   // 豆包语音识别 API 配置
   // 官方文档: https://www.volcengine.com/docs/6561/1354869

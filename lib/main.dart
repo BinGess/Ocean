@@ -126,6 +126,7 @@ class _AppEntryPointState extends State<AppEntryPoint>
 
   final _appLockService = getIt<AppLockService>();
   final _accountService = getIt<OceanAccountService>();
+  StreamSubscription<void>? _sessionExpiredSubscription;
 
   static const _loginGuideSkippedKey = 'ocean_login_guide_skipped';
   static const _loginDataProtectionPromptVersionKey =
@@ -136,6 +137,12 @@ class _AppEntryPointState extends State<AppEntryPoint>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // 监听 Token 过期事件：自动弹出提示，引导用户重新登录
+    if (getIt.isRegistered<OceanAccountDataRefreshService>()) {
+      _sessionExpiredSubscription = getIt<OceanAccountDataRefreshService>()
+          .sessionExpired
+          .listen((_) => _onSessionExpired());
+    }
     // 注：不再在 initState 中请求权限，而是在 splash 结束后按顺序请求
     // 延迟检查锁屏，确保 widget 树已完成构建
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -147,8 +154,28 @@ class _AppEntryPointState extends State<AppEntryPoint>
 
   @override
   void dispose() {
+    _sessionExpiredSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  /// Refresh Token 已失效，tokenStore 已被清空（isSignedIn = false）。
+  /// 弹出持久提示条，让用户主动选择重新登录或忽略。
+  void _onSessionExpired() {
+    if (!mounted || _showSplash) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('登录已过期，请重新登录以同步数据'),
+        duration: const Duration(seconds: 10),
+        action: SnackBarAction(
+          label: '重新登录',
+          onPressed: () {
+            if (!mounted) return;
+            setState(() => _showAccountEntry = true);
+          },
+        ),
+      ),
+    );
   }
 
   @override

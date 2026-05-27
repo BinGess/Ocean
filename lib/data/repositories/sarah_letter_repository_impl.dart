@@ -5,7 +5,6 @@ import '../../domain/repositories/sarah_letter_repository.dart';
 import '../datasources/local/hive_database.dart';
 import '../datasources/remote/sarah_letter_remote_datasource.dart';
 import '../models/sarah_letter_model.dart';
-import '../../core/network/ocean_api_client.dart';
 
 class SarahLetterRepositoryImpl implements SarahLetterRepository {
   SarahLetterRepositoryImpl({
@@ -45,21 +44,23 @@ class SarahLetterRepositoryImpl implements SarahLetterRepository {
       return getLocalLetters();
     } catch (e) {
       debugPrint('[SarahRepo] syncRemoteLetters failed: $e');
-      // 鉴权失败（Token 过期）不应静默降级到本地缓存：
-      // 本地缓存可能是旧数据，用户需要重新登录才能看到最新内容。
-      // 向上抛出让 SarahBloc → 上层 UI 可以感知并提示用户。
-      if (e is OceanAuthException) rethrow;
-      if (e is OceanApiException && e.statusCode == 401) rethrow;
+      // 任何同步失败（包括鉴权失败）都静默降级到本地缓存，
+      // 避免错误向上传播后在 SarahBloc 中产生不必要的副作用。
+      // Token 过期已由 OceanApiClient 负责清除并触发 sessionExpired 事件，
+      // UI 层会通过 SnackBar 提示用户重新登录，无需 SarahBloc 再次处理。
       return getLocalLetters();
     }
   }
 
   @override
   Future<SarahLetter?> ensureWelcomeLetter() async {
+    // 调用时机（服务端 spec）：
+    //   1. 用户第一次进入 Sarah 页面（本地无 welcome 信件）
+    //   2. GET /sarah/letters 返回空列表时作为兜底
+    //
     // _onLoadRequested 中 syncRemoteLetters() 总在此方法前执行，
-    // 因此服务端已有的 welcome 信件此时必然已同步到本地。
-    // 如果本地已有 welcome 信件，直接跳过——不再调用服务端，
-    // 避免服务端每次创建新 ID 的 welcome 信件造成重复。
+    // 本地缓存已反映服务端最新状态。
+    // 本地已有 welcome 信件 → 跳过，避免不必要的网络请求（接口虽幂等，仍以节省请求为佳）。
     final existing = await getLocalLetters();
     if (existing.any((l) => l.type == LetterType.welcome)) {
       return null;

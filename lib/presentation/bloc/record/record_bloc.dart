@@ -261,11 +261,20 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     RecordLoadList event,
     Emitter<RecordState> emit,
   ) async {
-    emit(state.copyWith(
-      status: RecordStatus.loading,
-      clearError: true,
-      clearTranscriptionError: true,
-    ));
+    // 只在首次加载（列表为空）时显示 loading 动画；
+    // 后续刷新（账号切换、手动下拉等）静默进行，避免已有数据的页面出现闪烁。
+    if (state.records.isEmpty) {
+      emit(state.copyWith(
+        status: RecordStatus.loading,
+        clearError: true,
+        clearTranscriptionError: true,
+      ));
+    } else {
+      emit(state.copyWith(
+        clearError: true,
+        clearTranscriptionError: true,
+      ));
+    }
 
     try {
       final records = await getRecordsUseCase(

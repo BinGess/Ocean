@@ -195,7 +195,8 @@ class _AccountEntryScreenState extends State<AccountEntryScreen> {
           ),
         ),
         child: SafeArea(
-          child: Center(
+          child: Align(
+            alignment: const Alignment(0, -0.2),
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: ConstrainedBox(
@@ -213,39 +214,47 @@ class _AccountEntryScreenState extends State<AccountEntryScreen> {
                     ],
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Center(
-                          child: Container(
-                            width: 64,
-                            height: 64,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: AppColors.accent.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: const Icon(
-                              Icons.water_drop_outlined,
-                              color: AppColors.accent,
-                              size: 32,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: Image.asset(
+                              'assets/images/app_icon.png',
+                              width: 64,
+                              height: 64,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 64,
+                                height: 64,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color:
+                                      AppColors.accent.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: const Icon(
+                                  Icons.water_drop_outlined,
+                                  color: AppColors.accent,
+                                  size: 32,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 18),
-                        Text(
-                          widget.protectLocalData
-                              ? '检测到本机已有记录。登录后会先绑定并上传保存，换设备或重装也能恢复。'
-                              : '使用手机号登录后，会从服务端恢复记录；也可以先跳过，继续使用本地模式。',
+                        const SizedBox(height: 14),
+                        const Text(
+                          '登录后可以将记录同步到云端，安全可靠',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             height: 1.55,
                             color: AppColors.textSecondary,
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
                         _PhoneLoginForm(
                           phoneController: _phoneController,
                           codeController: _smsCodeController,
@@ -521,7 +530,7 @@ const _userAgreementSections = [
 const _privacyPolicySections = [
   _LegalSection(
     '版本信息',
-    '版本号：V1.4\n生效日期：2026年2月15日\n更新日期：2026年5月11日',
+    '版本号：V1.5\n生效日期：2026年2月15日\n更新日期：2026年5月27日',
   ),
   _LegalSection(
     '我们收集的信息',

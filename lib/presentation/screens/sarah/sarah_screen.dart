@@ -77,8 +77,17 @@ class _SarahScreenState extends State<SarahScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _SarahColors.page,
-      body: SafeArea(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: AppColors.warmPageBackgroundGradient,
+            stops: [0.0, 0.62, 1.0],
+          ),
+        ),
+        child: SafeArea(
         bottom: false,
         child: BlocConsumer<SarahBloc, SarahState>(
           // 首次加载（冷启动 BLoC 为空 → 收到信件）时自动展开第一封。
@@ -164,6 +173,7 @@ class _SarahScreenState extends State<SarahScreen> {
             );
           },
         ),
+      ),
       ),
     );
   }
@@ -440,7 +450,7 @@ class _LetterPaper extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(48, 34, 26, 18),
+                  padding: const EdgeInsets.fromLTRB(38, 34, 18, 18),
                   child: child,
                 ),
               ],
@@ -947,7 +957,6 @@ class _DeleteLetterSheet extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _SarahColors {
-  static const page = Color(0xFFF5F0E8);
   static const paper = Color(0xFFFFFDF8);
   static const active = Color(0xFF8A7655);
   static const mutedGold = Color(0xFFA18E6B);

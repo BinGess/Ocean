@@ -361,12 +361,30 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                 size: 20, color: AppColors.textPrimary),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          title: Text(
-            formatRecordDateTime(
-              _selectedDateTime,
-              languageCode: Localizations.localeOf(context).languageCode,
+          title: GestureDetector(
+            onTap: _pickRecordDateTime,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    formatRecordDateTime(
+                      _selectedDateTime,
+                      languageCode: Localizations.localeOf(context).languageCode,
+                    ),
+                    style: AppTypography.appBarTitle,
+                  ),
+                  const SizedBox(width: 2),
+                  const Icon(
+                    Icons.expand_more_rounded,
+                    size: 18,
+                    color: AppColors.textSecondary,
+                  ),
+                ],
+              ),
             ),
-            style: AppTypography.appBarTitle,
           ),
           centerTitle: true,
           actions: [
@@ -429,76 +447,6 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              GestureDetector(
-                onTap: _pickRecordDateTime,
-                behavior: HitTestBehavior.opaque,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg,
-                    vertical: AppSpacing.md,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.bgCard,
-                    borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-                    border: Border.all(
-                      color: AppColors.borderLight,
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF7EFE5),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.calendar_month_rounded,
-                          size: 18,
-                          color: AppColors.accent,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              formatRecordDateTime(
-                                _selectedDateTime,
-                                languageCode: Localizations.localeOf(context)
-                                    .languageCode,
-                              ),
-                              style: AppTypography.detailTitle.copyWith(
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '点击修改这条记录的日期和时间',
-                              style: AppTypography.bodySecondary.copyWith(
-                                color: AppColors.textSubtle,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      const Icon(
-                        Icons.chevron_right_rounded,
-                        color: AppColors.textSubtle,
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.lg),
-
               // 转写文本区域
               Container(
                 width: double.infinity,

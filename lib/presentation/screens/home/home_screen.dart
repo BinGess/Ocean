@@ -48,8 +48,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   static const _HomeBackgroundPalette _backgroundPalette =
       _HomeBackgroundPalette.defaultPalette;
 
-  // 按钮脉冲动画控制器
+  // 按钮脉冲动画控制器（录音时）
   late AnimationController _pulseController;
+
+  // 录音按钮空闲时的呼吸灯动画控制器
+  late AnimationController _breatheController;
+  late Animation<double> _breatheAnimation;
 
   // 防止错误弹窗重复显示
   bool _isShowingErrorDialog = false;
@@ -87,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // 这里仅作为备用检查，确保权限状态正确
     _checkAndRequestPermission();
 
-    // 初始化脉冲动画控制器 - 强化膨胀效果
+    // 初始化脉冲动画控制器 - 强化膨胀效果（录音时使用）
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400), // 稍微延长持续时间
@@ -95,6 +99,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     Tween<double>(begin: 1.0, end: 1.25).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    // 空闲时呼吸灯：缓慢吸气/呼气，持续循环
+    _breatheController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2600),
+    )..repeat(reverse: true);
+    _breatheAnimation = CurvedAnimation(
+      parent: _breatheController,
+      curve: Curves.easeInOut,
+    );
+
     _quoteTransitionController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 560),
@@ -747,6 +762,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void dispose() {
     _quoteAutoSwitchTimer?.cancel();
     _pulseController.dispose();
+    _breatheController.dispose();
     _quoteTransitionController.dispose();
     // 页面销毁时确保解除防息屏，避免残留
     WakelockPlus.disable();
@@ -1274,17 +1290,52 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       width: 44,
                       height: 44,
                       child: AnimatedBuilder(
-                        animation: _pulseController,
+                        animation: Listenable.merge(
+                            [_pulseController, _breatheController]),
                         builder: (context, _) {
                           final pulse = _pulseController.value;
+                          final breathe = _breatheAnimation.value;
                           final isRecording = audioState.isRecording;
                           final haloOpacity =
                               isRecording ? 0.18 - (pulse * 0.08) : 0.0;
                           final haloSize = 44 + (pulse * 6);
+                          final breatheInnerOpacity =
+                              isRecording ? 0.0 : breathe * 0.22;
+                          final breatheOuterOpacity =
+                              isRecording ? 0.0 : breathe * 0.09;
+                          final breatheOuterSize = 44 + (breathe * 14);
 
                           return Stack(
                             alignment: Alignment.center,
                             children: [
+                              // 呼吸灯：外层漫射光晕
+                              if (!isRecording)
+                                Container(
+                                  width: breatheOuterSize,
+                                  height: breatheOuterSize,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: AppColors.accent
+                                        .withValues(alpha: breatheOuterOpacity),
+                                  ),
+                                ),
+                              // 呼吸灯：内层 boxShadow 光晕
+                              if (!isRecording)
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.accent.withValues(
+                                            alpha: breatheInnerOpacity),
+                                        blurRadius: 12,
+                                        spreadRadius: 3,
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               if (isRecording)
                                 Container(
                                   width: haloSize,
