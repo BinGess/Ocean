@@ -52,6 +52,7 @@ import '../../presentation/bloc/insight/insight_bloc.dart';
 import '../../presentation/bloc/sarah/sarah_bloc.dart';
 import '../../presentation/bloc/locale/locale_bloc.dart';
 import '../services/locale_service.dart';
+import '../services/push_notification_service.dart';
 
 final getIt = GetIt.instance;
 
@@ -92,6 +93,12 @@ Future<void> configureDependencies() async {
         }
       },
     ),
+  );
+
+  // ===== Push Notifications =====
+
+  getIt.registerLazySingleton<PushNotificationService>(
+    () => PushNotificationService(deviceApi: getIt<OceanApiClient>()),
   );
 
   // ===== Services =====

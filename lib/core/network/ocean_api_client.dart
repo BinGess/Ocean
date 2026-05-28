@@ -170,6 +170,11 @@ abstract class OceanAnalysisApi {
   });
 }
 
+abstract class OceanDeviceApi {
+  /// 向服务端注册设备推送 Token（需要已登录）
+  Future<void> registerDeviceToken(String token, {String platform});
+}
+
 abstract class OceanSarahLettersApi {
   Future<Map<String, dynamic>> listSarahLetters();
 
@@ -194,7 +199,8 @@ class OceanApiClient
         OceanRecordsApi,
         OceanUserDataApi,
         OceanSarahLettersApi,
-        OceanAnalysisApi {
+        OceanAnalysisApi,
+        OceanDeviceApi {
   OceanApiClient({
     required this.tokenStore,
     this.onSessionExpired,
@@ -560,6 +566,21 @@ class OceanApiClient
     await _authorizedRequest<dynamic>(
       () => _dio.delete<dynamic>(
         '/sarah/letters/${Uri.encodeComponent(id)}',
+      ),
+    );
+  }
+
+  // ── Device API ────────────────────────────────────────────────────────────
+
+  @override
+  Future<void> registerDeviceToken(
+    String token, {
+    String platform = 'ios',
+  }) async {
+    await _authorizedRequest<dynamic>(
+      () => _dio.post<dynamic>(
+        '/devices/token',
+        data: {'token': token, 'platform': platform},
       ),
     );
   }

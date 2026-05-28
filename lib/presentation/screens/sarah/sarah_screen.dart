@@ -118,6 +118,17 @@ class _SarahScreenState extends State<SarahScreen> {
                     ? state.pastLetters.sublist(1)
                     : <SarahLetter>[]);
 
+            // 只在「最新一封未读信件」上显示红点，避免历史信件批量出现红点干扰用户。
+            // 信件已按 newestFirst 排序，遍历 [featured, ...archive] 找第一个未读的即可。
+            final allLetters = [
+              if (featured != null) featured,
+              ...archive,
+            ];
+            final firstUnreadId = allLetters
+                .where((l) => !l.isRead)
+                .firstOrNull
+                ?.id;
+
             return RefreshIndicator(
               onRefresh: _onRefresh,
               color: _SarahColors.active,
@@ -143,6 +154,7 @@ class _SarahScreenState extends State<SarahScreen> {
                         isExpanded: _expandedLetterIds.contains(featured.id),
                         onToggle: () => _toggleLetter(featured),
                         onDelete: () => _showDeleteSheet(context, featured),
+                        showUnreadDot: featured.id == firstUnreadId,
                       ),
                     ),
                   ],
@@ -162,6 +174,7 @@ class _SarahScreenState extends State<SarahScreen> {
                           isExpanded: _expandedLetterIds.contains(letter.id),
                           onToggle: () => _toggleLetter(letter),
                           onDelete: () => _showDeleteSheet(context, letter),
+                          showUnreadDot: letter.id == firstUnreadId,
                         );
                       },
                     ),
@@ -315,12 +328,14 @@ class _CurrentWeekLetterCard extends StatelessWidget {
     required this.isExpanded,
     required this.onToggle,
     required this.onDelete,
+    required this.showUnreadDot,
   });
 
   final SarahLetter letter;
   final bool isExpanded;
   final VoidCallback onToggle;
   final VoidCallback onDelete;
+  final bool showUnreadDot;
 
   @override
   Widget build(BuildContext context) {
@@ -329,6 +344,7 @@ class _CurrentWeekLetterCard extends StatelessWidget {
       child: _LetterPaper(
         letter: letter,
         expanded: isExpanded,
+        showUnreadDot: showUnreadDot,
         margin: const EdgeInsets.fromLTRB(28, 0, 28, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -357,12 +373,14 @@ class _PastLetterTile extends StatelessWidget {
     required this.isExpanded,
     required this.onToggle,
     required this.onDelete,
+    required this.showUnreadDot,
   });
 
   final SarahLetter letter;
   final bool isExpanded;
   final VoidCallback onToggle;
   final VoidCallback onDelete;
+  final bool showUnreadDot;
 
   @override
   Widget build(BuildContext context) {
@@ -378,6 +396,7 @@ class _PastLetterTile extends StatelessWidget {
         child: _LetterPaper(
           letter: letter,
           expanded: isExpanded,
+          showUnreadDot: showUnreadDot,
           margin: const EdgeInsets.fromLTRB(28, 0, 28, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -407,12 +426,16 @@ class _LetterPaper extends StatelessWidget {
     required this.child,
     required this.margin,
     this.expanded = false,
+    this.showUnreadDot = false,
   });
 
   final SarahLetter letter;
   final Widget child;
   final EdgeInsets margin;
   final bool expanded;
+  /// 是否显示未读红点。由外部计算后传入（仅最新一封未读信件显示），
+  /// 而非每封未读都显示，避免历史信件批量展示红点干扰用户。
+  final bool showUnreadDot;
 
   @override
   Widget build(BuildContext context) {
@@ -456,7 +479,7 @@ class _LetterPaper extends StatelessWidget {
               ],
             ),
           ),
-          if (!letter.isRead)
+          if (showUnreadDot)
             Positioned(
               top: 22,
               right: 24,

@@ -416,7 +416,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() {
       _completedAudioPath = audioPath;
       _editedTranscription = null; // 清除上次编辑的转写文本
-      _selectedRecordDateTime = null;
+      // 捕获录音结束时刻：后续 Modal 用此作为记录时间，
+      // 避免等待转写/AI 分析期间 DateTime.now() 偏晚
+      _selectedRecordDateTime = DateTime.now();
     });
     // 清除上次错误记录，允许新的错误被处理
     _lastHandledError = null;
@@ -457,6 +459,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       debugPrint('HomeScreen: 触发传统转写');
       context.read<RecordBloc>().add(RecordTranscribe(audioPath));
 
+      // 保存录音结束时刻快照，避免 builder 闭包捕获 _selectedRecordDateTime 被后续清除
+      final recordingEndTime = _selectedRecordDateTime;
+
       // 显示处理选择模态框（等待转写完成）
       showModalBottomSheet<ProcessingResult>(
         context: context,
@@ -469,6 +474,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               return ProcessingChoiceModal(
                 transcription: state.transcription ?? '',
                 transcriptionErrorMessage: state.transcriptionErrorMessage,
+                initialDateTime: recordingEndTime,
                 onSelect: (result) => Navigator.of(context).pop(result),
                 onCancel: () => Navigator.of(context).pop(),
               );
@@ -487,6 +493,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   /// 显示处理选择模态框
   void _showProcessingChoice(String transcription) {
+    // 保存录音结束时刻快照，避免 builder 闭包捕获 _selectedRecordDateTime 被后续清除
+    final recordingEndTime = _selectedRecordDateTime;
     showModalBottomSheet<ProcessingResult>(
       context: context,
       isScrollControlled: true,
@@ -495,6 +503,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       builder: (context) {
         return ProcessingChoiceModal(
           transcription: transcription,
+          initialDateTime: recordingEndTime,
           onSelect: (result) => Navigator.of(context).pop(result),
           onCancel: () => Navigator.of(context).pop(),
         );

@@ -56,7 +56,8 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
   String _voicePrefixText = '';
   String? _latestAudioPath;
   String? _lastAudioError;
-  DateTime _selectedDateTime = DateTime.now();
+  // 用户手动通过日期选择器选择的时间；null 表示未手动选过，保存时取 DateTime.now()
+  DateTime? _manuallyPickedDateTime;
   _PendingSubmitAction _pendingSubmitAction = _PendingSubmitAction.none;
 
   AppLocalizations get _l10n => AppLocalizations.of(context)!;
@@ -190,7 +191,9 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
             audioPath: _latestAudioPath,
             mode: ProcessingMode.onlyRecord,
             transcription: text,
-            createdAt: _selectedDateTime,
+            // 优先用用户手动选定的时间；未选则取当前时刻（保存时），
+            // 避免用打开页面的时刻作为记录时间（录了很长的音时会相差几分钟）
+            createdAt: _manuallyPickedDateTime ?? DateTime.now(),
           ),
         );
   }
@@ -198,7 +201,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
   Future<void> _pickRecordDateTime() async {
     final pickedDateTime = await showRecordDateTimePicker(
       context: context,
-      initialDateTime: _selectedDateTime,
+      initialDateTime: _manuallyPickedDateTime ?? DateTime.now(),
     );
 
     if (pickedDateTime == null || !mounted) {
@@ -206,7 +209,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
     }
 
     setState(() {
-      _selectedDateTime = pickedDateTime;
+      _manuallyPickedDateTime = pickedDateTime;
     });
   }
 
@@ -318,7 +321,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
             mode: ProcessingMode.withNVC,
             transcription: text,
             nvcAnalysis: analysis,
-            createdAt: createdAt ?? _selectedDateTime,
+            createdAt: createdAt ?? _manuallyPickedDateTime ?? DateTime.now(),
           ),
         );
   }
@@ -437,7 +440,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
         context: context,
         initialAnalysis: recordState.nvcAnalysis!,
         transcription: analyzedText,
-        initialDateTime: _selectedDateTime,
+        initialDateTime: _manuallyPickedDateTime ?? DateTime.now(),
         onRevert: _submitOnlyRecord,
       ).then((result) {
         if (!mounted || result == null) return;

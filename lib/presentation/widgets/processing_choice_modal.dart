@@ -23,6 +23,8 @@ class ProcessingChoiceModal extends StatefulWidget {
   final Function(ProcessingResult) onSelect;
   final VoidCallback? onCancel;
   final VoidCallback? onNVCInsight;
+  /// 录音结束时刻（由调用方捕获）。不传则退化为 Modal 打开时的 DateTime.now()。
+  final DateTime? initialDateTime;
 
   const ProcessingChoiceModal({
     super.key,
@@ -31,6 +33,7 @@ class ProcessingChoiceModal extends StatefulWidget {
     required this.onSelect,
     this.onCancel,
     this.onNVCInsight,
+    this.initialDateTime,
   });
 
   @override
@@ -53,7 +56,8 @@ class _ProcessingChoiceModalState extends State<ProcessingChoiceModal> {
     _textController = TextEditingController(
       text: isPlaceholder ? '' : widget.transcription,
     );
-    _selectedDateTime = DateTime.now();
+    // 优先使用调用方传入的录音结束时刻；不传则退化为当前时间
+    _selectedDateTime = widget.initialDateTime ?? DateTime.now();
   }
 
   @override

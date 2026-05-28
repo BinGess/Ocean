@@ -34,7 +34,14 @@ class OceanRecordSyncMapper {
       normalized['pattern_feedback'] = normalized['patternFeedback'];
     }
     normalized['audioUrl'] = null;
-    return Record.fromJson(normalized);
+    final record = Record.fromJson(normalized);
+    // DateTime.parse("...Z") 返回 UTC DateTime（isUtc=true），
+    // 直接用 .hour 会读出 UTC 小时，对中国用户差 8 小时。
+    // 统一在服务端数据入口转为本地时间，确保显示层始终拿到正确的 local DateTime。
+    return record.copyWith(
+      createdAt: record.createdAt.toLocal(),
+      updatedAt: record.updatedAt.toLocal(),
+    );
   }
 
   static String _recordTypeToApi(RecordType type) {

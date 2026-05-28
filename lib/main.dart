@@ -16,6 +16,7 @@ import 'core/services/app_entry_flow.dart';
 import 'core/services/icloud_sync_service.dart';
 import 'core/services/ocean_account_service.dart';
 import 'core/services/ocean_record_ownership_service.dart';
+import 'core/services/push_notification_service.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/bloc/audio/audio_bloc.dart';
 import 'presentation/bloc/audio/audio_event.dart';
@@ -263,6 +264,9 @@ class _AppEntryPointState extends State<AppEntryPoint>
     // 立即触发网络权限弹窗（最优先，确保在开屏期间弹出）
     _triggerNetworkPermission();
 
+    // 初始化推送通知服务（注册 APNs Token 并监听点击事件由 MainNavigation 处理）
+    getIt<PushNotificationService>().init();
+
     // 延迟 200ms 等待 BLoC 初始化完成后请求麦克风权限
     Future.delayed(const Duration(milliseconds: 200), () {
       if (!mounted) return;
@@ -377,6 +381,9 @@ class _AppEntryPointState extends State<AppEntryPoint>
       _showAccountEntry = false;
       _mainGeneration = AppEntryFlow.nextMainGeneration(_mainGeneration);
     });
+    // 登录完成后重试 Token 注册：首次启动时用户还未登录，
+    // init() 注册会因缺少 JWT 而静默失败，此处补一次重试。
+    getIt<PushNotificationService>().retryTokenRegistration();
   }
 
   @override
@@ -506,6 +513,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
   // 四个主要页面
   late final List<Widget> _screens;
+  StreamSubscription<PushNotificationTapEvent>? _notificationTapSub;
 
   @override
   void initState() {
@@ -522,6 +530,24 @@ class _MainNavigationState extends State<MainNavigation> {
       const SarahScreen(), // Sarah
       const MyScreen(), // 我的
     ];
+
+    // 监听推送通知点击：Sarah 信件通知 → 切换到 Sarah Tab
+    _notificationTapSub =
+        getIt<PushNotificationService>().onNotificationTap.listen((event) {
+      if (!mounted) return;
+      if (event.type == PushNotificationType.sarahLetter) {
+        setState(() => _currentIndex = 2);
+        context.read<SarahBloc>().add(const SarahLoadRequested());
+        // 进入 Sarah 页面后清除 App 角标
+        getIt<PushNotificationService>().clearBadge();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _notificationTapSub?.cancel();
+    super.dispose();
   }
 
   @override
