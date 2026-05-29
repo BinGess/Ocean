@@ -44,7 +44,7 @@ void main() {
     expect(find.text('洞察'), findsNothing);
     expect(find.text('5月11日 - 5月17日'), findsOneWidget);
     expect(find.text('每周洞察报告'), findsOneWidget);
-    expect(find.text('本周没有足够的内容生成洞察'), findsOneWidget);
+    expect(find.text('本周洞察报告将于周日晚自动生成'), findsOneWidget);
   });
 }
 

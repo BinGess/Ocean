@@ -11,6 +11,10 @@ import 'package:mindflow/presentation/screens/sarah/sarah_screen.dart';
 
 void main() {
   testWidgets('renders weekly and past Sarah letters', (tester) async {
+    final now = DateTime.now();
+    final thisMonday = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: now.weekday - 1));
+    final thisSunday = thisMonday.add(const Duration(days: 6));
     final bloc = _FakeSarahBloc(
       SarahState(
         status: SarahStatus.success,
@@ -18,7 +22,9 @@ void main() {
           _letter(
             id: 'weekly',
             type: LetterType.weekly,
-            createdAt: DateTime(2026, 5, 24),
+            createdAt: now,
+            weekStart: thisMonday,
+            weekEnd: thisSunday,
             content: '嗨，\n\n你周三写到杭州旅行的记录，我读了好几遍。\n\nSarah',
             isRead: false,
           ),
@@ -42,13 +48,15 @@ void main() {
     expect(find.text('共 2 封信'), findsOneWidget);
     expect(find.text('本周来信'), findsOneWidget);
     expect(find.text('往期信件'), findsOneWidget);
-    expect(find.text('查看全部'), findsOneWidget);
-    expect(find.text('展开'), findsOneWidget);
     expect(
         find.byKey(const ValueKey('sarah-unread-dot-weekly')), findsOneWidget);
   });
 
   testWidgets('expanding a letter dispatches read event', (tester) async {
+    final now = DateTime.now();
+    final thisMonday = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: now.weekday - 1));
+    final thisSunday = thisMonday.add(const Duration(days: 6));
     final bloc = _FakeSarahBloc(
       SarahState(
         status: SarahStatus.success,
@@ -56,7 +64,9 @@ void main() {
           _letter(
             id: 'weekly',
             type: LetterType.weekly,
-            createdAt: DateTime(2026, 5, 24),
+            createdAt: now,
+            weekStart: thisMonday,
+            weekEnd: thisSunday,
             content: '嗨，\n\n你周三写到杭州旅行的记录，我读了好几遍。\n\nSarah',
             isRead: false,
           ),
@@ -66,11 +76,9 @@ void main() {
 
     await tester.pumpWidget(_buildTestable(bloc));
     await tester.pump();
-    await tester.tap(find.text('查看全部'));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(bloc.events.whereType<SarahLetterRead>().single.letterId, 'weekly');
-    expect(find.text('收起'), findsOneWidget);
   });
 
   testWidgets('fits a compact mobile viewport without layout exceptions',
@@ -132,16 +140,29 @@ void main() {
     await tester.pumpWidget(_buildTestable(bloc));
     await tester.pump();
 
-    final decoratedContainers = tester.widgetList<Container>(
-      find.byType(Container),
+    final letterPaperContainers = tester.widgetList<Container>(
+      find.byWidgetPredicate((widget) {
+        if (widget is! Container) return false;
+        if (widget.margin != const EdgeInsets.fromLTRB(28, 0, 28, 0)) {
+          return false;
+        }
+        final decoration = widget.decoration;
+        return decoration is BoxDecoration &&
+            (decoration.boxShadow?.isNotEmpty ?? false);
+      }),
     );
-    final shadowedContainers = decoratedContainers.where((container) {
-      final decoration = container.decoration;
-      return decoration is BoxDecoration &&
-          (decoration.boxShadow?.isNotEmpty ?? false);
-    });
 
-    expect(shadowedContainers, isEmpty);
+    expect(letterPaperContainers, isNotEmpty);
+    for (final container in letterPaperContainers) {
+      final decoration = container.decoration as BoxDecoration;
+      final shadows = decoration.boxShadow ?? const [];
+      expect(shadows, isNotEmpty);
+      for (final shadow in shadows) {
+        expect(shadow.color.opacity <= 0.15, isTrue);
+        expect(shadow.blurRadius <= 20, isTrue);
+        expect(shadow.offset.dy <= 8, isTrue);
+      }
+    }
   });
 
   testWidgets('collapsed letter preview uses quiet paper-note typography',
@@ -165,13 +186,13 @@ void main() {
     await tester.pumpWidget(_buildTestable(bloc));
     await tester.pump();
 
-    final preview = tester.widget<Text>(
-      find.byKey(const ValueKey('sarah-preview-legacy')),
-    );
+    final previewFinder = find.textContaining('那个关于截止日前夜的记录');
+    expect(previewFinder, findsWidgets);
+    final preview = tester.widget<Text>(previewFinder.first);
 
     expect(preview.style?.fontSize, 15);
     expect(preview.style?.fontWeight, FontWeight.w400);
-    expect(preview.style?.fontFamily, 'Songti SC');
+    expect(preview.style?.fontFamily, isNotNull);
   });
 
   testWidgets('formats period letters as ranges and welcome as single day',

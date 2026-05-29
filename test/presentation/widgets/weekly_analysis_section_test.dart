@@ -65,14 +65,14 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(LinearProgressIndicator), findsNothing);
-    expect(find.text('4 次 · 50%'), findsOneWidget);
+    expect(find.text('4 次 · 50.0%'), findsOneWidget);
     expect(find.text('01'), findsWidgets);
 
     await tester.tap(find.text('高频需求'));
     await tester.pumpAndSettle();
 
     expect(find.text('被理解与稳定支持'), findsOneWidget);
-    expect(find.text('3 次 · 38%'), findsOneWidget);
+    expect(find.text('3 次 · 37.5%'), findsOneWidget);
   });
 
   testWidgets('compact emotion and needs card keeps tag rows visible',

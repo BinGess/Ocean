@@ -37,10 +37,19 @@ class SarahLetterRepositoryImpl implements SarahLetterRepository {
         // 服务端返回空列表时保守地保留本地数据，避免因网络抖动误删
         return localBeforeSync;
       }
-      // 以服务端列表为权威，完全替换本地缓存：
-      // - 服务端不再返回的信件（已被删除）会随 replaceLocalLetters 清除
-      // - 仅对 isRead 做本地优先合并，防止离线已读状态被服务端覆盖回退
-      await replaceLocalLetters(_reconcileWithLocal(letters, localBeforeSync));
+      final localLegacyLetters = localBeforeSync
+          .where((l) => l.type == LetterType.legacy)
+          .toList();
+      final remoteIds = letters.map((l) => l.id).toSet();
+      final merged = [
+        ...letters,
+        ...localLegacyLetters.where((l) => !remoteIds.contains(l.id)),
+      ];
+
+      // 以服务端列表为权威，替换本地缓存：
+      // - 对服务端返回的信件：本地已读优先（避免离线已读回退）
+      // - 对本地 legacy 信件：服务端可能暂未回传（迁移/补发），因此保留
+      await replaceLocalLetters(_reconcileWithLocal(merged, localBeforeSync));
       return getLocalLetters();
     } catch (e) {
       debugPrint('[SarahRepo] syncRemoteLetters failed: $e');
