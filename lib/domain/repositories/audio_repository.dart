@@ -55,4 +55,8 @@ abstract class AudioRepository {
 
   /// 预热录音相关资源，降低首次录音卡顿
   Future<void> warmUp();
+
+  /// 实时音量流（0.0 = 静音，1.0 = 最大音量）
+  /// 录音期间以约 80ms 间隔发射数据
+  Stream<double>? get amplitudeStream;
 }

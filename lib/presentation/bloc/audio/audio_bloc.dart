@@ -19,6 +19,8 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
   // 流式转写相关
   StreamSubscription<List<int>>? _audioStreamSubscription;
   StreamSubscription<ASRResponse>? _asrResponseSubscription;
+  // 实时音量订阅
+  StreamSubscription<double>? _amplitudeSubscription;
 
   // 防止重复触发的标志
   bool _isConnecting = false;
@@ -49,6 +51,7 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
     on<AudioStreamError>(_onStreamError);
     on<AudioFinalizeStreaming>(_onFinalizeStreaming);
     on<AudioWarmUp>(_onWarmUp);
+    on<AudioAmplitudeUpdated>(_onAmplitudeUpdated);
   }
 
   /// 外部请求取消（用于连接中提前终止）
@@ -129,10 +132,13 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
           duration: 0.0,
           audioPath: null,
           errorMessage: null,
+          amplitude: 0.0,
         ));
 
         // 启动时长计时器
         _startDurationTimer();
+        // 订阅实时音量
+        _subscribeAmplitude();
       } else {
         emit(state.copyWith(
           status: RecordingStatus.error,
@@ -155,6 +161,7 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
   ) async {
     debugPrint('AudioBloc: _onStopRecording called');
     _stopDurationTimer();
+    _cancelAmplitudeSubscription();
     final session = _sessionToken;
 
     if (_wasCanceled || _cancelRequested) {
@@ -242,6 +249,7 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
     Emitter<AudioState> emit,
   ) async {
     _stopDurationTimer();
+    _cancelAmplitudeSubscription();
     final wasConnecting = _isConnecting;
     _cancelRequested = wasConnecting;
     _wasCanceled = true;
@@ -292,6 +300,31 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
   void _stopDurationTimer() {
     _durationTimer?.cancel();
     _durationTimer = null;
+  }
+
+  /// 订阅麦克风实时音量
+  void _subscribeAmplitude() {
+    _amplitudeSubscription?.cancel();
+    final stream = audioRepository.amplitudeStream;
+    if (stream == null) return;
+    _amplitudeSubscription = stream.listen(
+      (amplitude) => add(AudioAmplitudeUpdated(amplitude)),
+      onError: (_) {}, // 振幅错误不影响录音主流程
+    );
+  }
+
+  /// 取消音量订阅并重置振幅
+  void _cancelAmplitudeSubscription() {
+    _amplitudeSubscription?.cancel();
+    _amplitudeSubscription = null;
+  }
+
+  /// 更新实时音量
+  void _onAmplitudeUpdated(
+    AudioAmplitudeUpdated event,
+    Emitter<AudioState> emit,
+  ) {
+    emit(state.copyWith(amplitude: event.amplitude));
   }
 
   /// 开始流式录音（带实时转写）
@@ -371,9 +404,12 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
         duration: 0.0,
         audioPath: null,
         errorMessage: null,
+        amplitude: 0.0,
       ));
 
       // 2. 监听ASR响应
+      // 捕获本次会话 token：错误事件携带此 token，_onStreamError 可区分新旧录音
+      final capturedToken = _sessionToken;
       _asrResponseSubscription = asrClient!.responses.listen(
         (response) {
           debugPrint('AudioBloc: Received ASR response: ${response.text}, isFinal: ${response.isFinal}');
@@ -384,16 +420,16 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
             ));
           } else if (!response.success) {
             debugPrint('AudioBloc: ASR error: ${response.error}');
-            add(AudioStreamError(response.error ?? 'ASR识别失败'));
+            add(AudioStreamError(response.error ?? 'ASR识别失败', sessionToken: capturedToken));
           }
         },
         onError: (error) {
           debugPrint('AudioBloc: ASR stream error: $error');
-          add(AudioStreamError('ASR服务错误: $error'));
+          add(AudioStreamError('ASR服务错误: $error', sessionToken: capturedToken));
         },
       );
 
-      // 3. 开始流式录音
+      // 3. 开始流式录音（必须先启动录音，_startAmplitudePoll() 才会创建 broadcast stream）
       final success = await audioRepository.startStreamingRecording();
       if (!success) {
         throw Exception('启动流式录音失败');
@@ -414,6 +450,9 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
         return;
       }
 
+      // 订阅实时音量（在 startStreamingRecording() 之后订阅，此时 broadcast stream 已就绪）
+      _subscribeAmplitude();
+
       // 4. 转发音频数据到ASR
       final audioStream = audioRepository.getAudioStream();
       if (audioStream == null) {
@@ -430,7 +469,7 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
         },
         onError: (error) {
           debugPrint('AudioBloc: Audio stream error: $error');
-          add(AudioStreamError('音频流错误: $error'));
+          add(AudioStreamError('音频流错误: $error', sessionToken: capturedToken));
         },
       );
 
@@ -492,6 +531,18 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
     AudioStreamError event,
     Emitter<AudioState> emit,
   ) async {
+    // ── 会话校验：过滤上一次录音残留的过期错误事件 ─────────────────────────
+    // 竞争场景：第一次录音结束时服务端关闭 WebSocket，产生 AudioStreamError；
+    // 若用户快速再次录制，该事件可能在第二次录音已启动后才被处理，
+    // 导致 _onStreamError 断开第二次录音的 WebSocket。
+    // 携带 sessionToken 后可用 identical() 精确过滤。
+    if (event.sessionToken != null &&
+        !identical(event.sessionToken, _sessionToken)) {
+      debugPrint(
+        'AudioBloc: 忽略过期的流式错误（会话不匹配）: ${event.error}',
+      );
+      return;
+    }
     debugPrint('AudioBloc: Stream error: ${event.error}');
 
     // 保持录音状态，但断开WebSocket
@@ -517,6 +568,7 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
   ) async {
     debugPrint('AudioBloc: Finalizing streaming recording');
     _stopDurationTimer();
+    _cancelAmplitudeSubscription(); // 立即停止音量采样，避免占用音频会话
     final session = _sessionToken;
 
     if (_wasCanceled || _cancelRequested) {
@@ -537,16 +589,25 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
 
     emit(state.copyWith(status: RecordingStatus.processing));
 
+    // ── 第一步：ASR 收尾（非致命，失败不阻止录音停止）──────────────────────
+    // WebSocket 可能因网络波动在 onDone 里已被关闭（_channel = null），
+    // 但 BLoC 状态的 isWebSocketConnected 可能仍为 true，
+    // 因此 finishAudio() 可能抛 "Not connected" 异常。
+    // 此处独立 catch，确保异常不跳过后续的 stopRecording()。
     try {
-      // 1. 发送结束信号到ASR
       if (asrClient != null && state.isWebSocketConnected) {
         debugPrint('AudioBloc: Sending finish signal to ASR');
         await asrClient!.finishAudio();
-
-        // 2. 等待短暂时间以接收最终结果
+        // 等待短暂时间以接收最终转写结果
         await Future.delayed(const Duration(milliseconds: 500));
       }
+    } catch (e) {
+      // ASR 收尾失败不影响后续停止录音，仅记录日志
+      debugPrint('AudioBloc: ASR finishAudio failed (non-fatal): $e');
+    }
 
+    // ── 第二步：停止录音（必须执行，无论 ASR 是否成功）──────────────────────
+    try {
       // 3. 停止录音
       final audioPath = await audioRepository.stopRecording();
       debugPrint('AudioBloc: Recording stopped, path: $audioPath');
@@ -573,7 +634,8 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
         ));
       }
     } catch (e) {
-      debugPrint('AudioBloc: Error finalizing streaming: $e');
+      debugPrint('AudioBloc: Error stopping recording: $e');
+      await _cleanupStreamingResources();
       emit(state.copyWith(
         status: RecordingStatus.error,
         errorMessage: '结束录音失败: $e',
@@ -617,6 +679,7 @@ class AudioBloc extends Bloc<AudioEvent, AudioState> {
   @override
   Future<void> close() {
     _stopDurationTimer();
+    _cancelAmplitudeSubscription();
     _cleanupStreamingResources();
     return super.close();
   }

@@ -39,7 +39,7 @@ class EmotionInputScreen extends StatefulWidget {
 }
 
 class _EmotionInputScreenState extends State<EmotionInputScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final TextEditingController _textController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   late final AnimationController _recordingFxController;
@@ -154,6 +154,12 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
     _waitingOfflineTranscription = false;
     _isVoiceInputMode = true;
     _voicePrefixText = _textController.text.trim();
+    // 重置波形物理状态，每次录音从干净直线开始
+    _waveH.fillRange(0, _kWaveNodes, 0.0);
+    _waveV.fillRange(0, _kWaveNodes, 0.0);
+    _displayAmplitude = 0.0;
+    _exciteFrame = 0;
+    _particles.clear();
     context.read<AudioBloc>().add(const AudioStartStreamingRecording());
   }
 
@@ -641,7 +647,10 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                                 audioState: audioState,
                               ),
                               const SizedBox(width: 10),
-                              _buildRecordingWaveform(isRecording: isRecording),
+                              _buildVoiceWaveform(
+                              isRecording: isRecording,
+                              targetAmplitude: audioState.amplitude,
+                            ),
                               const Spacer(),
                             ],
                           ),
@@ -665,7 +674,10 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                           audioState: audioState,
                         ),
                         const SizedBox(width: 10),
-                        _buildRecordingWaveform(isRecording: isRecording),
+                        _buildVoiceWaveform(
+                              isRecording: isRecording,
+                              targetAmplitude: audioState.amplitude,
+                            ),
                         const Spacer(),
                         SizedBox(width: 92, child: saveButton),
                         const SizedBox(width: 10),
@@ -690,67 +702,62 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
     return GestureDetector(
       onTap: isBusy ? null : () => _toggleRecording(audioState),
       child: SizedBox(
-        width: 52,
-        height: 52,
+        width: 46,
+        height: 46,
         child: Center(
           child: AnimatedBuilder(
             animation: _recordingFxController,
             builder: (context, child) {
-              final pulse = isRecording
-                  ? math.sin(_recordingFxController.value * math.pi * 2).abs()
+              // 红点呼吸：sin 映射到 0.55~1.0，平滑闪烁而非硬切
+              final dotOpacity = isRecording
+                  ? math.sin(_recordingFxController.value * math.pi * 2)
+                          .abs() *
+                      0.45 +
+                      0.55
                   : 0.0;
-              return Transform.scale(
-                scale: 1 + (0.06 * pulse),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    if (isRecording)
-                      Container(
-                        width: 44 + (pulse * 5),
-                        height: 44 + (pulse * 5),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFFD9AD79)
-                                .withValues(alpha: 0.35 - (pulse * 0.2)),
-                            width: 1.2,
+
+              return Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: isRecording
+                      ? const Color(0xFFEAE1D5)
+                      : const Color(0xFFEFE9E0),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isRecording
+                        ? const Color(0xFFD2A87A)
+                        : const Color(0xFFCCC2B5),
+                    width: 1.0,
+                  ),
+                ),
+                child: isRecording
+                    // ── 录制中：中心红点闪烁 ──────────────────────────
+                    ? Center(
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE53935)
+                                .withValues(alpha: dotOpacity),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFE53935)
+                                    .withValues(alpha: dotOpacity * 0.45),
+                                blurRadius: 6,
+                                spreadRadius: 1,
+                              ),
+                            ],
                           ),
                         ),
+                      )
+                    // ── 待机：麦克风图标 ──────────────────────────────
+                    : const Icon(
+                        Icons.mic_none_rounded,
+                        size: 20,
+                        color: Color(0xFF7A6C5F),
                       ),
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: isRecording
-                            ? const Color(0xFFE3C89F)
-                            : const Color(0xFFEFE9E0),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isRecording
-                              ? const Color(0xFFD7AB76)
-                              : const Color(0xFFCCC2B5),
-                          width: 1.0,
-                        ),
-                        boxShadow: [
-                          if (isRecording)
-                            BoxShadow(
-                              color: const Color(0xFFE2C392)
-                                  .withValues(alpha: 0.18 + (pulse * 0.18)),
-                              blurRadius: 8 + (pulse * 4),
-                              offset: const Offset(0, 2),
-                            ),
-                        ],
-                      ),
-                      child: Icon(
-                        isRecording
-                            ? Icons.stop_rounded
-                            : Icons.mic_none_rounded,
-                        size: 18,
-                        color: const Color(0xFF7A6C5F),
-                      ),
-                    ),
-                  ],
-                ),
               );
             },
           ),
@@ -759,35 +766,135 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
     );
   }
 
-  Widget _buildRecordingWaveform({required bool isRecording}) {
-    return SizedBox(
-      width: 52,
-      height: 22,
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 180),
-        opacity: isRecording ? 1 : 0,
-        child: AnimatedBuilder(
-          animation: _recordingFxController,
-          builder: (context, _) {
-            final t = _recordingFxController.value;
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: List.generate(5, (index) {
-                final phase = t * math.pi * 2 + index * 0.75;
-                final factor = 0.35 + (math.sin(phase).abs() * 0.65);
-                final height = 6 + (12 * factor);
-                return Container(
-                  width: 4,
-                  height: height,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD39C76).withValues(alpha: 0.75),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                );
-              }),
-            );
-          },
+  // 帧级平滑振幅（避免 80ms 采样间隔引起的跳变）
+  double _displayAmplitude = 0.0;
+  // 弹簧物理节点：每个节点独立受激振动，产生有机随机波形
+  static const int _kWaveNodes = 18; // 宽度扩大后增至 18 节点保持曲线密度
+  final List<double> _waveH = List.filled(_kWaveNodes, 0.0); // 归一化高度 -1~1
+  final List<double> _waveV = List.filled(_kWaveNodes, 0.0); // 速度
+  final _rng = math.Random();
+  int _exciteFrame = 0; // 节拍计时器：控制激发节奏，避免同帧多点乱抖
+
+  // 粒子系统：波纹上下随音量飘动的小亮点
+  final List<_WaveParticle> _particles = [];
+
+  /// 每帧更新粒子：老化 + 按音量概率生成新粒子。
+  void _updateParticles(double amp) {
+    // 老化现有粒子，移除生命耗尽的
+    for (final p in _particles) {
+      p.life -= 1.0;
+    }
+    _particles.removeWhere((p) => p.life <= 0);
+
+    // 音量低于阈值时不生成新粒子（完全静音 = 无粒子）
+    if (amp <= 0.05) return;
+
+    // 生成概率随音量 1.5 次方增长：小声时极少，大声时明显
+    final spawnProb = math.pow(amp, 1.5) * 0.22;
+    if (_rng.nextDouble() < spawnProb) {
+      final above = _rng.nextBool();
+      _particles.add(_WaveParticle(
+        x:       0.08 + _rng.nextDouble() * 0.84,        // 避开 ShaderMask 淡出边缘
+        yOff:    (above ? 1.0 : -1.0) *
+                 (0.20 + _rng.nextDouble() * 0.45),       // 偏离波面 20~65%
+        maxLife: 28.0 + _rng.nextDouble() * 24.0,         // 0.47~0.87 秒
+        radius:  0.7  + _rng.nextDouble() * 1.1,          // 0.7~1.8 px
+      ));
+      // 上限 14 个，避免画面过满
+      if (_particles.length > 14) {
+        _particles.removeRange(0, _particles.length - 14);
+      }
+    }
+  }
+
+  /// 每帧推进弹簧物理。
+  ///
+  /// 设计目标：有声音时波形平缓起伏，无声音时完全平线。
+  ///
+  /// 关键参数说明：
+  ///   stiffness 0.014 → 弹簧更软，振荡周期 ~1s，宏观感觉慢
+  ///   drag      0.97  → 高阻尼，振动半衰期 ~0.38s，波形持续时间长
+  ///   coupling  0.018 → 适中耦合，行波传播但不激发高频"闪烁"模式
+  ///   interval  12~32 帧 → 正常说话约 2~3 次/s（之前最快 15 次/s）
+  ///   Gaussian  5节点平滑凸包激发 → 只激发长波低频模式，天然过滤抖动感
+  void _stepWave(double amp) {
+    const stiffness = 0.008; // 超软弹簧 → 基频 ~0.85 Hz，振荡更慢
+    const drag      = 0.980; // 高阻尼 → 半衰期 ~0.57 s，起伏更悠长
+    const coupling  = 0.012; // 更低耦合 → 高频模式上限降至 ~2.0 Hz
+
+    // ── 物理步进：耦合 + 弹簧恢复 + 阻尼 ────────────────────────────────
+    for (int i = 0; i < _kWaveNodes; i++) {
+      final left  = i > 0               ? _waveH[i - 1] : _waveH[i];
+      final right = i < _kWaveNodes - 1 ? _waveH[i + 1] : _waveH[i];
+      _waveV[i] += coupling * (left + right - 2.0 * _waveH[i]);
+      _waveV[i] -= _waveH[i] * stiffness;
+      _waveV[i] *= drag;
+      _waveH[i] = (_waveH[i] + _waveV[i]).clamp(-1.0, 1.0);
+    }
+
+    // ── 节拍激发：在旧 clamp(12,32) 基础上直接翻倍 → clamp(24,64) ───────
+    // amp=0.5 时约 44 帧间隔（~1.4 次/s），最快 24 帧（~2.5 次/s）
+    if (amp > 0.02) {
+      _exciteFrame++;
+      final interval = (90 - amp * 50).round().clamp(40, 90);
+      if (_exciteFrame >= interval) {
+        _exciteFrame = 0;
+        final center  = 2 + _rng.nextInt(_kWaveNodes - 4);
+        final impulse = (_rng.nextDouble() * 2 - 1) * amp * 0.25;
+        // 高斯 5 点扩散，只激发长波低频模式
+        _waveV[center - 2] += impulse * 0.15;
+        _waveV[center - 1] += impulse * 0.55;
+        _waveV[center    ] += impulse * 1.00;
+        _waveV[center + 1] += impulse * 0.55;
+        _waveV[center + 2] += impulse * 0.15;
+      }
+    } else {
+      _exciteFrame = 0;
+    }
+  }
+
+  Widget _buildVoiceWaveform({
+    required bool isRecording,
+    required double targetAmplitude,
+  }) {
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 300),
+      opacity: isRecording ? 1.0 : 0.0,
+      child: ShaderMask(
+        shaderCallback: (bounds) => const LinearGradient(
+          colors: [
+            Colors.transparent,
+            Colors.black,
+            Colors.black,
+            Colors.transparent,
+          ],
+          stops: [0.0, 0.14, 0.86, 1.0],
+        ).createShader(bounds),
+        blendMode: BlendMode.dstIn,
+        child: SizedBox(
+          width: 160,
+          height: 32,
+          child: AnimatedBuilder(
+            animation: _recordingFxController,
+            builder: (context, _) {
+              // 以 3% 的速率追踪目标振幅，更柔和地响应音量变化
+              _displayAmplitude +=
+                  (targetAmplitude - _displayAmplitude) * 0.03;
+              // 弹簧物理步进
+              _stepWave(_displayAmplitude);
+              // 粒子系统：随音量更新
+              _updateParticles(_displayAmplitude);
+              return CustomPaint(
+                painter: _VoiceWavePainter(
+                  heights: List<double>.of(_waveH),
+                  amplitude: _displayAmplitude,
+                  color: const Color(0xFFD39C76),
+                  // 传粒子副本，避免 paint 期间列表被修改
+                  particles: List<_WaveParticle>.of(_particles),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -840,6 +947,163 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
       ),
     );
   }
+}
+
+/// 弹簧物理声波可视化。
+///
+/// 14 个独立弹簧节点，声音随机激发各节点振动，
+/// 节点间用 Catmull-Rom 样条平滑连接。
+/// 静音时所有节点自然归零 → 完美水平直线；
+/// 有声音时各位置独立起伏，形态有机而不规律。
+class _VoiceWavePainter extends CustomPainter {
+  /// 各节点归一化高度（-1.0 ~ 1.0），由弹簧物理驱动
+  final List<double> heights;
+
+  /// 平滑后的音量（0.0 静音 ~ 1.0 最大），用于 shouldRepaint
+  final double amplitude;
+
+  final Color color;
+
+  /// 当前帧的粒子快照
+  final List<_WaveParticle> particles;
+
+  _VoiceWavePainter({
+    required this.heights,
+    required this.amplitude,
+    required this.color,
+    required this.particles,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (heights.isEmpty) return;
+
+    final maxH = size.height * 0.44;
+    final mid  = size.height / 2;
+    final n    = heights.length;
+
+    // 将归一化节点映射到画布坐标
+    final pts = List<Offset>.generate(n, (i) {
+      final x = size.width * i / (n - 1);
+      final y = mid - heights[i] * maxH;
+      return Offset(x, y);
+    });
+
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    // ── 主波：实色 ─────────────────────────────────────────────────────────
+    paint
+      ..strokeWidth = 1.6
+      ..color = color.withValues(alpha: 0.84);
+    canvas.drawPath(_catmullRom(pts, yShift: 0.0), paint);
+
+    // ── 高光波：轻薄偏上，模拟光泽感 ────────────────────────────────────────
+    paint
+      ..strokeWidth = 1.0
+      ..color = color.withValues(alpha: 0.24);
+    canvas.drawPath(_catmullRom(pts, yShift: -1.4), paint);
+
+    // ── 粒子：波纹上下的呼吸小亮点 ──────────────────────────────────────────
+    if (particles.isNotEmpty) {
+      final dotPaint = Paint()..style = PaintingStyle.fill;
+      for (final p in particles) {
+        // 生命进度 0→1（出生到死亡），用 sin 映射出 "渐亮→渐暗" 的呼吸弧
+        final progress = 1.0 - p.life / p.maxLife;
+        final alpha = math.sin(progress * math.pi);
+        if (alpha <= 0.01) continue;
+
+        // 在粒子 x 处插值波面 y 坐标
+        final fIdx  = p.x * (n - 1);
+        final iLeft = fIdx.floor().clamp(0, n - 2);
+        final t     = fIdx - iLeft;
+        final waveH = heights[iLeft] * (1 - t) + heights[iLeft + 1] * t;
+        final waveY = mid - waveH * maxH;
+
+        final cx = p.x * size.width;
+        final cy = waveY - p.yOff * maxH; // yOff>0 浮于波面上方，<0 沉于下方
+
+        // 外圈柔光晕（低透明度，营造发光感）
+        dotPaint.color = color.withValues(alpha: alpha * 0.30);
+        canvas.drawCircle(Offset(cx, cy), p.radius * 2.4, dotPaint);
+
+        // 内核亮点（暖白色，最亮时接近不透明）
+        dotPaint.color = const Color(0xFFFFF4E8).withValues(alpha: alpha * 0.88);
+        canvas.drawCircle(Offset(cx, cy), p.radius, dotPaint);
+      }
+    }
+  }
+
+  /// 将离散控制点转换为 Catmull-Rom 样条 Path。
+  /// [yShift] 将整条曲线整体垂直偏移（用于高光层）。
+  Path _catmullRom(List<Offset> pts, {required double yShift}) {
+    final path = Path();
+    if (pts.length < 2) return path;
+
+    final first = Offset(pts[0].dx, pts[0].dy + yShift);
+    path.moveTo(first.dx, first.dy);
+
+    for (int i = 0; i < pts.length - 1; i++) {
+      // 端点处用自身镜像扩展，确保首尾曲线平滑
+      final p0 = pts[i > 0 ? i - 1 : i];
+      final p1 = pts[i];
+      final p2 = pts[i + 1];
+      final p3 = pts[i < pts.length - 2 ? i + 2 : i + 1];
+
+      // Catmull-Rom → Bezier 控制点转换
+      final cp1 = Offset(
+        p1.dx + (p2.dx - p0.dx) / 6,
+        p1.dy + (p2.dy - p0.dy) / 6 + yShift,
+      );
+      final cp2 = Offset(
+        p2.dx - (p3.dx - p1.dx) / 6,
+        p2.dy - (p3.dy - p1.dy) / 6 + yShift,
+      );
+      final end = Offset(p2.dx, p2.dy + yShift);
+
+      path.cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, end.dx, end.dy);
+    }
+
+    return path;
+  }
+
+  @override
+  bool shouldRepaint(_VoiceWavePainter old) {
+    // 有粒子存在时始终重绘（粒子每帧都在变化）
+    if (particles.isNotEmpty || old.particles.isNotEmpty) return true;
+    if ((old.amplitude - amplitude).abs() > 0.0005) return true;
+    for (int i = 0; i < heights.length; i++) {
+      if ((old.heights[i] - heights[i]).abs() > 0.0005) return true;
+    }
+    return false;
+  }
+}
+
+/// 波纹粒子数据：一个飘动在波面附近的小亮点。
+class _WaveParticle {
+  /// 归一化 x 坐标（0~1，对应 SizedBox 宽度）
+  final double x;
+
+  /// 相对波面的归一化偏移量（正值 = 波面上方，负值 = 下方）
+  final double yOff;
+
+  /// 总生命帧数（出生时 life = maxLife，归零时消亡）
+  final double maxLife;
+
+  /// 剩余生命帧数（可变）
+  double life;
+
+  /// 圆点半径（像素）
+  final double radius;
+
+  _WaveParticle({
+    required this.x,
+    required this.yOff,
+    required this.maxLife,
+    required this.radius,
+  }) : life = maxLife;
 }
 
 class _GridPaperPainter extends CustomPainter {

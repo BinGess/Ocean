@@ -236,7 +236,7 @@ class _SarahHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Expanded(
                 child: Text(
@@ -244,31 +244,25 @@ class _SarahHeader extends StatelessWidget {
                   style: AppTypography.tabPageTitle,
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text(
-                  '共 $totalCount 封信',
-                  style: AppTypography.sectionSubtle.copyWith(
-                    color: _SarahColors.mutedGold,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
+              Text(
+                '共 $totalCount 封信',
+                style: AppTypography.sectionSubtle.copyWith(
+                  color: _SarahColors.mutedGold,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(width: 2),
               // ── 说明页入口 ──────────────────────────────
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: GestureDetector(
-                  onTap: () => SarahAboutScreen.show(context),
-                  behavior: HitTestBehavior.opaque,
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
-                    child: Icon(
-                      Icons.help_outline_rounded,
-                      size: 19,
-                      color: _SarahColors.mutedGold,
-                    ),
+              GestureDetector(
+                onTap: () => SarahAboutScreen.show(context),
+                behavior: HitTestBehavior.opaque,
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.help_outline_rounded,
+                    size: 19,
+                    color: _SarahColors.mutedGold,
                   ),
                 ),
               ),

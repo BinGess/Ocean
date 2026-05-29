@@ -194,16 +194,23 @@ class OceanAccountService {
       );
     }
 
-    try {
-      await _syncService.restoreSnapshot().timeout(
-        const Duration(seconds: 30),
-      );
-    } catch (error) {
-      debugPrint(
-          'OceanAccountService: $action snapshot restore failed: $error');
-    }
-
+    // 本地数据已安全上传，立即通知各页面刷新并放行登录流程，
+    // 让用户直接进入主界面，无需继续等待快照下载。
     _refreshService.notifyChanged();
+
+    // 在后台拉取服务端全量快照（合并其他设备的变更）。
+    // 完成后再次 notifyChanged()，各页面会自动更新至最新状态。
+    // 此处故意不 await，避免阻塞登录页面的跳转。
+    unawaited(
+      _syncService
+          .restoreSnapshot()
+          .timeout(const Duration(seconds: 30))
+          .then((_) => _refreshService.notifyChanged())
+          .catchError((Object error) {
+        debugPrint(
+            'OceanAccountService: $action snapshot restore in background failed: $error');
+      }),
+    );
   }
 
   Future<void> _disableICloudBackupForAccountSync(String action) async {

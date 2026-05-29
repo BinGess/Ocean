@@ -7,7 +7,8 @@ import 'package:mindflow/core/services/ocean_record_ownership_service.dart';
 import 'package:mindflow/core/services/ocean_sync_service.dart';
 
 void main() {
-  test('login migrates local data, restores server snapshot, and notifies',
+  test(
+      'login migrates local data, restores server snapshot in background, and notifies twice',
       () async {
     final api = _FakeAccountApi();
     final syncService = _FakeSyncService();
@@ -28,7 +29,9 @@ void main() {
     expect(api.loggedInEmail, 'user@example.com');
     expect(syncService.pushAllLocalDataCount, 1);
     expect(syncService.restoreSnapshotCount, 1);
-    expect(notifications, 1);
+    // 第一次：push 完成后立即通知（放行登录页跳转）
+    // 第二次：后台 restoreSnapshot 完成后再次通知（刷新各页面至最新服务端状态）
+    expect(notifications, 2);
     expect(cacheService.clearCount, 0);
     await subscription.cancel();
   });
@@ -111,7 +114,8 @@ void main() {
     expect(syncService.restoreSnapshotCount, 0);
   });
 
-  test('retryLocalMigration reuses existing auth without another login',
+  test(
+      'retryLocalMigration reuses existing auth without another login and notifies twice',
       () async {
     final api = _FakeAccountApi()..loggedInPhone = '13800138000';
     final syncService = _FakeSyncService();
@@ -131,7 +135,9 @@ void main() {
     expect(syncService.pushAllLocalDataCount, 1);
     expect(syncService.restoreSnapshotCount, 1);
     expect(api.smsLoginCount, 0);
-    expect(notifications, 1);
+    // 第一次：push 完成后立即通知（放行登录页跳转）
+    // 第二次：后台 restoreSnapshot 完成后再次通知（刷新各页面至最新服务端状态）
+    expect(notifications, 2);
     await subscription.cancel();
   });
 
@@ -160,7 +166,9 @@ void main() {
     expect(syncService.restoreSnapshotCount, 1);
   });
 
-  test('sms login restores server snapshot and notifies', () async {
+  test(
+      'sms login restores server snapshot in background and notifies twice',
+      () async {
     final api = _FakeAccountApi();
     final syncService = _FakeSyncService();
     final cacheService = _FakeAccountCacheService();
@@ -182,7 +190,9 @@ void main() {
     expect(api.loggedInPhone, '13800138000');
     expect(syncService.pushAllLocalDataCount, 1);
     expect(syncService.restoreSnapshotCount, 1);
-    expect(notifications, 1);
+    // 第一次：push 完成后立即通知（放行登录页跳转）
+    // 第二次：后台 restoreSnapshot 完成后再次通知（刷新各页面至最新服务端状态）
+    expect(notifications, 2);
     await subscription.cancel();
   });
 
