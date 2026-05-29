@@ -25,7 +25,7 @@ class AppLocalizations {
       'appTitle': 'MindFlow',
       'navRecords': '记录',
       'navHome': '瞬记',
-      'navInsights': '洞察',
+      'navInsights': 'Sarah',
       'navMe': '我的',
       'profileNickname': 'MindFlow 用户',
       'profileSubtitle': '慢慢记录，也慢慢理解自己',
@@ -225,12 +225,21 @@ class AppLocalizations {
           '订阅将通过您的 Apple ID 账户确认购买。\n订阅会自动续订，除非您在当前订阅期结束前至少24小时关闭自动续订。\n您可以在 App Store 账户设置中管理和取消订阅。',
       'debugMode': 'DEBUG 模式',
       'debugModeSubtitle': '开启后无需订阅即可使用导出（仅供内部测试）',
+      'proPrivacyPolicy': '隐私政策',
+      'proTermsOfUse': '使用条款',
+      'deleteAccount': '删除账号',
+      'deleteAccountSubtitle': '永久删除账号和所有数据',
+      'deleteAccountConfirmTitle': '确认删除账号？',
+      'deleteAccountConfirmMessage': '此操作将永久删除您在服务端的账号及全部数据，且无法恢复。本机记录也会被清除。',
+      'deleteAccountButton': '永久删除',
+      'deleteAccountSuccess': '账号已删除',
+      'deleteAccountFailed': '删除失败，请稍后重试',
     },
     'en': {
       'appTitle': 'MindFlow',
       'navRecords': 'Records',
       'navHome': 'Record',
-      'navInsights': 'Insights',
+      'navInsights': 'Sarah',
       'navMe': 'Me',
       'profileNickname': 'MindFlow User',
       'profileSubtitle': 'Keep noticing, one entry at a time',
@@ -448,6 +457,16 @@ class AppLocalizations {
       'debugMode': 'DEBUG mode',
       'debugModeSubtitle':
           'When on, Export works without subscription (internal testing only)',
+      'proPrivacyPolicy': 'Privacy Policy',
+      'proTermsOfUse': 'Terms of Use',
+      'deleteAccount': 'Delete Account',
+      'deleteAccountSubtitle': 'Permanently delete account and all data',
+      'deleteAccountConfirmTitle': 'Delete Account?',
+      'deleteAccountConfirmMessage':
+          'This will permanently delete your account and all data on the server. This action cannot be undone. Your local records will also be erased.',
+      'deleteAccountButton': 'Delete Permanently',
+      'deleteAccountSuccess': 'Account deleted',
+      'deleteAccountFailed': 'Deletion failed, please try again',
     },
   };
 
@@ -680,6 +699,16 @@ class AppLocalizations {
   String get proSubscriptionNote => _translate('proSubscriptionNote');
   String get debugMode => _translate('debugMode');
   String get debugModeSubtitle => _translate('debugModeSubtitle');
+  String get proPrivacyPolicy => _translate('proPrivacyPolicy');
+  String get proTermsOfUse => _translate('proTermsOfUse');
+  String get deleteAccount => _translate('deleteAccount');
+  String get deleteAccountSubtitle => _translate('deleteAccountSubtitle');
+  String get deleteAccountConfirmTitle => _translate('deleteAccountConfirmTitle');
+  String get deleteAccountConfirmMessage =>
+      _translate('deleteAccountConfirmMessage');
+  String get deleteAccountButton => _translate('deleteAccountButton');
+  String get deleteAccountSuccess => _translate('deleteAccountSuccess');
+  String get deleteAccountFailed => _translate('deleteAccountFailed');
 
   // Methods with parameters
 

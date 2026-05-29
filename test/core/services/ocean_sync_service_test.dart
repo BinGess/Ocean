@@ -1,6 +1,11 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mindflow/core/services/ocean_sync_service.dart';
+import 'package:mindflow/data/datasources/local/hive_database.dart';
 import 'package:mindflow/domain/entities/record.dart';
+import 'package:hive/hive.dart';
 
 void main() {
   test('pushAllLocalData uploads all local entity groups and saves cursor',
@@ -251,6 +256,97 @@ void main() {
     expect(dataStore.profile?['nickname'], 'Ocean');
     expect(dataStore.records.single.id, 'server-record');
     expect(dataStore.dailySummaries.single['date'], '2026-05-07');
+  });
+
+  test('HiveOceanSyncDataStore restores snake case insight reports', () async {
+    final tempDir =
+        await Directory.systemTemp.createTemp('ocean_sync_hive_test_');
+    Hive.init(tempDir.path);
+    final settingsBox = await Hive.openBox<dynamic>('settings_snake_case_test');
+    final insightReportsBox =
+        await Hive.openBox<String>('insight_reports_snake_case_test');
+    addTearDown(() async {
+      await settingsBox.close();
+      await insightReportsBox.close();
+      await tempDir.delete(recursive: true);
+    });
+    final dataStore = HiveOceanSyncDataStore(
+      _InsightReportHiveDatabase(settingsBox, insightReportsBox),
+    );
+
+    await dataStore.upsertInsightReport({
+      'period_type': 'weekly',
+      'period_key': '2026-05-04 ~ 2026-05-10',
+      'week_range': '2026-05-04 ~ 2026-05-10',
+      'cached_at': '2026-05-07T13:44:00.000Z',
+      'record_count': 3,
+      'report': _legacyInsightReportJson(),
+      'client_updated_at': '2026-05-07T13:44:00.000Z',
+    });
+
+    expect(insightReportsBox.length, 1);
+    final raw =
+        jsonDecode(insightReportsBox.values.single) as Map<String, dynamic>;
+    expect(raw['cached_at'], '2026-05-07T13:44:00.000Z');
+    expect(raw['report']['emotion_overview']['summary'], '这一周有点累。');
+  });
+
+  test('HiveOceanSyncDataStore restores insight report JSON string payload',
+      () async {
+    final tempDir =
+        await Directory.systemTemp.createTemp('ocean_sync_hive_string_test_');
+    Hive.init(tempDir.path);
+    final settingsBox = await Hive.openBox<dynamic>('settings_string_test');
+    final insightReportsBox =
+        await Hive.openBox<String>('insight_reports_string_test');
+    addTearDown(() async {
+      await settingsBox.close();
+      await insightReportsBox.close();
+      await tempDir.delete(recursive: true);
+    });
+    final dataStore = HiveOceanSyncDataStore(
+      _InsightReportHiveDatabase(settingsBox, insightReportsBox),
+    );
+
+    await dataStore.upsertInsightReport({
+      'periodKey': '2026-05-04 ~ 2026-05-10',
+      'cachedAt': '2026-05-07T13:44:00.000Z',
+      'report': jsonEncode(_legacyInsightReportJson()),
+    });
+
+    expect(insightReportsBox.length, 1);
+    final raw =
+        jsonDecode(insightReportsBox.values.single) as Map<String, dynamic>;
+    expect(raw['report']['pattern_hypothesis']['text'], '你很需要一点安静。');
+  });
+
+  test('HiveOceanSyncDataStore restores top-level insight report payload',
+      () async {
+    final tempDir =
+        await Directory.systemTemp.createTemp('ocean_sync_hive_top_test_');
+    Hive.init(tempDir.path);
+    final settingsBox = await Hive.openBox<dynamic>('settings_top_test');
+    final insightReportsBox =
+        await Hive.openBox<String>('insight_reports_top_test');
+    addTearDown(() async {
+      await settingsBox.close();
+      await insightReportsBox.close();
+      await tempDir.delete(recursive: true);
+    });
+    final dataStore = HiveOceanSyncDataStore(
+      _InsightReportHiveDatabase(settingsBox, insightReportsBox),
+    );
+
+    await dataStore.upsertInsightReport({
+      'periodKey': '2026-05-04 ~ 2026-05-10',
+      'cachedAt': '2026-05-07T13:44:00.000Z',
+      ..._legacyInsightReportJson(),
+    });
+
+    expect(insightReportsBox.length, 1);
+    final raw =
+        jsonDecode(insightReportsBox.values.single) as Map<String, dynamic>;
+    expect(raw['report']['emotion_overview']['summary'], '这一周有点累。');
   });
 
   test('restoreSnapshot merges server snapshot without clearing local data',
@@ -576,4 +672,36 @@ class _MemorySyncStateStore implements OceanSyncStateStore {
   Future<void> saveCursor(String cursor) async {
     this.cursor = cursor;
   }
+}
+
+class _InsightReportHiveDatabase extends HiveDatabase {
+  _InsightReportHiveDatabase(this._settingsBox, this._insightReportsBox);
+
+  final Box<dynamic> _settingsBox;
+  final Box<String> _insightReportsBox;
+
+  @override
+  Box<dynamic> get settingsBox => _settingsBox;
+
+  @override
+  Box<String> get insightReportsBox => _insightReportsBox;
+}
+
+Map<String, dynamic> _legacyInsightReportJson() {
+  return {
+    'id': 'report-1',
+    'report_type': '每周洞察报告',
+    'emotion_overview': {
+      'summary': '这一周有点累。',
+    },
+    'high_frequency_emotions': const [],
+    'pattern_hypothesis': {
+      'text': '你很需要一点安静。',
+      'highlight_tags': const [],
+    },
+    'action_suggestions': const [],
+    'week_range': '2026-05-04 ~ 2026-05-10',
+    'created_at': '2026-05-07T13:44:00.000Z',
+    'record_count': 3,
+  };
 }

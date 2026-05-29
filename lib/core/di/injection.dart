@@ -7,20 +7,28 @@ import '../../domain/repositories/audio_repository.dart';
 import '../../domain/repositories/record_repository.dart';
 import '../../domain/repositories/ai_repository.dart';
 import '../../domain/repositories/insight_repository.dart';
+import '../../domain/repositories/sarah_letter_repository.dart';
 import '../../domain/usecases/create_quick_note_usecase.dart';
 import '../../domain/usecases/get_records_usecase.dart';
 import '../../domain/usecases/update_record_usecase.dart';
-import '../../domain/usecases/generate_weekly_insight_usecase.dart';
-import '../../domain/usecases/generate_insight_report_usecase.dart';
 import '../../domain/usecases/build_weekly_analysis_usecase.dart';
 import '../../domain/usecases/get_weekly_insights_usecase.dart';
+import '../../domain/usecases/get_sarah_letters_usecase.dart';
+import '../../domain/usecases/delete_sarah_letter_usecase.dart';
+import '../../domain/usecases/ensure_welcome_letter_usecase.dart';
+import '../../domain/usecases/mark_sarah_letter_read_usecase.dart';
+import '../../domain/usecases/migrate_legacy_insights_to_sarah_letters_usecase.dart';
+// request_sarah_weekly_letter_usecase 已不再由客户端自动调用；
+// 周报生成改由服务端 cron 任务负责（每周日 20:00 CST）。
 import '../../data/repositories/audio_repository_impl.dart';
 import '../../data/repositories/record_repository_impl.dart';
 import '../../data/repositories/ai_repository_impl.dart';
 import '../../data/repositories/insight_repository_impl.dart';
+import '../../data/repositories/sarah_letter_repository_impl.dart';
 import '../../data/repositories/quotes_repository.dart';
 import '../../data/datasources/local/hive_database.dart';
 import '../../data/datasources/remote/doubao_datasource.dart';
+import '../../data/datasources/remote/sarah_letter_remote_datasource.dart';
 import '../network/doubao_asr_client.dart';
 import '../network/doubao_llm_client.dart';
 import '../network/coze_ai_service.dart';
@@ -41,8 +49,10 @@ import '../services/pro_subscription_service.dart';
 import '../../presentation/bloc/audio/audio_bloc.dart';
 import '../../presentation/bloc/record/record_bloc.dart';
 import '../../presentation/bloc/insight/insight_bloc.dart';
+import '../../presentation/bloc/sarah/sarah_bloc.dart';
 import '../../presentation/bloc/locale/locale_bloc.dart';
 import '../services/locale_service.dart';
+import '../services/push_notification_service.dart';
 
 final getIt = GetIt.instance;
 
@@ -75,7 +85,20 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<OceanApiClient>(
     () => OceanApiClient(
       tokenStore: getIt<OceanTokenStore>(),
+      // Refresh Token 失效时：通知全局 session-expiry 事件流，
+      // AppEntryPoint 会监听并弹出提示引导用户重新登录。
+      onSessionExpired: () {
+        if (getIt.isRegistered<OceanAccountDataRefreshService>()) {
+          getIt<OceanAccountDataRefreshService>().notifySessionExpired();
+        }
+      },
     ),
+  );
+
+  // ===== Push Notifications =====
+
+  getIt.registerLazySingleton<PushNotificationService>(
+    () => PushNotificationService(deviceApi: getIt<OceanApiClient>()),
   );
 
   // ===== Services =====
@@ -135,6 +158,12 @@ Future<void> configureDependencies() async {
     ),
   );
 
+  getIt.registerLazySingleton<SarahLetterRemoteDataSource>(
+    () => SarahLetterRemoteDataSource(
+      api: getIt<OceanApiClient>(),
+    ),
+  );
+
   // ===== Repositories =====
 
   // 音频仓储
@@ -167,6 +196,14 @@ Future<void> configureDependencies() async {
       userDataApi: getIt<OceanApiClient>(),
       accountApi: getIt<OceanApiClient>(),
       ownershipService: getIt<OceanRecordOwnershipService>(),
+      analysisApi: getIt<OceanApiClient>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<SarahLetterRepository>(
+    () => SarahLetterRepositoryImpl(
+      database: getIt<HiveDatabase>(),
+      remoteDataSource: getIt<SarahLetterRemoteDataSource>(),
     ),
   );
 
@@ -231,6 +268,7 @@ Future<void> configureDependencies() async {
       refreshService: getIt<OceanAccountDataRefreshService>(),
       iCloudSyncService: getIt<ICloudSyncService>(),
       ownershipService: getIt<OceanRecordOwnershipService>(),
+      clearLocalData: () => getIt<HiveDatabase>().clearAll(),
     ),
   );
 
@@ -258,22 +296,9 @@ Future<void> configureDependencies() async {
     ),
   );
 
-  // 生成周洞察（旧版）
-  getIt.registerLazySingleton<GenerateWeeklyInsightUseCase>(
-    () => GenerateWeeklyInsightUseCase(
-      recordRepository: getIt<RecordRepository>(),
-      aiRepository: getIt<AIRepository>(),
-      insightRepository: getIt<InsightRepository>(),
-    ),
-  );
-
-  // 生成洞察报告（新版 - 使用 Coze 智能体）
-  getIt.registerLazySingleton<GenerateInsightReportUseCase>(
-    () => GenerateInsightReportUseCase(
-      recordRepository: getIt<RecordRepository>(),
-      aiRepository: getIt<AIRepository>(),
-    ),
-  );
+  // 周报生成已迁移至服务端 cron（每周日 20:00 CST），客户端不再注册本地生成 UseCase：
+  // - GenerateWeeklyInsightUseCase（旧版）已移除
+  // - GenerateInsightReportUseCase（Coze 智能体版）已移除
 
   getIt.registerLazySingleton<BuildWeeklyAnalysisUseCase>(
     () => BuildWeeklyAnalysisUseCase(
@@ -285,6 +310,37 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<GetWeeklyInsightsUseCase>(
     () => GetWeeklyInsightsUseCase(
       insightRepository: getIt<InsightRepository>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<GetSarahLettersUseCase>(
+    () => GetSarahLettersUseCase(
+      repository: getIt<SarahLetterRepository>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<EnsureWelcomeLetterUseCase>(
+    () => EnsureWelcomeLetterUseCase(
+      repository: getIt<SarahLetterRepository>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<MigrateLegacyInsightsToSarahLettersUseCase>(
+    () => MigrateLegacyInsightsToSarahLettersUseCase(
+      insightRepository: getIt<InsightRepository>(),
+      sarahLetterRepository: getIt<SarahLetterRepository>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<MarkSarahLetterReadUseCase>(
+    () => MarkSarahLetterReadUseCase(
+      repository: getIt<SarahLetterRepository>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<DeleteSarahLetterUseCase>(
+    () => DeleteSarahLetterUseCase(
+      repository: getIt<SarahLetterRepository>(),
     ),
   );
 
@@ -314,12 +370,23 @@ Future<void> configureDependencies() async {
   // 洞察 BLoC
   getIt.registerFactory<InsightBloc>(
     () => InsightBloc(
-      generateWeeklyInsightUseCase: getIt<GenerateWeeklyInsightUseCase>(),
-      generateInsightReportUseCase: getIt<GenerateInsightReportUseCase>(),
       getWeeklyInsightsUseCase: getIt<GetWeeklyInsightsUseCase>(),
       buildWeeklyAnalysisUseCase: getIt<BuildWeeklyAnalysisUseCase>(),
       insightRepository: getIt<InsightRepository>(),
-      aiAuthService: getIt<AIAuthService>(),
+    ),
+  );
+
+  getIt.registerFactory<SarahBloc>(
+    () => SarahBloc(
+      getLettersUseCase: getIt<GetSarahLettersUseCase>(),
+      ensureWelcomeLetterUseCase: getIt<EnsureWelcomeLetterUseCase>(),
+      refreshLegacyInsightsUseCase: () async {
+        await getIt<OceanSyncService>().restoreSnapshot();
+      },
+      migrateLegacyInsightsUseCase:
+          getIt<MigrateLegacyInsightsToSarahLettersUseCase>().call,
+      markReadUseCase: getIt<MarkSarahLetterReadUseCase>(),
+      deleteLetterUseCase: getIt<DeleteSarahLetterUseCase>(),
     ),
   );
 

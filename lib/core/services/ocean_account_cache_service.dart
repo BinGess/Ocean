@@ -15,6 +15,7 @@ class OceanAccountCacheService {
   Future<void> clearAccountCache() async {
     await _database.recordsBox.clear();
     await _database.weeklyInsightsBox.clear();
+    await _database.sarahLettersBox.clear();
     await _database.insightReportsBox.clear();
 
     final keys = _database.settingsBox.keys

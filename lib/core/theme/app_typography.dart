@@ -136,6 +136,16 @@ class AppTypography {
     fontFamilyFallback: _sansFallback,
   );
 
+  static const TextStyle tabPageTitle = TextStyle(
+    fontSize: 30,
+    fontWeight: FontWeight.w700,
+    height: 1.12,
+    letterSpacing: 0,
+    color: AppColors.textPrimary,
+    fontFamily: sansFamily,
+    fontFamilyFallback: _sansFallback,
+  );
+
   static const TextStyle pageMeta = TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.w500,
@@ -276,14 +286,14 @@ class AppTypography {
     fontFamilyFallback: _sansFallback,
   );
 
-  /// 详情页正文（比 bodyPrimary 稍大，适合阅读）
+  /// 详情页正文（衬线字体 + 暖墨色，与 Sarah 信件保持一致的阅读质感）
   static const TextStyle detailBody = TextStyle(
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: FontWeight.w400,
     height: 1.6,
-    color: Color(0xFF4A4A4A),
-    fontFamily: sansFamily,
-    fontFamilyFallback: _sansFallback,
+    color: Color(0xFF2E2A22),
+    fontFamily: serifFamily,
+    fontFamilyFallback: _serifFallback,
   );
 
   /// AppBar 标题

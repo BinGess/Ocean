@@ -4,6 +4,7 @@ library;
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
@@ -19,6 +20,10 @@ class AudioRepositoryImpl implements AudioRepository {
   bool _isStreamMode = false;
   String? _streamAudioPath; // 流式模式下的音频文件路径（用于备份）
   IOSink? _audioFileSink; // 用于将流数据写入文件
+
+  // 振幅轮询（每次录音均新建 broadcast controller，避免单订阅流无法复用）
+  StreamController<double>? _amplitudeController;
+  Timer? _amplitudePollTimer;
 
   @override
   Future<bool> checkPermission() async {
@@ -54,6 +59,7 @@ class AudioRepositoryImpl implements AudioRepository {
       // 开始录音
       await _recorder.start(config, path: path);
       _recordingStartTime = DateTime.now();
+      _startAmplitudePoll();
 
       return true;
     } catch (e) {
@@ -100,6 +106,7 @@ class AudioRepositoryImpl implements AudioRepository {
       // 开始流式录音
       final stream = await _recorder.startStream(config);
       _recordingStartTime = DateTime.now();
+      _startAmplitudePoll();
 
       // 监听音频流并转发
       _audioStreamSubscription = stream.listen(
@@ -136,6 +143,9 @@ class AudioRepositoryImpl implements AudioRepository {
       if (_isStreamMode) {
         debugPrint('AudioRepository: 停止流式录音');
 
+        // 停止振幅轮询
+        _stopAmplitudePoll();
+
         // 停止录音器
         // 注意：如果是 startStream 启动的，stop() 可能返回 null
         await _recorder.stop();
@@ -161,6 +171,9 @@ class AudioRepositoryImpl implements AudioRepository {
         debugPrint('AudioRepository: 流式录音已停止，文件路径: $_streamAudioPath');
         return _streamAudioPath;
       }
+
+      // 停止振幅轮询
+      _stopAmplitudePoll();
 
       // 停止录音
       final path = await _recorder.stop();
@@ -193,6 +206,9 @@ class AudioRepositoryImpl implements AudioRepository {
 
   @override
   Future<void> cancelRecording() async {
+    // 停止振幅轮询
+    _stopAmplitudePoll();
+
     // 如果是流式模式，清理流资源
     if (_isStreamMode) {
       await _audioStreamSubscription?.cancel();
@@ -274,6 +290,48 @@ class AudioRepositoryImpl implements AudioRepository {
   }
 
   @override
+  Stream<double>? get amplitudeStream => _amplitudeController?.stream;
+
+  /// 启动振幅轮询（每次录音新建 broadcast controller，解决单订阅流无法复用问题）
+  void _startAmplitudePoll() {
+    _stopAmplitudePoll(); // 先确保旧的清理干净
+    _amplitudeController = StreamController<double>.broadcast();
+    _amplitudePollTimer = Timer.periodic(
+      const Duration(milliseconds: 80),
+      (_) async {
+        try {
+          final ctrl = _amplitudeController;
+          if (ctrl == null || ctrl.isClosed) return;
+          final amp = await _recorder.getAmplitude();
+          if (!ctrl.isClosed) {
+            ctrl.add(_normalizeDb(amp.current));
+          }
+        } catch (_) {
+          // 振幅读取失败不影响录音主流程
+        }
+      },
+    );
+  }
+
+  /// 停止振幅轮询并关闭 controller
+  void _stopAmplitudePoll() {
+    _amplitudePollTimer?.cancel();
+    _amplitudePollTimer = null;
+    _amplitudeController?.close();
+    _amplitudeController = null;
+  }
+
+  /// 将 dBFS 值（通常 -60 ~ 0）映射到 0.0 ~ 1.0
+  /// 使用 sqrt 近似人耳响度感知曲线
+  static double _normalizeDb(double db) {
+    const minDb = -60.0;
+    if (db <= minDb) return 0.0;
+    if (db >= 0.0) return 1.0;
+    final linear = (db - minDb) / (-minDb); // 线性 0~1
+    return math.sqrt(linear); // 感知线性化
+  }
+
+  @override
   Future<void> warmUp() async {
     try {
       // 预热权限与目录访问，降低首次录音时的 IO 抖动
@@ -285,6 +343,9 @@ class AudioRepositoryImpl implements AudioRepository {
   }
 
   Future<void> dispose() async {
+    // 停止振幅轮询
+    _stopAmplitudePoll();
+
     // 清理流资源
     await _audioStreamSubscription?.cancel();
     await _audioStreamController?.close();

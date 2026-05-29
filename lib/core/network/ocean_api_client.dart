@@ -46,6 +46,7 @@ abstract class OceanAccountApi {
     required String code,
   });
   Future<void> logout();
+  Future<void> deleteAccount();
 }
 
 class OceanSecureTokenStore implements OceanTokenStore {
@@ -152,14 +153,57 @@ abstract class OceanUserDataApi {
   });
 }
 
+abstract class OceanAnalysisApi {
+  /// 获取周分析数据
+  /// [startDate] / [endDate] 格式 YYYY-MM-DD，由客户端按本地时区计算
+  Future<Map<String, dynamic>> getWeeklyAnalysis({
+    required String startDate,
+    required String endDate,
+  });
+
+  /// 获取情绪长期趋势
+  Future<Map<String, dynamic>> getEmotionTrend({
+    required String startDate,
+    required String endDate,
+    String granularity = 'week',
+    int topN = 5,
+  });
+}
+
+abstract class OceanDeviceApi {
+  /// 向服务端注册设备推送 Token（需要已登录）
+  Future<void> registerDeviceToken(String token, {String platform});
+}
+
+abstract class OceanSarahLettersApi {
+  Future<Map<String, dynamic>> listSarahLetters();
+
+  Future<Map<String, dynamic>> ensureSarahWelcomeLetter();
+
+  Future<Map<String, dynamic>> migrateLegacySarahLetters(
+    List<Map<String, dynamic>> letters,
+  );
+
+  Future<Map<String, dynamic>> updateSarahLetter(
+    String id,
+    Map<String, dynamic> data,
+  );
+
+  Future<void> deleteSarahLetter(String id);
+}
+
 class OceanApiClient
     implements
         OceanAccountApi,
         OceanSyncApi,
         OceanRecordsApi,
-        OceanUserDataApi {
+        OceanUserDataApi,
+        OceanSarahLettersApi,
+        OceanAnalysisApi,
+        OceanDeviceApi {
   OceanApiClient({
     required this.tokenStore,
+    this.onSessionExpired,
     Dio? dio,
     String? baseUrl,
   }) : _dio = dio ??
@@ -179,6 +223,11 @@ class OceanApiClient
   }
 
   final OceanTokenStore tokenStore;
+
+  /// Refresh Token 失效时的回调（由 DI 层注入）。
+  /// 在回调触发前，tokenStore 已被清空，isSignedIn 已变为 false。
+  final void Function()? onSessionExpired;
+
   final Dio _dio;
 
   @override
@@ -307,6 +356,14 @@ class OceanApiClient
         // Local logout must still clear tokens when the remote session is gone.
       }
     }
+    await tokenStore.clear();
+  }
+
+  @override
+  Future<void> deleteAccount() async {
+    await _authorizedRequest<dynamic>(
+      () => _dio.delete<dynamic>('/auth/account'),
+    );
     await tokenStore.clear();
   }
 
@@ -461,6 +518,113 @@ class OceanApiClient
     return Map<String, dynamic>.from(response.data ?? const {});
   }
 
+  @override
+  Future<Map<String, dynamic>> listSarahLetters() async {
+    final response = await _authorizedRequest<Map<String, dynamic>>(
+      () => _dio.get<Map<String, dynamic>>('/sarah/letters'),
+    );
+    return Map<String, dynamic>.from(response.data ?? const {});
+  }
+
+  @override
+  Future<Map<String, dynamic>> ensureSarahWelcomeLetter() async {
+    final response = await _authorizedRequest<Map<String, dynamic>>(
+      () => _dio.post<Map<String, dynamic>>('/sarah/letters/welcome'),
+    );
+    return Map<String, dynamic>.from(response.data ?? const {});
+  }
+
+  @override
+  Future<Map<String, dynamic>> migrateLegacySarahLetters(
+    List<Map<String, dynamic>> letters,
+  ) async {
+    final response = await _authorizedRequest<Map<String, dynamic>>(
+      () => _dio.post<Map<String, dynamic>>(
+        '/sarah/letters/migrate-legacy',
+        data: {'letters': letters},
+      ),
+    );
+    return Map<String, dynamic>.from(response.data ?? const {});
+  }
+
+  @override
+  Future<Map<String, dynamic>> updateSarahLetter(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await _authorizedRequest<Map<String, dynamic>>(
+      () => _dio.patch<Map<String, dynamic>>(
+        '/sarah/letters/${Uri.encodeComponent(id)}',
+        data: data,
+      ),
+    );
+    return Map<String, dynamic>.from(response.data ?? const {});
+  }
+
+  @override
+  Future<void> deleteSarahLetter(String id) async {
+    await _authorizedRequest<dynamic>(
+      () => _dio.delete<dynamic>(
+        '/sarah/letters/${Uri.encodeComponent(id)}',
+      ),
+    );
+  }
+
+  // ── Device API ────────────────────────────────────────────────────────────
+
+  @override
+  Future<void> registerDeviceToken(
+    String token, {
+    String platform = 'ios',
+  }) async {
+    await _authorizedRequest<dynamic>(
+      () => _dio.post<dynamic>(
+        '/devices/token',
+        data: {'token': token, 'platform': platform},
+      ),
+    );
+  }
+
+  // ── Analysis API ──────────────────────────────────────────────────────────
+
+  @override
+  Future<Map<String, dynamic>> getWeeklyAnalysis({
+    required String startDate,
+    required String endDate,
+  }) async {
+    final response = await _authorizedRequest<Map<String, dynamic>>(
+      () => _dio.get<Map<String, dynamic>>(
+        '/api/v1/analysis/weekly',
+        queryParameters: {
+          'start_date': startDate,
+          'end_date': endDate,
+        },
+      ),
+    );
+    return Map<String, dynamic>.from(response.data ?? const {});
+  }
+
+  @override
+  Future<Map<String, dynamic>> getEmotionTrend({
+    required String startDate,
+    required String endDate,
+    String granularity = 'week',
+    int topN = 5,
+  }) async {
+    final response = await _authorizedRequest<Map<String, dynamic>>(
+      () => _dio.get<Map<String, dynamic>>(
+        '/api/v1/analysis/emotion-trend',
+        queryParameters: {
+          'start_date': startDate,
+          'end_date': endDate,
+          'granularity': granularity,
+          'top_n': topN,
+        },
+      ),
+    );
+    return Map<String, dynamic>.from(response.data ?? const {});
+  }
+
   Future<Response<T>> _authorizedRequest<T>(
     Future<Response<T>> Function() request, {
     bool hasRetried = false,
@@ -470,7 +634,16 @@ class OceanApiClient
       return await request();
     } on DioException catch (error) {
       if (error.response?.statusCode == 401 && !hasRetried) {
-        await refresh();
+        try {
+          await refresh();
+        } catch (_) {
+          // Refresh Token 也已失效：
+          // 1. 清除本地凭证，让 isSignedIn 立即返回 false
+          // 2. 异步通知上层 UI session 已过期（microtask 确保不在同步调用栈内触发 setState）
+          await tokenStore.clear();
+          Future.microtask(() => onSessionExpired?.call());
+          rethrow;
+        }
         return _authorizedRequest(request, hasRetried: true);
       }
       throw OceanApiException.fromDio(error);

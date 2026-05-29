@@ -31,6 +31,9 @@ class AudioState extends Equatable {
   final bool isTranscriptionFinal; // 是否是最终转写结果
   final bool isWebSocketConnected; // WebSocket是否已连接
 
+  /// 实时音量，0.0（静音）~ 1.0（最大）；由 AudioBloc 订阅麦克风振幅流更新
+  final double amplitude;
+
   const AudioState({
     required this.status,
     this.duration = 0.0,
@@ -40,6 +43,7 @@ class AudioState extends Equatable {
     this.realtimeTranscription,
     this.isTranscriptionFinal = false,
     this.isWebSocketConnected = false,
+    this.amplitude = 0.0,
   });
 
   /// 初始状态
@@ -61,6 +65,7 @@ class AudioState extends Equatable {
     String? realtimeTranscription,
     bool? isTranscriptionFinal,
     bool? isWebSocketConnected,
+    double? amplitude,
     bool clearTranscription = false, // 用于清除转写文本
   }) {
     return AudioState(
@@ -72,6 +77,7 @@ class AudioState extends Equatable {
       realtimeTranscription: clearTranscription ? null : (realtimeTranscription ?? this.realtimeTranscription),
       isTranscriptionFinal: isTranscriptionFinal ?? this.isTranscriptionFinal,
       isWebSocketConnected: isWebSocketConnected ?? this.isWebSocketConnected,
+      amplitude: amplitude ?? this.amplitude,
     );
   }
 
@@ -98,5 +104,6 @@ class AudioState extends Equatable {
         realtimeTranscription,
         isTranscriptionFinal,
         isWebSocketConnected,
+        amplitude,
       ];
 }

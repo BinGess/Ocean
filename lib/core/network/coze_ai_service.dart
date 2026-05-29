@@ -903,7 +903,12 @@ class CozeAIService {
       );
 
       if (response.statusCode == 200 && response.data is ResponseBody) {
-        final streamText = await utf8.decoder.bind(response.data.stream).join();
+        // 逐行解析 SSE，遇到 message_end / [DONE] 立即停止读取，
+        // 避免因流未关闭而永远挂起。兜底超时 45s。
+        final streamText = await _readSSEStreamUntilDone(
+          response.data.stream,
+          timeout: const Duration(seconds: 45),
+        );
         print('📥 CozeAI: 收到日总结流式响应，长度: ${streamText.length}');
 
         final answer = _extractAnswerFromSSE(streamText);
@@ -920,6 +925,87 @@ class CozeAIService {
       print('   Message: ${e.message}');
       rethrow;
     }
+  }
+
+  /// 逐行读取 SSE 流，遇到终止信号（message_end / [DONE]）立即返回，
+  /// 不等流物理关闭，从根本上避免连接未关闭时的永久挂起。
+  ///
+  /// [timeout] 兜底超时：流一直没有终止信号时强制结束，抛 CozeAPIException。
+  Future<String> _readSSEStreamUntilDone(
+    Stream<List<int>> byteStream, {
+    Duration timeout = const Duration(seconds: 45),
+  }) async {
+    final buffer = StringBuffer();
+    final lineBuffer = StringBuffer();
+    final completer = Completer<String>();
+    StreamSubscription<List<int>>? subscription;
+    Timer? timeoutTimer;
+
+    void done() {
+      if (completer.isCompleted) return;
+      timeoutTimer?.cancel();
+      subscription?.cancel();
+      completer.complete(buffer.toString());
+    }
+
+    void onError(Object e, [StackTrace? st]) {
+      if (completer.isCompleted) return;
+      timeoutTimer?.cancel();
+      subscription?.cancel();
+      completer.completeError(e, st);
+    }
+
+    timeoutTimer = Timer(timeout, () {
+      if (!completer.isCompleted) {
+        subscription?.cancel();
+        completer.completeError(
+          CozeAPIException(
+            '日总结流式响应超时（${timeout.inSeconds}s），请检查网络连接',
+            code: 'STREAM_TIMEOUT',
+          ),
+        );
+      }
+    });
+
+    subscription = byteStream.listen(
+      (chunk) {
+        // 追加到行缓冲，逐行解析
+        final decoded = utf8.decode(chunk, allowMalformed: true);
+        for (final char in decoded.split('')) {
+          if (char == '\n') {
+            final line = lineBuffer.toString().trim();
+            lineBuffer.clear();
+            buffer.writeln(line);
+
+            // 判断终止信号
+            if (line.startsWith('data:')) {
+              final data = line.substring(5).trim();
+              if (data == '[DONE]') {
+                done();
+                return;
+              }
+              // message_end 事件 → 流内容已完整
+              try {
+                final json = jsonDecode(data) as Map<String, dynamic>;
+                if (json['type'] == 'message_end') {
+                  done();
+                  return;
+                }
+              } catch (_) {
+                // 非 JSON 行，继续
+              }
+            }
+          } else {
+            lineBuffer.write(char);
+          }
+        }
+      },
+      onDone: done,
+      onError: onError,
+      cancelOnError: false,
+    );
+
+    return completer.future;
   }
 
   /// 解析日总结响应

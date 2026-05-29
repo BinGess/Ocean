@@ -7,18 +7,22 @@ String formatRecordDateTime(
   DateTime dateTime, {
   String languageCode = 'zh',
 }) {
-  final month = dateTime.month;
-  final day = dateTime.day;
-  final hour24 = dateTime.hour;
+  // 服务端返回 UTC DateTime（isUtc=true），列表用 DateFormat.format(time.toLocal())
+  // 而这里直接取 .hour 会读到 UTC 小时值（对中国用户差 8 小时）。
+  // 在入口统一转为本地时间，和列表的处理方式保持一致。
+  final local = dateTime.toLocal();
+  final month = local.month;
+  final day = local.day;
+  final hour24 = local.hour;
   final hour = hour24 == 0 ? 12 : (hour24 > 12 ? hour24 - 12 : hour24);
-  final minute = dateTime.minute.toString().padLeft(2, '0');
+  final minute = local.minute.toString().padLeft(2, '0');
 
   if (languageCode == 'en') {
-    final period = dateTime.hour < 12 ? 'AM' : 'PM';
+    final period = local.hour < 12 ? 'AM' : 'PM';
     return '${_englishMonthName(month)} $day · $hour:$minute $period';
   }
 
-  final period = dateTime.hour < 12 ? '上午' : '下午';
+  final period = local.hour < 12 ? '上午' : '下午';
   return '$month月$day日·$period$hour:$minute';
 }
 

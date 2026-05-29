@@ -16,15 +16,19 @@ import 'core/services/app_entry_flow.dart';
 import 'core/services/icloud_sync_service.dart';
 import 'core/services/ocean_account_service.dart';
 import 'core/services/ocean_record_ownership_service.dart';
+import 'core/services/push_notification_service.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/bloc/audio/audio_bloc.dart';
 import 'presentation/bloc/audio/audio_event.dart';
 import 'presentation/bloc/record/record_bloc.dart';
 import 'presentation/bloc/insight/insight_bloc.dart';
+import 'presentation/bloc/sarah/sarah_bloc.dart';
+import 'presentation/bloc/sarah/sarah_event.dart';
+import 'presentation/bloc/sarah/sarah_state.dart';
 import 'presentation/bloc/locale/locale_bloc.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/records/records_screen.dart';
-import 'presentation/screens/insights/insights_screen.dart';
+import 'presentation/screens/sarah/sarah_screen.dart';
 import 'presentation/screens/me/my_screen.dart';
 import 'presentation/screens/splash/splash_screen.dart';
 import 'presentation/screens/onboarding/nvc_onboarding_screen.dart';
@@ -69,6 +73,9 @@ class MindFlowApp extends StatelessWidget {
         ),
         BlocProvider(
           create: (context) => getIt<InsightBloc>(),
+        ),
+        BlocProvider(
+          create: (context) => getIt<SarahBloc>(),
         ),
         BlocProvider(
           create: (context) => getIt<LocaleBloc>()..add(const LocaleLoad()),
@@ -120,6 +127,7 @@ class _AppEntryPointState extends State<AppEntryPoint>
 
   final _appLockService = getIt<AppLockService>();
   final _accountService = getIt<OceanAccountService>();
+  StreamSubscription<void>? _sessionExpiredSubscription;
 
   static const _loginGuideSkippedKey = 'ocean_login_guide_skipped';
   static const _loginDataProtectionPromptVersionKey =
@@ -130,6 +138,12 @@ class _AppEntryPointState extends State<AppEntryPoint>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // 监听 Token 过期事件：自动弹出提示，引导用户重新登录
+    if (getIt.isRegistered<OceanAccountDataRefreshService>()) {
+      _sessionExpiredSubscription = getIt<OceanAccountDataRefreshService>()
+          .sessionExpired
+          .listen((_) => _onSessionExpired());
+    }
     // 注：不再在 initState 中请求权限，而是在 splash 结束后按顺序请求
     // 延迟检查锁屏，确保 widget 树已完成构建
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -141,8 +155,28 @@ class _AppEntryPointState extends State<AppEntryPoint>
 
   @override
   void dispose() {
+    _sessionExpiredSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  /// Refresh Token 已失效，tokenStore 已被清空（isSignedIn = false）。
+  /// 弹出持久提示条，让用户主动选择重新登录或忽略。
+  void _onSessionExpired() {
+    if (!mounted || _showSplash) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('登录已过期，请重新登录以同步数据'),
+        duration: const Duration(seconds: 10),
+        action: SnackBarAction(
+          label: '重新登录',
+          onPressed: () {
+            if (!mounted) return;
+            setState(() => _showAccountEntry = true);
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -229,6 +263,9 @@ class _AppEntryPointState extends State<AppEntryPoint>
   void _requestPermissionsAndWarmUp() {
     // 立即触发网络权限弹窗（最优先，确保在开屏期间弹出）
     _triggerNetworkPermission();
+
+    // 初始化推送通知服务（注册 APNs Token 并监听点击事件由 MainNavigation 处理）
+    getIt<PushNotificationService>().init();
 
     // 延迟 200ms 等待 BLoC 初始化完成后请求麦克风权限
     Future.delayed(const Duration(milliseconds: 200), () {
@@ -344,6 +381,9 @@ class _AppEntryPointState extends State<AppEntryPoint>
       _showAccountEntry = false;
       _mainGeneration = AppEntryFlow.nextMainGeneration(_mainGeneration);
     });
+    // 登录完成后重试 Token 注册：首次启动时用户还未登录，
+    // init() 注册会因缺少 JWT 而静默失败，此处补一次重试。
+    getIt<PushNotificationService>().retryTokenRegistration();
   }
 
   @override
@@ -473,6 +513,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
   // 四个主要页面
   late final List<Widget> _screens;
+  StreamSubscription<PushNotificationTapEvent>? _notificationTapSub;
 
   @override
   void initState() {
@@ -486,9 +527,27 @@ class _MainNavigationState extends State<MainNavigation> {
         },
       ), // 记录
       const HomeScreen(), // 首页（录音）
-      const InsightsScreen(), // 洞察
+      const SarahScreen(), // Sarah
       const MyScreen(), // 我的
     ];
+
+    // 监听推送通知点击：Sarah 信件通知 → 切换到 Sarah Tab
+    _notificationTapSub =
+        getIt<PushNotificationService>().onNotificationTap.listen((event) {
+      if (!mounted) return;
+      if (event.type == PushNotificationType.sarahLetter) {
+        setState(() => _currentIndex = 2);
+        context.read<SarahBloc>().add(const SarahLoadRequested());
+        // 进入 Sarah 页面后清除 App 角标
+        getIt<PushNotificationService>().clearBadge();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _notificationTapSub?.cancel();
+    super.dispose();
   }
 
   @override
@@ -541,11 +600,18 @@ class _MainNavigationState extends State<MainNavigation> {
                       ),
                     ),
                     Expanded(
-                      child: _buildNavItem(
-                        index: 2,
-                        icon: Icons.auto_awesome_outlined,
-                        activeIcon: Icons.auto_awesome,
-                        label: l10n.navInsights,
+                      child: BlocBuilder<SarahBloc, SarahState>(
+                        buildWhen: (previous, current) =>
+                            previous.unreadCount != current.unreadCount,
+                        builder: (context, state) {
+                          return _buildNavItem(
+                            index: 2,
+                            icon: Icons.auto_awesome_outlined,
+                            activeIcon: Icons.auto_awesome,
+                            label: l10n.navInsights,
+                            showBadge: state.unreadCount > 0,
+                          );
+                        },
                       ),
                     ),
                     Expanded(
@@ -571,9 +637,10 @@ class _MainNavigationState extends State<MainNavigation> {
     required IconData icon,
     required IconData activeIcon,
     required String label,
+    bool showBadge = false,
   }) {
     final isActive = _currentIndex == index;
-    final color = isActive ? AppColors.accent : AppColors.textSecondary;
+    final color = isActive ? const Color(0xFF8A7655) : const Color(0xFFC0B8AC);
 
     return Semantics(
       button: true,
@@ -586,6 +653,9 @@ class _MainNavigationState extends State<MainNavigation> {
             setState(() {
               _currentIndex = index;
             });
+            if (index == 2) {
+              context.read<SarahBloc>().add(const SarahLoadRequested());
+            }
           },
           child: Container(
             alignment: Alignment.center,
@@ -594,10 +664,28 @@ class _MainNavigationState extends State<MainNavigation> {
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  isActive ? activeIcon : icon,
-                  size: 26,
-                  color: color,
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(
+                      isActive ? activeIcon : icon,
+                      size: 26,
+                      color: color,
+                    ),
+                    if (showBadge)
+                      Positioned(
+                        top: -2,
+                        right: -5,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFD45E35),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(

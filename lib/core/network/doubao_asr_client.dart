@@ -132,6 +132,13 @@ class DoubaoASRClient {
   bool _sessionReady = false;
   Completer<void>? _handshakeCompleter;
 
+  /// 主动关闭标志。
+  /// finishAudio() 发出最后一帧后服务端预期会关闭连接；
+  /// disconnect() 也会主动关闭。两处均设 true，告知 onDone 回调
+  /// "这是预期关闭，无需向 _responseController 推送 SocketException"。
+  /// disconnect() 结束后重置为 false，以便下次连接的意外断开仍能被侦测。
+  bool _expectingClose = false;
+
   /// 响应流
   Stream<ASRResponse> get responses => _responseController.stream;
 
@@ -223,6 +230,7 @@ class DoubaoASRClient {
       _channel = IOWebSocketChannel(webSocket);
       _sessionReady = false;
       _handshakeCompleter = Completer<void>();
+      _expectingClose = false; // 新连接重置标志
 
       // 监听消息
       _channel!.stream.listen(
@@ -232,10 +240,21 @@ class DoubaoASRClient {
         },
         onError: (error) {
           print('❌ ASRClient: WebSocket Error: $error');
-          _responseController.addError(error);
+          if (!_responseController.isClosed) {
+            _responseController.addError(error);
+          }
         },
         onDone: () {
           print('🔌 ASRClient: WebSocket connection closed');
+          // _expectingClose=true：主动断开（finishAudio 后服务端关闭，或 disconnect()）
+          //   → 静默处理，不推送错误（BLoC 已通过 _onFinalizeStreaming 管理状态）
+          // _expectingClose=false：意外断开（网络中断等）
+          //   → 推送 SocketException，让 BLoC 的 _onStreamError 感知并更新 UI
+          if (!_expectingClose && !_responseController.isClosed) {
+            _responseController.addError(
+              const SocketException('WebSocket connection closed by server'),
+            );
+          }
           _cleanup();
         },
       );
@@ -330,6 +349,9 @@ class DoubaoASRClient {
       await _handshakeCompleter!.future
           .timeout(const Duration(seconds: 10));
     }
+
+    // 发出 isLast 后服务端会主动关闭连接，属于预期行为
+    _expectingClose = true;
 
     // 发送空音频包表示结束，并设置 isLast 标志
     await _sendMessage(
@@ -542,8 +564,10 @@ class DoubaoASRClient {
 
   /// 断开连接
   Future<void> disconnect() async {
+    _expectingClose = true; // 主动断开，onDone 不推送错误
     await _channel?.sink.close();
     _cleanup();
+    _expectingClose = false; // 重置，下次连接的意外断开仍能被感知
   }
 
   /// 清理资源
@@ -551,6 +575,7 @@ class DoubaoASRClient {
     _channel = null;
     _sessionReady = false;
     _handshakeCompleter = null;
+    // 注意：_expectingClose 由 disconnect() 管理，此处不重置
   }
 
   /// 释放资源

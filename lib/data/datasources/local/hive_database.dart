@@ -4,12 +4,14 @@ library;
 
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../models/record_model.dart';
+import '../../models/sarah_letter_model.dart';
 import '../../models/weekly_insight_model.dart';
 
 class HiveDatabase {
   // Box 名称常量
   static const String recordsBoxName = 'records';
   static const String weeklyInsightsBoxName = 'weekly_insights';
+  static const String sarahLettersBoxName = 'sarah_letters';
   static const String settingsBoxName = 'settings';
   static const String insightReportsBoxName = 'insight_reports_cache';
   static const String quotesBoxName = 'quotes';
@@ -17,6 +19,7 @@ class HiveDatabase {
   // Box 引用
   late Box<RecordModel> recordsBox;
   late Box<WeeklyInsightModel> weeklyInsightsBox;
+  late Box<SarahLetterModel> sarahLettersBox;
   late Box<dynamic> settingsBox;
   late Box<String> insightReportsBox;
   late Box<String> quotesBox;  // 存储Quote为JSON字符串
@@ -33,6 +36,8 @@ class HiveDatabase {
     recordsBox = await Hive.openBox<RecordModel>(recordsBoxName);
     weeklyInsightsBox =
         await Hive.openBox<WeeklyInsightModel>(weeklyInsightsBoxName);
+    sarahLettersBox =
+        await Hive.openBox<SarahLetterModel>(sarahLettersBoxName);
     settingsBox = await Hive.openBox(settingsBoxName);
     insightReportsBox = await Hive.openBox<String>(insightReportsBoxName);
     quotesBox = await Hive.openBox<String>(quotesBoxName);
@@ -50,14 +55,16 @@ class HiveDatabase {
       Hive.registerAdapter(WeeklyInsightModelAdapter());
     }
 
-    // 后续添加更多适配器
-    // Hive.registerAdapter(NVCAnalysisModelAdapter());
+    if (!Hive.isAdapterRegistered(SarahLetterModel.hiveTypeId)) {
+      Hive.registerAdapter(SarahLetterModelAdapter());
+    }
   }
 
   /// 清空所有数据（用于测试）
   Future<void> clearAll() async {
     await recordsBox.clear();
     await weeklyInsightsBox.clear();
+    await sarahLettersBox.clear();
     await settingsBox.clear();
     await insightReportsBox.clear();
     await quotesBox.clear();
@@ -67,6 +74,7 @@ class HiveDatabase {
   Future<void> close() async {
     await recordsBox.close();
     await weeklyInsightsBox.close();
+    await sarahLettersBox.close();
     await settingsBox.close();
     await insightReportsBox.close();
     await quotesBox.close();
@@ -77,6 +85,7 @@ class HiveDatabase {
     return {
       'records_count': recordsBox.length,
       'insights_count': weeklyInsightsBox.length,
+      'sarah_letters_count': sarahLettersBox.length,
       'settings_count': settingsBox.length,
       'insight_reports_count': insightReportsBox.length,
       'quotes_count': quotesBox.length,

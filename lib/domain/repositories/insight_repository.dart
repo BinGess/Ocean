@@ -4,6 +4,7 @@
 import '../entities/weekly_insight.dart';
 import '../entities/insight_report.dart';
 import '../entities/insight_report_cache.dart';
+import '../entities/weekly_analysis.dart';
 
 abstract class InsightRepository {
   /// 创建周洞察
@@ -63,4 +64,11 @@ abstract class InsightRepository {
 
   /// 获取所有洞察报告缓存（新版）
   Future<List<InsightReportCache>> getAllCachedInsightReports();
+
+  /// 从服务端获取周分析数据
+  /// 服务端无记录时返回 null；网络不可用或未登录时抛出异常由上层决定降级
+  Future<WeeklyAnalysis?> fetchServerWeeklyAnalysis({
+    required String startDate,
+    required String endDate,
+  });
 }

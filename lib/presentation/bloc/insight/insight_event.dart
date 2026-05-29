@@ -30,22 +30,6 @@ class InsightAccountDataChanged extends InsightEvent {
   const InsightAccountDataChanged();
 }
 
-/// 生成指定周洞察
-class InsightGenerateForWeek extends InsightEvent {
-  final String weekRange;
-  final DateTime startDate;
-  final DateTime endDate;
-
-  const InsightGenerateForWeek({
-    required this.weekRange,
-    required this.startDate,
-    required this.endDate,
-  });
-
-  @override
-  List<Object?> get props => [weekRange, startDate, endDate];
-}
-
 /// 加载洞察列表
 class InsightLoadList extends InsightEvent {
   final int? limit;

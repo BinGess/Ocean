@@ -73,33 +73,42 @@ class DailySummaryService {
     }
   }
 
-  /// 保存日总结到缓存
+  /// 保存日总结到缓存（本地优先：先写 Hive，再 best-effort 同步服务端）
   Future<void> _saveDailySummary(DailySummary summary) async {
     final key = getDailySummaryKey(summary.date);
     final jsonStr = jsonEncode(summary.toJson());
     final dateKey = key.substring('daily_summary_'.length);
     final clientUpdatedAt = DateTime.now().toUtc().toIso8601String();
-    final api = _userDataApi;
-    if (api != null && await api.isSignedIn) {
-      await api.updateDailySummary(dateKey, {
-        'moodWord': summary.moodWord,
-        'oneSentence': summary.oneSentence,
-        'score': summary.score,
-        'recordCount': summary.recordCount,
-        'generatedAt': summary.generatedAt.toUtc().toIso8601String(),
-        'userOverridden': summary.userOverridden,
-        'clientUpdatedAt': clientUpdatedAt,
-      });
-      await _markAccount('daily_summary', dateKey);
-    } else {
-      await _ownershipService?.markEntityLocal('daily_summary', dateKey);
-    }
+
+    // ① 先写本地：无论网络如何，数据不丢
     await _database.settingsBox.put(key, jsonStr);
     await _database.settingsBox.put(
       'ocean_sync_updated_at_daily_summary_$dateKey',
       clientUpdatedAt,
     );
     debugPrint('DailySummaryService: 已保存日总结 (${summary.date})');
+
+    // ② best-effort 同步服务端，失败不影响本地已保存的数据
+    final api = _userDataApi;
+    if (api != null && await api.isSignedIn) {
+      try {
+        await api.updateDailySummary(dateKey, {
+          'moodWord': summary.moodWord,
+          'oneSentence': summary.oneSentence,
+          'score': summary.score,
+          'recordCount': summary.recordCount,
+          'generatedAt': summary.generatedAt.toUtc().toIso8601String(),
+          'userOverridden': summary.userOverridden,
+          'clientUpdatedAt': clientUpdatedAt,
+        });
+        await _markAccount('daily_summary', dateKey);
+      } catch (e) {
+        debugPrint('DailySummaryService: 同步日总结到服务端失败（已忽略）: $e');
+        await _ownershipService?.markEntityLocal('daily_summary', dateKey);
+      }
+    } else {
+      await _ownershipService?.markEntityLocal('daily_summary', dateKey);
+    }
   }
 
   /// 删除某天的日总结缓存
@@ -155,9 +164,14 @@ class DailySummaryService {
       DateTime date, List<Record> records,
       {bool force = false}) async {
     final key = getDailySummaryKey(date);
-    final inFlight = _inFlightGenerations[key];
-    if (inFlight != null) {
-      return inFlight;
+
+    // force=false 时复用已有的 in-flight future（防重复调用）
+    // force=true 时（手动刷新）直接启动新请求，旧 in-flight 被替换
+    if (!force) {
+      final inFlight = _inFlightGenerations[key];
+      if (inFlight != null) {
+        return inFlight;
+      }
     }
 
     final future = _generateDailySummaryInternal(
@@ -179,7 +193,11 @@ class DailySummaryService {
       }
       return summary;
     } finally {
-      _inFlightGenerations.remove(key);
+      // 只有当 map 中还是这个 future 时才移除，
+      // 避免覆盖掉 force 刷新注册的新 future
+      if (_inFlightGenerations[key] == future) {
+        _inFlightGenerations.remove(key);
+      }
     }
   }
 

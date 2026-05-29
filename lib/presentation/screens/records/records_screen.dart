@@ -313,26 +313,39 @@ class _RecordsScreenState extends State<RecordsScreen> {
     if (selectedMood != null) {
       final dateKey = key.substring('daily_mood_'.length);
       final clientUpdatedAt = DateTime.now().toUtc().toIso8601String();
-      final api = _userDataApi;
-      if (api != null && await api.isSignedIn) {
-        await api.updateDailyMood(dateKey, {
-          'imagePath': selectedMood.imagePath,
-          'clientUpdatedAt': clientUpdatedAt,
-        });
-        await _markEntityAccount('daily_mood', dateKey);
-      } else {
-        await _ownershipService?.markEntityLocal('daily_mood', dateKey);
-      }
+
+      // ① 先写本地：无论网络如何，UI 立即生效
       await _database.settingsBox.put(key, selectedMood.imagePath);
       await _database.settingsBox.put(
         'ocean_sync_updated_at_daily_mood_$dateKey',
         clientUpdatedAt,
       );
       // 标记用户已手动设置心情，防止 AI 覆盖
-      await _dailySummaryService.markUserOverridden(date);
+      try {
+        await _dailySummaryService.markUserOverridden(date);
+      } catch (e) {
+        debugPrint('RecordsScreen: markUserOverridden 失败（已忽略）: $e');
+      }
       setState(() {
         _dailyMoods[key] = selectedMood.imagePath;
       });
+
+      // ② best-effort 同步服务端，失败不影响本地状态
+      final api = _userDataApi;
+      if (api != null && await api.isSignedIn) {
+        try {
+          await api.updateDailyMood(dateKey, {
+            'imagePath': selectedMood.imagePath,
+            'clientUpdatedAt': clientUpdatedAt,
+          });
+          await _markEntityAccount('daily_mood', dateKey);
+        } catch (e) {
+          debugPrint('RecordsScreen: 同步心情到服务端失败（已忽略）: $e');
+          await _ownershipService?.markEntityLocal('daily_mood', dateKey);
+        }
+      } else {
+        await _ownershipService?.markEntityLocal('daily_mood', dateKey);
+      }
     }
   }
 
@@ -392,15 +405,15 @@ class _RecordsScreenState extends State<RecordsScreen> {
           SnackBar(content: Text(l10n.recordDeleted)),
         );
       }
-      _loadRecords();
+      // RecordUpdate / RecordDelete 已直接更新 bloc 状态，无需再次全量加载
     } else {
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => RecordDetailScreen(record: record),
         ),
       );
-      if (!mounted) return;
-      _loadRecords();
+      // 详情页内的编辑/删除操作已通过 RecordBloc dispatch 实时更新列表，
+      // 返回后无需重新加载，避免不必要的 loading 闪烁
     }
   }
 
@@ -507,11 +520,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
         children: [
           Text(
             l10n.dailyRecords,
-            style: AppTypography.pageTitle.copyWith(
-              color: AppColors.textPrimary,
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-            ),
+            style: AppTypography.tabPageTitle,
           ),
           Material(
             color: Colors.transparent,
@@ -586,7 +595,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
             errorMessage ?? l10n.loadFailed,
             textAlign: TextAlign.center,
             style: AppTypography.bodySecondary.copyWith(
-              fontSize: 15,
               color: AppColors.textTertiary,
             ),
           ),
@@ -616,8 +624,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   l10n.retry,
                   style: AppTypography.actionLabel.copyWith(
                     color: Colors.white,
-                    fontSize: 15.0,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -683,7 +689,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
             final index = entry.key;
             final record = entry.value;
             final isLast = index == records.length - 1;
-            return _buildTimelineItem(record, isLast);
+            return _buildTimelineItem(
+              record,
+              isLast,
+              isSingle: records.length == 1,
+            );
           }),
       ],
     );
@@ -839,19 +849,27 @@ class _RecordsScreenState extends State<RecordsScreen> {
   }
 
   /// 构建时间轴样式的单条记录
-  Widget _buildTimelineItem(Record record, bool isLast) {
+  Widget _buildTimelineItem(
+    Record record,
+    bool isLast, {
+    bool isSingle = false,
+  }) {
     final moodTags = _normalizeMoodTags(record.moods);
     final hasMoods = moodTags.isNotEmpty;
 
     return IntrinsicHeight(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            isSingle ? CrossAxisAlignment.center : CrossAxisAlignment.start,
         children: [
           // 左侧时间轴
           SizedBox(
             width: 48,
             child: Column(
               children: [
+                // 单条记录时：上方 Spacer 与下方 Spacer 等分，使时间+圆点垂直居中
+                // 多条记录时：顶部对齐，保持时间轴连接线的视觉连续性
+                if (isSingle) const Spacer(),
                 // 时间
                 Text(
                   _formatTime(record.createdAt),
@@ -869,7 +887,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     shape: BoxShape.circle,
                   ),
                 ),
-                // 连接线
+                // 连接线（非最后一条）or 底部留白
                 if (!isLast)
                   Expanded(
                     child: Container(
@@ -879,6 +897,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
                       color: AppColors.divider,
                     ),
                   )
+                else if (isSingle)
+                  const Spacer()
                 else
                   const SizedBox(height: AppSpacing.sm),
               ],
@@ -917,11 +937,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                       if (record.transcription.isNotEmpty)
                         Text(
                           record.transcription,
-                          style: const TextStyle(
-                            fontSize: 15.0,
-                            color: AppColors.textPrimary,
-                            height: 1.6,
-                          ),
+                          style: AppTypography.detailBody,
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -1051,7 +1067,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   textStyle: AppTypography.actionLabel.copyWith(
-                    fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),
                 ),

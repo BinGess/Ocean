@@ -3,6 +3,7 @@ import 'package:hive/hive.dart';
 import 'package:mindflow/core/services/ocean_account_cache_service.dart';
 import 'package:mindflow/data/datasources/local/hive_database.dart';
 import 'package:mindflow/data/models/record_model.dart';
+import 'package:mindflow/data/models/sarah_letter_model.dart';
 import 'package:mindflow/data/models/weekly_insight_model.dart';
 
 void main() {
@@ -11,6 +12,7 @@ void main() {
     final database = _FakeHiveDatabase();
     await database.recordsBox.put('record-1', _recordModel('record-1'));
     await database.weeklyInsightsBox.put('weekly-1', _weeklyInsightModel());
+    await database.sarahLettersBox.put('sarah-1', _sarahLetterModel());
     await database.insightReportsBox.put('week', '{}');
     await database.settingsBox.put('profile_nickname', 'Ocean');
     await database.settingsBox.put('daily_mood_2026-05-08', 'calm.png');
@@ -22,6 +24,9 @@ void main() {
     expect(database.recordsBox.values.map((item) => item.id), ['record-1']);
     expect(database.weeklyInsightsBox.values.map((item) => item.id), [
       'weekly-1',
+    ]);
+    expect(database.sarahLettersBox.values.map((item) => item.id), [
+      'sarah-1',
     ]);
     expect(database.insightReportsBox.values, ['{}']);
     expect(database.settingsBox.get('profile_nickname'), 'Ocean');
@@ -35,6 +40,7 @@ void main() {
     final database = _FakeHiveDatabase();
     await database.recordsBox.put('record-1', _recordModel('record-1'));
     await database.weeklyInsightsBox.put('weekly-1', _weeklyInsightModel());
+    await database.sarahLettersBox.put('sarah-1', _sarahLetterModel());
     await database.insightReportsBox.put('week', '{}');
     await database.settingsBox.put('profile_nickname', 'Ocean');
     await database.settingsBox.put('daily_mood_2026-05-08', 'calm.png');
@@ -48,6 +54,7 @@ void main() {
 
     expect(database.recordsBox.values, isEmpty);
     expect(database.weeklyInsightsBox.values, isEmpty);
+    expect(database.sarahLettersBox.values, isEmpty);
     expect(database.insightReportsBox.values, isEmpty);
     expect(database.settingsBox.get('profile_nickname'), isNull);
     expect(database.settingsBox.get('daily_mood_2026-05-08'), isNull);
@@ -84,9 +91,23 @@ WeeklyInsightModel _weeklyInsightModel() {
   );
 }
 
+SarahLetterModel _sarahLetterModel() {
+  final now = DateTime.utc(2026, 5, 8);
+  return SarahLetterModel(
+    id: 'sarah-1',
+    type: 'welcome',
+    createdAt: now,
+    content: '嗨，\n\n我是 Sarah。',
+    illustrationIndex: 1,
+    isRead: false,
+    updatedAt: now,
+  );
+}
+
 class _FakeHiveDatabase extends Fake implements HiveDatabase {
   final _FakeRecordBox _recordsBox = _FakeRecordBox();
   final _FakeWeeklyInsightBox _weeklyInsightsBox = _FakeWeeklyInsightBox();
+  final _FakeSarahLetterBox _sarahLettersBox = _FakeSarahLetterBox();
   final _FakeStringBox _insightReportsBox = _FakeStringBox();
   final _FakeSettingsBox _settingsBox = _FakeSettingsBox();
 
@@ -97,10 +118,32 @@ class _FakeHiveDatabase extends Fake implements HiveDatabase {
   Box<WeeklyInsightModel> get weeklyInsightsBox => _weeklyInsightsBox;
 
   @override
+  Box<SarahLetterModel> get sarahLettersBox => _sarahLettersBox;
+
+  @override
   Box<String> get insightReportsBox => _insightReportsBox;
 
   @override
   Box<dynamic> get settingsBox => _settingsBox;
+}
+
+class _FakeSarahLetterBox extends Fake implements Box<SarahLetterModel> {
+  final Map<String, SarahLetterModel> _store = {};
+
+  @override
+  Iterable<SarahLetterModel> get values => _store.values;
+
+  @override
+  Future<int> clear() async {
+    final count = _store.length;
+    _store.clear();
+    return count;
+  }
+
+  @override
+  Future<void> put(dynamic key, SarahLetterModel value) async {
+    _store[key as String] = value;
+  }
 }
 
 class _FakeRecordBox extends Fake implements Box<RecordModel> {

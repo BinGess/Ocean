@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../../domain/entities/record.dart';
 import '../../../domain/entities/quote.dart';
 import '../../bloc/audio/audio_bloc.dart';
@@ -47,11 +48,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   static const _HomeBackgroundPalette _backgroundPalette =
       _HomeBackgroundPalette.defaultPalette;
 
-  // 按钮脉冲动画控制器
+  // 按钮脉冲动画控制器（录音时）
   late AnimationController _pulseController;
+
+  // 录音按钮空闲时的呼吸灯动画控制器
+  late AnimationController _breatheController;
+  late Animation<double> _breatheAnimation;
 
   // 防止错误弹窗重复显示
   bool _isShowingErrorDialog = false;
+  // 防止NVC确认弹窗重复显示（分析完成后BLoC可能多次触发）
+  bool _isShowingNVCConfirmation = false;
   // 记录上次处理的错误消息，避免重复处理同一个错误
   String? _lastHandledError;
   String? _lastHandledTranscriptionError;
@@ -84,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // 这里仅作为备用检查，确保权限状态正确
     _checkAndRequestPermission();
 
-    // 初始化脉冲动画控制器 - 强化膨胀效果
+    // 初始化脉冲动画控制器 - 强化膨胀效果（录音时使用）
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400), // 稍微延长持续时间
@@ -92,6 +99,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     Tween<double>(begin: 1.0, end: 1.25).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    // 空闲时呼吸灯：缓慢吸气/呼气，持续循环
+    _breatheController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2600),
+    )..repeat(reverse: true);
+    _breatheAnimation = CurvedAnimation(
+      parent: _breatheController,
+      curve: Curves.easeInOut,
+    );
+
     _quoteTransitionController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 560),
@@ -398,7 +416,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() {
       _completedAudioPath = audioPath;
       _editedTranscription = null; // 清除上次编辑的转写文本
-      _selectedRecordDateTime = null;
+      // 捕获录音结束时刻：后续 Modal 用此作为记录时间，
+      // 避免等待转写/AI 分析期间 DateTime.now() 偏晚
+      _selectedRecordDateTime = DateTime.now();
     });
     // 清除上次错误记录，允许新的错误被处理
     _lastHandledError = null;
@@ -439,6 +459,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       debugPrint('HomeScreen: 触发传统转写');
       context.read<RecordBloc>().add(RecordTranscribe(audioPath));
 
+      // 保存录音结束时刻快照，避免 builder 闭包捕获 _selectedRecordDateTime 被后续清除
+      final recordingEndTime = _selectedRecordDateTime;
+
       // 显示处理选择模态框（等待转写完成）
       showModalBottomSheet<ProcessingResult>(
         context: context,
@@ -451,6 +474,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               return ProcessingChoiceModal(
                 transcription: state.transcription ?? '',
                 transcriptionErrorMessage: state.transcriptionErrorMessage,
+                initialDateTime: recordingEndTime,
                 onSelect: (result) => Navigator.of(context).pop(result),
                 onCancel: () => Navigator.of(context).pop(),
               );
@@ -469,6 +493,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   /// 显示处理选择模态框
   void _showProcessingChoice(String transcription) {
+    // 保存录音结束时刻快照，避免 builder 闭包捕获 _selectedRecordDateTime 被后续清除
+    final recordingEndTime = _selectedRecordDateTime;
     showModalBottomSheet<ProcessingResult>(
       context: context,
       isScrollControlled: true,
@@ -477,6 +503,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       builder: (context) {
         return ProcessingChoiceModal(
           transcription: transcription,
+          initialDateTime: recordingEndTime,
           onSelect: (result) => Navigator.of(context).pop(result),
           onCancel: () => Navigator.of(context).pop(),
         );
@@ -547,16 +574,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     String? editedTranscription,
     DateTime? selectedDateTime,
   }) async {
-    if (_completedAudioPath == null) return;
-
     // 优先使用用户编辑后的转写文本，其次流式转写，最后RecordBloc的转写
+    final audioPath = _completedAudioPath;
     final audioState = context.read<AudioBloc>().state;
     final streamTranscription = audioState.realtimeTranscription;
     final recordTranscription = context.read<RecordBloc>().state.transcription;
-    final transcription =
-        editedTranscription ?? streamTranscription ?? recordTranscription;
+    final transcription = (editedTranscription ??
+            streamTranscription ??
+            recordTranscription)
+        ?.trim();
     final effectiveSelectedDateTime =
         selectedDateTime ?? _selectedRecordDateTime ?? DateTime.now();
+
+    if (audioPath == null && (transcription == null || transcription.isEmpty)) {
+      return;
+    }
 
     // 保存编辑后的转写文本，用于NVC分析确认页面回显
     _editedTranscription = transcription;
@@ -586,7 +618,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         );
         context.read<RecordBloc>().add(
               RecordCreateQuickNote(
-                audioPath: _completedAudioPath!,
+                audioPath: audioPath,
                 mode: mode,
                 transcription: transcription,
                 createdAt: effectiveSelectedDateTime,
@@ -621,7 +653,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           );
           context.read<RecordBloc>().add(
                 RecordCreateQuickNote(
-                  audioPath: _completedAudioPath!,
+                  audioPath: audioPath,
                   mode: mode,
                   transcription: transcription,
                   selectedMoods: moods,
@@ -700,7 +732,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           );
           context.read<RecordBloc>().add(
                 RecordCreateQuickNote(
-                  audioPath: _completedAudioPath!,
+                  audioPath: audioPath,
                   mode: ProcessingMode.onlyRecord,
                   transcription: transcription,
                   createdAt: effectiveSelectedDateTime,
@@ -739,7 +771,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void dispose() {
     _quoteAutoSwitchTimer?.cancel();
     _pulseController.dispose();
+    _breatheController.dispose();
     _quoteTransitionController.dispose();
+    // 页面销毁时确保解除防息屏，避免残留
+    WakelockPlus.disable();
     super.dispose();
   }
 
@@ -829,6 +864,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             BlocListener<AudioBloc, AudioState>(
               listener: (context, audioState) {
                 _syncRecordEntryPulse(audioState.isRecording);
+                // 录音中或转写处理中，保持屏幕常亮；其余状态恢复正常息屏
+                final needsWakelock =
+                    audioState.isRecording || audioState.isProcessing;
+                WakelockPlus.toggle(enable: needsWakelock);
                 final isCurrentRoute =
                     ModalRoute.of(context)?.isCurrent ?? false;
                 if (!isCurrentRoute) return;
@@ -856,18 +895,32 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               },
               child: BlocListener<RecordBloc, RecordState>(
                 listener: (context, recordState) {
-                  final isCurrentRoute =
-                      ModalRoute.of(context)?.isCurrent ?? false;
-                  if (!isCurrentRoute) return;
+                  // ── NVC分析完成 ───────────────────────────────────────────
+                  // 注意：此处不能先检查 isCurrentRoute。
+                  // NVCAnalyzingModal 用 showModalBottomSheet 展示，会把一个新路由
+                  // 压栈，导致 home 路由 isCurrent == false。若先检查会直接 return，
+                  // 分析动画弹窗永远不会关闭。
+                  //
+                  // 必须检查 _completedAudioPath != null，否则当用户从
+                  // EmotionInputScreen 触发 NVC 时，HomeScreen 的 BlocListener
+                  // 也会响应同一个 analyzed 状态，错误地 pop 掉 EmotionInputScreen
+                  // 弹出的 NVCConfirmationModal，导致记录无法保存。
                   if (recordState.isAnalyzed &&
-                      recordState.nvcAnalysis != null) {
+                      recordState.nvcAnalysis != null &&
+                      _completedAudioPath != null) {
+                    // 用标志位防止 BLoC 多次触发时重复弹出确认页
+                    if (_isShowingNVCConfirmation) return;
+                    _isShowingNVCConfirmation = true;
+
                     WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted) return;
                       // 先关闭分析加载动画弹窗
                       if (Navigator.of(context).canPop()) {
                         Navigator.of(context).pop();
                       }
-
-                      if (ModalRoute.of(context)?.isCurrent ?? false) {
+                      // 再等一帧让路由栈更新完成，再显示确认弹窗
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!mounted) return;
                         final messenger = ScaffoldMessenger.of(context);
                         final recordBloc = context.read<RecordBloc>();
                         // 优先使用用户编辑后的转写文本，其次流式转写，最后RecordBloc的转写
@@ -886,9 +939,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 ProcessingMode.onlyRecord);
                           },
                         ).then((result) {
-                          if (result?.action == NVCModalAction.confirm &&
-                              result?.analysis != null &&
-                              _completedAudioPath != null) {
+                          _isShowingNVCConfirmation = false;
+                          final modalResult = result;
+                          final confirmedAnalysis = modalResult?.analysis;
+                          final effectiveTranscription = transcription.trim();
+                          if (modalResult != null &&
+                              modalResult.action == NVCModalAction.confirm &&
+                              confirmedAnalysis != null &&
+                              effectiveTranscription.isNotEmpty) {
                             messenger.showSnackBar(
                               SnackBar(
                                 content: Row(
@@ -912,15 +970,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             );
                             recordBloc.add(
                               RecordCreateQuickNote(
-                                audioPath: _completedAudioPath!,
+                                audioPath: _completedAudioPath,
                                 mode: ProcessingMode.withNVC,
-                                transcription: transcription,
-                                nvcAnalysis: result!.analysis,
-                                createdAt: result.selectedDateTime,
+                                transcription: effectiveTranscription,
+                                nvcAnalysis: confirmedAnalysis,
+                                createdAt: modalResult.selectedDateTime,
                               ),
                             );
-                            _clearCompletedAudio();
-                          } else if (result?.action == NVCModalAction.delete) {
+                          } else if (modalResult?.action ==
+                              NVCModalAction.delete) {
                             // 用户选择了删除，清理音频文件
                             messenger.showSnackBar(
                               SnackBar(
@@ -939,9 +997,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             _clearCompletedAudio();
                           }
                         });
-                      }
+                      });
                     });
+                    return;
                   }
+
+                  // 其他处理需要 home 路由处于栈顶（非 NVC 分析分支）
+                  final isCurrentRoute =
+                      ModalRoute.of(context)?.isCurrent ?? false;
+                  if (!isCurrentRoute) return;
 
                   // 处理AI授权请求
                   if (recordState.status == RecordStatus.needsAIAuth) {
@@ -1024,6 +1088,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
                   if (recordState.isSuccess &&
                       recordState.latestRecord != null) {
+                    if (_completedAudioPath != null ||
+                        _editedTranscription != null ||
+                        _selectedRecordDateTime != null) {
+                      _clearCompletedAudio();
+                    }
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Row(
@@ -1084,15 +1153,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Expanded(
             child: Text(
               greeting,
-              style: AppTypography.homeGreeting.copyWith(
-                fontSize: 34,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF353F49),
-                height: 1.05,
-                letterSpacing: -0.45,
-                fontFamily: AppTypography.sansFamily,
-                fontFamilyFallback: const ['PingFang SC', 'Roboto'],
-              ),
+              style: AppTypography.tabPageTitle,
             ),
           ),
         ],
@@ -1238,17 +1299,52 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       width: 44,
                       height: 44,
                       child: AnimatedBuilder(
-                        animation: _pulseController,
+                        animation: Listenable.merge(
+                            [_pulseController, _breatheController]),
                         builder: (context, _) {
                           final pulse = _pulseController.value;
+                          final breathe = _breatheAnimation.value;
                           final isRecording = audioState.isRecording;
                           final haloOpacity =
                               isRecording ? 0.18 - (pulse * 0.08) : 0.0;
                           final haloSize = 44 + (pulse * 6);
+                          final breatheInnerOpacity =
+                              isRecording ? 0.0 : breathe * 0.22;
+                          final breatheOuterOpacity =
+                              isRecording ? 0.0 : breathe * 0.09;
+                          final breatheOuterSize = 44 + (breathe * 14);
 
                           return Stack(
                             alignment: Alignment.center,
                             children: [
+                              // 呼吸灯：外层漫射光晕
+                              if (!isRecording)
+                                Container(
+                                  width: breatheOuterSize,
+                                  height: breatheOuterSize,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: AppColors.accent
+                                        .withValues(alpha: breatheOuterOpacity),
+                                  ),
+                                ),
+                              // 呼吸灯：内层 boxShadow 光晕
+                              if (!isRecording)
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.accent.withValues(
+                                            alpha: breatheInnerOpacity),
+                                        blurRadius: 12,
+                                        spreadRadius: 3,
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               if (isRecording)
                                 Container(
                                   width: haloSize,

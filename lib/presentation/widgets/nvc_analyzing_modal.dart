@@ -126,7 +126,7 @@ class _NVCAnalyzingModalState extends State<NVCAnalyzingModal>
     final size = MediaQuery.of(context).size;
 
     return Container(
-      height: size.height * 0.75,
+      height: size.height * 0.88,
       decoration: const BoxDecoration(
         color: Color(0xFFF5F5F5),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),

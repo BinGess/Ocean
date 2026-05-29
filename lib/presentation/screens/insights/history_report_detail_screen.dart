@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../domain/entities/insight_report.dart';
 import '../share/share_insight_screen.dart';
 
@@ -19,20 +19,18 @@ class HistoryReportDetailScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.bgCard,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios,
-              size: 20, color: Color(0xFF2C2C2C)),
+              size: 20, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           _formatWeekRange(report.weekRange),
-          style: const TextStyle(
-            color: Color(0xFF2C2C2C),
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+          style: AppTypography.sectionTitle.copyWith(
+            color: AppColors.textPrimary,
           ),
         ),
         centerTitle: true,

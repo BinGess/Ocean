@@ -1,9 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/pro_subscription_service.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../l10n/app_localizations.dart';
+
+const _privacyPolicyUrl =
+    'https://lucky-geranium-802.notion.site/Shunji-2fe407f7a70180c79746dbc59ad9a19d?pvs=74';
+const _termsOfUseUrl =
+    'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 
 class ProPurchaseScreen extends StatefulWidget {
   const ProPurchaseScreen({super.key});
@@ -81,16 +87,12 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios,
-              size: 20, color: Color(0xFF2C2C2C)),
+              size: 20, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           l10n.proMembership,
-          style: const TextStyle(
-            color: Color(0xFF2C2C2C),
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
+          style: AppTypography.modalTitle,
         ),
         centerTitle: true,
       ),
@@ -131,7 +133,7 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           valueColor:
-                              AlwaysStoppedAnimation<Color>(Color(0xFF8B8B8B)),
+                              AlwaysStoppedAnimation<Color>(AppColors.textMuted),
                         ),
                       ),
                     )
@@ -139,13 +141,12 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
                       onPressed: _handleRestore,
                       child: Text(
                         l10n.proRestorePurchase,
-                        style: const TextStyle(
-                          color: Color(0xFF8B8B8B),
-                          fontSize: 14,
+                        style: AppTypography.pageMeta.copyWith(
+                          color: AppColors.textMuted,
                         ),
                       ),
                     ),
-            // 订阅说明
+            // 订阅说明（仅对未订阅用户展示自动续费说明）
             if (!isPro)
               Padding(
                 padding:
@@ -153,13 +154,53 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
                 child: Text(
                   l10n.proSubscriptionNote,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFFAAAAAA),
+                  style: AppTypography.chipLabel.copyWith(
+                    color: AppColors.textMuted,
                     height: 1.6,
                   ),
                 ),
               ),
+            // 隐私政策 · 使用条款（所有用户始终可见）
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: () => _openUrl(_privacyPolicyUrl),
+                    child: Text(
+                      l10n.proPrivacyPolicy,
+                      style: AppTypography.sectionSubtle.copyWith(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      '·',
+                      style: AppTypography.sectionSubtle.copyWith(
+                        fontSize: 12,
+                        color: AppColors.border,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => _openUrl(_termsOfUseUrl),
+                    child: Text(
+                      l10n.proTermsOfUse,
+                      style: AppTypography.sectionSubtle.copyWith(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 24),
           ],
         ),
@@ -199,11 +240,7 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
         const SizedBox(height: 20),
         Text(
           l10n.proPurchaseTitle,
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF2C2C2C),
-          ),
+          style: AppTypography.pageTitle,
         ),
         const SizedBox(height: 8),
         Padding(
@@ -211,10 +248,8 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
           child: Text(
             l10n.proPurchaseSubtitle,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Color(0xFF8B8B8B),
-              height: 1.5,
+            style: AppTypography.bodySecondary.copyWith(
+              color: AppColors.textMuted,
             ),
           ),
         ),
@@ -231,7 +266,7 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -259,18 +294,13 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF2C2C2C),
-                  ),
+                  style: AppTypography.detailTitle,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   description,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF8B8B8B),
+                  style: AppTypography.sectionSubtle.copyWith(
+                    color: AppColors.textMuted,
                     height: 1.4,
                   ),
                 ),
@@ -315,10 +345,7 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
                   )
                 : Text(
                     buttonText,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: AppTypography.buttonLarge,
                   ),
           ),
         ),
@@ -333,9 +360,8 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
               },
               child: Text(
                 l10n.proPriceRetry,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFFAAAAAA),
+                style: AppTypography.sectionSubtle.copyWith(
+                  color: AppColors.textMuted,
                   decoration: TextDecoration.underline,
                 ),
               ),
@@ -363,15 +389,18 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
           const SizedBox(width: 8),
           Text(
             l10n.proAlreadySubscribed,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.accent,
-            ),
+            style: AppTypography.actionLabel.copyWith(color: AppColors.accent),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   Future<void> _handleSubscribe() async {

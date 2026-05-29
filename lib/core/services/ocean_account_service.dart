@@ -11,7 +11,13 @@ import 'ocean_sync_service.dart';
 class OceanAccountDataRefreshService {
   final StreamController<void> _controller = StreamController<void>.broadcast();
 
+  /// 通用数据变化（登录、退出、账号切换等）
   Stream<void> get changes => _controller.stream;
+
+  /// Token 过期导致的 session 失效事件（独立于 changes，便于 UI 定向响应）
+  final StreamController<void> _sessionExpiredController =
+      StreamController<void>.broadcast();
+  Stream<void> get sessionExpired => _sessionExpiredController.stream;
 
   void notifyChanged() {
     if (!_controller.isClosed) {
@@ -19,8 +25,17 @@ class OceanAccountDataRefreshService {
     }
   }
 
+  /// Token 刷新失败，session 已强制失效。同时触发 changes，让各页面也感知到。
+  void notifySessionExpired() {
+    if (!_sessionExpiredController.isClosed) {
+      _sessionExpiredController.add(null);
+    }
+    notifyChanged();
+  }
+
   void dispose() {
     _controller.close();
+    _sessionExpiredController.close();
   }
 }
 
@@ -42,12 +57,14 @@ class OceanAccountService {
     required OceanAccountDataRefreshService refreshService,
     ICloudSyncService? iCloudSyncService,
     OceanRecordOwnershipService? ownershipService,
+    Future<void> Function()? clearLocalData,
   })  : _api = api,
         _syncService = syncService,
         _cacheService = cacheService,
         _refreshService = refreshService,
         _iCloudSyncService = iCloudSyncService,
-        _ownershipService = ownershipService;
+        _ownershipService = ownershipService,
+        _clearLocalData = clearLocalData ?? (() async {});
 
   final OceanAccountApi _api;
   final OceanAccountSyncService _syncService;
@@ -55,6 +72,7 @@ class OceanAccountService {
   final OceanAccountDataRefreshService _refreshService;
   final ICloudSyncService? _iCloudSyncService;
   final OceanRecordOwnershipService? _ownershipService;
+  final Future<void> Function() _clearLocalData;
 
   Future<bool> get isSignedIn => _api.isSignedIn;
 
@@ -124,6 +142,17 @@ class OceanAccountService {
     _refreshService.notifyChanged();
   }
 
+  /// Permanently deletes the account on the server, wipes all local data,
+  /// and clears auth tokens. Throws on server error (so the caller can
+  /// show an error message before proceeding).
+  Future<void> deleteAccount() async {
+    await _api.deleteAccount();
+    await _clearLocalData();
+    await _ownershipService?.clearActiveAccount();
+    await _cacheService.hideAccountCache();
+    _refreshService.notifyChanged();
+  }
+
   Future<void> retryLocalMigration() async {
     if (!await _api.isSignedIn) {
       throw const OceanAuthException('Missing access token');
@@ -147,7 +176,11 @@ class OceanAccountService {
     var localMigrationSucceeded = true;
     Object? localMigrationError;
     try {
-      await _syncService.pushAllLocalData();
+      // 整体限时 60 秒：防止 _pushLocalDataInSmallBatches 按记录逐条上传
+      // 时每条都等待超时，导致界面长时间卡在"正在登录并恢复数据..."。
+      await _syncService.pushAllLocalData().timeout(
+        const Duration(seconds: 60),
+      );
     } catch (error) {
       localMigrationSucceeded = false;
       localMigrationError = error;
@@ -161,14 +194,23 @@ class OceanAccountService {
       );
     }
 
-    try {
-      await _syncService.restoreSnapshot();
-    } catch (error) {
-      debugPrint(
-          'OceanAccountService: $action snapshot restore failed: $error');
-    }
-
+    // 本地数据已安全上传，立即通知各页面刷新并放行登录流程，
+    // 让用户直接进入主界面，无需继续等待快照下载。
     _refreshService.notifyChanged();
+
+    // 在后台拉取服务端全量快照（合并其他设备的变更）。
+    // 完成后再次 notifyChanged()，各页面会自动更新至最新状态。
+    // 此处故意不 await，避免阻塞登录页面的跳转。
+    unawaited(
+      _syncService
+          .restoreSnapshot()
+          .timeout(const Duration(seconds: 30))
+          .then((_) => _refreshService.notifyChanged())
+          .catchError((Object error) {
+        debugPrint(
+            'OceanAccountService: $action snapshot restore in background failed: $error');
+      }),
+    );
   }
 
   Future<void> _disableICloudBackupForAccountSync(String action) async {
