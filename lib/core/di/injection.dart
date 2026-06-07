@@ -39,6 +39,7 @@ import '../services/ai_auth_service.dart';
 import '../services/quote_preloader.dart';
 import '../services/quote_update_manager.dart';
 import '../services/daily_summary_service.dart';
+import '../services/deep_analysis_local_service.dart';
 import '../services/icloud_sync_service.dart';
 import '../services/ocean_sync_service.dart';
 import '../services/ocean_record_ownership_service.dart';
@@ -240,6 +241,10 @@ Future<void> configureDependencies() async {
     ),
   );
 
+  getIt.registerLazySingleton<DeepAnalysisLocalService>(
+    () => DeepAnalysisLocalService(database: getIt<HiveDatabase>()),
+  );
+
   getIt.registerLazySingleton<OceanSyncService>(
     () => OceanSyncService(
       api: getIt<OceanApiClient>(),
@@ -364,6 +369,7 @@ Future<void> configureDependencies() async {
       aiRepository: getIt<AIRepository>(),
       aiAuthService: getIt<AIAuthService>(),
       dailySummaryService: getIt<DailySummaryService>(),
+      deepAnalysisService: getIt<DeepAnalysisLocalService>(),
     ),
   );
 

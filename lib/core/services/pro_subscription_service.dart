@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import '../constants/app_constants.dart';
 import '../../data/datasources/local/hive_database.dart';
 
 /// Pro 订阅服务
@@ -139,7 +140,10 @@ class ProSubscriptionService {
   }
 
   /// 是否可使用 Pro 限定功能（真实订阅或 DEBUG）
-  bool get hasProFeatureAccess => isPro || isDebugModeEnabled;
+  bool get hasProFeatureAccess =>
+      isPro ||
+      isDebugModeEnabled ||
+      (kDebugMode && EnvConfig.isMockProEnabled);
 
   /// 发起购买
   Future<bool> purchase() async {

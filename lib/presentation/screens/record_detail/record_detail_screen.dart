@@ -287,7 +287,10 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
           updatedAt: DateTime.now(),
         );
         context.read<RecordBloc>().add(
-              RecordUpdate(record: updatedRecord),
+              RecordUpdate(
+                record: updatedRecord,
+                deepAnalyses: result?.deepAnalyses,
+              ),
             );
       }
       Navigator.of(context).pop();
@@ -372,7 +375,8 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                   Text(
                     formatRecordDateTime(
                       _selectedDateTime,
-                      languageCode: Localizations.localeOf(context).languageCode,
+                      languageCode:
+                          Localizations.localeOf(context).languageCode,
                     ),
                     style: AppTypography.appBarTitle,
                   ),

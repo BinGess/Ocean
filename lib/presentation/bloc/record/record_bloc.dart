@@ -11,6 +11,7 @@ import '../../../domain/repositories/record_repository.dart';
 import '../../../domain/repositories/ai_repository.dart';
 import '../../../core/services/ai_auth_service.dart';
 import '../../../core/services/daily_summary_service.dart';
+import '../../../core/services/deep_analysis_local_service.dart';
 import 'record_event.dart';
 import 'record_state.dart';
 
@@ -22,6 +23,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
   final AIRepository aiRepository;
   final AIAuthService aiAuthService;
   final DailySummaryService dailySummaryService;
+  final DeepAnalysisLocalService? deepAnalysisService;
 
   RecordBloc({
     required this.createQuickNoteUseCase,
@@ -31,6 +33,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     required this.aiRepository,
     required this.aiAuthService,
     required this.dailySummaryService,
+    this.deepAnalysisService,
   }) : super(RecordState.initial()) {
     // 注册事件处理器
     on<RecordCreateQuickNote>(_onCreateQuickNote);
@@ -173,6 +176,12 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
       });
 
       debugPrint('RecordBloc: Quick note created: ${record.id}');
+      if (event.deepAnalyses != null) {
+        await deepAnalysisService?.saveForRecord(
+          record.id,
+          event.deepAnalyses!,
+        );
+      }
 
       // 将新记录添加到列表开头
       final updatedRecords = [record, ...state.records];
@@ -314,6 +323,12 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
       final updatedRecord = await updateRecordUseCase(
         UpdateRecordParams(record: event.record),
       );
+      if (event.deepAnalyses != null) {
+        await deepAnalysisService?.saveForRecord(
+          updatedRecord.id,
+          event.deepAnalyses!,
+        );
+      }
 
       // 更新列表中的记录
       final updatedRecords = state.records.map((r) {
@@ -347,6 +362,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     try {
       final deletedRecord = await recordRepository.getRecordById(event.id);
       await recordRepository.deleteRecord(event.id);
+      await deepAnalysisService?.deleteForRecord(event.id);
 
       // 从列表中移除
       final updatedRecords =

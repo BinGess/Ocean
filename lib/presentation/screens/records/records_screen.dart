@@ -397,7 +397,12 @@ class _RecordsScreenState extends State<RecordsScreen> {
           createdAt: result.selectedDateTime ?? record.createdAt,
           updatedAt: DateTime.now(),
         );
-        context.read<RecordBloc>().add(RecordUpdate(record: updatedRecord));
+        context.read<RecordBloc>().add(
+              RecordUpdate(
+                record: updatedRecord,
+                deepAnalyses: result.deepAnalyses,
+              ),
+            );
       } else if (result?.action == NVCModalAction.delete) {
         context.read<RecordBloc>().add(RecordDelete(id: record.id));
         final l10n = AppLocalizations.of(context)!;

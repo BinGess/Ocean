@@ -49,6 +49,12 @@ class AppConstants {
 
 /// 环境变量配置（从 .env 文件读取）
 class EnvConfig {
+  static bool get isMockApiEnabled =>
+      dotenv.get('MOCK_API', fallback: 'false').trim().toLowerCase() == 'true';
+
+  static bool get isMockProEnabled =>
+      dotenv.get('MOCK_PRO', fallback: 'false').trim().toLowerCase() == 'true';
+
   // 豆包 ASR API
   static String get doubaoAsrAppKey =>
       dotenv.get('DOUBAO_ASR_APP_KEY', fallback: '').trim();

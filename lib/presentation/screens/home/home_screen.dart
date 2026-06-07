@@ -579,10 +579,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final audioState = context.read<AudioBloc>().state;
     final streamTranscription = audioState.realtimeTranscription;
     final recordTranscription = context.read<RecordBloc>().state.transcription;
-    final transcription = (editedTranscription ??
-            streamTranscription ??
-            recordTranscription)
-        ?.trim();
+    final transcription =
+        (editedTranscription ?? streamTranscription ?? recordTranscription)
+            ?.trim();
     final effectiveSelectedDateTime =
         selectedDateTime ?? _selectedRecordDateTime ?? DateTime.now();
 
@@ -975,6 +974,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 transcription: effectiveTranscription,
                                 nvcAnalysis: confirmedAnalysis,
                                 createdAt: modalResult.selectedDateTime,
+                                deepAnalyses: modalResult.deepAnalyses,
                               ),
                             );
                           } else if (modalResult?.action ==

@@ -6,6 +6,7 @@ import '../../../core/services/ai_auth_service.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../domain/entities/record.dart';
 import '../../../domain/entities/nvc_analysis.dart';
+import '../../../domain/entities/deep_analysis_result.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../bloc/audio/audio_bloc.dart';
 import '../../bloc/audio/audio_event.dart';
@@ -305,6 +306,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
     NVCAnalysis analysis, {
     DateTime? createdAt,
     String? transcription,
+    List<DeepAnalysisResult> deepAnalyses = const [],
   }) {
     final text = (transcription ?? _inputText).trim();
     if (text.isEmpty) {
@@ -328,6 +330,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
             transcription: text,
             nvcAnalysis: analysis,
             createdAt: createdAt ?? _manuallyPickedDateTime ?? DateTime.now(),
+            deepAnalyses: deepAnalyses,
           ),
         );
   }
@@ -456,6 +459,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
             result.analysis!,
             createdAt: result.selectedDateTime,
             transcription: analyzedText,
+            deepAnalyses: result.deepAnalyses,
           );
         }
       });
@@ -648,9 +652,9 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                               ),
                               const SizedBox(width: 10),
                               _buildVoiceWaveform(
-                              isRecording: isRecording,
-                              targetAmplitude: audioState.amplitude,
-                            ),
+                                isRecording: isRecording,
+                                targetAmplitude: audioState.amplitude,
+                              ),
                               const Spacer(),
                             ],
                           ),
@@ -675,9 +679,9 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
                         ),
                         const SizedBox(width: 10),
                         _buildVoiceWaveform(
-                              isRecording: isRecording,
-                              targetAmplitude: audioState.amplitude,
-                            ),
+                          isRecording: isRecording,
+                          targetAmplitude: audioState.amplitude,
+                        ),
                         const Spacer(),
                         SizedBox(width: 92, child: saveButton),
                         const SizedBox(width: 10),
@@ -710,9 +714,8 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
             builder: (context, child) {
               // 红点呼吸：sin 映射到 0.55~1.0，平滑闪烁而非硬切
               final dotOpacity = isRecording
-                  ? math.sin(_recordingFxController.value * math.pi * 2)
-                          .abs() *
-                      0.45 +
+                  ? math.sin(_recordingFxController.value * math.pi * 2).abs() *
+                          0.45 +
                       0.55
                   : 0.0;
 
@@ -794,11 +797,11 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
     if (_rng.nextDouble() < spawnProb) {
       final above = _rng.nextBool();
       _particles.add(_WaveParticle(
-        x:       0.08 + _rng.nextDouble() * 0.84,        // 避开 ShaderMask 淡出边缘
-        yOff:    (above ? 1.0 : -1.0) *
-                 (0.20 + _rng.nextDouble() * 0.45),       // 偏离波面 20~65%
-        maxLife: 28.0 + _rng.nextDouble() * 24.0,         // 0.47~0.87 秒
-        radius:  0.7  + _rng.nextDouble() * 1.1,          // 0.7~1.8 px
+        x: 0.08 + _rng.nextDouble() * 0.84, // 避开 ShaderMask 淡出边缘
+        yOff: (above ? 1.0 : -1.0) *
+            (0.20 + _rng.nextDouble() * 0.45), // 偏离波面 20~65%
+        maxLife: 28.0 + _rng.nextDouble() * 24.0, // 0.47~0.87 秒
+        radius: 0.7 + _rng.nextDouble() * 1.1, // 0.7~1.8 px
       ));
       // 上限 14 个，避免画面过满
       if (_particles.length > 14) {
@@ -819,12 +822,12 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
   ///   Gaussian  5节点平滑凸包激发 → 只激发长波低频模式，天然过滤抖动感
   void _stepWave(double amp) {
     const stiffness = 0.008; // 超软弹簧 → 基频 ~0.85 Hz，振荡更慢
-    const drag      = 0.980; // 高阻尼 → 半衰期 ~0.57 s，起伏更悠长
-    const coupling  = 0.012; // 更低耦合 → 高频模式上限降至 ~2.0 Hz
+    const drag = 0.980; // 高阻尼 → 半衰期 ~0.57 s，起伏更悠长
+    const coupling = 0.012; // 更低耦合 → 高频模式上限降至 ~2.0 Hz
 
     // ── 物理步进：耦合 + 弹簧恢复 + 阻尼 ────────────────────────────────
     for (int i = 0; i < _kWaveNodes; i++) {
-      final left  = i > 0               ? _waveH[i - 1] : _waveH[i];
+      final left = i > 0 ? _waveH[i - 1] : _waveH[i];
       final right = i < _kWaveNodes - 1 ? _waveH[i + 1] : _waveH[i];
       _waveV[i] += coupling * (left + right - 2.0 * _waveH[i]);
       _waveV[i] -= _waveH[i] * stiffness;
@@ -839,12 +842,12 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
       final interval = (90 - amp * 50).round().clamp(40, 90);
       if (_exciteFrame >= interval) {
         _exciteFrame = 0;
-        final center  = 2 + _rng.nextInt(_kWaveNodes - 4);
+        final center = 2 + _rng.nextInt(_kWaveNodes - 4);
         final impulse = (_rng.nextDouble() * 2 - 1) * amp * 0.25;
         // 高斯 5 点扩散，只激发长波低频模式
         _waveV[center - 2] += impulse * 0.15;
         _waveV[center - 1] += impulse * 0.55;
-        _waveV[center    ] += impulse * 1.00;
+        _waveV[center] += impulse * 1.00;
         _waveV[center + 1] += impulse * 0.55;
         _waveV[center + 2] += impulse * 0.15;
       }
@@ -878,8 +881,7 @@ class _EmotionInputScreenState extends State<EmotionInputScreen>
             animation: _recordingFxController,
             builder: (context, _) {
               // 以 3% 的速率追踪目标振幅，更柔和地响应音量变化
-              _displayAmplitude +=
-                  (targetAmplitude - _displayAmplitude) * 0.03;
+              _displayAmplitude += (targetAmplitude - _displayAmplitude) * 0.03;
               // 弹簧物理步进
               _stepWave(_displayAmplitude);
               // 粒子系统：随音量更新
@@ -979,8 +981,8 @@ class _VoiceWavePainter extends CustomPainter {
     if (heights.isEmpty) return;
 
     final maxH = size.height * 0.44;
-    final mid  = size.height / 2;
-    final n    = heights.length;
+    final mid = size.height / 2;
+    final n = heights.length;
 
     // 将归一化节点映射到画布坐标
     final pts = List<Offset>.generate(n, (i) {
@@ -1016,9 +1018,9 @@ class _VoiceWavePainter extends CustomPainter {
         if (alpha <= 0.01) continue;
 
         // 在粒子 x 处插值波面 y 坐标
-        final fIdx  = p.x * (n - 1);
+        final fIdx = p.x * (n - 1);
         final iLeft = fIdx.floor().clamp(0, n - 2);
-        final t     = fIdx - iLeft;
+        final t = fIdx - iLeft;
         final waveH = heights[iLeft] * (1 - t) + heights[iLeft + 1] * t;
         final waveY = mid - waveH * maxH;
 
@@ -1030,7 +1032,8 @@ class _VoiceWavePainter extends CustomPainter {
         canvas.drawCircle(Offset(cx, cy), p.radius * 2.4, dotPaint);
 
         // 内核亮点（暖白色，最亮时接近不透明）
-        dotPaint.color = const Color(0xFFFFF4E8).withValues(alpha: alpha * 0.88);
+        dotPaint.color =
+            const Color(0xFFFFF4E8).withValues(alpha: alpha * 0.88);
         canvas.drawCircle(Offset(cx, cy), p.radius, dotPaint);
       }
     }

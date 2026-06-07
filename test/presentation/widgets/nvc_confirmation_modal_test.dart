@@ -32,7 +32,7 @@ void main() {
               analyzedAt: analyzedAt,
             ),
             transcription: '刚完成一次会议，有点累。',
-            onConfirm: (_, __) {},
+            onConfirm: (_, __, ___) {},
           ),
         ),
       ),

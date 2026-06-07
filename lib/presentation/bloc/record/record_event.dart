@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import '../../../domain/entities/record.dart';
 import '../../../domain/entities/nvc_analysis.dart';
+import '../../../domain/entities/deep_analysis_result.dart';
 
 abstract class RecordEvent extends Equatable {
   const RecordEvent();
@@ -17,6 +18,7 @@ class RecordCreateQuickNote extends RecordEvent {
   final String? transcription;
   final NVCAnalysis? nvcAnalysis;
   final DateTime? createdAt;
+  final List<DeepAnalysisResult>? deepAnalyses;
 
   const RecordCreateQuickNote({
     this.audioPath,
@@ -25,11 +27,19 @@ class RecordCreateQuickNote extends RecordEvent {
     this.transcription,
     this.nvcAnalysis,
     this.createdAt,
+    this.deepAnalyses,
   });
 
   @override
-  List<Object?> get props =>
-      [audioPath, mode, selectedMoods, transcription, nvcAnalysis, createdAt];
+  List<Object?> get props => [
+        audioPath,
+        mode,
+        selectedMoods,
+        transcription,
+        nvcAnalysis,
+        createdAt,
+        deepAnalyses,
+      ];
 }
 
 /// 分析 NVC
@@ -63,11 +73,15 @@ class RecordLoadList extends RecordEvent {
 /// 更新记录
 class RecordUpdate extends RecordEvent {
   final Record record;
+  final List<DeepAnalysisResult>? deepAnalyses;
 
-  const RecordUpdate({required this.record});
+  const RecordUpdate({
+    required this.record,
+    this.deepAnalyses,
+  });
 
   @override
-  List<Object?> get props => [record];
+  List<Object?> get props => [record, deepAnalyses];
 }
 
 /// 删除记录
