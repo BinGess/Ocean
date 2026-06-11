@@ -107,6 +107,8 @@ class RecordModel extends HiveObject {
               'needs': entity.nvc!.needs.map((n) => n.toJson()).toList(),
               'request': entity.nvc!.request,
               'insight': entity.nvc!.insight,
+              // NVC 智能体的分诊结果；缺失会让历史记录的推荐徽章回退到关键词路由
+              'recommendedMethod': entity.nvc!.recommendedMethod,
               'analyzedAt': entity.nvc!.analyzedAt.toIso8601String(),
             }
           : null,

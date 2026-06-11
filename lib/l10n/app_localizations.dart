@@ -205,7 +205,9 @@ class AppLocalizations {
       'proMembership': 'Pro 会员',
       'proPrice': '¥1/月',
       'proPurchaseTitle': '升级为 Pro 会员',
-      'proPurchaseSubtitle': '解锁数据导出能力，随时备份和迁移记录',
+      'proPurchaseSubtitle': '解锁深入分析与数据导出，让每条记录都多走一步',
+      'proFeatureDeepAnalysis': '深入分析',
+      'proFeatureDeepAnalysisDesc': '5种心理学方法逐条拆解你的记录，每条都帮你看到真实的情况，给你一个能做的小行动',
       'proFeatureExport': '导出所有记录',
       'proFeatureExportDesc': '将你的情绪记录导出为 JSON 文件，随时备份和迁移数据',
       'proFeatureICloud': 'iCloud 云同步',
@@ -433,7 +435,10 @@ class AppLocalizations {
       'proPrice': '¥1/mo',
       'proPurchaseTitle': 'Upgrade to Pro',
       'proPurchaseSubtitle':
-          'Unlock data export for backup and migration whenever you need it',
+          'Unlock deep analysis and data export — take every entry one step further',
+      'proFeatureDeepAnalysis': 'Deep Analysis',
+      'proFeatureDeepAnalysisDesc':
+          '5 psychology-based methods unpack each entry, helping you see what is really going on — with one small doable step',
       'proFeatureExport': 'Export All Records',
       'proFeatureExportDesc':
           'Export your emotion records as JSON files for backup and migration',
@@ -681,6 +686,9 @@ class AppLocalizations {
   String get proPrice => _translate('proPrice');
   String get proPurchaseTitle => _translate('proPurchaseTitle');
   String get proPurchaseSubtitle => _translate('proPurchaseSubtitle');
+  String get proFeatureDeepAnalysis => _translate('proFeatureDeepAnalysis');
+  String get proFeatureDeepAnalysisDesc =>
+      _translate('proFeatureDeepAnalysisDesc');
   String get proFeatureExport => _translate('proFeatureExport');
   String get proFeatureExportDesc => _translate('proFeatureExportDesc');
   String get proFeatureICloud => _translate('proFeatureICloud');

@@ -107,10 +107,17 @@ class _ProPurchaseScreenState extends State<ProPurchaseScreen> {
               child: Column(
                 children: [
                   _buildFeatureCard(
+                    icon: Icons.psychology_outlined,
+                    title: l10n.proFeatureDeepAnalysis,
+                    description: l10n.proFeatureDeepAnalysisDesc,
+                    color: AppColors.accent,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildFeatureCard(
                     icon: Icons.upload_file,
                     title: l10n.proFeatureExport,
                     description: l10n.proFeatureExportDesc,
-                    color: AppColors.accent,
+                    color: const Color(0xFF9A7A52),
                   ),
                 ],
               ),

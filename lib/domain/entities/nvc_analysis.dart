@@ -63,6 +63,12 @@ class NVCAnalysis with _$NVCAnalysis {
     /// AI 洞察（可选）
     String? insight,
 
+    /// 智能体推荐的深入分析方法（可选，向后兼容）
+    /// 取值为 DeeperSupportType 的 name：
+    /// cognitiveReframe / releaseControl / selfCompassion /
+    /// boundarySupport / gentleRecovery
+    String? recommendedMethod,
+
     /// 分析时间戳
     required DateTime analyzedAt,
   }) = _NVCAnalysis;

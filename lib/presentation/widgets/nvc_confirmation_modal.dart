@@ -448,6 +448,9 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
         MaterialPageRoute(
           builder: (_) => DeeperSupportScreen(
             analysis: recommendation.toResult(),
+            // 传原始记录文本供智能体拆解；
+            // 未配置智能体的方法会自动保持本地占位（详情页内部判断）
+            transcription: widget.transcription,
           ),
         ),
       );

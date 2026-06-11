@@ -82,7 +82,7 @@ class EnvConfig {
       dotenv.get('COZE_API_TOKEN', fallback: '').trim();
 
   static String get cozeBaseUrl =>
-      dotenv.get('COZE_BASE_URL', fallback: 'https://ypcqkgr32q.coze.site').trim();
+      dotenv.get('COZE_BASE_URL', fallback: 'https://qfcvbpvr72.coze.site').trim();
 
   static String get cozeProjectId =>
       dotenv.get('COZE_PROJECT_ID', fallback: '').trim();
@@ -110,6 +110,16 @@ class EnvConfig {
   static String get cozeDailySummaryProjectId =>
       dotenv.get('COZE_DAILY_SUMMARY_PROJECT_ID', fallback: '7610722093646233641').trim();
 
+  // Coze 深入分析智能体配置（自我关怀与滋养，token 只放 .env，不在源码留 fallback）
+  static String get cozeDeepAnalysisApiToken =>
+      dotenv.get('COZE_DEEP_ANALYSIS_API_TOKEN', fallback: '').trim();
+
+  static String get cozeDeepAnalysisBaseUrl =>
+      dotenv.get('COZE_DEEP_ANALYSIS_BASE_URL', fallback: 'https://fq5dmj28t8.coze.site').trim();
+
+  static String get cozeDeepAnalysisProjectId =>
+      dotenv.get('COZE_DEEP_ANALYSIS_PROJECT_ID', fallback: '').trim();
+
   /// 验证配置是否完整
   static bool get isConfigured {
     return doubaoAsrAppKey.isNotEmpty &&
@@ -134,6 +144,65 @@ class EnvConfig {
   static bool get isDailySummaryConfigured {
     return cozeDailySummaryApiToken.isNotEmpty &&
            cozeDailySummaryProjectId.isNotEmpty;
+  }
+
+  /// 验证深入分析智能体（自我关怀与滋养）配置是否完整
+  static bool get isDeepAnalysisConfigured {
+    return cozeDeepAnalysisApiToken.isNotEmpty &&
+           cozeDeepAnalysisProjectId.isNotEmpty;
+  }
+
+  /// 按深入分析方法查询智能体配置（一方法一智能体）
+  ///
+  /// [methodType] 为 DeeperSupportType 的 name。
+  /// 自我关怀与滋养沿用 COZE_DEEP_ANALYSIS_* 组；其余方法用 COZE_DEEP_{CBT|ACT|DBT|BA}_* 组。
+  /// 未知方法返回 null。
+  static ({String token, String baseUrl, String projectId})?
+      deepAnalysisConfigFor(String methodType) {
+    String env(String key) => dotenv.get(key, fallback: '').trim();
+
+    switch (methodType) {
+      case 'selfCompassion':
+        return (
+          token: cozeDeepAnalysisApiToken,
+          baseUrl: cozeDeepAnalysisBaseUrl,
+          projectId: cozeDeepAnalysisProjectId,
+        );
+      case 'cognitiveReframe':
+        return (
+          token: env('COZE_DEEP_CBT_API_TOKEN'),
+          baseUrl: env('COZE_DEEP_CBT_BASE_URL'),
+          projectId: env('COZE_DEEP_CBT_PROJECT_ID'),
+        );
+      case 'releaseControl':
+        return (
+          token: env('COZE_DEEP_ACT_API_TOKEN'),
+          baseUrl: env('COZE_DEEP_ACT_BASE_URL'),
+          projectId: env('COZE_DEEP_ACT_PROJECT_ID'),
+        );
+      case 'boundarySupport':
+        return (
+          token: env('COZE_DEEP_DBT_API_TOKEN'),
+          baseUrl: env('COZE_DEEP_DBT_BASE_URL'),
+          projectId: env('COZE_DEEP_DBT_PROJECT_ID'),
+        );
+      case 'gentleRecovery':
+        return (
+          token: env('COZE_DEEP_BA_API_TOKEN'),
+          baseUrl: env('COZE_DEEP_BA_BASE_URL'),
+          projectId: env('COZE_DEEP_BA_PROJECT_ID'),
+        );
+    }
+    return null;
+  }
+
+  /// 指定方法的深入分析智能体是否已配置
+  static bool isDeepAnalysisConfiguredFor(String methodType) {
+    final config = deepAnalysisConfigFor(methodType);
+    if (config == null) return false;
+    return config.token.isNotEmpty &&
+        config.baseUrl.isNotEmpty &&
+        config.projectId.isNotEmpty;
   }
 
   /// 获取配置状态信息（用于调试）

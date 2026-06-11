@@ -14,6 +14,7 @@ import 'package:uuid/uuid.dart';
 import '../../domain/entities/nvc_analysis.dart';
 import '../../domain/entities/insight_report.dart';
 import '../../domain/entities/daily_summary.dart';
+import '../../domain/entities/deep_analysis_result.dart';
 import '../constants/app_constants.dart';
 
 class CozeAIService {
@@ -774,12 +775,20 @@ class CozeAIService {
     // AI洞察
     String? insight = json['insight']?.toString() ?? json['洞察']?.toString();
 
+    // 推荐的深入分析方法（合并进 NVC 智能体的分诊字段，可选）
+    final recommendedMethodRaw = json['recommended_method'] ??
+        json['recommendedMethod'] ??
+        json['推荐方法'];
+    final recommendedMethod = recommendedMethodRaw?.toString().trim();
+
     return NVCAnalysis(
       observation: observation,
       feelings: feelings,
       needs: needs,
       request: request,
       insight: insight,
+      recommendedMethod:
+          (recommendedMethod?.isEmpty ?? true) ? null : recommendedMethod,
       analyzedAt: DateTime.now(),
     );
   }
@@ -1066,6 +1075,270 @@ class CozeAIService {
         originalError: e,
       );
     }
+  }
+
+  // ==================== 深入分析（一方法一智能体，输出结构同构） ====================
+
+  /// 五个深入分析方法的元信息（标题/标签/理论来源/概述 + 解析兜底值）
+  static const Map<
+      String,
+      ({
+        String title,
+        String label,
+        String theory,
+        String overview,
+        String observedLabel,
+        String truthLabel,
+        String kind,
+      })> _deepMethodMeta = {
+    'selfCompassion': (
+      title: '自我关怀与滋养',
+      label: 'Self-Compassion & Savoring',
+      theory: '源自自我关怀与正向心理学',
+      overview: '难受时，陪你停止自我攻击；美好时，帮你把这份好放大、留住。',
+      observedLabel: '你对自己说的话',
+      truthLabel: '但其实',
+      kind: 'self_kindness',
+    ),
+    'cognitiveReframe': (
+      title: '想法校准',
+      label: 'CBT',
+      theory: '源自经典认知行为学派',
+      overview: '帮助你把事实与脑中迅速出现的判断分开，减少被“我不行”这样的结论拖走。',
+      observedLabel: '你脑中的结论',
+      truthLabel: '事实是',
+      kind: 'thought_check',
+    ),
+    'releaseControl': (
+      title: '放下控制',
+      label: 'ACT',
+      theory: '源自第三波认知行为疗法',
+      overview: '帮助你不再急着解决每一个念头，在无法确定时也能先回到当下。',
+      observedLabel: '缠着你的念头',
+      truthLabel: '松开一点看',
+      kind: 'defusion',
+    ),
+    'boundarySupport': (
+      title: '稳住情绪',
+      label: 'DBT',
+      theory: '源自第三波认知行为疗法',
+      overview: '帮助你先降低情绪强度，再用清楚、稳定的方式表达边界。',
+      observedLabel: '上头那一刻',
+      truthLabel: '这股情绪在说',
+      kind: 'steady_express',
+    ),
+    'gentleRecovery': (
+      title: '慢慢带回自己',
+      label: 'Behavioral Activation',
+      theory: '源自行为主义与 CBT 干预传统',
+      overview: '帮助你从微小行动重新接回节律、感受和生活里的恢复感。',
+      observedLabel: '最近的信号',
+      truthLabel: '这其实说明',
+      kind: 'tiny_recharge',
+    ),
+  };
+
+  /// 深入分析（通用入口）
+  ///
+  /// [methodType] 为 DeeperSupportType 的 name；
+  /// 按方法路由到各自的智能体，输出结构同构（自我关怀额外带 face 双面）。
+  Future<DeepAnalysisResult> generateDeepAnalysis({
+    required String methodType,
+    required String transcription,
+  }) async {
+    final meta = _deepMethodMeta[methodType];
+    if (meta == null) {
+      throw CozeAPIException(
+        '未知的深入分析方法: $methodType',
+        code: 'CONFIG_ERROR',
+      );
+    }
+
+    final config = EnvConfig.deepAnalysisConfigFor(methodType);
+    if (config == null ||
+        config.token.isEmpty ||
+        config.baseUrl.isEmpty ||
+        config.projectId.isEmpty) {
+      throw CozeAPIException(
+        '「${meta.title}」智能体配置未完成，请在 .env 中补全对应的 COZE_DEEP_* 配置',
+        code: 'CONFIG_ERROR',
+      );
+    }
+
+    print('🫶 CozeAI: 开始深入分析（${meta.title}），输入长度: ${transcription.length}');
+
+    try {
+      final responseText = await _callDeepAnalysisAPI(config, transcription);
+      print('✅ CozeAI: 收到深入分析响应，长度: ${responseText.length}');
+
+      final result = _parseDeepAnalysisResponse(methodType, responseText);
+      print('✅ CozeAI: 深入分析解析完成（${meta.title}），face: ${result.face}');
+      return result;
+    } on DioException catch (e) {
+      throw CozeAPIException.fromDioError(e);
+    } catch (e) {
+      if (e is CozeAPIException) rethrow;
+      throw CozeAPIException(
+        '深入分析生成失败: $e',
+        code: 'DEEP_ANALYSIS_ERROR',
+        originalError: e,
+      );
+    }
+  }
+
+  /// 调用深入分析 API（SSE 流式响应），配置由调用方按方法传入
+  Future<String> _callDeepAnalysisAPI(
+    ({String token, String baseUrl, String projectId}) config,
+    String inputText,
+  ) async {
+    final deepAnalysisDio = Dio();
+    final baseUrl = config.baseUrl;
+    deepAnalysisDio.options.baseUrl = baseUrl;
+    deepAnalysisDio.options.connectTimeout = AppConstants.cozeApiTimeout;
+    deepAnalysisDio.options.receiveTimeout = const Duration(seconds: 60);
+    deepAnalysisDio.options.headers = {
+      'Authorization': 'Bearer ${config.token}',
+      'Content-Type': 'application/json',
+    };
+
+    final sessionId = _uuid.v4().replaceAll('-', '');
+
+    final projectId = int.tryParse(config.projectId);
+    if (projectId == null || projectId <= 0) {
+      throw CozeAPIException(
+        '深入分析智能体 Project ID 配置无效: ${config.projectId}',
+        code: 'CONFIG_ERROR',
+      );
+    }
+
+    print('🔄 CozeAI: 发送深入分析请求');
+    print('   Base URL: $baseUrl');
+    print('   Session ID: $sessionId');
+
+    try {
+      final response = await deepAnalysisDio.post(
+        '/stream_run',
+        data: {
+          'content': {
+            'query': {
+              'prompt': [
+                {
+                  'type': 'text',
+                  'content': {'text': inputText},
+                },
+              ],
+            },
+          },
+          'type': 'query',
+          'session_id': sessionId,
+          'project_id': projectId,
+        },
+        options: Options(responseType: ResponseType.stream),
+      );
+
+      if (response.statusCode == 200 && response.data is ResponseBody) {
+        final streamText = await _readSSEStreamUntilDone(
+          response.data.stream,
+          timeout: const Duration(seconds: 45),
+        );
+        final answer = _extractAnswerFromSSE(streamText);
+        return answer.isNotEmpty ? answer : streamText;
+      }
+
+      throw CozeAPIException(
+        '深入分析API响应无效: HTTP ${response.statusCode}',
+        code: 'INVALID_RESPONSE',
+      );
+    } on DioException catch (e) {
+      print('❌ CozeAI: 深入分析API请求失败');
+      print('   Status: ${e.response?.statusCode}');
+      print('   Message: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// 解析深入分析智能体响应 → DeepAnalysisResult（五方法同构）
+  ///
+  /// 智能体输出结构见产品定义：
+  /// { method, [face], enough_signal, analysis: { trigger, core: { observed, truth },
+  ///   emotions }, response: { resonance, insight, micro_action, self_statement } }
+  /// face 仅自我关怀与滋养输出（low/high 双面），其余方法无此字段。
+  DeepAnalysisResult _parseDeepAnalysisResponse(
+    String methodType,
+    String responseText,
+  ) {
+    final meta = _deepMethodMeta[methodType]!;
+    final jsonText = _extractJsonFromText(responseText);
+    final data = jsonDecode(jsonText) as Map<String, dynamic>;
+
+    Map<String, dynamic> asMap(dynamic value) =>
+        value is Map ? Map<String, dynamic>.from(value) : <String, dynamic>{};
+
+    final analysisMap = asMap(data['analysis']);
+    final core = asMap(analysisMap['core']);
+    final observed = asMap(core['observed']);
+    final truth = asMap(core['truth']);
+    final responseMap = asMap(data['response']);
+    final microAction = asMap(responseMap['micro_action']);
+
+    final faceRaw = data['face']?.toString();
+    String? face = (faceRaw == 'high' || faceRaw == 'low') ? faceRaw : null;
+    if (methodType == 'selfCompassion') {
+      face ??= 'low'; // 自我关怀必有面向，缺失时按低谷兜底
+    }
+    final isHigh = face == 'high';
+
+    String? nullIfEmpty(dynamic value) {
+      final text = value?.toString().trim() ?? '';
+      return text.isEmpty ? null : text;
+    }
+
+    // 兼容 0-10 与 0-100 两种强度制
+    final emotions = ((analysisMap['emotions'] as List?) ?? const [])
+        .whereType<Map>()
+        .map((item) {
+          final raw = (item['intensity'] as num?)?.toDouble() ?? 50;
+          final scaled = raw <= 10 ? raw * 10 : raw;
+          return DeepEmotion(
+            name: item['name']?.toString() ?? '',
+            intensity: scaled.round().clamp(0, 100),
+          );
+        })
+        .where((item) => item.name.isNotEmpty)
+        .toList();
+
+    // 自我关怀的兜底随 face 切换，其余方法用各自元信息里的固定值
+    final observedLabelFallback = methodType == 'selfCompassion' && isHigh
+        ? '你匆匆带过的好'
+        : meta.observedLabel;
+    final truthLabelFallback = methodType == 'selfCompassion' && isHigh
+        ? '而这份好里'
+        : meta.truthLabel;
+    final kindFallback = methodType == 'selfCompassion' && isHigh
+        ? 'savoring'
+        : meta.kind;
+
+    return DeepAnalysisResult(
+      type: methodType,
+      title: meta.title,
+      methodLabel: meta.label,
+      theorySource: meta.theory,
+      overview: meta.overview,
+      stuckPoint: nullIfEmpty(observed['value']) ?? '',
+      groundedUnderstanding: nullIfEmpty(responseMap['insight']) ?? '',
+      oneSmallStep: nullIfEmpty(microAction['text']) ?? '',
+      steadySentence: nullIfEmpty(responseMap['self_statement']) ?? '',
+      analyzedAt: DateTime.now(),
+      face: face,
+      enoughSignal: data['enough_signal'] as bool? ?? true,
+      resonance: nullIfEmpty(responseMap['resonance']),
+      emotions: emotions,
+      observedLabel: nullIfEmpty(observed['label']) ?? observedLabelFallback,
+      observedValue: nullIfEmpty(observed['value']),
+      truthLabel: nullIfEmpty(truth['label']) ?? truthLabelFallback,
+      truthValue: nullIfEmpty(truth['value']),
+      microActionKind: nullIfEmpty(microAction['kind']) ?? kindFallback,
+    );
   }
 }
 
