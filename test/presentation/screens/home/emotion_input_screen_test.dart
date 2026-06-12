@@ -139,7 +139,9 @@ void main() {
 
     expect(find.text('行动 Tips'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(TextButton, '完成').last);
+    await tester.tap(
+      find.byKey(const ValueKey('nvc-confirm-complete-button')),
+    );
     await tester.pump();
     await tester.pumpAndSettle();
 

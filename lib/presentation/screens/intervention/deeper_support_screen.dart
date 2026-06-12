@@ -15,6 +15,11 @@ enum DeeperSupportType {
   gentleRecovery,
 }
 
+typedef DeepAnalysisLoader = Future<DeepAnalysisResult> Function(
+  String methodType,
+  String transcription,
+);
+
 // ---------- 关键词表（路由与占位内容共用） ----------
 
 /// 低谷面：自我攻击 / 自责 / 羞耻
@@ -422,10 +427,14 @@ class DeeperSupportScreen extends StatefulWidget {
   /// 从已保存结果打开时不传，不会重复调用。
   final String? transcription;
 
+  /// 默认走 CozeAIService；测试或迁移服务端代理时可注入替代实现。
+  final DeepAnalysisLoader? analysisLoader;
+
   const DeeperSupportScreen({
     super.key,
     required this.analysis,
     this.transcription,
+    this.analysisLoader,
   });
 
   @override
@@ -435,6 +444,7 @@ class DeeperSupportScreen extends StatefulWidget {
 class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
   bool _actionDone = false;
   bool _loadingAgent = false;
+  String? _agentError;
   late DeepAnalysisResult _analysis;
 
   DeepAnalysisResult get analysis => _analysis;
@@ -443,38 +453,78 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
   void initState() {
     super.initState();
     _analysis = widget.analysis;
-    _maybeFetchFromAgent();
+    _prepareAgentRequest();
   }
 
-  Future<void> _maybeFetchFromAgent() async {
+  void _prepareAgentRequest() {
     final transcription = widget.transcription?.trim();
     if (transcription == null || transcription.isEmpty) return;
-    if (!getIt.isRegistered<CozeAIService>()) return;
-    // 该方法的智能体未配置时（如 ACT/DBT/BA 待接入）保持本地占位
-    if (!EnvConfig.isDeepAnalysisConfiguredFor(widget.analysis.type)) return;
 
-    setState(() => _loadingAgent = true);
+    DeepAnalysisLoader? loader;
+    if (widget.analysisLoader != null) {
+      loader = widget.analysisLoader!;
+    } else {
+      if (getIt.isRegistered<CozeAIService>() &&
+          EnvConfig.isDeepAnalysisConfiguredFor(widget.analysis.type)) {
+        loader =
+            (methodType, input) => getIt<CozeAIService>().generateDeepAnalysis(
+                  methodType: methodType,
+                  transcription: input,
+                );
+      }
+    }
+
+    if (loader == null) {
+      _agentError = '这个分析方法暂时还没有配置好';
+      return;
+    }
+
+    _loadingAgent = true;
+    _fetchFromAgent(loader, transcription);
+  }
+
+  Future<void> _fetchFromAgent(
+    DeepAnalysisLoader loader,
+    String transcription,
+  ) async {
     try {
-      final result = await getIt<CozeAIService>().generateDeepAnalysis(
-        methodType: widget.analysis.type,
-        transcription: transcription,
-      );
+      final result = await loader(widget.analysis.type, transcription);
       if (!mounted) return;
       setState(() {
         _analysis = result;
         _loadingAgent = false;
+        _agentError = null;
       });
     } catch (e) {
-      debugPrint('🫶 深入分析智能体调用失败，保留本地占位: $e');
+      debugPrint('🫶 深入分析智能体调用失败: $e');
       if (!mounted) return;
-      setState(() => _loadingAgent = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('这条的深入分析暂时没生成，先看一版简单的'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      setState(() {
+        _loadingAgent = false;
+        _agentError = '这次没有生成成功，请再试一次';
+      });
     }
+  }
+
+  void _retryAgentRequest() {
+    final transcription = widget.transcription?.trim();
+    if (transcription == null || transcription.isEmpty) return;
+
+    final DeepAnalysisLoader? loader = widget.analysisLoader ??
+        (getIt.isRegistered<CozeAIService>() &&
+                EnvConfig.isDeepAnalysisConfiguredFor(widget.analysis.type)
+            ? (methodType, input) =>
+                getIt<CozeAIService>().generateDeepAnalysis(
+                  methodType: methodType,
+                  transcription: input,
+                )
+            : null);
+    if (loader == null) return;
+
+    setState(() {
+      _loadingAgent = true;
+      _agentError = null;
+    });
+    _fetchFromAgent(loader, transcription);
   }
 
   bool get _isStructured => analysis.hasStructuredBreakdown;
@@ -544,8 +594,11 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  // face 胶囊仅自我关怀与滋养显示；其余方法显示方法简介
-                  if (_isStructured && analysis.face != null)
+                  // 生成结果回来前只展示方法概述，不提前暴露本地占位拆解。
+                  if (!_loadingAgent &&
+                      _agentError == null &&
+                      _isStructured &&
+                      analysis.face != null)
                     _buildFacePill()
                   else
                     Text(
@@ -565,9 +618,7 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
                   physics: const BouncingScrollPhysics(),
-                  child: _isStructured
-                      ? _buildStructuredBody()
-                      : _buildClassicBody(),
+                  child: _buildAnalysisBody(),
                 ),
               ),
             ),
@@ -588,17 +639,30 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
                 child: SizedBox(
                   width: double.infinity,
                   child: TextButton(
-                    onPressed: () => Navigator.of(context).pop(analysis),
+                    key: const ValueKey('deep-analysis-complete-button'),
+                    onPressed: _loadingAgent
+                        ? null
+                        : _agentError != null
+                            ? _retryAgentRequest
+                            : () => Navigator.of(context).pop(analysis),
                     style: TextButton.styleFrom(
-                      backgroundColor: AppColors.accent,
+                      backgroundColor: _loadingAgent
+                          ? AppColors.accent.withValues(alpha: 0.45)
+                          : AppColors.accent,
+                      disabledBackgroundColor:
+                          AppColors.accent.withValues(alpha: 0.45),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      '完成',
-                      style: TextStyle(
+                    child: Text(
+                      _loadingAgent
+                          ? '正在生成…'
+                          : _agentError != null
+                              ? '重新生成'
+                              : '完成',
+                      style: const TextStyle(
                         fontSize: 17,
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -606,6 +670,77 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
                     ),
                   ),
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnalysisBody() {
+    if (_loadingAgent) return _buildLoadingState();
+    if (_agentError != null) return _buildErrorState();
+    return _isStructured ? _buildStructuredBody() : _buildClassicBody();
+  }
+
+  Widget _buildLoadingState() {
+    return SizedBox(
+      height: 300,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.4,
+                color: AppColors.accent,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              '正在慢慢读你写的这条…',
+              key: ValueKey('deep-analysis-loading-state'),
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textMuted,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '分析完成后，结果会出现在这里',
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textMuted.withValues(alpha: 0.72),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return SizedBox(
+      height: 260,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.refresh_rounded,
+              size: 28,
+              color: AppColors.textMuted,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _agentError!,
+              key: const ValueKey('deep-analysis-error-state'),
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textMuted,
               ),
             ),
           ],
@@ -665,7 +800,14 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
   }
 
   Widget _buildStructuredBody() {
-    if (!analysis.enoughSignal) {
+    final hasDetailedResult = analysis.emotions.isNotEmpty ||
+        analysis.observedValue != null ||
+        analysis.truthValue != null ||
+        analysis.groundedUnderstanding.trim().isNotEmpty ||
+        analysis.oneSmallStep.trim().isNotEmpty ||
+        analysis.steadySentence.trim().isNotEmpty;
+
+    if (!analysis.enoughSignal && !hasDetailedResult) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -690,10 +832,6 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (_loadingAgent) ...[
-          _buildAgentLoadingBar(),
-          const SizedBox(height: 12),
-        ],
         if (analysis.resonance != null)
           _buildResonanceBubble(analysis.resonance!),
         if (analysis.emotions.isNotEmpty) ...[
@@ -716,37 +854,6 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
         _buildSelfStatementCard(),
         const SizedBox(height: 32),
       ],
-    );
-  }
-
-  Widget _buildAgentLoadingBar() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: const Row(
-        children: [
-          SizedBox(
-            width: 13,
-            height: 13,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: AppColors.accent,
-            ),
-          ),
-          SizedBox(width: 10),
-          Text(
-            '正在慢慢读你写的这条…',
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.textMuted,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -830,19 +937,14 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
 
   /// 翻转卡：observed（弱化）→ truth（点亮）
   Widget _buildFlipCard() {
-    final observedStyle = _isHighFace
-        ? const TextStyle(
-            fontSize: 14,
-            height: 1.6,
-            color: Color(0xFF9B9286),
-          )
-        : const TextStyle(
-            fontSize: 14,
-            height: 1.6,
-            color: Color(0xFF9B9286),
-            decoration: TextDecoration.lineThrough,
-            decorationColor: Color(0xFFB8AC9C),
-          );
+    final observedStyle = TextStyle(
+      fontSize: 14,
+      height: 1.6,
+      color: const Color(0xFF9B9286),
+      decoration:
+          _strikeObserved ? TextDecoration.lineThrough : TextDecoration.none,
+      decorationColor: _strikeObserved ? const Color(0xFFB8AC9C) : null,
+    );
 
     return _buildCard(
       child: Column(
@@ -857,7 +959,11 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Text(analysis.observedValue ?? '', style: observedStyle),
+          Text(
+            analysis.observedValue ?? '',
+            key: const ValueKey('deep-analysis-observed-value'),
+            style: observedStyle,
+          ),
           const SizedBox(height: 12),
           const Center(
             child: Icon(
@@ -880,9 +986,8 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: _isHighFace
-                  ? const Color(0xFFFFF3D6)
-                  : AppColors.accentLight,
+              color:
+                  _isHighFace ? const Color(0xFFFFF3D6) : AppColors.accentLight,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -936,8 +1041,8 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
 
   Widget _buildActionCard() {
     final isSavoringAction = analysis.microActionKind == 'savoring';
-    final actionLabel = isSavoringAction ? '收进高光' : '做一下';
-    final doneLabel = isSavoringAction ? '已收藏 ✓' : '已完成 ✓';
+    const actionLabel = '试一下';
+    const doneLabel = '为你开心';
 
     return _buildCard(
       child: Column(
@@ -992,9 +1097,7 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: _actionDone
-                        ? const Color(0xFF8D6A3B)
-                        : Colors.white,
+                    color: _actionDone ? const Color(0xFF8D6A3B) : Colors.white,
                   ),
                 ),
               ),

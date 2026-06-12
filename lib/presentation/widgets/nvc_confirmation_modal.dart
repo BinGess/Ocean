@@ -76,6 +76,10 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
   DeeperSupportType? _selectedDeeperSupportType;
   final List<DeepAnalysisResult> _deepAnalyses = [];
 
+  bool get _hasProAccess =>
+      getIt.isRegistered<ProSubscriptionService>() &&
+      getIt<ProSubscriptionService>().hasProFeatureAccess;
+
   @override
   void initState() {
     super.initState();
@@ -443,7 +447,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
   ) async {
     if (!mounted) return;
 
-    if (getIt<ProSubscriptionService>().hasProFeatureAccess) {
+    if (_hasProAccess) {
       final result = await Navigator.of(context).push<DeepAnalysisResult>(
         MaterialPageRoute(
           builder: (_) => DeeperSupportScreen(
@@ -496,7 +500,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
 
   @override
   Widget build(BuildContext context) {
-    final hasProAccess = getIt<ProSubscriptionService>().hasProFeatureAccess;
+    final hasProAccess = _hasProAccess;
     final recommendations = buildDeeperSupportRecommendations(
       transcription: widget.transcription,
       analysis: widget.initialAnalysis,
@@ -836,6 +840,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: OutlinedButton(
+                        key: const ValueKey('nvc-confirm-complete-button'),
                         onPressed: _handleConfirm,
                         style: OutlinedButton.styleFrom(
                           backgroundColor: Colors.white,

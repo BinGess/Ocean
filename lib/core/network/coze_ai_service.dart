@@ -776,9 +776,8 @@ class CozeAIService {
     String? insight = json['insight']?.toString() ?? json['洞察']?.toString();
 
     // 推荐的深入分析方法（合并进 NVC 智能体的分诊字段，可选）
-    final recommendedMethodRaw = json['recommended_method'] ??
-        json['recommendedMethod'] ??
-        json['推荐方法'];
+    final recommendedMethodRaw =
+        json['recommended_method'] ?? json['recommendedMethod'] ?? json['推荐方法'];
     final recommendedMethod = recommendedMethodRaw?.toString().trim();
 
     return NVCAnalysis(
@@ -840,7 +839,8 @@ class CozeAIService {
       print('📝 CozeAI: 日总结原始响应:\n$responseText');
 
       // 解析响应
-      final summary = _parseDailySummaryResponse(responseText, date, records.length);
+      final summary =
+          _parseDailySummaryResponse(responseText, date, records.length);
 
       print('✅ CozeAI: 日总结生成完成');
       print('📊 CozeAI: 情绪关键词: ${summary.moodWord}');
@@ -1171,7 +1171,7 @@ class CozeAIService {
       final responseText = await _callDeepAnalysisAPI(config, transcription);
       print('✅ CozeAI: 收到深入分析响应，长度: ${responseText.length}');
 
-      final result = _parseDeepAnalysisResponse(methodType, responseText);
+      final result = parseDeepAnalysisResponse(methodType, responseText);
       print('✅ CozeAI: 深入分析解析完成（${meta.title}），face: ${result.face}');
       return result;
     } on DioException catch (e) {
@@ -1263,13 +1263,13 @@ class CozeAIService {
   /// { method, [face], enough_signal, analysis: { trigger, core: { observed, truth },
   ///   emotions }, response: { resonance, insight, micro_action, self_statement } }
   /// face 仅自我关怀与滋养输出（low/high 双面），其余方法无此字段。
-  DeepAnalysisResult _parseDeepAnalysisResponse(
+  /// 保持为公开的纯解析入口，便于用固定样本验证智能体协议兼容性。
+  DeepAnalysisResult parseDeepAnalysisResponse(
     String methodType,
     String responseText,
   ) {
     final meta = _deepMethodMeta[methodType]!;
-    final jsonText = _extractJsonFromText(responseText);
-    final data = jsonDecode(jsonText) as Map<String, dynamic>;
+    final data = _decodeAgentJsonObject(responseText);
 
     Map<String, dynamic> asMap(dynamic value) =>
         value is Map ? Map<String, dynamic>.from(value) : <String, dynamic>{};
@@ -1311,12 +1311,10 @@ class CozeAIService {
     final observedLabelFallback = methodType == 'selfCompassion' && isHigh
         ? '你匆匆带过的好'
         : meta.observedLabel;
-    final truthLabelFallback = methodType == 'selfCompassion' && isHigh
-        ? '而这份好里'
-        : meta.truthLabel;
-    final kindFallback = methodType == 'selfCompassion' && isHigh
-        ? 'savoring'
-        : meta.kind;
+    final truthLabelFallback =
+        methodType == 'selfCompassion' && isHigh ? '而这份好里' : meta.truthLabel;
+    final kindFallback =
+        methodType == 'selfCompassion' && isHigh ? 'savoring' : meta.kind;
 
     return DeepAnalysisResult(
       type: methodType,
@@ -1339,6 +1337,56 @@ class CozeAIService {
       truthValue: nullIfEmpty(truth['value']),
       microActionKind: nullIfEmpty(microAction['kind']) ?? kindFallback,
     );
+  }
+
+  /// 兼容智能体直接返回业务 JSON，以及 OpenAI 兼容接口的
+  /// choices[0].message.content 外壳。
+  Map<String, dynamic> _decodeAgentJsonObject(String responseText) {
+    final jsonText = _extractJsonFromText(responseText);
+    final decoded = jsonDecode(jsonText);
+    if (decoded is! Map) {
+      throw const FormatException('智能体响应不是 JSON 对象');
+    }
+
+    final outer = Map<String, dynamic>.from(decoded);
+    final assistantContent = _extractAssistantContent(outer);
+    if (assistantContent == null) return outer;
+    if (assistantContent is Map) {
+      return Map<String, dynamic>.from(assistantContent);
+    }
+    if (assistantContent is String && assistantContent.trim().isNotEmpty) {
+      final innerText = _extractJsonFromText(assistantContent);
+      final inner = jsonDecode(innerText);
+      if (inner is Map) {
+        return Map<String, dynamic>.from(inner);
+      }
+    }
+
+    throw const FormatException('智能体 message.content 中没有有效 JSON');
+  }
+
+  dynamic _extractAssistantContent(Map<String, dynamic> data) {
+    final choices = data['choices'];
+    if (choices is! List || choices.isEmpty) return null;
+
+    final firstChoice = choices.first;
+    if (firstChoice is! Map) return null;
+    final message = firstChoice['message'];
+    if (message is! Map) return null;
+
+    final content = message['content'];
+    if (content is! List) return content;
+
+    final buffer = StringBuffer();
+    for (final item in content) {
+      if (item is String) {
+        buffer.write(item);
+      } else if (item is Map) {
+        final text = item['text'] ?? item['content'];
+        if (text != null) buffer.write(text);
+      }
+    }
+    return buffer.toString();
   }
 }
 
