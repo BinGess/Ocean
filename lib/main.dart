@@ -251,6 +251,11 @@ class _AppEntryPointState extends State<AppEntryPoint>
     } catch (e) {
       debugPrint('AppEntryPoint: 检查前台锁屏失败: $e');
     }
+
+    // 回到前台时补推之前写服务端失败、滞留本地的记录（后台执行，不阻塞 UI）。
+    if (getIt.isRegistered<OceanAccountService>()) {
+      unawaited(getIt<OceanAccountService>().flushPendingLocalData());
+    }
   }
 
   void _onUnlocked() {

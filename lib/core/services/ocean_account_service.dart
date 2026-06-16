@@ -7,6 +7,7 @@ import 'icloud_sync_service.dart';
 import 'ocean_account_cache_service.dart';
 import 'ocean_record_ownership_service.dart';
 import 'ocean_sync_service.dart';
+import 'pending_sync_tracker.dart';
 
 class OceanAccountDataRefreshService {
   final StreamController<void> _controller = StreamController<void>.broadcast();
@@ -57,6 +58,7 @@ class OceanAccountService {
     required OceanAccountDataRefreshService refreshService,
     ICloudSyncService? iCloudSyncService,
     OceanRecordOwnershipService? ownershipService,
+    PendingSyncTracker? pendingSync,
     Future<void> Function()? clearLocalData,
   })  : _api = api,
         _syncService = syncService,
@@ -64,6 +66,7 @@ class OceanAccountService {
         _refreshService = refreshService,
         _iCloudSyncService = iCloudSyncService,
         _ownershipService = ownershipService,
+        _pendingSync = pendingSync,
         _clearLocalData = clearLocalData ?? (() async {});
 
   final OceanAccountApi _api;
@@ -72,7 +75,10 @@ class OceanAccountService {
   final OceanAccountDataRefreshService _refreshService;
   final ICloudSyncService? _iCloudSyncService;
   final OceanRecordOwnershipService? _ownershipService;
+  final PendingSyncTracker? _pendingSync;
   final Future<void> Function() _clearLocalData;
+
+  bool _isFlushingPending = false;
 
   Future<bool> get isSignedIn => _api.isSignedIn;
 
@@ -131,7 +137,36 @@ class OceanAccountService {
           'OceanAccountService: restore signed-in session failed: $error');
     }
     _refreshService.notifyChanged();
+    // 补推之前因写服务端失败而滞留在本地的记录（后台执行，不阻塞启动）。
+    unawaited(flushPendingLocalData());
     return true;
+  }
+
+  /// 补推「待同步」的本地记录。
+  ///
+  /// 触发时机：启动恢复会话、回到前台。仅在已登录、且确有待同步数据
+  /// （或首次升级回填）时才推送，避免无谓的全量重推。
+  /// server-first 写入失败会留下 pending 标记，这里统一补推并清标。
+  Future<void> flushPendingLocalData() async {
+    final tracker = _pendingSync;
+    if (tracker == null || _isFlushingPending) return;
+    if (!await _api.isSignedIn) return;
+
+    final backfill = tracker.shouldRunBackfill;
+    if (!backfill && !tracker.hasPending) return;
+
+    _isFlushingPending = true;
+    try {
+      await _syncService.pushAllLocalData();
+      await tracker.clear();
+      await tracker.markBackfillDone();
+      _refreshService.notifyChanged();
+    } catch (error) {
+      debugPrint(
+          'OceanAccountService: flush pending local data failed: $error');
+    } finally {
+      _isFlushingPending = false;
+    }
   }
 
   Future<void> logout() async {
@@ -179,8 +214,8 @@ class OceanAccountService {
       // 整体限时 60 秒：防止 _pushLocalDataInSmallBatches 按记录逐条上传
       // 时每条都等待超时，导致界面长时间卡在"正在登录并恢复数据..."。
       await _syncService.pushAllLocalData().timeout(
-        const Duration(seconds: 60),
-      );
+            const Duration(seconds: 60),
+          );
     } catch (error) {
       localMigrationSucceeded = false;
       localMigrationError = error;
@@ -193,6 +228,10 @@ class OceanAccountService {
         localMigrationError,
       );
     }
+
+    // 本地数据已安全上传，pending 标记可清空（登录即全量推送）。
+    await _pendingSync?.clear();
+    await _pendingSync?.markBackfillDone();
 
     // 本地数据已安全上传，立即通知各页面刷新并放行登录流程，
     // 让用户直接进入主界面，无需继续等待快照下载。

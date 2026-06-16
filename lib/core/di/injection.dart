@@ -43,6 +43,7 @@ import '../services/deep_analysis_local_service.dart';
 import '../services/icloud_sync_service.dart';
 import '../services/ocean_sync_service.dart';
 import '../services/ocean_record_ownership_service.dart';
+import '../services/pending_sync_tracker.dart';
 import '../services/ocean_account_cache_service.dart';
 import '../services/ocean_account_service.dart';
 import '../services/ocean_installation_service.dart';
@@ -151,6 +152,10 @@ Future<void> configureDependencies() async {
     () => OceanRecordOwnershipService(getIt<HiveDatabase>()),
   );
 
+  getIt.registerLazySingleton<PendingSyncTracker>(
+    () => PendingSyncTracker(database: getIt<HiveDatabase>()),
+  );
+
   // 豆包远程数据源
   getIt.registerLazySingleton<DoubaoDataSource>(
     () => DoubaoDataSource(
@@ -179,6 +184,7 @@ Future<void> configureDependencies() async {
       recordsApi: getIt<OceanApiClient>(),
       accountApi: getIt<OceanApiClient>(),
       ownershipService: getIt<OceanRecordOwnershipService>(),
+      pendingSync: getIt<PendingSyncTracker>(),
     ),
   );
 
@@ -273,6 +279,7 @@ Future<void> configureDependencies() async {
       refreshService: getIt<OceanAccountDataRefreshService>(),
       iCloudSyncService: getIt<ICloudSyncService>(),
       ownershipService: getIt<OceanRecordOwnershipService>(),
+      pendingSync: getIt<PendingSyncTracker>(),
       clearLocalData: () => getIt<HiveDatabase>().clearAll(),
     ),
   );

@@ -8,6 +8,7 @@ import '../../core/theme/app_typography.dart';
 import '../../domain/entities/deep_analysis_result.dart';
 import '../../domain/entities/nvc_analysis.dart';
 import '../../domain/entities/record.dart';
+import 'analysis/analysis_widgets.dart';
 import 'delete_confirmation_dialog.dart';
 import 'record_date_time_picker.dart';
 import '../screens/intervention/deeper_support_screen.dart';
@@ -72,9 +73,10 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
   late List<Need> _needs;
   late String _insight;
   late DateTime _selectedDateTime;
-  late final ScrollController _deeperSupportScrollController;
-  DeeperSupportType? _selectedDeeperSupportType;
   final List<DeepAnalysisResult> _deepAnalyses = [];
+
+  /// 分析 Tab：0 = 基础分析，1 = 专业分析。
+  int _activeAnalysisTab = 0;
 
   bool get _hasProAccess =>
       getIt.isRegistered<ProSubscriptionService>() &&
@@ -92,23 +94,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     _selectedDateTime = widget.initialDateTime ??
         widget.record?.createdAt ??
         widget.initialAnalysis.analyzedAt;
-    final recommendedIndex = DeeperSupportType.values.indexOf(
-      recommendedDeeperSupportType(
-        transcription: widget.transcription,
-        analysis: widget.initialAnalysis,
-      ),
-    );
-    _deeperSupportScrollController = ScrollController(
-      initialScrollOffset:
-          recommendedIndex > 1 ? (recommendedIndex - 1) * 144.0 : 0,
-    );
     unawaited(_loadSavedDeepAnalysis());
-  }
-
-  @override
-  void dispose() {
-    _deeperSupportScrollController.dispose();
-    super.dispose();
   }
 
   String _stripSquareBrackets(String value) {
@@ -191,13 +177,6 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
       _deepAnalyses
         ..clear()
         ..addAll(saved);
-      final latest = saved.last;
-      for (final type in DeeperSupportType.values) {
-        if (type.name == latest.type) {
-          _selectedDeeperSupportType = type;
-          break;
-        }
-      }
     });
   }
 
@@ -471,31 +450,11 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     );
   }
 
-  Future<void> _handleViewDeeperSupport({
-    required bool hasProAccess,
-    required List<DeeperSupportRecommendation> recommendations,
-  }) async {
-    if (!hasProAccess) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const ProPurchaseScreen()),
-      );
-      return;
-    }
-
-    if (_selectedDeeperSupportType == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('先选一个你想继续深入的方向'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-
-    final selectedRecommendation = recommendations.firstWhere(
-      (item) => item.type == _selectedDeeperSupportType,
-    );
-    await _openDeeperSupport(selectedRecommendation);
+  /// 取消：不应用本次 NVC 分析，回退为「仅记录」。
+  /// 新建流程下 onRevert 会保存原始文本，详情页流程下为空操作。
+  void _handleCancel() {
+    widget.onRevert?.call();
+    Navigator.of(context).pop();
   }
 
   @override
@@ -511,13 +470,13 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     );
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.bgPrimary,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             Container(
-              color: Colors.white,
+              color: AppColors.bgPrimary,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -599,199 +558,30 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
             ),
             Expanded(
               child: ColoredBox(
-                color: const Color(0xFFF5F5F5),
+                color: AppColors.bgPrimary,
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
                   physics: const BouncingScrollPhysics(),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF7F0E8),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          widget.transcription,
-                          style: const TextStyle(
-                            color: Color(0xFF4A4A4A),
-                            fontSize: 15,
-                            height: 1.6,
-                          ),
-                        ),
+                      TranscriptionQuote(text: widget.transcription),
+                      const SizedBox(height: 16),
+                      AnalysisTabBar(
+                        activeIndex: _activeAnalysisTab,
+                        onChanged: (index) =>
+                            setState(() => _activeAnalysisTab = index),
+                        showProBadge: !hasProAccess,
                       ),
                       const SizedBox(height: 16),
-                      const Row(
-                        children: [
-                          Icon(
-                            Icons.auto_awesome,
-                            size: 16,
-                            color: AppColors.accent,
-                          ),
-                          SizedBox(width: 6),
-                          Text(
-                            '洞察',
-                            style: TextStyle(
-                              color: AppColors.accent,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      _buildNVCCard(
-                        context: context,
-                        icon: Icons.remove_red_eye_outlined,
-                        iconColor: const Color(0xFF4CAF50),
-                        iconBgColor: const Color(0xFFE8F5E9),
-                        title: '事实观察',
-                        content: Text(
-                          _observation,
-                          style: const TextStyle(
-                            color: Color(0xFF4A4A4A),
-                            fontSize: 14,
-                            height: 1.5,
-                          ),
+                      if (_activeAnalysisTab == 0)
+                        _buildBasicTab()
+                      else
+                        _buildProfessionalTab(
+                          recommendations: recommendations,
+                          recommendedType: recommendedType,
+                          hasProAccess: hasProAccess,
                         ),
-                        onEdit: _editObservation,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildNVCCard(
-                        context: context,
-                        icon: Icons.favorite,
-                        iconColor: const Color(0xFFFF9500),
-                        iconBgColor: const Color(0xFFFFF4E6),
-                        title: '我现在的感受',
-                        content: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: _feelings
-                              .map(
-                                (f) => Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.transparent,
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: AppColors.border,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    f.feeling,
-                                    style: const TextStyle(
-                                      color: AppColors.textPrimary,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        ),
-                        onEdit: _editFeelings,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildNVCCard(
-                        context: context,
-                        icon: Icons.spa_outlined,
-                        iconColor: const Color(0xFF34C759),
-                        iconBgColor: const Color(0xFFE8F5E9),
-                        title: '我需要',
-                        content: Text(
-                          _needs.map((n) => n.need).join('、'),
-                          style: const TextStyle(
-                            color: Color(0xFF4A4A4A),
-                            fontSize: 14,
-                            height: 1.5,
-                          ),
-                        ),
-                        onEdit: _editNeeds,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildNVCCard(
-                        context: context,
-                        icon: Icons.lightbulb_outline,
-                        iconColor: const Color(0xFFFFB300),
-                        iconBgColor: const Color(0xFFFFF8E1),
-                        title: '行动 Tips',
-                        content: Text(
-                          _insight,
-                          style: const TextStyle(
-                            color: Color(0xFF4A4A4A),
-                            fontSize: 14,
-                            height: 1.5,
-                          ),
-                        ),
-                        onEdit: _editInsight,
-                      ),
-                      if (_deepAnalyses.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        ..._deepAnalyses.asMap().entries.map(
-                              (entry) => Padding(
-                                padding: EdgeInsets.only(
-                                  bottom: entry.key == _deepAnalyses.length - 1
-                                      ? 0
-                                      : 10,
-                                ),
-                                child: _buildDeepAnalysisSummary(entry.value),
-                              ),
-                            ),
-                      ],
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Text(
-                            '继续深入',
-                            style: AppTypography.sectionTitle.copyWith(
-                              fontSize: 18,
-                            ),
-                          ),
-                          if (!hasProAccess) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.accentLight,
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: const Text(
-                                'Pro',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF8D6A3B),
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        hasProAccess
-                            ? '选一个更贴近此刻的方向，我们再往下走一点。'
-                            : '继续深入是 Pro 会员功能，解锁后可获得 5 种更深一层的帮助。',
-                        style: AppTypography.sectionSubtle.copyWith(
-                          color: AppColors.textMuted,
-                          height: 1.45,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildDeeperSupportStrip(
-                        recommendations: recommendations,
-                        recommendedType: recommendedType,
-                        hasProAccess: hasProAccess,
-                      ),
                       const SizedBox(height: 28),
                     ],
                   ),
@@ -801,12 +591,12 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
+                color: AppColors.bgPrimary,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
+                    color: const Color(0xFF5D4E3C).withValues(alpha: 0.06),
+                    blurRadius: 14,
+                    offset: const Offset(0, -4),
                   ),
                 ],
               ),
@@ -815,33 +605,8 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: TextButton(
-                        onPressed: () => _handleViewDeeperSupport(
-                          hasProAccess: hasProAccess,
-                          recommendations: recommendations,
-                        ),
-                        style: TextButton.styleFrom(
-                          backgroundColor: AppColors.accent,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          hasProAccess ? '查看深入分析' : 'Pro 深入分析',
-                          style: const TextStyle(
-                            fontSize: 17,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
                       child: OutlinedButton(
-                        key: const ValueKey('nvc-confirm-complete-button'),
-                        onPressed: _handleConfirm,
+                        onPressed: _handleCancel,
                         style: OutlinedButton.styleFrom(
                           backgroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -853,10 +618,32 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                           ),
                         ),
                         child: const Text(
+                          '取消',
+                          style: TextStyle(
+                            fontSize: 17,
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextButton(
+                        key: const ValueKey('nvc-confirm-complete-button'),
+                        onPressed: _handleConfirm,
+                        style: TextButton.styleFrom(
+                          backgroundColor: AppColors.accent,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
                           '完成',
                           style: TextStyle(
                             fontSize: 17,
-                            color: AppColors.textPrimary,
+                            color: Colors.white,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -872,335 +659,175 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
     );
   }
 
-  Widget _buildNVCCard({
-    required BuildContext context,
-    required IconData icon,
-    required Color iconColor,
-    required Color iconBgColor,
-    required String title,
-    required Widget content,
-    required VoidCallback onEdit,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+  /// 基础分析 Tab：观察 / 感受 / 需要 / 行动 Tips 四张可编辑卡。
+  Widget _buildBasicTab() {
+    return Column(
+      children: [
+        NVCInfoCard(
+          icon: Icons.remove_red_eye_outlined,
+          iconColor: const Color(0xFF4CAF50),
+          iconBgColor: const Color(0xFFE8F5E9),
+          title: '事实观察',
+          content: Text(
+            _observation,
+            style: const TextStyle(
+              color: Color(0xFF4A4A4A),
+              fontSize: 14,
+              height: 1.5,
+            ),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 标题行（标题+编辑按钮）
-          Row(
-            children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: iconBgColor,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 16, color: iconColor),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+          onEdit: _editObservation,
+        ),
+        const SizedBox(height: 12),
+        NVCInfoCard(
+          icon: Icons.favorite,
+          iconColor: const Color(0xFFFF9500),
+          iconBgColor: const Color(0xFFFFF4E6),
+          title: '我现在的感受',
+          content: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _feelings
+                .map(
+                  (f) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.border, width: 1),
+                    ),
+                    child: Text(
+                      f.feeling,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              // 编辑按钮放在标题右侧
-              GestureDetector(
-                onTap: onEdit,
-                child: Icon(
-                  Icons.edit_outlined,
-                  size: 18,
-                  color: Colors.grey[400],
-                ),
-              ),
-            ],
+                )
+                .toList(),
           ),
-
-          const SizedBox(height: 12),
-
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(
-                  '也许...',
-                  style: TextStyle(
-                    color: Colors.grey[400],
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(child: content),
-            ],
+          onEdit: _editFeelings,
+        ),
+        const SizedBox(height: 12),
+        NVCInfoCard(
+          icon: Icons.spa_outlined,
+          iconColor: const Color(0xFF34C759),
+          iconBgColor: const Color(0xFFE8F5E9),
+          title: '我需要',
+          content: Text(
+            _needs.map((n) => n.need).join('、'),
+            style: const TextStyle(
+              color: Color(0xFF4A4A4A),
+              fontSize: 14,
+              height: 1.5,
+            ),
           ),
-        ],
-      ),
+          onEdit: _editNeeds,
+        ),
+        const SizedBox(height: 12),
+        NVCInfoCard(
+          icon: Icons.lightbulb_outline,
+          iconColor: const Color(0xFFFFB300),
+          iconBgColor: const Color(0xFFFFF8E1),
+          title: '行动 Tips',
+          content: Text(
+            _insight,
+            style: const TextStyle(
+              color: Color(0xFF4A4A4A),
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+          onEdit: _editInsight,
+        ),
+      ],
     );
   }
 
-  Widget _buildDeeperSupportCard({
-    required DeeperSupportRecommendation recommendation,
-    required bool isRecommended,
-    required bool isSelected,
+  /// 专业分析 Tab：列表样式，推荐方法排在第一位并高亮。
+  Widget _buildProfessionalTab({
+    required List<DeeperSupportRecommendation> recommendations,
+    required DeeperSupportType recommendedType,
     required bool hasProAccess,
   }) {
-    return GestureDetector(
-      onTap: () {
-        if (!hasProAccess) {
-          _openDeeperSupport(recommendation);
-          return;
-        }
+    // 已生成结果的方法不再出现在下方列表（避免与顶部摘要卡重复）。
+    final generatedTypes = _deepAnalyses.map((item) => item.type).toSet();
+    final available = recommendations
+        .where((item) => !generatedTypes.contains(item.type.name))
+        .toList();
+    // 推荐方法置顶，其余保持原顺序。
+    final ordered = [
+      ...available.where((item) => item.type == recommendedType),
+      ...available.where((item) => item.type != recommendedType),
+    ];
 
-        setState(() {
-          _selectedDeeperSupportType = recommendation.type;
-        });
-      },
-      child: SizedBox(
-        width: 132,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            if (isSelected)
-              Positioned(
-                top: 6,
-                left: -2,
-                right: -2,
-                bottom: -2,
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: const Color(0xFFC9A979),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            Container(
-              margin: const EdgeInsets.only(top: 8),
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color: AppColors.borderLight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    recommendation.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
-                      height: 1.3,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Expanded(
-                    child: Text(
-                      recommendation.theorySource,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textMuted,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 已生成的深入分析结果（若有），置于列表顶部供回看。
+        if (_deepAnalyses.isNotEmpty) ...[
+          ..._deepAnalyses.map(
+            (analysis) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: DeepAnalysisSummaryCard(
+                analysis: analysis,
+                onTap: () => _reviewDeepAnalysis(analysis),
               ),
             ),
-            if (!hasProAccess)
-              Positioned(
-                top: 14,
-                right: 8,
-                child: Icon(
-                  Icons.lock_outline,
-                  size: 15,
-                  color: AppColors.textMuted.withValues(alpha: 0.8),
-                ),
-              ),
-            if (isSelected && hasProAccess)
-              Positioned(
-                top: 0,
-                right: -2,
-                child: Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFC09A67),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFC09A67).withValues(alpha: 0.24),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.check_rounded,
-                    size: 15,
-                    color: Colors.white,
-                  ),
-                ),
-              )
-            else if (isRecommended)
-              Positioned(
-                top: 0,
-                right: -2,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.accent,
-                    borderRadius: BorderRadius.circular(999),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.accent.withValues(alpha: 0.24),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: const Text(
-                    '推荐',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ),
-              ),
-          ],
+          ),
+          const SizedBox(height: 4),
+        ],
+        Text(
+          _professionalHint(
+              hasProAccess: hasProAccess, hasMore: ordered.isNotEmpty),
+          style: AppTypography.sectionSubtle.copyWith(
+            color: AppColors.textMuted,
+            height: 1.45,
+          ),
         ),
-      ),
+        if (ordered.isNotEmpty) const SizedBox(height: 12),
+        ...ordered.map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: AnalysisMethodRow(
+              recommendation: item,
+              isRecommended: item.type == recommendedType,
+              hasProAccess: hasProAccess,
+              onTap: () => _openDeeperSupport(item),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildDeepAnalysisSummary(DeepAnalysisResult analysis) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () async {
-          final result = await Navigator.of(context).push<DeepAnalysisResult>(
-            MaterialPageRoute(
-              builder: (_) => DeeperSupportScreen(analysis: analysis),
-            ),
-          );
-          if (result != null && mounted) {
-            setState(() {
-              _upsertDeepAnalysis(result);
-            });
-          }
-        },
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFFCF8),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.borderLight),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Row(
-                children: [
-                  Icon(
-                    Icons.auto_awesome,
-                    size: 15,
-                    color: AppColors.accent,
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    '深入分析',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.accent,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Spacer(),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    size: 20,
-                    color: AppColors.textMuted,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                analysis.title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${analysis.methodLabel} · ${analysis.theorySource}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTypography.sectionSubtle.copyWith(
-                  fontSize: 11,
-                  color: AppColors.textMuted,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                analysis.groundedUnderstanding,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  height: 1.5,
-                  color: Color(0xFF5A5148),
-                ),
-              ),
-            ],
-          ),
-        ),
+  String _professionalHint(
+      {required bool hasProAccess, required bool hasMore}) {
+    if (!hasProAccess) {
+      return '专业分析是 Pro 会员功能，解锁后可获得 5 种更深一层的帮助。';
+    }
+    if (!hasMore) {
+      return '这条记录适合的方向，你都走过一遍了。需要时随时回看上面的结果。';
+    }
+    return '选一个更贴近此刻的方向，我们再往下走一点。';
+  }
+
+  Future<void> _reviewDeepAnalysis(DeepAnalysisResult analysis) async {
+    final result = await Navigator.of(context).push<DeepAnalysisResult>(
+      MaterialPageRoute(
+        builder: (_) => DeeperSupportScreen(analysis: analysis),
       ),
     );
+    if (result != null && mounted) {
+      setState(() {
+        _upsertDeepAnalysis(result);
+      });
+    }
   }
 
   void _upsertDeepAnalysis(DeepAnalysisResult result) {
@@ -1212,36 +839,6 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
       return;
     }
     _deepAnalyses[existingIndex] = result;
-  }
-
-  Widget _buildDeeperSupportStrip({
-    required List<DeeperSupportRecommendation> recommendations,
-    required DeeperSupportType recommendedType,
-    required bool hasProAccess,
-  }) {
-    return SizedBox(
-      height: 106,
-      child: ListView.separated(
-        controller: _deeperSupportScrollController,
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(top: 2, bottom: 2),
-        itemCount: recommendations.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final recommendation = recommendations[index];
-          return Opacity(
-            opacity: hasProAccess ? 1 : 0.52,
-            child: _buildDeeperSupportCard(
-              recommendation: recommendation,
-              isRecommended: recommendation.type == recommendedType,
-              isSelected: recommendation.type == _selectedDeeperSupportType,
-              hasProAccess: hasProAccess,
-            ),
-          );
-        },
-      ),
-    );
   }
 }
 

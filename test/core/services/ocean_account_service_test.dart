@@ -1,10 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive/hive.dart';
 import 'package:mindflow/core/network/ocean_api_client.dart';
 import 'package:mindflow/core/services/icloud_sync_service.dart';
 import 'package:mindflow/core/services/ocean_account_cache_service.dart';
 import 'package:mindflow/core/services/ocean_account_service.dart';
 import 'package:mindflow/core/services/ocean_record_ownership_service.dart';
 import 'package:mindflow/core/services/ocean_sync_service.dart';
+import 'package:mindflow/core/services/pending_sync_tracker.dart';
+import 'package:mindflow/data/datasources/local/hive_database.dart';
 
 void main() {
   test(
@@ -166,8 +169,7 @@ void main() {
     expect(syncService.restoreSnapshotCount, 1);
   });
 
-  test(
-      'sms login restores server snapshot in background and notifies twice',
+  test('sms login restores server snapshot in background and notifies twice',
       () async {
     final api = _FakeAccountApi();
     final syncService = _FakeSyncService();
@@ -289,6 +291,68 @@ void main() {
     expect(restored, isTrue);
     expect(iCloudSyncService.setEnabledCalls, [false]);
     expect(syncService.restoreObservedICloudDisabled, isTrue);
+  });
+
+  test('flushPendingLocalData runs once on first launch then clears backfill',
+      () async {
+    final api = _FakeAccountApi()..loggedInEmail = 'user@example.com';
+    final syncService = _FakeSyncService();
+    final tracker = PendingSyncTracker(database: _FakeHiveDatabase());
+    final service = OceanAccountService(
+      api: api,
+      syncService: syncService,
+      cacheService: _FakeAccountCacheService(),
+      refreshService: OceanAccountDataRefreshService(),
+      pendingSync: tracker,
+    );
+
+    // 首次：触发一次性回填补推
+    await service.flushPendingLocalData();
+    expect(syncService.pushAllLocalDataCount, 1);
+    expect(tracker.shouldRunBackfill, isFalse);
+
+    // 再次：回填已完成且无待同步 → 不再推送
+    await service.flushPendingLocalData();
+    expect(syncService.pushAllLocalDataCount, 1);
+  });
+
+  test('flushPendingLocalData pushes again when a record is pending', () async {
+    final api = _FakeAccountApi()..loggedInEmail = 'user@example.com';
+    final syncService = _FakeSyncService();
+    final tracker = PendingSyncTracker(database: _FakeHiveDatabase());
+    await tracker.markBackfillDone();
+    final service = OceanAccountService(
+      api: api,
+      syncService: syncService,
+      cacheService: _FakeAccountCacheService(),
+      refreshService: OceanAccountDataRefreshService(),
+      pendingSync: tracker,
+    );
+
+    await service.flushPendingLocalData();
+    expect(syncService.pushAllLocalDataCount, 0); // 无待同步，跳过
+
+    await tracker.markRecord('record-1');
+    await service.flushPendingLocalData();
+    expect(syncService.pushAllLocalDataCount, 1);
+    expect(tracker.hasPending, isFalse); // 推送成功后清标
+  });
+
+  test('flushPendingLocalData skips when signed out', () async {
+    final api = _FakeAccountApi(); // 未登录
+    final syncService = _FakeSyncService();
+    final tracker = PendingSyncTracker(database: _FakeHiveDatabase());
+    final service = OceanAccountService(
+      api: api,
+      syncService: syncService,
+      cacheService: _FakeAccountCacheService(),
+      refreshService: OceanAccountDataRefreshService(),
+      pendingSync: tracker,
+    );
+
+    await service.flushPendingLocalData();
+    expect(syncService.pushAllLocalDataCount, 0);
+    expect(tracker.shouldRunBackfill, isTrue); // 未执行，状态不变
   });
 }
 
@@ -461,5 +525,34 @@ class _FakeICloudSyncService extends Fake implements ICloudSyncService {
   Future<void> setEnabled(bool enabled) async {
     setEnabledCalls.add(enabled);
     _enabled = enabled;
+  }
+}
+
+class _FakeHiveDatabase extends Fake implements HiveDatabase {
+  final _FakeSettingsBox _settingsBox = _FakeSettingsBox();
+
+  @override
+  Box<dynamic> get settingsBox => _settingsBox;
+}
+
+class _FakeSettingsBox extends Fake implements Box<dynamic> {
+  final Map<String, dynamic> _store = {};
+
+  @override
+  Iterable<dynamic> get keys => _store.keys;
+
+  @override
+  dynamic get(dynamic key, {dynamic defaultValue}) {
+    return _store.containsKey(key) ? _store[key] : defaultValue;
+  }
+
+  @override
+  Future<void> put(dynamic key, dynamic value) async {
+    _store[key as String] = value;
+  }
+
+  @override
+  Future<void> delete(dynamic key) async {
+    _store.remove(key);
   }
 }

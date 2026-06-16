@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:hive/hive.dart';
 import 'package:mindflow/core/network/ocean_api_client.dart';
 import 'package:mindflow/core/services/ocean_record_ownership_service.dart';
+import 'package:mindflow/core/services/pending_sync_tracker.dart';
 import 'package:mindflow/data/datasources/local/hive_database.dart';
 import 'package:mindflow/data/models/record_model.dart';
 import 'package:mindflow/data/repositories/record_repository_impl.dart';
@@ -96,6 +97,61 @@ void main() {
       ownership.isVisible(recordId: record.id, accountKey: 'user@example.com'),
       isTrue,
     );
+  });
+
+  test('failed server create marks the record as pending sync', () async {
+    final database = _FakeHiveDatabase();
+    final api = _FakeRecordsApi(signedIn: true)
+      ..createError = Exception('server rejected');
+    final ownership = OceanRecordOwnershipService(database);
+    await ownership.setActiveAccount('user@example.com');
+    final pending = PendingSyncTracker(database: database);
+    final repository = RecordRepositoryImpl(
+      database: database,
+      recordsApi: api,
+      accountApi: _FakeAccountApi(accountKey: 'user@example.com'),
+      ownershipService: ownership,
+      pendingSync: pending,
+    );
+
+    await repository.createQuickNote(
+      transcription: 'stranded record',
+      createdAt: DateTime.utc(2026, 5, 24, 8),
+    );
+
+    expect(pending.hasPending, isTrue);
+  });
+
+  test('successful server create does not mark the record as pending sync',
+      () async {
+    final database = _FakeHiveDatabase();
+    final api = _FakeRecordsApi(signedIn: true)
+      ..createResponse = {
+        'data': {
+          'id': 'server-1',
+          'type': 'quick_note',
+          'transcription': 'synced record',
+          'createdAt': '2026-05-24T08:00:00.000Z',
+          'updatedAt': '2026-05-24T08:00:00.000Z',
+        },
+      };
+    final ownership = OceanRecordOwnershipService(database);
+    await ownership.setActiveAccount('user@example.com');
+    final pending = PendingSyncTracker(database: database);
+    final repository = RecordRepositoryImpl(
+      database: database,
+      recordsApi: api,
+      accountApi: _FakeAccountApi(accountKey: 'user@example.com'),
+      ownershipService: ownership,
+      pendingSync: pending,
+    );
+
+    await repository.createQuickNote(
+      transcription: 'synced record',
+      createdAt: DateTime.utc(2026, 5, 24, 8),
+    );
+
+    expect(pending.hasPending, isFalse);
   });
 
   test('createQuickNote falls back locally when server create stalls',

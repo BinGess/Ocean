@@ -6,6 +6,7 @@ import 'dart:convert';
 import '../../core/network/ocean_api_client.dart';
 import '../../core/services/ocean_record_sync_mapper.dart';
 import '../../core/services/ocean_record_ownership_service.dart';
+import '../../core/services/pending_sync_tracker.dart';
 import '../../domain/entities/record.dart';
 import '../../domain/entities/nvc_analysis.dart';
 import '../../domain/entities/day_aggregation.dart';
@@ -18,6 +19,7 @@ class RecordRepositoryImpl implements RecordRepository {
   final OceanRecordsApi? recordsApi;
   final OceanAccountApi? accountApi;
   final OceanRecordOwnershipService? ownershipService;
+  final PendingSyncTracker? pendingSync;
   final Duration serverCreateTimeout;
 
   RecordRepositoryImpl({
@@ -25,6 +27,7 @@ class RecordRepositoryImpl implements RecordRepository {
     this.recordsApi,
     this.accountApi,
     this.ownershipService,
+    this.pendingSync,
     this.serverCreateTimeout = const Duration(seconds: 3),
   });
 
@@ -179,9 +182,14 @@ class RecordRepositoryImpl implements RecordRepository {
             .timeout(serverCreateTimeout);
         final serverRecord = _recordFromResponse(response);
         await _cacheRecord(serverRecord, markCurrentAccount: true);
+        await pendingSync?.unmarkRecord(serverRecord.id);
         return serverRecord;
       } catch (_) {
-        return _cacheLocalRecord(record, markCurrentAccount: true);
+        // 写服务端失败：本地保存并标记「待同步」，由启动/回前台自动补推。
+        final cached =
+            await _cacheLocalRecord(record, markCurrentAccount: true);
+        await pendingSync?.markRecord(record.id);
+        return cached;
       }
     }
 
@@ -281,13 +289,22 @@ class RecordRepositoryImpl implements RecordRepository {
   @override
   Future<Record> updateRecord(Record record) async {
     if (await _isServerFirstEnabled()) {
-      final response = await recordsApi!.updateRecord(
-        record.id,
-        OceanRecordSyncMapper.toServerRecord(record),
-      );
-      final serverRecord = _recordFromResponse(response);
-      await _cacheRecord(serverRecord, markCurrentAccount: true);
-      return serverRecord;
+      try {
+        final response = await recordsApi!.updateRecord(
+          record.id,
+          OceanRecordSyncMapper.toServerRecord(record),
+        );
+        final serverRecord = _recordFromResponse(response);
+        await _cacheRecord(serverRecord, markCurrentAccount: true);
+        await pendingSync?.unmarkRecord(serverRecord.id);
+        return serverRecord;
+      } catch (_) {
+        // 写服务端失败：保留本地最新内容并标记「待同步」，避免改动丢失。
+        final cached =
+            await _cacheLocalRecord(record, markCurrentAccount: true);
+        await pendingSync?.markRecord(record.id);
+        return cached;
+      }
     }
 
     final model = RecordModel.fromEntity(record);

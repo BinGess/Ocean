@@ -230,6 +230,10 @@ class OceanApiClient
 
   final Dio _dio;
 
+  /// 进行中的刷新（单飞）。并发的 401 共享同一次刷新结果，
+  /// 避免多个请求各自拿同一个一次性 refreshToken 去刷、互相把对方刷废。
+  Future<OceanAuthTokens>? _refreshInFlight;
+
   @override
   Future<bool> get isSignedIn async => (await tokenStore.readTokens()) != null;
 
@@ -323,7 +327,24 @@ class OceanApiClient
     }
   }
 
-  Future<OceanAuthTokens> refresh() async {
+  /// 单飞刷新：同一时刻只跑一个刷新，并发调用复用同一个 Future。
+  /// 服务端对 refreshToken 做了一次性轮换，必须串行化，否则并发刷新会
+  /// 用同一个旧 token 各刷各的，导致后到的请求触发「登录已过期」。
+  Future<OceanAuthTokens> refresh() {
+    final existing = _refreshInFlight;
+    if (existing != null) return existing;
+
+    final future = _doRefresh();
+    _refreshInFlight = future;
+    return future.whenComplete(() {
+      // 仅清除指向自己的那次，避免清掉随后启动的新刷新。
+      if (identical(_refreshInFlight, future)) {
+        _refreshInFlight = null;
+      }
+    });
+  }
+
+  Future<OceanAuthTokens> _doRefresh() async {
     final current = await tokenStore.readTokens();
     final refreshToken = current?.refreshToken;
     if (refreshToken == null || refreshToken.isEmpty) {
@@ -629,11 +650,17 @@ class OceanApiClient
     Future<Response<T>> Function() request, {
     bool hasRetried = false,
   }) async {
-    await _applyAccessToken();
+    final usedToken = await _applyAccessToken();
     try {
       return await request();
     } on DioException catch (error) {
       if (error.response?.statusCode == 401 && !hasRetried) {
+        // 若期间已有别的请求刷新过 token，直接用新 token 重试，跳过刷新，
+        // 避免拿已被轮换作废的旧 refreshToken 去刷而误判 session 过期。
+        final latest = (await tokenStore.readTokens())?.accessToken;
+        if (latest != null && latest.isNotEmpty && latest != usedToken) {
+          return _authorizedRequest(request, hasRetried: true);
+        }
         try {
           await refresh();
         } catch (_) {
@@ -650,13 +677,15 @@ class OceanApiClient
     }
   }
 
-  Future<void> _applyAccessToken() async {
+  /// 应用当前 access token 到请求头，并返回所用 token（供 401 重试比对）。
+  Future<String> _applyAccessToken() async {
     final tokens = await tokenStore.readTokens();
     final accessToken = tokens?.accessToken;
     if (accessToken == null || accessToken.isEmpty) {
       throw const OceanAuthException('Missing access token');
     }
     _dio.options.headers['Authorization'] = 'Bearer $accessToken';
+    return accessToken;
   }
 
   Future<OceanAuthTokens> _saveAuthResponse(

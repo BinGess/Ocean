@@ -254,6 +254,71 @@ void main() {
       'PUT /reports/weekly/2026-05-04%20~%202026-05-10',
     ]);
   });
+
+  test('concurrent 401s trigger only one refresh (single-flight)', () async {
+    var refreshCalls = 0;
+    final adapter = _FakeAdapter((options) {
+      if (options.path == '/auth/refresh') {
+        refreshCalls += 1;
+        // 刷新故意延迟，确保两个并发请求都进入「等待刷新」窗口，
+        // 从而验证单飞：二者复用同一次刷新，而不是各刷各的。
+        return Future<ResponseBody>.delayed(
+          const Duration(milliseconds: 50),
+          () => _jsonResponse(
+            body: {
+              'accessToken': 'new-access',
+              'refreshToken': 'new-refresh',
+            },
+            requestOptions: options,
+          ),
+        );
+      }
+      if (options.path == '/sync/push' &&
+          options.headers['Authorization'] == 'Bearer old-access') {
+        return _jsonResponse(
+          statusCode: 401,
+          body: {'message': 'expired'},
+          requestOptions: options,
+        );
+      }
+      if (options.path == '/sync/push' &&
+          options.headers['Authorization'] == 'Bearer new-access') {
+        return _jsonResponse(
+          statusCode: 201,
+          body: {'accepted': 1, 'ignored': 0, 'cursor': '7'},
+          requestOptions: options,
+        );
+      }
+      return _jsonResponse(
+        statusCode: 500,
+        body: {'message': 'unexpected request'},
+        requestOptions: options,
+      );
+    });
+    final tokenStore = _MemoryTokenStore(
+      accessToken: 'old-access',
+      refreshToken: 'old-refresh',
+    );
+    final client = OceanApiClient(
+      tokenStore: tokenStore,
+      dio: Dio(BaseOptions(baseUrl: 'https://api.example.test'))
+        ..httpClientAdapter = adapter,
+    );
+
+    final results = await Future.wait([
+      client.pushRecords([
+        {'id': 'record-1'},
+      ]),
+      client.pushRecords([
+        {'id': 'record-2'},
+      ]),
+    ]);
+
+    expect(refreshCalls, 1);
+    expect(results.every((r) => r['cursor'] == '7'), isTrue);
+    expect(tokenStore.accessToken, 'new-access');
+    expect(tokenStore.refreshToken, 'new-refresh');
+  });
 }
 
 typedef _Responder = FutureOr<ResponseBody> Function(RequestOptions options);
