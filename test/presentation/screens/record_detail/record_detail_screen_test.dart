@@ -68,6 +68,64 @@ void main() {
     await tester.pump();
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets('recommended deep analysis still opens basic tab by default',
+      (tester) async {
+    final repository = _FakeRecordRepository();
+    final aiRepository = _PendingAIRepository();
+    final bloc = RecordBloc(
+      createQuickNoteUseCase: CreateQuickNoteUseCase(
+        recordRepository: repository,
+        aiRepository: aiRepository,
+      ),
+      getRecordsUseCase: GetRecordsUseCase(recordRepository: repository),
+      updateRecordUseCase: UpdateRecordUseCase(recordRepository: repository),
+      recordRepository: repository,
+      aiRepository: aiRepository,
+      aiAuthService: _AuthorizedAIAuthService(),
+      dailySummaryService: _FakeDailySummaryService(),
+    );
+
+    addTearDown(() async {
+      aiRepository.complete();
+      await bloc.close();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider<RecordBloc>.value(
+          value: bloc,
+          child: RecordDetailScreen(
+            record: Record(
+              id: 'nvc-record',
+              type: RecordType.quickNote,
+              transcription: '我今天很想把事情做好，但一直担心不够好。',
+              createdAt: DateTime(2026, 3, 22, 10, 30),
+              updatedAt: DateTime(2026, 3, 22, 10, 30),
+              processingMode: ProcessingMode.withNVC,
+              nvc: NVCAnalysis(
+                observation: '记录了对表现的担心',
+                feelings: const [
+                  Feeling(feeling: '焦虑', intensity: IntensityLevel.high),
+                ],
+                needs: const [
+                  Need(need: '肯定', reason: '希望确认自己的努力有价值'),
+                ],
+                request: '先承认自己的努力',
+                recommendedMethod: 'selfCompassion',
+                analyzedAt: DateTime(2026, 3, 22, 10, 31),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Pro'), findsOneWidget);
+    expect(find.text('事实观察'), findsOneWidget);
+    expect(find.textContaining('专业分析是 Pro 会员功能'), findsNothing);
+    expect(find.text('自我关怀与滋养'), findsNothing);
+  });
 }
 
 class _AuthorizedAIAuthService extends Fake implements AIAuthService {

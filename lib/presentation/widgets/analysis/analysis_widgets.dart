@@ -67,12 +67,10 @@ class AnalysisTabBar extends StatelessWidget {
     super.key,
     required this.activeIndex,
     required this.onChanged,
-    this.showProBadge = false,
   });
 
   final int activeIndex;
   final ValueChanged<int> onChanged;
-  final bool showProBadge;
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +83,7 @@ class AnalysisTabBar extends StatelessWidget {
       child: Row(
         children: [
           _segment(label: '基础分析', index: 0),
-          _segment(label: '专业分析', index: 1, withProBadge: showProBadge),
+          _segment(label: '专业分析', index: 1, withProBadge: true),
         ],
       ),
     );
@@ -97,6 +95,7 @@ class AnalysisTabBar extends StatelessWidget {
     bool withProBadge = false,
   }) {
     final isActive = activeIndex == index;
+    final isProfessional = index == 1;
     return Expanded(
       child: GestureDetector(
         onTap: () => onChanged(index),
@@ -105,8 +104,19 @@ class AnalysisTabBar extends StatelessWidget {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isActive ? Colors.white : Colors.transparent,
+            color: isActive
+                ? Colors.white
+                : isProfessional
+                    ? AppColors.accentLight.withValues(alpha: 0.38)
+                    : Colors.transparent,
             borderRadius: BorderRadius.circular(9),
+            border: isProfessional
+                ? Border.all(
+                    color: AppColors.accent.withValues(
+                      alpha: isActive ? 0.18 : 0.12,
+                    ),
+                  )
+                : null,
             boxShadow: isActive
                 ? [
                     BoxShadow(
@@ -125,29 +135,67 @@ class AnalysisTabBar extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                  color: isActive ? AppColors.textPrimary : AppColors.textMuted,
+                  color: isActive || isProfessional
+                      ? AppColors.textPrimary
+                      : AppColors.textMuted,
                 ),
               ),
               if (withProBadge) ...[
                 const SizedBox(width: 6),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.accentLight,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: const Text(
-                    'Pro',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Color(0xFF8D6A3B),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
+                _AnimatedProBadge(isActive: isActive),
               ],
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AnimatedProBadge extends StatelessWidget {
+  const _AnimatedProBadge({required this.isActive});
+
+  final bool isActive;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 900),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        final guideScale = isActive ? 1.0 : 1.06 - (0.06 * value);
+        final bgAlpha = isActive ? 1.0 : 0.82 + (0.18 * value);
+        return Transform.scale(
+          scale: guideScale,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.accentLight.withValues(alpha: bgAlpha),
+              borderRadius: BorderRadius.circular(999),
+              boxShadow: isActive
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: AppColors.accent.withValues(
+                          alpha: 0.12 * (1 - value),
+                        ),
+                        blurRadius: 8 + (8 * (1 - value)),
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+            ),
+            child: child,
+          ),
+        );
+      },
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        child: Text(
+          'Pro',
+          style: TextStyle(
+            fontSize: 10,
+            color: Color(0xFF8D6A3B),
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),

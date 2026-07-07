@@ -407,7 +407,6 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
       AnalysisTabBar(
         activeIndex: _activeAnalysisTab,
         onChanged: (index) => setState(() => _activeAnalysisTab = index),
-        showProBadge: !_hasProAccess,
       ),
       const SizedBox(height: AppSpacing.lg),
       if (_activeAnalysisTab == 0)

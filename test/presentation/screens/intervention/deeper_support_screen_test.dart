@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mindflow/core/theme/app_colors.dart';
 import 'package:mindflow/domain/entities/deep_analysis_result.dart';
 import 'package:mindflow/domain/entities/nvc_analysis.dart';
 import 'package:mindflow/presentation/screens/intervention/deeper_support_screen.dart';
@@ -183,6 +184,76 @@ void main() {
     expect(find.text('新的理解'), findsOneWidget);
     expect(find.text('更贴近的理解'), findsOneWidget);
     expect(find.text('先做一件小事'), findsOneWidget);
+  });
+
+  testWidgets('self-compassion high face stays aligned with app palette',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DeeperSupportScreen(
+          analysis: buildAnalysis(
+            face: 'high',
+            resonance: '终于能松一口气了。',
+            observedValue: '你匆匆带过的好',
+          ),
+        ),
+      ),
+    );
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+    expect(scaffold.backgroundColor, AppColors.bgPrimary);
+
+    final completeButton = tester.widget<TextButton>(
+      find.byKey(const ValueKey('deep-analysis-complete-button')),
+    );
+    expect(
+      completeButton.style?.backgroundColor?.resolve({}),
+      AppColors.accent,
+    );
+  });
+
+  testWidgets('deep analysis loading and inline action use app primary color',
+      (tester) async {
+    final completer = Completer<DeepAnalysisResult>();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DeeperSupportScreen(
+          analysis: buildAnalysis(face: 'low'),
+          transcription: '这是一段等待真实分析的记录',
+          analysisLoader: (_, __) => completer.future,
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final loadingButton = tester.widget<TextButton>(
+      find.byKey(const ValueKey('deep-analysis-complete-button')),
+    );
+    expect(
+      loadingButton.style?.backgroundColor?.resolve({WidgetState.disabled}),
+      AppColors.accent.withValues(alpha: 0.42),
+    );
+
+    completer.complete(
+      buildAnalysis(
+        face: 'low',
+        resonance: '先慢一点。',
+        observedValue: '是不是我不够好',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final actionContainer = tester.widget<AnimatedContainer>(
+      find.ancestor(
+        of: find.text('试一下'),
+        matching: find.byType(AnimatedContainer),
+      ),
+    );
+    final decoration = actionContainer.decoration! as BoxDecoration;
+    expect(decoration.color, AppColors.accent);
   });
 
   testWidgets('ACT observed thought is not struck through', (tester) async {

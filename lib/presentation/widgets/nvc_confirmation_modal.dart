@@ -571,7 +571,6 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
                         activeIndex: _activeAnalysisTab,
                         onChanged: (index) =>
                             setState(() => _activeAnalysisTab = index),
-                        showProBadge: !hasProAccess,
                       ),
                       const SizedBox(height: 16),
                       if (_activeAnalysisTab == 0)

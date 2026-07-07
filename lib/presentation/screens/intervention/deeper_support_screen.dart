@@ -539,15 +539,16 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
       analysis.type == DeeperSupportType.cognitiveReframe.name;
 
   Color get _bodyColor {
-    if (!_isStructured) return AppColors.bgPrimary;
-    return _isHighFace ? AppColors.accentWarm : AppColors.bgPrimary;
+    return AppColors.bgPrimary;
   }
 
-  Color get _cardColor =>
-      _isHighFace ? const Color(0xFFFFFCF4) : AppColors.bgCard;
+  Color get _cardColor => AppColors.bgCard;
 
-  Color get _softAccentColor =>
-      _isHighFace ? const Color(0xFFFFF0CB) : AppColors.accentLight;
+  Color get _softAccentColor => AppColors.accentLight;
+
+  Color get _faceAccentColor => AppColors.accent;
+
+  Color get _faceAccentDeepColor => AppColors.textSecondary;
 
   @override
   Widget build(BuildContext context) {
@@ -584,7 +585,7 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
                     analysis.title,
                     style: AppTypography.pageTitle.copyWith(
                       fontSize: 24,
-                      color: AppColors.textSecondary,
+                      color: AppColors.textPrimary,
                       letterSpacing: 0,
                     ),
                   ),
@@ -595,10 +596,10 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.58),
+                      color: Colors.white.withValues(alpha: 0.74),
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(
-                        color: AppColors.borderLight.withValues(alpha: 0.7),
+                        color: AppColors.borderLight,
                       ),
                     ),
                     child: Text(
@@ -644,9 +645,9 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
                 color: _bodyColor,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF5D4E3C).withValues(alpha: 0.06),
-                    blurRadius: 14,
-                    offset: const Offset(0, -4),
+                    color: AppColors.textSecondary.withValues(alpha: 0.05),
+                    blurRadius: 18,
+                    offset: const Offset(0, -5),
                   ),
                 ],
               ),
@@ -663,10 +664,11 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
                             : () => Navigator.of(context).pop(analysis),
                     style: TextButton.styleFrom(
                       backgroundColor: _loadingAgent
-                          ? AppColors.accent.withValues(alpha: 0.42)
-                          : AppColors.textSecondary,
-                      disabledBackgroundColor:
-                          AppColors.accent.withValues(alpha: 0.42),
+                          ? _faceAccentColor.withValues(alpha: 0.42)
+                          : AppColors.accent,
+                      disabledBackgroundColor: _faceAccentColor.withValues(
+                        alpha: 0.42,
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -708,13 +710,13 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
               color: _softAccentColor,
               shape: BoxShape.circle,
             ),
-            child: const Center(
+            child: Center(
               child: SizedBox(
                 width: 21,
                 height: 21,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.3,
-                  color: AppColors.accent,
+                  color: _faceAccentColor,
                 ),
               ),
             ),
@@ -826,14 +828,14 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
       decoration: BoxDecoration(
         color: _softAccentColor,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.borderLight.withValues(alpha: 0.7)),
+        border: Border.all(color: AppColors.borderLight),
       ),
       child: Text(
         _isHighFace ? '高光时刻 · 接住自己的好' : '低谷时刻 · 站回自己这边',
         style: AppTypography.chipLabel.copyWith(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: AppColors.textSecondary,
+          color: _faceAccentDeepColor,
         ),
       ),
     );
@@ -911,9 +913,9 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
         border: Border.all(color: AppColors.borderLight),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF5D4E3C).withValues(alpha: 0.035),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
+            color: AppColors.textSecondary.withValues(alpha: 0.045),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -955,7 +957,7 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
                 width: 34,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEFE7DB),
+                  color: AppColors.borderLight,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -963,7 +965,7 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
                 width: 34 * fraction,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.accent,
+                  color: _faceAccentColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -982,7 +984,7 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
       color: AppColors.textMuted,
       decoration:
           _strikeObserved ? TextDecoration.lineThrough : TextDecoration.none,
-      decorationColor: _strikeObserved ? const Color(0xFFB8AC9C) : null,
+      decorationColor: _strikeObserved ? AppColors.textMuted : null,
     );
 
     return _buildCard(
@@ -1004,20 +1006,20 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
             style: observedStyle,
           ),
           const SizedBox(height: 12),
-          const Center(
+          Center(
             child: Icon(
               Icons.arrow_downward_rounded,
               size: 17,
-              color: AppColors.accent,
+              color: _faceAccentColor,
             ),
           ),
           const SizedBox(height: 12),
           Text(
             analysis.truthLabel ?? '',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF8D6A3B),
+              color: _faceAccentDeepColor,
             ),
           ),
           const SizedBox(height: 8),
@@ -1025,16 +1027,16 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color:
-                  _isHighFace ? const Color(0xFFFFF3D6) : AppColors.accentLight,
+              color: AppColors.accentWarm,
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.borderLight),
             ),
             child: Text(
               analysis.truthValue ?? '',
               style: AppTypography.bodyPrimary.copyWith(
                 fontSize: 14,
                 height: 1.62,
-                color: AppColors.textSecondary,
+                color: AppColors.textPrimary,
               ),
             ),
           ),
@@ -1048,16 +1050,16 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.auto_awesome, size: 15, color: AppColors.accent),
-              SizedBox(width: 6),
+              Icon(Icons.auto_awesome, size: 15, color: _faceAccentColor),
+              const SizedBox(width: 6),
               Text(
                 '一句洞察',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.accent,
+                  color: _faceAccentColor,
                 ),
               ),
             ],
@@ -1069,7 +1071,7 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
               fontSize: 15,
               height: 1.68,
               fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
+              color: AppColors.textPrimary,
             ),
           ),
         ],
@@ -1093,15 +1095,15 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
                     ? Icons.bookmark_add_outlined
                     : Icons.volunteer_activism_outlined,
                 size: 15,
-                color: AppColors.accent,
+                color: _faceAccentColor,
               ),
               const SizedBox(width: 6),
-              const Text(
+              Text(
                 '现在试试',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.accent,
+                  color: _faceAccentColor,
                 ),
               ),
             ],
@@ -1112,6 +1114,7 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
             style: AppTypography.bodySecondary.copyWith(
               fontSize: 14,
               height: 1.65,
+              color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 12),
@@ -1126,13 +1129,11 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color:
-                      _actionDone ? _softAccentColor : AppColors.textSecondary,
+                  color: _actionDone ? _softAccentColor : AppColors.accent,
                   borderRadius: BorderRadius.circular(999),
                   border: Border.all(
-                    color: _actionDone
-                        ? AppColors.borderLight
-                        : AppColors.textSecondary,
+                    color:
+                        _actionDone ? AppColors.borderLight : AppColors.accent,
                   ),
                 ),
                 child: Text(
@@ -1140,7 +1141,7 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: _actionDone ? AppColors.textSecondary : Colors.white,
+                    color: _actionDone ? _faceAccentDeepColor : Colors.white,
                   ),
                 ),
               ),
@@ -1163,10 +1164,10 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
               color: _softAccentColor,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.format_quote_rounded,
               size: 18,
-              color: AppColors.accent,
+              color: _faceAccentColor,
             ),
           ),
           const SizedBox(width: 10),
@@ -1179,7 +1180,7 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
                   fontSize: 16,
                   height: 1.62,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
@@ -1199,9 +1200,9 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
         border: Border.all(color: AppColors.borderLight),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF5D4E3C).withValues(alpha: 0.035),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
+            color: AppColors.textSecondary.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -1222,7 +1223,7 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
             style: AppTypography.sectionTitle.copyWith(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
+              color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 12),
@@ -1231,6 +1232,7 @@ class _DeeperSupportScreenState extends State<DeeperSupportScreen> {
             style: AppTypography.bodySecondary.copyWith(
               fontSize: 14,
               height: 1.65,
+              color: AppColors.textSecondary,
             ),
           ),
         ],
