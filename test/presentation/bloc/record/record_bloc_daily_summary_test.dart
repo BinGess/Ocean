@@ -3,8 +3,9 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mindflow/core/services/ai_auth_service.dart';
 import 'package:mindflow/core/services/daily_summary_service.dart';
+import 'package:mindflow/core/services/ocean_account_service.dart';
 import 'package:mindflow/domain/entities/daily_summary.dart';
-import 'package:mindflow/domain/entities/insight_report.dart';
+import 'package:mindflow/domain/entities/deep_analysis_result.dart';
 import 'package:mindflow/domain/entities/nvc_analysis.dart';
 import 'package:mindflow/domain/entities/record.dart';
 import 'package:mindflow/domain/entities/weekly_insight.dart';
@@ -68,6 +69,55 @@ void main() {
           DateTime.utc(2026, 5, 17, 17, 10).toLocalDay());
     },
   );
+
+  test('saving a record immediately flushes pending server sync and notifies',
+      () async {
+    final record = Record(
+      id: 'record-1',
+      type: RecordType.quickNote,
+      transcription: '今天记录了三件事',
+      createdAt: DateTime(2026, 7, 7, 10),
+      updatedAt: DateTime(2026, 7, 7, 10),
+    );
+    final repository = _FakeRecordRepository(
+      initialRecords: const [],
+      nextCreatedRecord: record,
+    );
+    final accountService = _FakeOceanAccountService();
+    final refreshService = OceanAccountDataRefreshService();
+    var refreshCount = 0;
+    final subscription = refreshService.changes.listen((_) => refreshCount++);
+    addTearDown(subscription.cancel);
+    addTearDown(refreshService.dispose);
+    final bloc = RecordBloc(
+      createQuickNoteUseCase: CreateQuickNoteUseCase(
+        recordRepository: repository,
+        aiRepository: _FakeAIRepository(),
+      ),
+      getRecordsUseCase: GetRecordsUseCase(recordRepository: repository),
+      updateRecordUseCase: UpdateRecordUseCase(recordRepository: repository),
+      recordRepository: repository,
+      aiRepository: _FakeAIRepository(),
+      aiAuthService: _FakeAIAuthService(),
+      dailySummaryService: _FakeDailySummaryService(),
+      accountService: accountService,
+      refreshService: refreshService,
+    );
+    addTearDown(bloc.close);
+
+    bloc.add(
+      const RecordCreateQuickNote(
+        mode: ProcessingMode.onlyRecord,
+        transcription: '今天记录了三件事',
+      ),
+    );
+
+    await accountService.flushed;
+    await Future<void>.delayed(Duration.zero);
+
+    expect(accountService.flushCount, 1);
+    expect(refreshCount, 1);
+  });
 }
 
 extension on DateTime {
@@ -135,6 +185,7 @@ class _FakeRecordRepository extends Fake implements RecordRepository {
     List<String>? moods,
     List<String>? needs,
     NVCAnalysis? nvc,
+    List<DeepAnalysisResult>? deepAnalyses,
     DateTime? createdAt,
   }) async {
     _records.add(nextCreatedRecord);
@@ -199,4 +250,22 @@ class _FakeAIRepository extends Fake implements AIRepository {
 class _FakeAIAuthService extends Fake implements AIAuthService {
   @override
   Future<bool> get isAuthorized async => true;
+}
+
+class _FakeOceanAccountService extends Fake implements OceanAccountService {
+  final Completer<void> _flushed = Completer<void>();
+  int flushCount = 0;
+
+  Future<void> get flushed => _flushed.future.timeout(
+        const Duration(seconds: 1),
+        onTimeout: () => throw StateError('Pending sync was not flushed'),
+      );
+
+  @override
+  Future<void> flushPendingLocalData() async {
+    flushCount += 1;
+    if (!_flushed.isCompleted) {
+      _flushed.complete();
+    }
+  }
 }

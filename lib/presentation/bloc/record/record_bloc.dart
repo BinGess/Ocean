@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
+import '../../../domain/entities/deep_analysis_result.dart';
 import '../../../domain/entities/record.dart';
 import '../../../domain/usecases/create_quick_note_usecase.dart';
 import '../../../domain/usecases/get_records_usecase.dart';
@@ -12,6 +13,7 @@ import '../../../domain/repositories/ai_repository.dart';
 import '../../../core/services/ai_auth_service.dart';
 import '../../../core/services/daily_summary_service.dart';
 import '../../../core/services/deep_analysis_local_service.dart';
+import '../../../core/services/ocean_account_service.dart';
 import 'record_event.dart';
 import 'record_state.dart';
 
@@ -24,6 +26,8 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
   final AIAuthService aiAuthService;
   final DailySummaryService dailySummaryService;
   final DeepAnalysisLocalService? deepAnalysisService;
+  final OceanAccountService? accountService;
+  final OceanAccountDataRefreshService? refreshService;
 
   RecordBloc({
     required this.createQuickNoteUseCase,
@@ -34,6 +38,8 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     required this.aiAuthService,
     required this.dailySummaryService,
     this.deepAnalysisService,
+    this.accountService,
+    this.refreshService,
   }) : super(RecordState.initial()) {
     // 注册事件处理器
     on<RecordCreateQuickNote>(_onCreateQuickNote);
@@ -170,6 +176,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
           transcription: event.transcription,
           nvcAnalysis: event.nvcAnalysis,
           createdAt: event.createdAt,
+          deepAnalyses: event.deepAnalyses,
         ),
       ).timeout(const Duration(seconds: 10), onTimeout: () {
         throw Exception('创建记录超时');
@@ -194,6 +201,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
       ));
 
       unawaited(_refreshDailySummaryAfterSave(record.createdAt));
+      unawaited(_syncAccountDataAfterRecordMutation());
     } catch (e) {
       debugPrint('RecordBloc: Create quick note failed: $e');
       emit(state.copyWith(
@@ -294,12 +302,13 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
           limit: event.limit,
         ),
       );
+      final migratedRecords = await _migrateLocalDeepAnalyses(records);
 
       final limit = event.limit;
       emit(state.copyWith(
         status: RecordStatus.success,
-        records: records,
-        hasMore: limit != null && records.length >= limit,
+        records: migratedRecords,
+        hasMore: limit != null && migratedRecords.length >= limit,
         clearLatest: true,
         clearTranscriptionError: true,
       ));
@@ -312,6 +321,53 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     }
   }
 
+  Future<List<Record>> _migrateLocalDeepAnalyses(List<Record> records) async {
+    final service = deepAnalysisService;
+    if (service == null || records.isEmpty) {
+      return records;
+    }
+
+    final migrated = <Record>[];
+    for (final record in records) {
+      final localResults = service.getForRecord(record.id);
+      if (localResults.isEmpty) {
+        migrated.add(record);
+        continue;
+      }
+
+      final mergedResults = _mergeDeepAnalyses(
+        record.deepAnalyses ?? const [],
+        localResults,
+      );
+      try {
+        final updated = await recordRepository.updateRecord(
+          record.copyWith(deepAnalyses: mergedResults),
+        );
+        await service.deleteForRecord(record.id);
+        migrated.add(updated);
+      } catch (e) {
+        debugPrint(
+          'RecordBloc: Deep analysis migration failed for ${record.id}: $e',
+        );
+        migrated.add(record.copyWith(deepAnalyses: mergedResults));
+      }
+    }
+    return migrated;
+  }
+
+  List<DeepAnalysisResult> _mergeDeepAnalyses(
+    List<DeepAnalysisResult> existing,
+    List<DeepAnalysisResult> local,
+  ) {
+    final byType = <String, DeepAnalysisResult>{
+      for (final item in existing) item.type: item,
+    };
+    for (final item in local) {
+      byType[item.type] = item;
+    }
+    return byType.values.toList(growable: false);
+  }
+
   /// 更新记录
   Future<void> _onUpdate(
     RecordUpdate event,
@@ -320,8 +376,11 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     try {
       final previousRecord =
           await recordRepository.getRecordById(event.record.id);
+      final recordForUpdate = event.deepAnalyses == null
+          ? event.record
+          : event.record.copyWith(deepAnalyses: event.deepAnalyses);
       final updatedRecord = await updateRecordUseCase(
-        UpdateRecordParams(record: event.record),
+        UpdateRecordParams(record: recordForUpdate),
       );
       if (event.deepAnalyses != null) {
         await deepAnalysisService?.saveForRecord(
@@ -345,6 +404,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
       ));
 
       unawaited(_refreshDailySummaryAfterUpdate(previousRecord, updatedRecord));
+      unawaited(_syncAccountDataAfterRecordMutation());
     } catch (e) {
       emit(state.copyWith(
         status: RecordStatus.error,
@@ -377,6 +437,7 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
       ));
 
       unawaited(_refreshDailySummaryAfterDelete(deletedRecord));
+      unawaited(_syncAccountDataAfterRecordMutation());
     } catch (e) {
       emit(state.copyWith(
         status: RecordStatus.error,
@@ -417,5 +478,15 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
     // 1. 找到记录
     // 2. 根据新模式重新分析
     // 3. 更新记录
+  }
+
+  Future<void> _syncAccountDataAfterRecordMutation() async {
+    try {
+      await accountService?.flushPendingLocalData();
+    } catch (e) {
+      debugPrint('RecordBloc: Flush pending record sync failed: $e');
+    } finally {
+      refreshService?.notifyChanged();
+    }
   }
 }

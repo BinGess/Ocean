@@ -62,6 +62,7 @@ class _MyScreenState extends State<MyScreen> {
       _accountDataSubscription =
           getIt<OceanAccountDataRefreshService>().changes.listen((_) {
         if (!mounted) return;
+        context.read<InsightBloc>().add(const InsightAccountDataChanged());
         _reloadProfileAndAccountState();
       });
     }

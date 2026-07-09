@@ -166,18 +166,37 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
 
   Future<void> _loadSavedDeepAnalysis() async {
     final recordId = widget.record?.id;
-    if (recordId == null || !getIt.isRegistered<DeepAnalysisLocalService>()) {
+    if (recordId == null) {
       return;
     }
 
-    final saved = getIt<DeepAnalysisLocalService>().getForRecord(recordId);
-    if (saved.isEmpty || !mounted) return;
+    final saved = getIt.isRegistered<DeepAnalysisLocalService>()
+        ? getIt<DeepAnalysisLocalService>().getForRecord(recordId)
+        : const <DeepAnalysisResult>[];
+    final merged = _mergeDeepAnalyses(
+      widget.record?.deepAnalyses ?? const [],
+      saved,
+    );
+    if (merged.isEmpty || !mounted) return;
 
     setState(() {
       _deepAnalyses
         ..clear()
-        ..addAll(saved);
+        ..addAll(merged);
     });
+  }
+
+  List<DeepAnalysisResult> _mergeDeepAnalyses(
+    List<DeepAnalysisResult> synced,
+    List<DeepAnalysisResult> local,
+  ) {
+    final byType = <String, DeepAnalysisResult>{
+      for (final item in synced) item.type: item,
+    };
+    for (final item in local) {
+      byType[item.type] = item;
+    }
+    return byType.values.toList(growable: false);
   }
 
   Future<void> _pickRecordDateTime() async {

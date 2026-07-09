@@ -2,6 +2,7 @@
 // 负责音频录制、转写、分析和保存的完整流程
 
 import 'dart:io';
+import '../entities/deep_analysis_result.dart';
 import '../entities/record.dart';
 import '../entities/nvc_analysis.dart';
 import '../repositories/record_repository.dart';
@@ -15,6 +16,7 @@ class CreateQuickNoteParams {
   final String? transcription;
   final NVCAnalysis? nvcAnalysis;
   final DateTime? createdAt;
+  final List<DeepAnalysisResult>? deepAnalyses;
 
   CreateQuickNoteParams({
     this.audioPath,
@@ -23,6 +25,7 @@ class CreateQuickNoteParams {
     this.transcription,
     this.nvcAnalysis,
     this.createdAt,
+    this.deepAnalyses,
   });
 }
 
@@ -103,6 +106,7 @@ class CreateQuickNoteUseCase extends UseCase<Record, CreateQuickNoteParams> {
       moods: moods,
       needs: needs,
       nvc: nvc,
+      deepAnalyses: params.deepAnalyses,
       createdAt: params.createdAt,
     );
   }

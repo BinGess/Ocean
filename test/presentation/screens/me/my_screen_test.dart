@@ -35,6 +35,8 @@ class _FakeHiveDatabase extends Fake implements HiveDatabase {
 }
 
 class _FakeInsightBloc extends Fake implements InsightBloc {
+  final List<InsightEvent> addedEvents = [];
+
   @override
   InsightState get state => InsightState.initial();
 
@@ -42,7 +44,9 @@ class _FakeInsightBloc extends Fake implements InsightBloc {
   Stream<InsightState> get stream => const Stream.empty();
 
   @override
-  void add(InsightEvent event) {}
+  void add(InsightEvent event) {
+    addedEvents.add(event);
+  }
 
   @override
   Future<void> close() async {}
@@ -102,6 +106,10 @@ void main() {
     if (getIt.isRegistered<OceanAccountService>()) {
       getIt.unregister<OceanAccountService>();
     }
+    if (getIt.isRegistered<OceanAccountDataRefreshService>()) {
+      getIt<OceanAccountDataRefreshService>().dispose();
+      getIt.unregister<OceanAccountDataRefreshService>();
+    }
   });
 
   testWidgets('我的页点击头像、昵称或签名都可以编辑头像和昵称', (tester) async {
@@ -144,6 +152,31 @@ void main() {
     await tester.tap(find.text('保持流动'));
     await tester.pumpAndSettle();
     expect(find.text('编辑个人信息'), findsOneWidget);
+  });
+
+  testWidgets('账号数据刷新通知会重新加载本周概览', (tester) async {
+    final refreshService = OceanAccountDataRefreshService();
+    getIt.registerSingleton<OceanAccountDataRefreshService>(refreshService);
+    addTearDown(() {
+      if (getIt.isRegistered<OceanAccountDataRefreshService>()) {
+        getIt<OceanAccountDataRefreshService>().dispose();
+        getIt.unregister<OceanAccountDataRefreshService>();
+      }
+    });
+
+    await tester.pumpWidget(_buildTestable(insightBloc: fakeInsightBloc));
+    await tester.pump();
+    final initialReloadCount = fakeInsightBloc.addedEvents
+        .whereType<InsightAccountDataChanged>()
+        .length;
+
+    refreshService.notifyChanged();
+    await tester.pump();
+
+    expect(
+      fakeInsightBloc.addedEvents.whereType<InsightAccountDataChanged>().length,
+      initialReloadCount + 1,
+    );
   });
 
   testWidgets('我的页提供管理订阅和更多设置入口', (tester) async {

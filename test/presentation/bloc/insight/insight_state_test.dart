@@ -4,7 +4,8 @@ import 'package:mindflow/domain/entities/weekly_analysis.dart';
 import 'package:mindflow/presentation/bloc/insight/insight_state.dart';
 
 void main() {
-  test('InsightState copyWith keeps and clears weekly analysis correctly', () {
+  test('InsightState copyWith clears report without dropping weekly analysis',
+      () {
     const analysis = WeeklyAnalysis(
       weekRange: '2026-03-16 ~ 2026-03-22',
       totalRecords: 5,
@@ -49,6 +50,6 @@ void main() {
     final cleared = state.copyWith(clearReport: true);
 
     expect(cleared.currentReport, isNull);
-    expect(cleared.weeklyAnalysis, isNull);
+    expect(cleared.weeklyAnalysis, analysis);
   });
 }

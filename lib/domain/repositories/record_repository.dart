@@ -3,6 +3,7 @@
 
 import '../entities/record.dart';
 import '../entities/day_aggregation.dart';
+import '../entities/deep_analysis_result.dart';
 import '../entities/nvc_analysis.dart';
 
 abstract class RecordRepository {
@@ -15,6 +16,7 @@ abstract class RecordRepository {
     List<String>? moods,
     List<String>? needs,
     NVCAnalysis? nvc,
+    List<DeepAnalysisResult>? deepAnalyses,
     DateTime? createdAt,
   });
 

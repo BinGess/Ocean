@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mindflow/domain/entities/deep_analysis_result.dart';
 import 'package:mindflow/domain/entities/nvc_analysis.dart';
 import 'package:mindflow/domain/entities/record.dart';
 import 'package:mindflow/domain/entities/weekly_analysis.dart';
@@ -39,6 +40,7 @@ class _FakeRecordRepository implements RecordRepository {
     List<String>? moods,
     List<String>? needs,
     NVCAnalysis? nvc,
+    List<DeepAnalysisResult>? deepAnalyses,
     DateTime? createdAt,
   }) {
     throw UnimplementedError();

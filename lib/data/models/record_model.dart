@@ -3,6 +3,7 @@
 library;
 
 import 'package:hive/hive.dart';
+import '../../domain/entities/deep_analysis_result.dart';
 import '../../domain/entities/record.dart';
 import '../../domain/entities/nvc_analysis.dart';
 
@@ -64,6 +65,9 @@ class RecordModel extends HiveObject {
   @HiveField(17)
   final String? patternFeedback;
 
+  @HiveField(18)
+  final List<Map<String, dynamic>>? deepAnalyses;
+
   RecordModel({
     required this.id,
     required this.type,
@@ -83,6 +87,7 @@ class RecordModel extends HiveObject {
     this.weekRange,
     this.referencedRecords,
     this.patternFeedback,
+    this.deepAnalyses,
   });
 
   /// 从 Domain 实体转换
@@ -119,6 +124,7 @@ class RecordModel extends HiveObject {
       weekRange: entity.weekRange,
       referencedRecords: entity.referencedRecords,
       patternFeedback: entity.patternFeedback,
+      deepAnalyses: entity.deepAnalyses?.map((item) => item.toJson()).toList(),
     );
   }
 
@@ -144,6 +150,9 @@ class RecordModel extends HiveObject {
       weekRange: weekRange,
       referencedRecords: referencedRecords,
       patternFeedback: patternFeedback,
+      deepAnalyses: deepAnalyses
+          ?.map((item) => DeepAnalysisResult.fromJson(_normalizeJsonMap(item)))
+          .toList(),
     );
   }
 
@@ -246,6 +255,7 @@ class RecordModel extends HiveObject {
     String? weekRange,
     List<String>? referencedRecords,
     String? patternFeedback,
+    List<Map<String, dynamic>>? deepAnalyses,
   }) {
     return RecordModel(
       id: id ?? this.id,
@@ -266,6 +276,7 @@ class RecordModel extends HiveObject {
       weekRange: weekRange ?? this.weekRange,
       referencedRecords: referencedRecords ?? this.referencedRecords,
       patternFeedback: patternFeedback ?? this.patternFeedback,
+      deepAnalyses: deepAnalyses ?? this.deepAnalyses,
     );
   }
 }

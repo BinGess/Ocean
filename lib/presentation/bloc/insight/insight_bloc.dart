@@ -143,6 +143,13 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
         endDate: endDate,
       );
       if (serverAnalysis != null) {
+        if (serverAnalysis.totalRecords == 0) {
+          final localAnalysis = await _buildLocalAnalysis(weekRange, params);
+          if (localAnalysis != null && localAnalysis.totalRecords > 0) {
+            debugPrint('ℹ️ InsightBloc: 服务端周分析为空，使用本地周分析数据');
+            return localAnalysis;
+          }
+        }
         debugPrint('✅ InsightBloc: 使用服务端周分析数据');
         return serverAnalysis;
       }
@@ -151,6 +158,13 @@ class InsightBloc extends Bloc<InsightEvent, InsightState> {
     }
 
     // 降级：本地计算（离线 / 未登录 / 服务端异常）
+    return _buildLocalAnalysis(weekRange, params);
+  }
+
+  Future<WeeklyAnalysis?> _buildLocalAnalysis(
+    String weekRange,
+    GenerateInsightReportParams params,
+  ) async {
     try {
       return await buildWeeklyAnalysisUseCase(
         BuildWeeklyAnalysisParams(

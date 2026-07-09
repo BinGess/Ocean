@@ -6,6 +6,7 @@ import 'package:mindflow/core/services/ai_auth_service.dart';
 import 'package:mindflow/core/services/daily_summary_service.dart';
 import 'package:mindflow/domain/entities/daily_summary.dart';
 import 'package:mindflow/domain/entities/nvc_analysis.dart';
+import 'package:mindflow/domain/entities/deep_analysis_result.dart';
 import 'package:mindflow/domain/entities/record.dart';
 import 'package:mindflow/domain/repositories/ai_repository.dart';
 import 'package:mindflow/domain/repositories/audio_repository.dart';
@@ -168,6 +169,7 @@ class _FakeRecordRepository extends Fake implements RecordRepository {
     List<String>? moods,
     List<String>? needs,
     NVCAnalysis? nvc,
+    List<DeepAnalysisResult>? deepAnalyses,
     DateTime? createdAt,
   }) async {
     final record = Record(
@@ -182,6 +184,7 @@ class _FakeRecordRepository extends Fake implements RecordRepository {
       moods: moods,
       needs: needs,
       nvc: nvc,
+      deepAnalyses: deepAnalyses,
     );
     createdRecords.add(record);
     return record;

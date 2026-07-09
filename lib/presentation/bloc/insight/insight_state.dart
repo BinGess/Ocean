@@ -108,8 +108,7 @@ class InsightState extends Equatable {
       currentInsight:
           clearCurrent ? null : (currentInsight ?? this.currentInsight),
       currentReport: clearReport ? null : (currentReport ?? this.currentReport),
-      weeklyAnalysis:
-          clearReport ? null : (weeklyAnalysis ?? this.weeklyAnalysis),
+      weeklyAnalysis: weeklyAnalysis ?? this.weeklyAnalysis,
       lastFetchTime: clearReport ? null : (lastFetchTime ?? this.lastFetchTime),
       currentWeekRange:
           clearReport ? null : (currentWeekRange ?? this.currentWeekRange),

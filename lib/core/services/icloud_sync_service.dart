@@ -397,6 +397,7 @@ class ICloudSyncService {
       'moods': model.moods,
       'needs': model.needs,
       'nvc': model.nvc,
+      'deep_analyses': model.deepAnalyses,
     };
   }
 
@@ -427,6 +428,7 @@ class ICloudSyncService {
       moods: _toStringList(json['moods']),
       needs: _toStringList(json['needs']),
       nvc: _mapOrNull(json['nvc']),
+      deepAnalyses: _toListOfMaps(json['deep_analyses']),
     );
   }
 

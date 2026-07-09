@@ -7,6 +7,7 @@ import '../../core/network/ocean_api_client.dart';
 import '../../core/services/ocean_record_sync_mapper.dart';
 import '../../core/services/ocean_record_ownership_service.dart';
 import '../../core/services/pending_sync_tracker.dart';
+import '../../domain/entities/deep_analysis_result.dart';
 import '../../domain/entities/record.dart';
 import '../../domain/entities/nvc_analysis.dart';
 import '../../domain/entities/day_aggregation.dart';
@@ -40,6 +41,7 @@ class RecordRepositoryImpl implements RecordRepository {
     List<String>? moods,
     List<String>? needs,
     NVCAnalysis? nvc,
+    List<DeepAnalysisResult>? deepAnalyses,
     DateTime? createdAt,
   }) async {
     final recordTime = createdAt ?? DateTime.now();
@@ -55,6 +57,7 @@ class RecordRepositoryImpl implements RecordRepository {
       moods: moods,
       needs: needs,
       nvc: nvc,
+      deepAnalyses: deepAnalyses,
     );
     return await _createRecord(record);
   }
@@ -134,6 +137,7 @@ class RecordRepositoryImpl implements RecordRepository {
       moods: record.moods,
       needs: record.needs,
       nvc: record.nvc,
+      deepAnalyses: record.deepAnalyses,
       title: record.title,
       summary: record.summary,
     );
@@ -158,6 +162,7 @@ class RecordRepositoryImpl implements RecordRepository {
       processingMode: record.processingMode,
       moods: record.moods,
       needs: record.needs,
+      deepAnalyses: record.deepAnalyses,
       title: record.title,
       summary: record.summary,
     );

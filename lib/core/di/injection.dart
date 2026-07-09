@@ -377,6 +377,8 @@ Future<void> configureDependencies() async {
       aiAuthService: getIt<AIAuthService>(),
       dailySummaryService: getIt<DailySummaryService>(),
       deepAnalysisService: getIt<DeepAnalysisLocalService>(),
+      accountService: getIt<OceanAccountService>(),
+      refreshService: getIt<OceanAccountDataRefreshService>(),
     ),
   );
 

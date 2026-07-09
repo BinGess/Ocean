@@ -62,13 +62,30 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
   }
 
   void _loadSavedDeepAnalysis() {
-    if (!getIt.isRegistered<DeepAnalysisLocalService>()) return;
-    final saved =
-        getIt<DeepAnalysisLocalService>().getForRecord(widget.record.id);
-    if (saved.isEmpty) return;
+    final saved = getIt.isRegistered<DeepAnalysisLocalService>()
+        ? getIt<DeepAnalysisLocalService>().getForRecord(widget.record.id)
+        : const <DeepAnalysisResult>[];
+    final merged = _mergeDeepAnalyses(
+      widget.record.deepAnalyses ?? const [],
+      saved,
+    );
+    if (merged.isEmpty) return;
     _deepAnalyses
       ..clear()
-      ..addAll(saved);
+      ..addAll(merged);
+  }
+
+  List<DeepAnalysisResult> _mergeDeepAnalyses(
+    List<DeepAnalysisResult> synced,
+    List<DeepAnalysisResult> local,
+  ) {
+    final byType = <String, DeepAnalysisResult>{
+      for (final item in synced) item.type: item,
+    };
+    for (final item in local) {
+      byType[item.type] = item;
+    }
+    return byType.values.toList(growable: false);
   }
 
   List<String> _normalizeMoodTags(List<String> source) {

@@ -3,6 +3,7 @@
 library;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'deep_analysis_result.dart';
 import 'nvc_analysis.dart';
 
 part 'record.freezed.dart';
@@ -45,6 +46,7 @@ class Record with _$Record {
     List<String>? moods,
     List<String>? needs,
     NVCAnalysis? nvc,
+    List<DeepAnalysisResult>? deepAnalyses,
 
     // 日记特定字段
     String? title,
@@ -75,6 +77,7 @@ extension QuickNoteFactory on Record {
     List<String>? moods,
     List<String>? needs,
     NVCAnalysis? nvc,
+    List<DeepAnalysisResult>? deepAnalyses,
   }) {
     return Record(
       id: id,
@@ -87,6 +90,7 @@ extension QuickNoteFactory on Record {
       moods: moods,
       needs: needs,
       nvc: nvc,
+      deepAnalyses: deepAnalyses,
     );
   }
 }

@@ -18,6 +18,8 @@ class OceanRecordSyncMapper {
       'moods': record.moods,
       'needs': record.needs,
       'nvc': record.nvc?.toJson(),
+      'deepAnalyses':
+          record.deepAnalyses?.map((item) => item.toJson()).toList(),
       'title': record.title,
       'summary': record.summary,
       'date': record.date,
