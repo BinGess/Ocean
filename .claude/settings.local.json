@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(browse)",
+      "Skill(browse:*)",
+      "Skill(gstack-upgrade)",
+      "Skill(gstack-upgrade:*)",
+      "Bash(python3 .claude/skills/ui-ux-pro-max/scripts/search.py \"letter paper stationery warm vintage document elegant\" --design-system -p \"Sarah Letter\")",
+      "Bash(flutter analyze *)",
+      "Bash(dart analyze *)",
+      "Bash(xargs cat -n)",
+      "Bash(find ~/.pub-cache -path \"*/record-5*\" -name \"*.dart\" | grep -E \"\\(audio_recorder|record\\)\" | head -10 2>/dev/null || find ~/.pub-cache -path \"*/record-*\" -name \"*.dart\" | head -10)",
+      "Bash(grep -v \"^$\")"
+    ]
+  }
+}

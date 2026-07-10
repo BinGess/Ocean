@@ -470,12 +470,23 @@ class NVCInfoCard extends StatelessWidget {
                 ),
               ),
               if (onEdit != null)
-                GestureDetector(
-                  onTap: onEdit,
-                  child: Icon(
-                    Icons.edit_outlined,
-                    size: 18,
-                    color: Colors.grey[400],
+                Semantics(
+                  button: true,
+                  label: '编辑$title',
+                  child: InkResponse(
+                    onTap: onEdit,
+                    radius: 22,
+                    child: SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: Center(
+                        child: Icon(
+                          Icons.edit_outlined,
+                          size: 18,
+                          color: Colors.grey[400],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
             ],
@@ -497,6 +508,138 @@ class NVCInfoCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 行动 Tips 内容：将 "1. ...；2. ..." 这类连续文本整理成更易扫读的编号列表。
+class NVCActionTipsContent extends StatelessWidget {
+  const NVCActionTipsContent({
+    super.key,
+    required this.text,
+    required this.style,
+  });
+
+  final String text;
+  final TextStyle style;
+
+  static final RegExp _numberedTipPattern =
+      RegExp(r'(^|[\s；;。.!?！？])([1-9]\d*)[.．、]\s*');
+
+  @override
+  Widget build(BuildContext context) {
+    final tips = _extractTips(text);
+    if (tips.isEmpty) {
+      return Text(text, style: style);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var index = 0; index < tips.length; index++) ...[
+          if (index > 0) ...[
+            const SizedBox(height: 10),
+            const _ActionTipDivider(),
+            const SizedBox(height: 10),
+          ],
+          _ActionTipRow(
+            number: index + 1,
+            text: tips[index],
+            style: style,
+          ),
+        ],
+      ],
+    );
+  }
+
+  static List<String> _extractTips(String source) {
+    final trimmed = source.trim();
+    if (trimmed.isEmpty) return const [];
+
+    final matches = _numberedTipPattern.allMatches(trimmed).toList();
+    if (matches.isEmpty) return const [];
+
+    final tips = <String>[];
+    for (var index = 0; index < matches.length; index++) {
+      final start = matches[index].end;
+      final end = index + 1 < matches.length
+          ? matches[index + 1].start
+          : trimmed.length;
+      final tip = _cleanTip(trimmed.substring(start, end));
+      if (tip.isNotEmpty) {
+        tips.add(tip);
+      }
+    }
+    return tips;
+  }
+
+  static String _cleanTip(String value) {
+    return value
+        .trim()
+        .replaceFirst(RegExp(r'^[；;，,。.\s]+'), '')
+        .replaceFirst(RegExp(r'[；;\s]+$'), '');
+  }
+}
+
+class _ActionTipRow extends StatelessWidget {
+  const _ActionTipRow({
+    required this.number,
+    required this.text,
+    required this.style,
+  });
+
+  final int number;
+  final String text;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.accentWarm,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: AppColors.accent.withValues(alpha: 0.24),
+              width: 0.8,
+            ),
+          ),
+          child: Text(
+            '$number',
+            style: AppTypography.chipLabel.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w700,
+              height: 1,
+              fontSize: 11,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: style.copyWith(height: 1.62),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionTipDivider extends StatelessWidget {
+  const _ActionTipDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 1,
+      margin: const EdgeInsets.only(left: 34),
+      color: AppColors.borderLight.withValues(alpha: 0.72),
     );
   }
 }

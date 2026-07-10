@@ -487,7 +487,10 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
         iconColor: const Color(0xFFFFB300),
         iconBgColor: const Color(0xFFFFF8E1),
         title: '行动 Tips',
-        content: Text(insight, style: AppTypography.detailBody),
+        content: NVCActionTipsContent(
+          text: insight,
+          style: AppTypography.detailBody,
+        ),
       ),
     ];
   }

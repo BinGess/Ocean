@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/skills/gstack/bin/gstack-update-check 2>/dev/null; for skill_dir in ~/.claude/skills/gstack/*/; do [ -f \"$skill_dir/SKILL.md\" ] || continue; skill_name=\"$(basename \"$skill_dir\")\"; [ \"$skill_name\" = \"node_modules\" ] && continue; target=\"$HOME/.claude/skills/$skill_name\"; [ -L \"$target\" ] || [ ! -e \"$target\" ] && ln -snf \"gstack/$skill_name\" \"$target\" 2>/dev/null || true; done"
+          }
+        ]
+      }
+    ]
+  }
+}
