@@ -753,6 +753,7 @@ class _NVCConfirmationModalState extends State<NVCConfirmationModal> {
           iconColor: const Color(0xFFFFB300),
           iconBgColor: const Color(0xFFFFF8E1),
           title: '行动 Tips',
+          showPrompt: false,
           content: NVCActionTipsContent(
             text: _insight,
             style: const TextStyle(

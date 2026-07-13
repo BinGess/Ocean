@@ -487,6 +487,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
         iconColor: const Color(0xFFFFB300),
         iconBgColor: const Color(0xFFFFF8E1),
         title: '行动 Tips',
+        showPrompt: false,
         content: NVCActionTipsContent(
           text: insight,
           style: AppTypography.detailBody,
@@ -538,12 +539,9 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
         ),
         const SizedBox(height: AppSpacing.xs),
       ],
-      Text(
-        hint,
-        style: AppTypography.sectionSubtle.copyWith(
-          color: AppColors.textMuted,
-          height: 1.45,
-        ),
+      _ProfessionalAnalysisIntro(
+        hint: hint,
+        isLocked: !hasProAccess,
       ),
       if (ordered.isNotEmpty) const SizedBox(height: AppSpacing.md),
       ...ordered.map(
@@ -903,6 +901,49 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ProfessionalAnalysisIntro extends StatelessWidget {
+  const _ProfessionalAnalysisIntro({
+    required this.hint,
+    required this.isLocked,
+  });
+
+  final String hint;
+  final bool isLocked;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.bgCard,
+        borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            isLocked ? Icons.lock_outline : Icons.auto_awesome_outlined,
+            size: 18,
+            color: isLocked ? AppColors.accent : AppColors.sage,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              hint,
+              style: AppTypography.sectionSubtle.copyWith(
+                color: AppColors.textMuted,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

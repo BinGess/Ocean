@@ -79,6 +79,7 @@ class AnalysisTabBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.bgCardSecondary,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderLight),
       ),
       child: Row(
         children: [
@@ -95,56 +96,49 @@ class AnalysisTabBar extends StatelessWidget {
     bool withProBadge = false,
   }) {
     final isActive = activeIndex == index;
-    final isProfessional = index == 1;
     return Expanded(
-      child: GestureDetector(
-        onTap: () => onChanged(index),
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isActive
-                ? Colors.white
-                : isProfessional
-                    ? AppColors.accentLight.withValues(alpha: 0.38)
-                    : Colors.transparent,
+      child: Semantics(
+        button: true,
+        selected: isActive,
+        label: '$label${isActive ? "，当前选中" : ""}',
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => onChanged(index),
             borderRadius: BorderRadius.circular(9),
-            border: isProfessional
-                ? Border.all(
-                    color: AppColors.accent.withValues(
-                      alpha: isActive ? 0.18 : 0.12,
-                    ),
-                  )
-                : null,
-            boxShadow: isActive
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFF5D4E3C).withValues(alpha: 0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                  color: isActive || isProfessional
-                      ? AppColors.textPrimary
-                      : AppColors.textMuted,
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            hoverColor: Colors.transparent,
+            child: Container(
+              height: 44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isActive ? Colors.white : Colors.transparent,
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(
+                  color: isActive ? AppColors.border : Colors.transparent,
                 ),
               ),
-              if (withProBadge) ...[
-                const SizedBox(width: 6),
-                _AnimatedProBadge(isActive: isActive),
-              ],
-            ],
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                      color: isActive
+                          ? AppColors.textPrimary
+                          : AppColors.textMuted,
+                    ),
+                  ),
+                  if (withProBadge) ...[
+                    const SizedBox(width: 6),
+                    const _ProBadge(),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -152,51 +146,23 @@ class AnalysisTabBar extends StatelessWidget {
   }
 }
 
-class _AnimatedProBadge extends StatelessWidget {
-  const _AnimatedProBadge({required this.isActive});
-
-  final bool isActive;
+class _ProBadge extends StatelessWidget {
+  const _ProBadge();
 
   @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 900),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) {
-        final guideScale = isActive ? 1.0 : 1.06 - (0.06 * value);
-        final bgAlpha = isActive ? 1.0 : 0.82 + (0.18 * value);
-        return Transform.scale(
-          scale: guideScale,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: AppColors.accentLight.withValues(alpha: bgAlpha),
-              borderRadius: BorderRadius.circular(999),
-              boxShadow: isActive
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: AppColors.accent.withValues(
-                          alpha: 0.12 * (1 - value),
-                        ),
-                        blurRadius: 8 + (8 * (1 - value)),
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-            ),
-            child: child,
-          ),
-        );
-      },
-      child: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        child: Text(
-          'Pro',
-          style: TextStyle(
-            fontSize: 10,
-            color: Color(0xFF8D6A3B),
-            fontWeight: FontWeight.w700,
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.accentLight,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: const Text(
+        'Pro',
+        style: TextStyle(
+          fontSize: 10,
+          color: Color(0xFF8D6A3B),
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -220,6 +186,9 @@ class AnalysisMethodRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final titleStyle = AppTypography.sectionTitle.copyWith(
+      color: AppColors.textPrimary,
+    );
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -228,13 +197,13 @@ class AnalysisMethodRow extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
-            color: isRecommended ? Colors.white : AppColors.bgCard,
+            color: AppColors.bgCard,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isRecommended
-                  ? AppColors.accent.withValues(alpha: 0.55)
+                  ? AppColors.accent.withValues(alpha: 0.72)
                   : AppColors.borderLight,
-              width: isRecommended ? 1.5 : 1,
+              width: 1,
             ),
           ),
           child: Column(
@@ -250,13 +219,7 @@ class AnalysisMethodRow extends StatelessWidget {
                             recommendation.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: isRecommended
-                                  ? AppColors.textPrimary
-                                  : AppColors.textSecondary,
-                            ),
+                            style: titleStyle,
                           ),
                         ),
                         if (isRecommended) ...[
@@ -267,14 +230,17 @@ class AnalysisMethodRow extends StatelessWidget {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.accent,
+                              color: AppColors.accentLight,
                               borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: AppColors.accent.withValues(alpha: 0.5),
+                              ),
                             ),
                             child: const Text(
                               '为此刻推荐',
                               style: TextStyle(
                                 fontSize: 10,
-                                color: Colors.white,
+                                color: Color(0xFF8D6A3B),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -284,13 +250,13 @@ class AnalysisMethodRow extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Icon(
-                    hasProAccess
-                        ? Icons.chevron_right_rounded
-                        : Icons.lock_outline,
-                    size: hasProAccess ? 20 : 15,
-                    color: AppColors.textMuted,
-                  ),
+                  hasProAccess
+                      ? const Icon(
+                          Icons.chevron_right_rounded,
+                          size: 20,
+                          color: AppColors.textMuted,
+                        )
+                      : const _ProLockedBadge(),
                 ],
               ),
               const SizedBox(height: 4),
@@ -298,25 +264,52 @@ class AnalysisMethodRow extends StatelessWidget {
                 '${recommendation.methodLabel} · ${recommendation.theorySource}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.textMuted,
-                ),
+                style: AppTypography.sectionSubtle.copyWith(fontSize: 11),
               ),
               const SizedBox(height: 8),
               Text(
                 recommendation.shortDescription,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  height: 1.5,
-                  color: Color(0xFF5A5148),
+                style: AppTypography.bodySecondary.copyWith(
+                  fontSize: 14,
+                  height: 1.55,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ProLockedBadge extends StatelessWidget {
+  const _ProLockedBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.accentLight,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.lock_outline, size: 12, color: Color(0xFF8D6A3B)),
+          SizedBox(width: 3),
+          Text(
+            'Pro',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF8D6A3B),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -339,13 +332,13 @@ class DeepAnalysisSummaryCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFFCF8),
-            borderRadius: BorderRadius.circular(14),
+            color: AppColors.bgCard,
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColors.borderLight),
           ),
           child: Column(
@@ -374,9 +367,7 @@ class DeepAnalysisSummaryCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 analysis.title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                style: AppTypography.sectionTitle.copyWith(
                   color: AppColors.textPrimary,
                 ),
               ),
@@ -395,10 +386,10 @@ class DeepAnalysisSummaryCard extends StatelessWidget {
                 analysis.groundedUnderstanding,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  height: 1.5,
-                  color: Color(0xFF5A5148),
+                style: AppTypography.bodySecondary.copyWith(
+                  fontSize: 14,
+                  height: 1.55,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -419,6 +410,7 @@ class NVCInfoCard extends StatelessWidget {
     required this.iconBgColor,
     required this.title,
     required this.content,
+    this.showPrompt = true,
     this.onEdit,
   });
 
@@ -427,6 +419,7 @@ class NVCInfoCard extends StatelessWidget {
   final Color iconBgColor;
   final String title;
   final Widget content;
+  final bool showPrompt;
   final VoidCallback? onEdit;
 
   @override
@@ -434,15 +427,9 @@ class NVCInfoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: AppColors.borderLight),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -462,9 +449,7 @@ class NVCInfoCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                  style: AppTypography.sectionTitle.copyWith(
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -492,20 +477,26 @@ class NVCInfoCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(
-                  '也许...',
-                  style: TextStyle(color: Colors.grey[400], fontSize: 13),
+          if (showPrompt)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: 2),
+                  child: Text(
+                    '也许...',
+                    style: TextStyle(
+                      color: AppColors.textSubtle,
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(child: content),
-            ],
-          ),
+                const SizedBox(width: 8),
+                Expanded(child: content),
+              ],
+            )
+          else
+            content,
         ],
       ),
     );
@@ -543,8 +534,8 @@ class NVCActionTipsContent extends StatelessWidget {
             const SizedBox(height: 10),
           ],
           _ActionTipRow(
-            number: index + 1,
-            text: tips[index],
+            number: tips[index].number,
+            text: tips[index].text,
             style: style,
           ),
         ],
@@ -552,14 +543,14 @@ class NVCActionTipsContent extends StatelessWidget {
     );
   }
 
-  static List<String> _extractTips(String source) {
+  static List<_ActionTip> _extractTips(String source) {
     final trimmed = source.trim();
     if (trimmed.isEmpty) return const [];
 
     final matches = _numberedTipPattern.allMatches(trimmed).toList();
     if (matches.isEmpty) return const [];
 
-    final tips = <String>[];
+    final tips = <_ActionTip>[];
     for (var index = 0; index < matches.length; index++) {
       final start = matches[index].end;
       final end = index + 1 < matches.length
@@ -567,7 +558,7 @@ class NVCActionTipsContent extends StatelessWidget {
           : trimmed.length;
       final tip = _cleanTip(trimmed.substring(start, end));
       if (tip.isNotEmpty) {
-        tips.add(tip);
+        tips.add(_ActionTip(number: matches[index].group(2)!, text: tip));
       }
     }
     return tips;
@@ -581,6 +572,13 @@ class NVCActionTipsContent extends StatelessWidget {
   }
 }
 
+class _ActionTip {
+  const _ActionTip({required this.number, required this.text});
+
+  final String number;
+  final String text;
+}
+
 class _ActionTipRow extends StatelessWidget {
   const _ActionTipRow({
     required this.number,
@@ -588,7 +586,7 @@ class _ActionTipRow extends StatelessWidget {
     required this.style,
   });
 
-  final int number;
+  final String number;
   final String text;
   final TextStyle style;
 
@@ -610,7 +608,7 @@ class _ActionTipRow extends StatelessWidget {
             ),
           ),
           child: Text(
-            '$number',
+            number,
             style: AppTypography.chipLabel.copyWith(
               color: AppColors.textSecondary,
               fontWeight: FontWeight.w700,

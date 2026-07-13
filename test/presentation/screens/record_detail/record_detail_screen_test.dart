@@ -111,7 +111,7 @@ void main() {
                 needs: const [
                   Need(need: '肯定', reason: '希望确认自己的努力有价值'),
                 ],
-                request: '先承认自己的努力',
+                request: '1. 先承认自己的努力；2. 给自己十分钟的休息时间。',
                 recommendedMethod: 'selfCompassion',
                 analyzedAt: DateTime(2026, 3, 22, 10, 31),
               ),
@@ -123,8 +123,19 @@ void main() {
 
     expect(find.text('Pro'), findsOneWidget);
     expect(find.text('事实观察'), findsOneWidget);
+    expect(find.text('也许...'), findsNWidgets(3));
+    expect(find.text('1'), findsOneWidget);
     expect(find.textContaining('专业分析是 Pro 会员功能'), findsNothing);
     expect(find.text('自我关怀与滋养'), findsNothing);
+
+    await tester.tap(find.text('专业分析'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('专业分析是 Pro 会员功能，解锁后可获得 5 种更深一层的帮助。'),
+      findsOneWidget,
+    );
+    expect(find.text('事实观察'), findsNothing);
   });
 }
 
